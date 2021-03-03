@@ -131,42 +131,23 @@ function ∇γ_dynamics_fast!(model::ContactDynamicsModel, ∇, q_1, q, u, γ, b
 end
 
 function ∇b_dynamics_fast!(model::ContactDynamicsModel, ∇, q_1, q, u, γ, b, q1)
-    try
+    # try
         return model.fct.db(∇, model.dt, q_1, q, u, γ, b, q1)
-    catch e
-        if isa(e, MethodError)
-            println("You need to instantiate the fast dynamics methods,
-                using instantiate_dynamics!(model, path)")
-        end
-    end
+    # catch e
+    #     if isa(e, MethodError)
+    #         println("You need to instantiate the fast dynamics methods,
+    #             using instantiate_dynamics!(model, path)")
+    #     end
+    # end
 end
 
 function ∇q1_dynamics_fast!(model::ContactDynamicsModel, ∇, q_1, q, u, γ, b, q1)
-    try
-        return model.fct.dq1(model.dt, ∇, q_1, q, u, γ, b, q1)
-    catch e
-        if isa(e, MethodError)
-            println("You need to instantiate the fast dynamics methods,
-                using instantiate_dynamics!(model, path)")
-        end
-    end
+    # try
+        return model.fct.dq1(∇, model.dt, q_1, q, u, γ, b, q1)
+    # catch e
+    #     if isa(e, MethodError)
+    #         println("You need to instantiate the fast dynamics methods,
+    #             using instantiate_dynamics!(model, path)")
+    #     end
+    # end
 end
-
-
-
-quadruped
-instantiate_dynamics!(quadruped, joinpath(@__DIR__, "quadruped_expr.jld2"))
-lagrangian_fast(quadruped, q1s, q̇1s)
-M_fast(quadruped, q1s)
-B_fast(quadruped, q1s)
-N_fast(quadruped, q1s)
-P_fast(quadruped, q1s)
-C_fast(quadruped, q1s, q̇1s)
-dynamics_fast(quadruped, q1s, q2s, u2s, γ2s, b2s, q3s)
-∇z_dynamics_fast!(quadruped,   ∇zs, q1s, q2s, u2s, γ2s, b2s, q3s)
-∇q_1_dynamics_fast!(quadruped, ∇q_1s, q1s, q2s, u2s, γ2s, b2s, q3s)
-∇q_dynamics_fast!(quadruped,   ∇qs, q1s, q2s, u2s, γ2s, b2s, q3s)
-∇u_dynamics_fast!(quadruped,   ∇us, q1s, q2s, u2s, γ2s, b2s, q3s)
-∇γ_dynamics_fast!(quadruped,   ∇γs, q1s, q2s, u2s, γ2s, b2s, q3s)
-∇b_dynamics_fast!(quadruped,   ∇bs, q1s, q2s, u2s, γ2s, b2s, q3s)
-∇q1_dynamics_fast!(quadruped,  ∇qs, q1s, q2s, u2s, γ2s, b2s, q3s)

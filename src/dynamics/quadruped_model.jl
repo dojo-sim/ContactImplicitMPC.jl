@@ -131,7 +131,7 @@ function kinematics_1(model::QuadrupedBasic17, q; body = :torso, mode = :ee)
 end
 
 function jacobian_1(model::QuadrupedBasic17, q; body = :torso, mode = :ee)
-	jac = zeros(eltype(q), 2, model.nq)
+	jac = zeros(eltype(q), 2, model.dim.q)
 	jac[1, 1] = 1.0
 	jac[2, 2] = 1.0
 	if body == :torso
@@ -548,8 +548,8 @@ function friction_cone(model::QuadrupedBasic17, u)
 end
 
 function maximum_dissipation(model::QuadrupedBasic17, x⁺, u, h)
-	q3 = view(x⁺, model.nq .+ (1:model.nq))
-	q2 = view(x⁺, 1:model.nq)
+	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
+	q2 = view(x⁺, 1:model.dim.q)
 	ψ = view(u, model.idx_ψ)
 	ψ_stack = [ψ[1] * ones(2); ψ[2] * ones(2); ψ[3] * ones(2); ψ[4] * ones(2)]
 	η = view(u, model.idx_η)
@@ -557,8 +557,8 @@ function maximum_dissipation(model::QuadrupedBasic17, x⁺, u, h)
 end
 
 function no_slip(model::QuadrupedBasic17, x⁺, u, h)
-	q3 = view(x⁺, model.nq .+ (1:model.nq))
-	q2 = view(x⁺, 1:model.nq)
+	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
+	q2 = view(x⁺, 1:model.dim.q)
 	λ = view(u, model.idx_λ)
 	s = view(u, model.idx_s)
 	λ_stack = [λ[1]; λ[2]; λ[3]; λ[4]]
@@ -566,10 +566,10 @@ function no_slip(model::QuadrupedBasic17, x⁺, u, h)
 end
 
 function fd(model::QuadrupedBasic17, x⁺, x, u, w, h, t)
-	q3 = view(x⁺, model.nq .+ (1:model.nq))
-	q2⁺ = view(x⁺, 1:model.nq)
-	q2⁻ = view(x, model.nq .+ (1:model.nq))
-	q1 = view(x, 1:model.nq)
+	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
+	q2⁺ = view(x⁺, 1:model.dim.q)
+	q2⁻ = view(x, model.dim.q .+ (1:model.dim.q))
+	q1 = view(x, 1:model.dim.q)
 	u_ctrl = view(u, model.idx_u)
 	λ = view(u, model.idx_λ)
 	b = view(u, model.idx_b)
@@ -588,10 +588,10 @@ function fd(model::QuadrupedBasic17, x⁺, x, u, w, h, t)
 end
 
 # function fd(model::QuadrupedBasic17, x⁺, x, u, w, h, t)
-# 	q3 = view(x⁺, model.nq .+ (1:model.nq))
-# 	q2⁺ = view(x⁺, 1:model.nq)
-# 	q2⁻ = view(x, model.nq .+ (1:model.nq))
-# 	q1 = view(x, 1:model.nq)
+# 	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
+# 	q2⁺ = view(x⁺, 1:model.dim.q)
+# 	q2⁻ = view(x, model.dim.q .+ (1:model.dim.q))
+# 	q1 = view(x, 1:model.dim.q)
 # 	u_ctrl = view(u, model.idx_u)
 # 	λ = view(u, model.idx_λ)
 # 	b = view(u, model.idx_b)
@@ -610,8 +610,8 @@ end
 # end
 
 function maximum_dissipation(model::QuadrupedBasic17, x⁺, u, h)
-	q3 = view(x⁺, model.nq .+ (1:model.nq))
-	q2 = view(x⁺, 1:model.nq)
+	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
+	q2 = view(x⁺, 1:model.dim.q)
 	ψ = view(u, model.idx_ψ)
 	ψ_stack = [ψ[1] * ones(2); ψ[2] * ones(2); ψ[3] * ones(2); ψ[4] * ones(2)]
 	η = view(u, model.idx_η)
@@ -886,7 +886,7 @@ function visualize!(vis, model::QuadrupedBasic17, q;
 end
 
 function initial_configuration(model::QuadrupedBasic17, θ)
-    q1 = zeros(model.nq)
+    q1 = zeros(model.dim.q)
     q1[3] = pi / 2.0
     q1[4] = -θ
     q1[5] = θ
