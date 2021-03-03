@@ -1,7 +1,8 @@
-mutable struct QuadrupedBasic17{T} <: QuadrupedModel
+mutable struct QuadrupedBasic18{T} <: QuadrupedModel
 	dim::Dimensions12
 	ind::Indices13
-	fct::DynamicsMethods11
+	bas::BaseMethods12
+	dyn::DynamicsMethods13
 	alt::AbstractVector{T}
 
 	dt::T
@@ -101,7 +102,7 @@ mutable struct QuadrupedBasic17{T} <: QuadrupedModel
     # idx_s
 end
 
-function kinematics_1(model::QuadrupedBasic17, q; body = :torso, mode = :ee)
+function kinematics_1(model::QuadrupedBasic18, q; body = :torso, mode = :ee)
 	x = q[1]
 	z = q[2]
 
@@ -130,7 +131,7 @@ function kinematics_1(model::QuadrupedBasic17, q; body = :torso, mode = :ee)
 	end
 end
 
-function jacobian_1(model::QuadrupedBasic17, q; body = :torso, mode = :ee)
+function jacobian_1(model::QuadrupedBasic18, q; body = :torso, mode = :ee)
 	jac = zeros(eltype(q), 2, model.dim.q)
 	jac[1, 1] = 1.0
 	jac[2, 2] = 1.0
@@ -156,7 +157,7 @@ function jacobian_1(model::QuadrupedBasic17, q; body = :torso, mode = :ee)
 	return jac
 end
 
-function kinematics_2(model::QuadrupedBasic17, q; body = :calf_1, mode = :ee)
+function kinematics_2(model::QuadrupedBasic18, q; body = :calf_1, mode = :ee)
 
 	if body == :calf_1
 		p = kinematics_1(model, q, body = :thigh_1, mode = :ee)
@@ -195,7 +196,7 @@ function kinematics_2(model::QuadrupedBasic17, q; body = :calf_1, mode = :ee)
 	end
 end
 
-function jacobian_2(model::QuadrupedBasic17, q; body = :calf_1, mode = :ee)
+function jacobian_2(model::QuadrupedBasic18, q; body = :calf_1, mode = :ee)
 
 	if body == :calf_1
 		jac = jacobian_1(model, q, body = :thigh_1, mode = :ee)
@@ -239,7 +240,7 @@ function jacobian_2(model::QuadrupedBasic17, q; body = :calf_1, mode = :ee)
 	return jac
 end
 
-function kinematics_3(model::QuadrupedBasic17, q; body = :calf_3, mode = :ee)
+function kinematics_3(model::QuadrupedBasic18, q; body = :calf_3, mode = :ee)
 
 	if body == :calf_3
 		p = kinematics_2(model, q, body = :thigh_3, mode = :ee)
@@ -268,7 +269,7 @@ function kinematics_3(model::QuadrupedBasic17, q; body = :calf_3, mode = :ee)
 	end
 end
 
-function jacobian_3(model::QuadrupedBasic17, q; body = :calf_3, mode = :ee)
+function jacobian_3(model::QuadrupedBasic18, q; body = :calf_3, mode = :ee)
 
 	if body == :calf_3
 		jac = jacobian_2(model, q, body = :thigh_3, mode = :ee)
@@ -298,7 +299,7 @@ end
 
 # Lagrangian
 
-function lagrangian(model::QuadrupedBasic17, q, q̇)
+function lagrangian(model::QuadrupedBasic18, q, q̇)
 	L = 0.0
 
 	# # torso
@@ -385,19 +386,19 @@ function lagrangian(model::QuadrupedBasic17, q, q̇)
 	return L
 end
 
-# function _dLdq(model::QuadrupedBasic17, q, q̇)
-# 	Lq(x) = lagrangian(model, x, q̇)
-# 	ForwardDiff.gradient(Lq, q)
-# end
-#
-# function _dLdq̇(model::QuadrupedBasic17, q, q̇)
-# 	Lq̇(x) = lagrangian(model, q, x)
-# 	ForwardDiff.gradient(Lq̇, q̇)
-# end
+function _dLdq(model::QuadrupedBasic18, q, q̇)
+	Lq(x) = lagrangian(model, x, q̇)
+	ForwardDiff.gradient(Lq, q)
+end
+
+function _dLdq̇(model::QuadrupedBasic18, q, q̇)
+	Lq̇(x) = lagrangian(model, q, x)
+	ForwardDiff.gradient(Lq̇, q̇)
+end
 
 
 # Methods
-function M_func(model::QuadrupedBasic17, q)
+function M_func(model::QuadrupedBasic18, q)
 	M = Diagonal([0.0, 0.0, model.J_torso, model.J_thigh1, model.J_calf1, model.J_thigh2, model.J_calf2, model.J_thigh3, model.J_calf3, model.J_thigh4, model.J_calf4])
 
 	# torso
@@ -439,15 +440,15 @@ function M_func(model::QuadrupedBasic17, q)
 	return M
 end
 
-# function _C_func(model::QuadrupedBasic17, q, q̇)
-# 	tmp_q(z) = _dLdq̇(model, z, q̇)
-# 	tmp_q̇(z) = _dLdq̇(model, q, z)
-#
-# 	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
-# end
+function _C_func(model::QuadrupedBasic18, q, q̇)
+	tmp_q(z) = _dLdq̇(model, z, q̇)
+	tmp_q̇(z) = _dLdq̇(model, q, z)
+
+	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
+end
 
 
-function ϕ_func(model::QuadrupedBasic17, q)
+function ϕ_func(model::QuadrupedBasic18, q)
 	p_calf_1 = kinematics_2(model, q, body = :calf_1, mode = :ee)
 	p_calf_2 = kinematics_2(model, q, body = :calf_2, mode = :ee)
 	p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
@@ -456,11 +457,11 @@ function ϕ_func(model::QuadrupedBasic17, q)
 	@SVector [p_calf_1[2]-model.alt1, p_calf_2[2]-model.alt2, p_calf_3[2]-model.alt3, p_calf_4[2]-model.alt4]
 end
 
-# function ϕ(model::QuadrupedBasic17, q)
+# function ϕ(model::QuadrupedBasic18, q)
 # 	return ϕ_func(model, q)
 # end
 #
-# function ϕ_no_alt(model::QuadrupedBasic17, q)
+# function ϕ_no_alt(model::QuadrupedBasic18, q)
 # 	p_calf_1 = kinematics_2(model, q, body = :calf_1, mode = :ee)
 # 	p_calf_2 = kinematics_2(model, q, body = :calf_2, mode = :ee)
 # 	p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
@@ -469,7 +470,7 @@ end
 # 	@SVector [p_calf_1[2], p_calf_2[2], p_calf_3[2], p_calf_4[2]]
 # end
 
-function tangential_contact_pos(model::QuadrupedBasic17, q)
+function tangential_contact_pos(model::QuadrupedBasic18, q)
 	p_calf_1 = kinematics_2(model, q, body = :calf_1, mode = :ee)
 	p_calf_2 = kinematics_2(model, q, body = :calf_2, mode = :ee)
 	p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
@@ -478,7 +479,7 @@ function tangential_contact_pos(model::QuadrupedBasic17, q)
 	@SVector [p_calf_1[1], 0., p_calf_2[1], 0., p_calf_3[1], 0., p_calf_4[1], 0.]
 end
 
-function B_func(model::QuadrupedBasic17, q)
+function B_func(model::QuadrupedBasic18, q)
 	@SMatrix [0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0;
@@ -486,10 +487,10 @@ function B_func(model::QuadrupedBasic17, q)
 			  0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0;
 			  0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0;
 			  0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0;
-			  0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0]
+			  0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 q[1]]
 end
 
-function N_func(model::QuadrupedBasic17, q)
+function N_func(model::QuadrupedBasic18, q)
 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
@@ -501,15 +502,15 @@ function N_func(model::QuadrupedBasic17, q)
 			view(J_calf_4, 2:2, :)]
 end
 
-# function Nϕ(model::QuadrupedBasic17, q)
+# function Nϕ(model::QuadrupedBasic18, q)
 # 	return N_func(model, q)
 # end
 
-# function D(model::QuadrupedBasic17, q)
+# function D(model::QuadrupedBasic18, q)
 # 	return _P_func(model, q)
 # end
 
-function _P_func(model::QuadrupedBasic17, q)
+function _P_func(model::QuadrupedBasic18, q)
 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
@@ -525,7 +526,7 @@ function _P_func(model::QuadrupedBasic17, q)
 			zeros(SVector{11})']
 end
 
-# function P_func(model::QuadrupedBasic17, q)
+# function P_func(model::QuadrupedBasic18, q)
 # 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
 # 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
 # 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
@@ -538,7 +539,7 @@ end
 # 			map * view(J_calf_4, 1:1, :)]
 # end
 
-function friction_cone(model::QuadrupedBasic17, u)
+function friction_cone(model::QuadrupedBasic18, u)
 	λ = view(u, model.idx_λ)
 	b = view(u, model.idx_b)
 	return @SVector [model.μ * λ[1] - sum(view(b, 1:2)),
@@ -547,7 +548,7 @@ function friction_cone(model::QuadrupedBasic17, u)
 					 model.μ * λ[4] - sum(view(b, 7:8))]
 end
 
-function maximum_dissipation(model::QuadrupedBasic17, x⁺, u, h)
+function maximum_dissipation(model::QuadrupedBasic18, x⁺, u, h)
 	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
 	q2 = view(x⁺, 1:model.dim.q)
 	ψ = view(u, model.idx_ψ)
@@ -556,7 +557,7 @@ function maximum_dissipation(model::QuadrupedBasic17, x⁺, u, h)
 	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
-function no_slip(model::QuadrupedBasic17, x⁺, u, h)
+function no_slip(model::QuadrupedBasic18, x⁺, u, h)
 	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
 	q2 = view(x⁺, 1:model.dim.q)
 	λ = view(u, model.idx_λ)
@@ -565,7 +566,7 @@ function no_slip(model::QuadrupedBasic17, x⁺, u, h)
 	return s[1] - (λ_stack' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
-function fd(model::QuadrupedBasic17, x⁺, x, u, w, h, t)
+function fd(model::QuadrupedBasic18, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
 	q2⁺ = view(x⁺, 1:model.dim.q)
 	q2⁻ = view(x, model.dim.q .+ (1:model.dim.q))
@@ -587,7 +588,7 @@ function fd(model::QuadrupedBasic17, x⁺, x, u, w, h, t)
     - C_func(model, q3, (q3 - q2⁺) / h)))]
 end
 
-# function fd(model::QuadrupedBasic17, x⁺, x, u, w, h, t)
+# function fd(model::QuadrupedBasic18, x⁺, x, u, w, h, t)
 # 	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
 # 	q2⁺ = view(x⁺, 1:model.dim.q)
 # 	q2⁻ = view(x, model.dim.q .+ (1:model.dim.q))
@@ -609,7 +610,7 @@ end
 #     - C_func(model, q3, (q3 - q2⁺) / h)))]
 # end
 
-function maximum_dissipation(model::QuadrupedBasic17, x⁺, u, h)
+function maximum_dissipation(model::QuadrupedBasic18, x⁺, u, h)
 	q3 = view(x⁺, model.dim.q .+ (1:model.dim.q))
 	q2 = view(x⁺, 1:model.dim.q)
 	ψ = view(u, model.idx_ψ)
@@ -676,13 +677,14 @@ d_leg = 0.006435
 
 dim = Dimensions12(nq, nu, nc, nb)
 ind = Indices13(nq, nu, nc, nb)
-dummy_fct = DynamicsMethods11()
+dummy_bas = BaseMethods12()
+dummy_dyn = DynamicsMethods13()
 alt = zeros(SizedVector{nγ})
 # alt1 = 0.0
 # alt2 = 0.0
 # alt3 = 0.0
 # alt4 = 0.0
-quadruped = QuadrupedBasic17(dim, ind, dummy_fct, alt,
+quadruped = QuadrupedBasic18(dim, ind, dummy_bas, dummy_dyn, alt,
 				dt, g, μ, joint_friction,
 				# n, m, d,
 				# alt1, alt2, alt3, alt4,
@@ -730,12 +732,12 @@ quadruped = QuadrupedBasic17(dim, ind, dummy_fct, alt,
 # ddLq̇q = eval(ModelingToolkit.build_function(_ddLq̇q, z_sym)[1])
 # ddL = eval(ModelingToolkit.build_function(_ddL, z_sym)[1])
 
-function C_func(model::QuadrupedBasic17, q, q̇)
+function C_func(model::QuadrupedBasic18, q, q̇)
 	ddLq̇q([q; q̇]) * q̇ - dLq(Vector([q; q̇]))
 end
 
 # visualization
-function visualize!(vis, model::QuadrupedBasic17, q;
+function visualize!(vis, model::QuadrupedBasic18, q;
 	r = 0.025, Δt = 0.1, name::String="quadruped")
 	# default_background!(vis)
 
@@ -885,7 +887,7 @@ function visualize!(vis, model::QuadrupedBasic17, q;
 	MeshCat.setanimation!(vis, anim)
 end
 
-function initial_configuration(model::QuadrupedBasic17, θ)
+function initial_configuration(model::QuadrupedBasic18, θ)
     q1 = zeros(model.dim.q)
     q1[3] = pi / 2.0
     q1[4] = -θ

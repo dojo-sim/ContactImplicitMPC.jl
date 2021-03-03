@@ -26,49 +26,59 @@ function Dimensions12(q::Int,u::Int,c::Int,b::Int)
 end
 
 mutable struct Indices13{Vq_1,Vq,Vu,Vγ,Vb,Vq1,Vθ,Vw}
-    q_1::Vq_1     # qk-1
-    q::Vq         # qk
-    u::Vu         # uk
-    γ::Vγ         # γk
-    b::Vb         # bk
-    q1::Vq1       # qk+1
+    q0::Vq_1      # qk-1
+    q1::Vq        # qk
+    u1::Vu        # uk
+    γ1::Vγ        # γk
+    b1::Vb        # bk
+    q2::Vq1       # qk+1
 	θ::Vθ         # θ = [qk-1; qk; u_k]
 	w::Vw         # w = [γk; bk; qk+1]
 end
 
 function Indices13(q::Int,u::Int,c::Int,b::Int)
 	off = 0
-	iq_1 = SizedVector{q,Int}(off .+ (1:q)); off += q;
-	iq   = SizedVector{q,Int}(off .+ (1:q)); off += q
-	iu   = SizedVector{u,Int}(off .+ (1:u)); off += u
-	iγ   = SizedVector{c,Int}(off .+ (1:c)); off += c
-	ib   = SizedVector{b,Int}(off .+ (1:b)); off += b
-	iq1  = SizedVector{q,Int}(off .+ (1:q)); off += q
-	iθ   = [iq_1; iq; iu]
-	iw   = [iγ; ib; iq1]
-    return Indices13(iq_1,iq,iu,iγ,ib,iq1,iθ,iw)
+	iq0 = SizedVector{q,Int}(off .+ (1:q)); off += q;
+	iq1 = SizedVector{q,Int}(off .+ (1:q)); off += q
+	iu1 = SizedVector{u,Int}(off .+ (1:u)); off += u
+	iγ1 = SizedVector{c,Int}(off .+ (1:c)); off += c
+	ib1 = SizedVector{b,Int}(off .+ (1:b)); off += b
+	iq2 = SizedVector{q,Int}(off .+ (1:q)); off += q
+	iθ  = [iq0; iq1; iu1]
+	iw  = [iγ1; ib1; iq2]
+    return Indices13(iq0,iq1,iu1,iγ1,ib1,iq2,iθ,iw)
 end
 
-mutable struct DynamicsMethods11
+mutable struct DynamicsMethods13
+	d::Any
+	dz::Any
+	dq0::Any
+	dq1::Any
+	du1::Any
+	dγ1::Any
+	db1::Any
+	dq2::Any
+end
+
+function DynamicsMethods13()
+	function f()
+		return nothing
+	end
+	return DynamicsMethods13(fill(f, 8)...)
+end
+
+mutable struct BaseMethods12
 	L::Any
 	M::Any
 	B::Any
 	N::Any
 	P::Any
 	C::Any
-	d::Any
-	dz::Any
-	dq_1::Any
-	dq::Any
-	du::Any
-	dγ::Any
-	db::Any
-	dq1::Any
 end
 
-function DynamicsMethods11()
+function BaseMethods12()
 	function f()
 		return nothing
 	end
-	return DynamicsMethods11(fill(f, 14)...)
+	return BaseMethods12(fill(f, 6)...)
 end
