@@ -7,7 +7,7 @@ using FFMPEG
 using ForwardDiff
 using Ipopt
 using JLD2
-using JuMP
+# using JuMP
 using MeshCat
 # using ModelingToolkit
 using NLsolve

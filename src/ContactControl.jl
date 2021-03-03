@@ -4,19 +4,19 @@ module ContactControl
 greet() = print("Hello World!")
 
 using BenchmarkTools
-using Colors
-using FFMPEG
+# using Colors
+# using FFMPEG
 using ForwardDiff
-using Ipopt
+# using Ipopt
 using JLD2
-using JuMP
+# using JuMP
 using MeshCat
 using ModelingToolkit
-using NLsolve
+# using NLsolve
 using Parameters
 using Plots
 using Rotations
-using SCS
+# using SCS
 using StaticArrays
 using LinearAlgebra
 using Logging
