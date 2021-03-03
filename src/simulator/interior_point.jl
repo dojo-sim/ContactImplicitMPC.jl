@@ -8,68 +8,99 @@ function inequality_check(z, idx_ineq)
 end
 
 # residual
-function r!(r, z, θ, κ)
-
+function r!(r, z, θ)
+    @warn "residual not defined"
+    nothing
 end
 
 # residual Jacobian wrt z
 function rz!(rz, z, θ)
+    @warn "residual Jacobian wrt z not defined"
     nothing
 end
 
 # residual Jacobian wrt θ
 function rθ!(rθ, z, θ)
+    @warn "residual Jacobian wrt θ not defined"
     nothing
+end
+
+mutable struct ResidualData
+    r::Vector # pre-allocated memory for residual
+    θ::Vector # pre-allocated memory for problem data
+    κ         # barrier parameter
+    info::Dict   # additional info
+end
+
+function residual_data(num_var, num_data)
+    ResidualData(zeros(num_var), zeros(num_data), 0.0, Dict())
 end
 
 # data structure containing pre-allocated memory for interior-point solver
-struct InteriorPointData{T}
-    z::Vector{T} # current point
-    w::Vector{T} # candidate point
-    r::Vector{T} # residual
-    r_norm::T    # residual norm
-    r̄::Vector{T} # candidate residual
-    r̄_norm::T    # candidate residual norm
+struct InteriorPointData
+    z # current point
+    z̄ # candidate point
+    r # residual
+    r_norm  # residual norm
+    r̄ # candidate residual
+    r̄_norm   # candidate residual norm
     rz           # residual Jacobian wrt z
     rθ           # residual Jacobian wrt θ
-    Δ::Vector{T} # search direction
+    Δ::Vector # search direction
 
-    θ::Vector{T} # problem data
     idx_ineq     # indices for inequality constraints
 
     δz           # solution gradients
+
+    data::ResidualData # residual data
 end
 
-function differentiate_solution!(data)
-    z = data.z
-    θ = data.θ
-    rz = data.rz
-    rθ = data.rθ
-    δz = data.δz
+function interior_point_data(num_var, num_data, idx_ineq)
+    r_data = residual_data(num_var, num_data)
 
-    rz!(rz, z, θ) # maybe not needed
-    rθ!(rθ, z, θ)
-
-    δz .= -1.0 * rz \ rθ
-    nothing
+    InteriorPointData(
+        zeros(num_var),
+        zeros(num_var),
+        zeros(num_var),
+        0.0,
+        zeros(num_var),
+        0.0,
+        zeros(num_var, num_var),
+        zeros(num_var, num_data),
+        zeros(num_var),
+        idx_ineq,
+        zeros(num_var, num_data),
+        r_data)
 end
 
-"""
-    interior point solver
-"""
-function interior_point!(data,
-    r_tol = 1.0e-5,
-    κ_tol = 1.0e-5,
-    κ_init = 1.0,
-    κ_scale = 0.1,
-    max_iter = 100,
-    max_ls = 50,
-    diff_sol = false)
+# interior-point solver options
+@with_kw mutable struct InteriorPointOptions
+    r_tol = 1.0e-5
+    κ_tol = 1.0e-5
+    κ_init = 1.0
+    κ_scale = 0.1
+    max_iter = 100
+    max_ls = 50
+    diff_sol = false
+end
+
+# interior point solver
+function interior_point!(data::InteriorPointData;
+    opts = InteriorPointOptions())
+
+    # options
+    r_tol = opts.r_tol
+    κ_tol = opts.κ_tol
+    κ_init = opts.κ_init
+    κ_scale = opts.κ_scale
+    max_iter = opts.max_iter
+    max_ls = opts.max_ls
+    diff_sol = opts.diff_sol
 
     # unpack pre-allocated data
     z = data.z
-    w = data.w
-    θ = data.θ
+    z̄ = data.z̄
+    θ = data.data
     r = data.r
     r_norm = data.r_norm
     r̄ = data.r̄
@@ -78,10 +109,10 @@ function interior_point!(data,
     Δ = data.Δ
 
     # initialize barrier parameter
-    κ = κ_init
+    θ.κ = κ_init
 
     # compute residual, residual Jacobian
-    r!(r, z, θ, κ)
+    r!(r, z, θ)
     r_norm = norm(r, Inf)
 
     for k = 1:10
@@ -101,11 +132,11 @@ function interior_point!(data,
             α = 1.0
 
             # candidate point
-            w .= z - α * Δ
+            z̄ .= z - α * Δ
 
             # check inequality constraints
             iter = 0
-            while inequality_check(w, idx_ineq)
+            while inequality_check(z̄, idx_ineq)
                 α = 0.5 * α
                 iter += 1
                 if iter > max_ls
@@ -115,13 +146,13 @@ function interior_point!(data,
             end
 
             # reduce norm of residual
-            r!(r̄, w, θ, κ)
+            r!(r̄, z̄, θ)
             r̄_norm = norm(r̄, Inf)
 
             while r̄_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
                 α = 0.5 * α
-                w .= z - α * Δ
-                r!(r̄, w, θ, κ)
+                z̄ .= z - α * Δ
+                r!(r̄, w, θ)
                 r̄_norm = norm(r̄, Inf)
 
                 iter += 1
@@ -132,15 +163,29 @@ function interior_point!(data,
             end
 
             # update
-            z .= w
+            z .= z̄
             r .= r̄
             r_norm = r̄_norm
         end
 
-        κ < κ_tol ? (return true) : (κ *= κ_scale)
+        θ.κ < κ_tol ? (return true) : (θ.κ *= κ_scale)
     end
 
     diff_sol && differentiate_solution!(data)
 
     return true
+end
+
+function differentiate_solution!(data)
+    z = data.z
+    θ = data.θ
+    rz = data.rz
+    rθ = data.rθ
+    δz = data.δz
+
+    rz!(rz, z, θ) # maybe not needed
+    rθ!(rθ, z, θ)
+
+    δz .= -1.0 * rz \ rθ
+    nothing
 end
