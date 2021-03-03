@@ -1,8 +1,3 @@
-
-module ContactControl
-
-greet() = print("Hello World!")
-
 using BenchmarkTools
 using Colors
 using FFMPEG
@@ -24,7 +19,13 @@ using Random
 using SparseArrays
 using Test
 
+# Dynamics
+include("dynamics/my_test_file.jl")
 
 
-
-end # module
+# # Simulator
+# include("simulator/my_test_file.jl")
+#
+#
+# # Controller
+# include("controller/my_test_file.jl")
