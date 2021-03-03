@@ -298,8 +298,6 @@ version = "0.4.2"
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random", "SpecialFunctions", "StaticArrays"]
 git-tree-sha1 = "d48a40c0f54f29a5c8748cfb3225719accc72b77"
-repo-rev = "v0.10.16"
-repo-url = "https://github.com/JuliaDiff/ForwardDiff.jl.git"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
 version = "0.10.16"
 
