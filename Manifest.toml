@@ -378,10 +378,10 @@ uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
 version = "1.0.0"
 
 [[HTTP]]
-deps = ["Base64", "Dates", "IniFile", "MbedTLS", "NetworkOptions", "Sockets", "URIs"]
-git-tree-sha1 = "c9f380c76d8aaa1fa7ea9cf97bddbc0d5b15adc2"
+deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets"]
+git-tree-sha1 = "c7ec02c4c6a039a98a15f955462cd7aea5df4508"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "0.9.5"
+version = "0.8.19"
 
 [[Hiccup]]
 deps = ["MacroTools", "Test"]
@@ -748,11 +748,6 @@ git-tree-sha1 = "1a0fa0e9613f46c9b8c11eee38ebb4f590013c5e"
 uuid = "71a1bf82-56d0-4bbc-8a3c-48b961074391"
 version = "0.1.5"
 
-[[NetworkOptions]]
-git-tree-sha1 = "ed3157f48a05543cce9b241e1f2815f7e843d96e"
-uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
-version = "1.2.0"
-
 [[NonlinearSolve]]
 deps = ["ArrayInterface", "FiniteDiff", "ForwardDiff", "IterativeSolvers", "LinearAlgebra", "RecursiveArrayTools", "RecursiveFactorization", "Reexport", "SciMLBase", "Setfield", "StaticArrays", "UnPack"]
 git-tree-sha1 = "ef18e47df4f3917af35be5e5d7f5d97e8a83b0ec"
@@ -1095,11 +1090,6 @@ deps = ["Unicode"]
 git-tree-sha1 = "53a9f49546b8d2dd2e688d216421d050c9a31d0d"
 uuid = "30578b45-9adc-5946-b283-645ec420af67"
 version = "0.4.1"
-
-[[URIs]]
-git-tree-sha1 = "7855809b88d7b16e9b029afd17880930626f54a2"
-uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
-version = "1.2.0"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]

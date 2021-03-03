@@ -1,3 +1,6 @@
+using Test
+using ContactControl
+
 using BenchmarkTools
 using Colors
 using FFMPEG
@@ -17,7 +20,6 @@ using LinearAlgebra
 using Logging
 using Random
 using SparseArrays
-using Test
 
 # Dynamics
 include("dynamics/my_test_file.jl")
