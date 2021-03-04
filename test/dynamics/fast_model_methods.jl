@@ -110,38 +110,3 @@ end
     rθ_fast!(model, ∇θs, zs, θs, ρs)
     @test norm(∇θs - ∇θ_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
 end
-
-
-
-
-
-dyn_path = joinpath(@__DIR__, "../../src/dynamics")
-include(joinpath(dyn_path, "quadruped_model.jl"))
-model = deepcopy(quadruped)
-instantiate_base!(model, joinpath(dyn_path, ".expr/quadruped_base.jld2"))
-instantiate_dynamics!(model, joinpath(dyn_path, ".expr/quadruped_dynamics.jld2"))
-# expr_res = generate_residual_expressions(model)
-# save_expressions(expr_dyn, joinpath(dyn_path, ".expr/quadruped_residual.jld2"), overwrite=true)
-instantiate_residual!(model, joinpath(dyn_path, ".expr/quadruped_residual.jld2"))
-
-# Setup variables
-T = Float64
-nz = model.dim.z
-nθ = model.dim.θ
-
-zs = rand(SizedVector{nz})
-θs = rand(SizedVector{nθ})
-ρs = 1e-3
-rs = rand(SizedVector{nz})
-∇zs = rand(nz,nz)
-∇θs = rand(nz,nθ)
-
-# Testing residual methods
-r_fast!(model, rs, zs, θs, ρs)
-@test norm(rs - residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
-
-rz_fast!(model, ∇zs, zs, θs, ρs)
-@test norm(∇zs - ∇z_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
-
-rθ_fast!(model, ∇θs, zs, θs, ρs)
-@test norm(∇θs - ∇θ_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12

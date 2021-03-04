@@ -60,16 +60,6 @@ dynamics_fast(model, q0s, q1s, u1s, γ1s, b1s, q2s)
 ∇b1_dynamics_fast!(model,   ∇b1s, q0s, q1s, u1s, γ1s, b1s, q2s)
 ∇q2_dynamics_fast!(model,  ∇q2s, q0s, q1s, u1s, γ1s, b1s, q2s)
 
-
-
-
-model = deepcopy(quadruped)
-instantiate_base!(model, joinpath(@__DIR__, ".expr/quadruped_base.jld2"))
-instantiate_dynamics!(model, joinpath(@__DIR__, ".expr/quadruped_dynamics.jld2"))
-# expr = generate_residual_expressions(model)
-# save_expressions(expr, joinpath(@__DIR__, ".expr/quadruped_residual.jld2"), overwrite=true)
-instantiate_residual!(model, joinpath(@__DIR__, ".expr/quadruped_residual.jld2"))
-
 nz = model.dim.z
 nθ = model.dim.θ
 zs = rand(SizedVector{nz})
@@ -78,20 +68,49 @@ zs = rand(SizedVector{nz})
 rs = rand(SizedVector{nz})
 ∇zs = rand(nz,nz)
 ∇θs = rand(nz,nθ)
+
+
 r_fast!(model, rs, zs, θs, ρs)
 rz_fast!(model, ∇zs, zs, θs, ρs)
 rθ_fast!(model, ∇θs, zs, θs, ρs)
 
-# @btime r_fast!(model, rs, zs, θs, ρs)
-# @btime rz_fast!(model, ∇zs, zs, θs, ρs)
-# @btime rθ_fast!(model, ∇θs, zs, θs, ρs)
+
+function line_search_eval3!(model::ContactDynamicsModel, out::Vector{SizedArray{Tuple{nz},T,1,1}},
+    z::SizedVector{nz,T}, δz::SizedVector{nz,T}, θ::SizedVector{nθ,T}, ρ::T, N::Int) where {nz,nθ,T}
+    for k = 1:N
+        r_fast!(model, out[k], z+1/2^k*δz, θ, ρ)
+    end
+    return nothing
+end
+
+function multi_line_search_eval3!(model::ContactDynamicsModel, out::Vector{SizedArray{Tuple{nz},T,1,1}},
+    z::SizedVector{nz,T}, δz::SizedVector{nz,T}, θ::SizedVector{nθ,T}, ρ::T, N::Int) where {nz,nθ,T}
+    Threads.@threads for k = 1:N
+        r_fast!(model, out[k], z+1/2^k*δz, θ, ρ)
+    end
+    return nothing
+end
 
 
-r_fast!(model, rs, zs, θs, ρs)
-@test norm(rs - residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+model = deepcopy(quadruped)
+instantiate_base!(model, joinpath(@__DIR__, ".expr/quadruped_base.jld2"))
+instantiate_dynamics!(model, joinpath(@__DIR__, ".expr/quadruped_dynamics.jld2"))
+instantiate_residual!(model, joinpath(@__DIR__, ".expr/quadruped_residual.jld2"))
+
+N = 12
+outs0 = [rand(SizedVector{nz,T}) for k=1:N]
+outs1 = [rand(SizedVector{nz,T}) for k=1:N]
+zs = rand(SizedVector{nz,T})
+δzs = rand(SizedVector{nz,T})
+θs = rand(SizedVector{nθ,T})
+ρs = 1e-3
+@time line_search_eval3!(model, outs0, zs, δzs, θs, ρs, N)
+@time multi_line_search_eval3!(model, outs1, zs, δzs, θs, ρs, N)
+
+@btime line_search_eval3!(model, outs0, zs, δzs, θs, ρs, N)
+@btime multi_line_search_eval3!(model, outs1, zs, δzs, θs, ρs, N)
+
+outs0 == outs1
 
 rz_fast!(model, ∇zs, zs, θs, ρs)
-@test norm(∇zs - ∇z_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
-
-rθ_fast!(model, ∇θs, zs, θs, ρs)
-@test norm(∇θs - ∇θ_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+@btime ∇zs\rs
