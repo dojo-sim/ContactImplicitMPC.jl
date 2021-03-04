@@ -79,7 +79,7 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	N = ModelingToolkit.simplify.(N)
 
 	# Friction Force Jacobian
-	P = _P_func(model, q)
+	P = P_func(model, q)
 	P = ModelingToolkit.simplify.(P)
 
 	# Coriolis and Centrifugal forces Jacobians

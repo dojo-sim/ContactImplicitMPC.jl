@@ -70,13 +70,28 @@ instantiate_dynamics!(model, joinpath(@__DIR__, ".expr/quadruped_dynamics.jld2")
 # save_expressions(expr, joinpath(@__DIR__, ".expr/quadruped_residual.jld2"), overwrite=true)
 instantiate_residual!(model, joinpath(@__DIR__, ".expr/quadruped_residual.jld2"))
 
-
+nz = model.dim.z
+nθ = model.dim.θ
 zs = rand(SizedVector{nz})
 θs = rand(SizedVector{nθ})
 ρs = 1e-3
 rs = rand(SizedVector{nz})
 ∇zs = rand(nz,nz)
 ∇θs = rand(nz,nθ)
-@btime r_fast!(model, rs, zs, θs, ρs)
-@btime rz_fast!(model, ∇zs, zs, θs, ρs)
-@btime rθ_fast!(model, ∇θs, zs, θs, ρs)
+r_fast!(model, rs, zs, θs, ρs)
+rz_fast!(model, ∇zs, zs, θs, ρs)
+rθ_fast!(model, ∇θs, zs, θs, ρs)
+
+# @btime r_fast!(model, rs, zs, θs, ρs)
+# @btime rz_fast!(model, ∇zs, zs, θs, ρs)
+# @btime rθ_fast!(model, ∇θs, zs, θs, ρs)
+
+
+r_fast!(model, rs, zs, θs, ρs)
+@test norm(rs - residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+
+rz_fast!(model, ∇zs, zs, θs, ρs)
+@test norm(∇zs - ∇z_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+
+rθ_fast!(model, ∇θs, zs, θs, ρs)
+@test norm(∇θs - ∇θ_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12

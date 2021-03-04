@@ -82,3 +82,13 @@ function residual(model::QuadrupedModel, dt::T, z::AbstractVector, θ::AbstractV
 	b1 .* η .- ρ
 	]
 end
+
+function ∇z_residual(model::QuadrupedModel, dt::T, z::AbstractVector, θ::AbstractVector, ρ) where {T}
+	r(x) = residual(model, dt, x, θ, ρ)
+	return ForwardDiff.jacobian(r, z)
+end
+
+function ∇θ_residual(model::QuadrupedModel, dt::T, z::AbstractVector, θ::AbstractVector, ρ) where {T}
+	r(x) = residual(model, dt, z, x, ρ)
+	return ForwardDiff.jacobian(r, θ)
+end

@@ -3,7 +3,7 @@
     include(joinpath(dyn_path, "quadruped_model.jl"))
     model = deepcopy(quadruped)
     # expr_bas = generate_base_expressions(model)
-    # save_expressions(expr_bas, joinpath(@__DIR__, ".expr/quadruped_base.jld2"), overwrite=true)
+    # save_expressions(expr_bas, joinpath(dyn_path, ".expr/quadruped_base.jld2"), overwrite=true)
     instantiate_base!(model, joinpath(dyn_path, ".expr/quadruped_base.jld2"))
 
     # Setup variables
@@ -16,7 +16,7 @@
     @test norm(M_fast(model, q0s) - M_func(model, q0s), 1) < 1e-14
     @test norm(B_fast(model, q0s) - B_func(model, q0s), 1) < 1e-14
     @test norm(N_fast(model, q0s) - N_func(model, q0s), 1) < 1e-14
-    @test norm(P_fast(model, q0s) - _P_func(model, q0s), 1) < 1e-14
+    @test norm(P_fast(model, q0s) - P_func(model, q0s), 1) < 1e-14
     @test norm(C_fast(model, q0s, q̇0s) - _C_func(model, q0s, q̇0s), 1) < 1e-12
 end
 
@@ -26,7 +26,7 @@ end
     model = deepcopy(quadruped)
     instantiate_base!(model, joinpath(dyn_path, ".expr/quadruped_base.jld2"))
     # expr_dyn = generate_dynamics_expressions(model)
-    # save_expressions(expr_dyn, joinpath(@__DIR__, ".expr/quadruped_dynamics.jld2"), overwrite=true)
+    # save_expressions(expr_dyn, joinpath(dyn_path, ".expr/quadruped_dynamics.jld2"), overwrite=true)
     instantiate_dynamics!(model, joinpath(dyn_path, ".expr/quadruped_dynamics.jld2"))
 
     # Setup variables
@@ -77,3 +77,71 @@ end
     ∇y_dynamics_fast!(model, ∇ys, q0s, q1s, u1s, γ1s, b1s, q2s)
     @test norm(∇ys - [∇q0s ∇q1s ∇u1s ∇γ1s ∇b1s ∇q2s], 1) < 1e-12
 end
+
+@testset "Fast Residual Model Methods" begin
+    dyn_path = joinpath(@__DIR__, "../../src/dynamics")
+    include(joinpath(dyn_path, "quadruped_model.jl"))
+    model = deepcopy(quadruped)
+    instantiate_base!(model, joinpath(dyn_path, ".expr/quadruped_base.jld2"))
+    instantiate_dynamics!(model, joinpath(dyn_path, ".expr/quadruped_dynamics.jld2"))
+    # expr_res = generate_residual_expressions(model)
+    # save_expressions(expr_dyn, joinpath(dyn_path, ".expr/quadruped_residual.jld2"), overwrite=true)
+    instantiate_residual!(model, joinpath(dyn_path, ".expr/quadruped_residual.jld2"))
+
+    # Setup variables
+    T = Float64
+    nz = model.dim.z
+    nθ = model.dim.θ
+
+    zs = rand(SizedVector{nz})
+    θs = rand(SizedVector{nθ})
+    ρs = 1e-3
+    rs = rand(SizedVector{nz})
+    ∇zs = rand(nz,nz)
+    ∇θs = rand(nz,nθ)
+
+    # Testing residual methods
+    r_fast!(model, rs, zs, θs, ρs)
+    @test norm(rs - residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+
+    rz_fast!(model, ∇zs, zs, θs, ρs)
+    @test norm(∇zs - ∇z_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+
+    rθ_fast!(model, ∇θs, zs, θs, ρs)
+    @test norm(∇θs - ∇θ_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+end
+
+
+
+
+
+dyn_path = joinpath(@__DIR__, "../../src/dynamics")
+include(joinpath(dyn_path, "quadruped_model.jl"))
+model = deepcopy(quadruped)
+instantiate_base!(model, joinpath(dyn_path, ".expr/quadruped_base.jld2"))
+instantiate_dynamics!(model, joinpath(dyn_path, ".expr/quadruped_dynamics.jld2"))
+# expr_res = generate_residual_expressions(model)
+# save_expressions(expr_dyn, joinpath(dyn_path, ".expr/quadruped_residual.jld2"), overwrite=true)
+instantiate_residual!(model, joinpath(dyn_path, ".expr/quadruped_residual.jld2"))
+
+# Setup variables
+T = Float64
+nz = model.dim.z
+nθ = model.dim.θ
+
+zs = rand(SizedVector{nz})
+θs = rand(SizedVector{nθ})
+ρs = 1e-3
+rs = rand(SizedVector{nz})
+∇zs = rand(nz,nz)
+∇θs = rand(nz,nθ)
+
+# Testing residual methods
+r_fast!(model, rs, zs, θs, ρs)
+@test norm(rs - residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+
+rz_fast!(model, ∇zs, zs, θs, ρs)
+@test norm(∇zs - ∇z_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+
+rθ_fast!(model, ∇θs, zs, θs, ρs)
+@test norm(∇θs - ∇θ_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
