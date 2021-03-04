@@ -1,5 +1,4 @@
 include("interior_point.jl")
-include("step.jl")
 include("simulator.jl")
 
 """
@@ -99,7 +98,7 @@ function θ_initialize!(θ, model, q0, q1, u, w)
     θ[7:9] = u
 end
 
-function unpack_z(z)
+function unpack_z(z, model)
     q2 = view(z, 1:3)  # configuration
     γ = view(z, 4:4)   # normal impulse
     b = view(z, 5:8)   # friction impulse (double parameterized)
@@ -111,7 +110,7 @@ function unpack_z(z)
     return q2, γ, b, ψ, η, s1, s2
 end
 
-function unpack_θ(θ)
+function unpack_θ(θ, model)
     q0 = view(θ, 1:3)  # configuration
     q1 = view(θ, 4:6)  # configuration
     u = view(θ, 7:9)
@@ -119,7 +118,7 @@ function unpack_θ(θ)
     return q0, q1, u, w
 end
 
-inequality_indices(model) = collect(4:15)
+inequality_indices(model) = collect(model.nq .+ (1:(model.nq - num_var(model))))
 
 function r!(r, z, data)
     # unpack
@@ -155,40 +154,13 @@ function rθ!(rθ, z, data)
     ForwardDiff.jacobian!(rθ, _r, data.r, data.θ)
 end
 
-# model
-h = 0.1
-T = 10
-
+# Model
+h = 0.01
+T = 500
 model = Particle(1.0, 9.81, 1.0, h, 3, 3, 1, 4, 0)
+q0 = @SVector [0.0, 0.0, 1.0]
+q1 = @SVector [0.1, 0.0, 1.0]
+sim = simulator(model, q0, q1, h, T)
+@time simulate!(sim)
 
-q0 = [0.0, 0.0, 1.0]
-q1 = [0.0, 0.0, 1.0]
-
-
-idx_ineq = inequality_indices(model)
-
-ip_data = interior_point_data(num_var(model), num_data(model), idx_ineq)
-ip_data.data.info[:model] = model
-z_initialize!(ip_data.z, model, q1)
-θ_initialize!(ip_data.data.θ, model, q0, q1, zeros(model.nu), zeros(model.nw))
-interior_point!(ip_data, opts = InteriorPointOptions(diff_sol = true))
-
-sim_data = simulator_data(model, q0, q1, h, T)
-step!(sim_data, 1)
-
-# z = rand(15)
-# θ = rand(11)
-# r = zeros(15)
-# rz = zeros(15, 15)
-# rθ = zeros(15, 11)
-# data = ResidualData(r, θ, 1.0, Dict(:model => model))
-# r!(r, z, θ, 1.0)
-# nq = 3
-# nu = 3
-# nw = 0
-# r
-# dynamics(model, rand(nq), rand(nq), rand(nq), rand(nu), [1.0], ones(4), nothing, 1.0)
-# rz!(rz, z, data)
-# rθ!(rθ, z, data)
-# transpose(normal_jacobian(model, rand(nq))) * [1.0]
-# transpose(tangent_jacobian(model, rand(nq))) * ones(4)
+plot(hcat(sim.q...)')

@@ -138,6 +138,7 @@ function interior_point!(data::InteriorPointData;
             iter = 0
             while inequality_check(z̄, idx_ineq)
                 α = 0.5 * α
+                z̄ .= z - α * Δ
                 iter += 1
                 if iter > max_ls
                     @error "backtracking line search fail"
@@ -152,7 +153,7 @@ function interior_point!(data::InteriorPointData;
             while r̄_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
                 α = 0.5 * α
                 z̄ .= z - α * Δ
-                r!(r̄, w, θ)
+                r!(r̄, z̄, θ)
                 r̄_norm = norm(r̄, Inf)
 
                 iter += 1
@@ -168,7 +169,16 @@ function interior_point!(data::InteriorPointData;
             r_norm = r̄_norm
         end
 
-        θ.κ < κ_tol ? (return true) : (θ.κ *= κ_scale)
+        if θ.κ < κ_tol
+            return true
+        else
+            # update barrier parameter
+            θ.κ *= κ_scale
+
+            # update residual
+            r!(r, z, θ)
+            r_norm = norm(r, Inf)
+        end
     end
 
     diff_sol && differentiate_solution!(data)

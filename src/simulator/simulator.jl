@@ -1,4 +1,6 @@
-struct SimulatorData
+struct Simulator
+    T
+
     q
     u
     γ
@@ -19,32 +21,39 @@ struct SimulatorData
     ip_opts
 end
 
-function simulator_data(model, q0, q1, h, T;
-    u = [@SVector zeros(model.nu) for t = 1:T-1],
-    w = [@SVector zeros(model.nw) for t = 1:T-1],
+function simulator(model, q0, q1, h, T;
+    u = [@SVector zeros(model.nu) for t = 1:T],
+    w = [@SVector zeros(model.nw) for t = 1:T],
     diff_sol = false,
     ip_opts = InteriorPointOptions(diff_sol = diff_sol))
 
-    q = [q0, q1, [@SVector zeros(model.nq) for t = 1:T-1]]
-    γ = [@SVector zeros(model.nc) for t = 1:T-1]
-    b = [@SVector zeros(model.nb) for t = 1:T-1]
+    nq = model.nq
+    nu = model.nu
+    nw = model.nw
+    nc = model.nc
+    nb = model.nb
 
-    dq2q0 = [nothing for t = 1:T-1]
-    dq2dq1 = [nothing for t = 1:T-1]
-    dq2du = [nothing for t = 1:T-1]
-    dγdq0 = [nothing for t = 1:T-1]
-    dγdq1 = [nothing for t = 1:T-1]
-    dγdu = [nothing for t = 1:T-1]
-    dbdq0 = [nothing for t = 1:T-1]
-    dbdq1 = [nothing for t = 1:T-1]
-    dbdu = [nothing for t = 1:T-1]
+    q = [q0, q1, [@SVector zeros(nq) for t = 1:T]...]
+    γ = [@SVector zeros(nc) for t = 1:T]
+    b = [@SVector zeros(nb) for t = 1:T]
+
+    dq2q0 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:T]
+    dq2dq1 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:T]
+    dq2du = [SizedMatrix{nq,nu}(zeros(nq, nu)) for t = 1:T]
+    dγdq0 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:T]
+    dγdq1 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:T]
+    dγdu = [SizedMatrix{nc, nu}(zeros(nc, nu)) for t = 1:T]
+    dbdq0 = [SizedMatrix{nb, nq}(zeros(nb, nq)) for t = 1:T]
+    dbdq1 = [SizedMatrix{nb, nq}(zeros(nb, nq)) for t = 1:T]
+    dbdu = [SizedMatrix{nb, nu}(zeros(nb, nu)) for t = 1:T]
 
     ip_data = interior_point_data(num_var(model),
         num_data(model),
         inequality_indices(model))
     ip_data.data.info[:model] = model
 
-    SimulatorData(
+    Simulator(
+        T,
         q,
         u,
         γ,
@@ -74,13 +83,40 @@ function step!(sim, t)
     model = ip_data.data.info[:model]
 
     # initialize
+    fill!(z, 0.0)
+    fill!(θ, 0.0)
     z_initialize!(z, model, q[t+1])
     θ_initialize!(θ, model, q[t], q[t+1], u[t], w[t])
 
     # solve
-    interior_point!(sim.ip_data, opts = sim.ip_opts)
-end
+    status = interior_point!(ip_data, opts = sim.ip_opts)
 
+    if status
+        # parse result
+        q2, γ, b, _ = unpack_z(z)
+        sim.q[t+2] = copy(q2)
+        sim.γ[t] = γ
+        sim.b[t] = b
+
+        if sim.ip_opts.diff_sol
+            nq = model.nq
+            nu = model.nu
+            nc = model.nc
+            nb = model.nb
+
+            sim.dq2q0[t] = view(ip_data.δz, 1:nq, 1:nq)
+            sim.dq2dq1[t] = view(ip_data.δz, 1:nq, nq .+ (1:nq))
+            sim.dq2du[t] = view(ip_data.δz, 1:nq, 2 * nq .+ (1:nu))
+            sim.dγdq0[t] = view(ip_data.δz, nq .+ (1:nc), 1:nq)
+            sim.dγdq1[t] = view(ip_data.δz, nq .+ (1:nc), nq .+ (1:nq))
+            sim.dγdu[t] = view(ip_data.δz, nq .+ (1:nc), 2 * nq .+ (1:nu))
+            sim.dbdq0[t] = view(ip_data.δz, nq + nc .+ (1:nb), 1:nq)
+            sim.dbdq1[t] = view(ip_data.δz, nq + nc .+ (1:nb), nq .+ (1:nq))
+            sim.dbdu[t] = view(ip_data.δz, nq + nc .+ (1:nb), 2 * nq .+ (1:nu))
+        end
+    end
+    return status
+end
 
 """
     simulate
@@ -88,23 +124,13 @@ end
     - initial configurations: q0, q1
     - time step: h
 """
-function simulate!(sim::SimulatorData)
+function simulate!(sim::Simulator; verbose = false)
 
-    println("simulation")
+    println("\nSimulation")
 
-    for t = 1:T-1
-        println("   t = $t")
-        status = step!()
-
-        if !status
-            @error "failed step (t = $t)"
-        else
-            push!(q, q2)
-            push!(γ, γ1)
-            push!(b, b1)
-            push!(Δq0, _Δq0)
-            push!(Δq1, _Δq1)
-            push!(Δu,  _Δu1)
-        end
+    for t = 1:sim.T
+        verbose && println("   t = $t")
+        status = step!(sim, t)
+        !status && (@error "failed step (t = $t)")
     end
 end
