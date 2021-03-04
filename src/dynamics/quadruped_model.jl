@@ -719,28 +719,6 @@ quadruped = QuadrupedBasic20(dim, ind, dummy_bas, dummy_dyn, dummy_res, alt,
 				)
 
 
-
-#
-# #NOTE: if a new model is instantiated, re-run the lines below
-# @variables z_sym[1:quadruped.n]
-# l(z) = lagrangian(quadruped, view(z, 1:quadruped.nq), view(z, quadruped.nq .+ (1:quadruped.nq)))
-# _l = ModelingToolkit.simplify.(l(z_sym))
-# _dL = ModelingToolkit.gradient(_l, z_sym)
-# _dLq = view(_dL, 1:quadruped.nq)
-# _dLq̇ = view(_dL, quadruped.nq .+ (1:quadruped.nq))
-# _ddL = ModelingToolkit.sparsehessian(_l, z_sym)
-# _ddLq̇q = view(_ddL, quadruped.nq .+ (1:quadruped.nq), 1:quadruped.nq)
-#
-# dL = eval(ModelingToolkit.build_function(_dL, z_sym)[1])
-# dLq = eval(ModelingToolkit.build_function(_dLq, z_sym)[1])
-# dLq̇ = eval(ModelingToolkit.build_function(_dLq̇, z_sym)[1])
-# ddLq̇q = eval(ModelingToolkit.build_function(_ddLq̇q, z_sym)[1])
-# ddL = eval(ModelingToolkit.build_function(_ddL, z_sym)[1])
-
-# function C_func(model::QuadrupedBasic20, q, q̇)
-# 	ddLq̇q([q; q̇]) * q̇ - dLq(Vector([q; q̇]))
-# end
-
 # visualization
 function visualize!(vis, model::QuadrupedBasic20, q;
 	r = 0.025, Δt = 0.1, name::String="quadruped")
@@ -905,22 +883,4 @@ function initial_configuration(model::QuadrupedBasic20, θ)
     q1[11] = θ
     q1[2] = model.l_thigh1 * cos(q1[4]) + model.l_calf1 * cos(q1[5])
     return q1
-end
-
-function dynamics(model::QuadrupedModel, dt::T, qk_1::SVq_1, qk::SVq,
-	uk::SVu, γk::SVγ, bk::SVb, qk1::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
-
-	v = (qk1[3:end] - qk[3:end]) / dt
-	joint_fric = [zeros(2); model.joint_friction * v]
-
-	return 1.0 / dt *
-	(
-	M_func(model, qk_1) * (qk - qk_1)
-	- M_func(model, qk) * (qk1 - qk)
-	)
-	+ transpose(B_func(model, qk1)) * uk
-	+ transpose(N_func(model, qk1)) * γk
-	+ transpose(_P_func(model, qk1)) * bk
-	- dt * joint_fric
-	- dt * C_fast(model, qk1, (qk1 - qk) / dt)
 end

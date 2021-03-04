@@ -19,5 +19,6 @@ Pkg.activate(joinpath(@__DIR__, "test")
 # Pkg.add("Random")
 # Pkg.add("SparseArrays")
 # Pkg.add("Test")
+using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
 Pkg.activate(joinpath(@__DIR__, "..", "test"))
