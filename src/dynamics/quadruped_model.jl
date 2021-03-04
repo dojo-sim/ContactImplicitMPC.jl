@@ -917,5 +917,5 @@ function dynamics(model::QuadrupedModel, dt::T, qk_1::SVq_1, qk::SVq,
 	+ transpose(N_func(model, qk1)) * γk
 	+ transpose(_P_func(model, qk1)) * bk
 	- dt * joint_fric
-	- dt * C_func(model, qk1, (qk1 - qk) / dt)
+	- dt * C_fast(model, qk1, (qk1 - qk) / dt)
 end
