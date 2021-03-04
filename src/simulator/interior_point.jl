@@ -8,22 +8,22 @@ function inequality_check(z, idx_ineq)
 end
 
 # residual
-function r!(r, z, θ)
-    @warn "residual not defined"
-    nothing
-end
-
-# residual Jacobian wrt z
-function rz!(rz, z, θ)
-    @warn "residual Jacobian wrt z not defined"
-    nothing
-end
-
-# residual Jacobian wrt θ
-function rθ!(rθ, z, θ)
-    @warn "residual Jacobian wrt θ not defined"
-    nothing
-end
+# function r!(r, z, θ)
+#     @warn "residual not defined"
+#     nothing
+# end
+#
+# # residual Jacobian wrt z
+# function rz!(rz, z, θ)
+#     @warn "residual Jacobian wrt z not defined"
+#     nothing
+# end
+#
+# # residual Jacobian wrt θ
+# function rθ!(rθ, z, θ)
+#     @warn "residual Jacobian wrt θ not defined"
+#     nothing
+# end
 
 mutable struct ResidualData{T}
     r::Vector{T} # pre-allocated memory for residual
@@ -44,15 +44,18 @@ struct InteriorPointData{T}
     r_norm::T              # residual norm
     r̄::Vector{T}           # candidate residual
     r̄_norm::T              # candidate residual norm
-    rz::Array{T,2}         # residual Jacobian wrt z
-    rθ::Array{T,2}         # residual Jacobian wrt θ
+    rz::SparseMatrixCSC{T,Int}         # residual Jacobian wrt z
+    rθ::SparseMatrixCSC{T,Int}         # residual Jacobian wrt θ
     Δ::Vector{T}           # search direction
     idx_ineq::Vector{Int}  # indices for inequality constraints
-    δz::Array{T,2}         # solution gradients
+    δz::SparseMatrixCSC{T,Int}         # solution gradients
     data::ResidualData{T}  # residual data
 end
 
-function interior_point_data(num_var, num_data, idx_ineq)
+function interior_point_data(num_var, num_data, idx_ineq;
+        rz = spzeros(num_var, num_var),
+        rθ = spzeros(num_var, num_data))
+
     r_data = residual_data(num_var, num_data)
 
     InteriorPointData(
@@ -62,11 +65,11 @@ function interior_point_data(num_var, num_data, idx_ineq)
         0.0,
         zeros(num_var),
         0.0,
-        zeros(num_var, num_var),
-        zeros(num_var, num_data),
+        rz,
+        rθ,
         zeros(num_var),
         idx_ineq,
-        zeros(num_var, num_data),
+        spzeros(num_var, num_data),
         r_data)
 end
 

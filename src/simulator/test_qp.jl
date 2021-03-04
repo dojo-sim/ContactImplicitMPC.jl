@@ -6,7 +6,7 @@ using InteractiveUtils, BenchmarkTools, ModelingToolkit
     subject to    x >= 0
 """
 
-n = 100
+n = 1000
 
 _P = @SVector ones(n)
 P = Diagonal(_P)
@@ -14,59 +14,62 @@ q = @SVector ones(n)
 θ = [_P; q]
 z = ones(2 * n)
 r = zeros(2 * n)
+rz = zeros(2 * n, 2 * n)
+rθ = zeros(2 * n, 2 * n)
 
 # residual
-function r!(r, z, θ)
-    x = view(z, 1:100)
-    y = view(z, 1:100)
-    P = view(θ, 101:200)
-    q = view(θ, 101:200)
+function _r!(r, z, θ)
+    x = z[1:1000]
+    y = z[1:1000]
+    P = θ[1001:2000]
+    q = θ[1001:2000]
     κ = θ[end]
 
-    r[1:100] = P .* x
-    r[1:100] .*= 2.0
-    r[1:100] += q
-    r[1:100] -= y
-
-    r[101:200] = x .* y
-    r[101:200] .-= κ
+    r[1:1000] = 2.0 * Diagonal(P) * x + q - y
+    r[1001:2000] = Diagonal(x) * y .- κ
     nothing
 end
 
+@code_warntype _r!(r, z, θ)
+@benchmark _r!($r, $z, $θ)
+
+@variables r_sym[1:2000]
+@variables z_sym[1:2000]
+@variables θ_sym[1:2000]
+
+parallel = false# ModelingToolkit.MultithreadedForm()
+_r!(r_sym, z_sym, θ_sym)
+r_sym = simplify.(r_sym)
+r! = eval(ModelingToolkit.build_function(r_sym, z_sym, θ_sym,
+    parallel = parallel)[2])
+rz_exp = ModelingToolkit.sparsejacobian(r_sym, z_sym, simplify = true)
+rθ_exp = ModelingToolkit.sparsejacobian(r_sym, θ_sym, simplify = true)
+rz_sp = similar(rz_exp, Float64)
+rθ_sp = similar(rθ_exp, Float64)
+rz! = eval(ModelingToolkit.build_function(rz_exp, z_sym, θ_sym,
+    parallel = parallel)[2])
+rθ! = eval(ModelingToolkit.build_function(rθ_exp, z_sym, θ_sym,
+    parallel = parallel)[2])
+
+function r!(r, z, θ::ResidualData)
+    r!(z, z, θ.θ)
+end
 @code_warntype r!(r, z, θ)
 @benchmark r!($r, $z, $θ)
 
-@variables r_sym[1:200] z_sym[1:200] θ_sym[1:200]
+@code_warntype rz!(rz_sp, z, θ)
+rz!(rz_sp, z, θ)
+@benchmark rz!($rz_sp, $z, $θ)
 
-r!(r_sym, z_sym, θ_sym)
-r_sym = simplify.(r_sym)
-r_fast! = eval(ModelingToolkit.build_function(r_sym, z_sym, θ_sym)[2])
-ModelingToolkit.jacobian(r_sym, )
-ModelingToolkit.build_function(ModelingToolkit.jacobian(r_sym, parallel=false)
-ModelingToolkit.jacobian(r_sym, θ_sym)
+@code_warntype rθ!(r, z, θ)
+rθ!(rθ_sp, z, θ)
+@benchmark rθ!($rθ_sp, $z, $θ)
 
+num_var = 2 * n
+num_data = 2 * n
+idx_ineq = collect(1:num_var)
+ip_data = interior_point_data(num_var, num_data, idx_ineq;
+    rz = rz_sp,
+    rθ = rθ_sp)
 
-rz_fast! = eval(ModelingToolkit.build_function(ModelingToolkit.jacobian(r_sym, z_sym, simplify=true))[2])
-rθ = ModelingToolkit.jacobian(r, θ, simplify=true)
-
-
-# Build function
-expr = Dict{Symbol, Expr}()
-expr[:r]  = build_function(r,  dt, z, θ, ρ)[2]
-expr[:rz] = build_function(rz, dt, z, θ, ρ)[2]
-expr[:rθ] = build_function(rθ, dt, z, θ, ρ)[2]
-@code_warntype r_fast!(r, z, θ)
-@benchmark r_fast!($r, $z, $θ)
-
-r
-# residual Jacobian wrt z
-function rz!(rz, z, θ)
-    @warn "residual Jacobian wrt z not defined"
-    nothing
-end
-
-# # residual Jacobian wrt θ
-# function rθ!(rθ, z, θ)
-#     @warn "residual Jacobian wrt θ not defined"
-#     nothing
-# end
+interior_point!(ip_data)#, opts = InteriorPointOptions())
