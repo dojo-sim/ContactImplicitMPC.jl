@@ -71,7 +71,7 @@ function generate_base_expressions(model::ContactDynamicsModel)
 
 	# Control input Jacobian
 	B = B_func(model, q)
-	B = reshape(B, (8,11))
+	B = reshape(B, (nb,nq))
 	B = ModelingToolkit.simplify.(B)
 
 	# Impact force Jacobian
@@ -190,7 +190,7 @@ stores them into the model.
 """
 function instantiate_residual!(model::QuadrupedModel, path::AbstractString=".expr/quadruped_residual.jld2")
 	expr = load_expressions(path)
-	instantiate_base!(model.res, expr)
+	instantiate_residual!(model.res, expr)
 	return nothing
 end
 
@@ -199,9 +199,9 @@ end
 		path::AbstractString=".expr/quadruped_residual.jld2")
 Evaluates the residual expressions to generate functions, stores them into the model.
 """
-function instantiate_residual!(fct::BaseMethods12, expr::Dict{Symbol,Expr})
-	fct.r   = eval(expr[r])
-	fct.rz = eval(expr[rz])
-	fct.rθ = eval(expr[rθ])
+function instantiate_residual!(fct::ResidualMethods14, expr::Dict{Symbol,Expr})
+	fct.r   = eval(expr[:r])
+	fct.rz = eval(expr[:rz])
+	fct.rθ = eval(expr[:rθ])
 	return nothing
 end

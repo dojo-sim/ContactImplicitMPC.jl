@@ -59,14 +59,14 @@ end
 
 
 # Residual methods
-function r_fast!(model::ContactDynamicsModel, z, θ)
-    return model.res.r(z, θ)
+function r_fast!(model::ContactDynamicsModel, v, z, θ, ρ)
+    return model.res.r(v, model.dt, z, θ, ρ)
 end
 
-function rz_fast!(model::ContactDynamicsModel, z, θ)
-    return model.res.rz(z, θ)
+function rz_fast!(model::ContactDynamicsModel, ∇, z, θ, ρ)
+    return model.res.rz(∇, model.dt, z, θ, ρ)
 end
 
-function rθ_fast!(model::ContactDynamicsModel, z, θ)
-    return model.res.rθ(z, θ)
+function rθ_fast!(model::ContactDynamicsModel, ∇, z, θ, ρ)
+    return model.res.rθ(∇, model.dt, z, θ, ρ)
 end

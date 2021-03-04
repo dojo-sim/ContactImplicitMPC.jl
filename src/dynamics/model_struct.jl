@@ -8,21 +8,25 @@ mutable struct Dimensions12
     q::Int         # configuration dim
     u::Int         # control dim
 	γ::Int         # normal components
-    b::Int         # friction components
+	b::Int         # linear friction components
+    b̄::Int         # minimal friction components
 	c::Int         # number of contact points
 	n::Int         # state dim
 	θ::Int         # data dim
 	w::Int         # sol dim
-	y::Int         # whole dim
+	y::Int         # dynamics variables dim
+	z::Int         # z dim
 end
 
 function Dimensions12(q::Int,u::Int,c::Int,b::Int)
     γ = c
+	b̄ = Int(b/2)
 	n = 2q
 	θ = 2q + u
 	w = γ + b + q
     y = 3q + u + γ + b
-    return Dimensions12(q,u,γ,b,c,n,θ,w,y)
+	z = q + 4γ + 2b
+    return Dimensions12(q,u,γ,b,b̄,c,n,θ,w,y,z)
 end
 
 mutable struct Indices13{Vq_1,Vq,Vu,Vγ,Vb,Vq1,Vθ,Vw}
@@ -49,23 +53,45 @@ function Indices13(q::Int,u::Int,c::Int,b::Int)
     return Indices13(iq0,iq1,iu1,iγ1,ib1,iq2,iθ,iw)
 end
 
-mutable struct DynamicsMethods13
-	d::Any
-	dy::Any
-	dq0::Any
-	dq1::Any
-	du1::Any
-	dγ1::Any
-	db1::Any
-	dq2::Any
+function unpack_θ(model::ContactDynamicsModel, θ::AbstractVector{T}) where T
+	nq = model.dim.q
+	nu = model.dim.u
+	nγ = model.dim.γ
+	nb = model.dim.b
+
+	# Parameters
+	off = 0
+	q0 = θ[off .+ (1:nq)]
+	off += nq
+	q1 = θ[off .+ (1:nq)]
+	off += nq
+	u1 =  θ[off .+ (1:nu)]
+	return q0, q1, u1
 end
 
-function DynamicsMethods13()
-	function f()
-		error("Not Implemented: use instantiate_dynamics!")
-		return nothing
-	end
-	return DynamicsMethods13(fill(f, 8)...)
+function unpack_z(model::ContactDynamicsModel, z::AbstractVector{T}) where {T}
+	nq = model.dim.q
+	nu = model.dim.u
+	nγ = model.dim.γ
+	nb = model.dim.b
+
+	# system variables
+	off = 0
+	q2 =  z[off .+ (1:nq)]
+	off += nq
+	γ1 =  z[off .+ (1:nγ)]
+	off += nγ
+	b1 =  z[off .+ (1:nb)]
+	off += nb
+	ψ =  z[off .+ (1:nγ)]
+	off += nγ
+	η =  z[off .+ (1:nb)]
+	off += nb
+	s1 = z[off .+ (1:nγ)]
+	off += nγ
+	s2 = z[off .+ (1:nγ)]
+	off += nγ
+	return q2, γ1, b1, ψ, η, s1, s2
 end
 
 mutable struct BaseMethods12
@@ -85,16 +111,35 @@ function BaseMethods12()
 	return BaseMethods12(fill(f, 6)...)
 end
 
-mutable struct ResidualMethods12
+mutable struct DynamicsMethods13
+	d::Any
+	dy::Any
+	dq0::Any
+	dq1::Any
+	du1::Any
+	dγ1::Any
+	db1::Any
+	dq2::Any
+end
+
+function DynamicsMethods13()
+	function f()
+		error("Not Implemented: use instantiate_dynamics!")
+		return nothing
+	end
+	return DynamicsMethods13(fill(f, 8)...)
+end
+
+mutable struct ResidualMethods14
 	r::Any
 	rz::Any
 	rθ::Any
 end
 
-function ResidualMethods12()
+function ResidualMethods14()
 	function f()
 		error("Not Implemented: use instantiate_residual!")
 		return nothing
 	end
-	return ResidualMethods12(fill(f, 3)...)
+	return ResidualMethods14(fill(f, 3)...)
 end

@@ -25,6 +25,8 @@ nu = model.dim.u
 nγ = model.dim.γ
 nb = model.dim.b
 ny = model.dim.y
+nz = model.dim.z
+nθ = model.dim.θ
 
 q0s = rand(SizedVector{nq,T})
 q1s = rand(SizedVector{nq,T})
@@ -51,12 +53,12 @@ P_fast(model, q0s)
 C_fast(model, q0s, q̇0s)
 dynamics_fast(model, q0s, q1s, u1s, γ1s, b1s, q2s)
 ∇y_dynamics_fast!(model, ∇ys, q0s, q1s, u1s, γ1s, b1s, q2s)
-∇q_1_dynamics_fast!(model, ∇q0s, q0s, q1s, u1s, γ1s, b1s, q2s)
-∇q_dynamics_fast!(model,   ∇q1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-∇u_dynamics_fast!(model,   ∇u1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-∇γ_dynamics_fast!(model,   ∇γ1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-∇b_dynamics_fast!(model,   ∇b1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-∇q1_dynamics_fast!(model,  ∇q2s, q0s, q1s, u1s, γ1s, b1s, q2s)
+∇q0_dynamics_fast!(model, ∇q0s, q0s, q1s, u1s, γ1s, b1s, q2s)
+∇q1_dynamics_fast!(model,   ∇q1s, q0s, q1s, u1s, γ1s, b1s, q2s)
+∇u1_dynamics_fast!(model,   ∇u1s, q0s, q1s, u1s, γ1s, b1s, q2s)
+∇γ1_dynamics_fast!(model,   ∇γ1s, q0s, q1s, u1s, γ1s, b1s, q2s)
+∇b1_dynamics_fast!(model,   ∇b1s, q0s, q1s, u1s, γ1s, b1s, q2s)
+∇q2_dynamics_fast!(model,  ∇q2s, q0s, q1s, u1s, γ1s, b1s, q2s)
 
 ∇ys
 ∇q0s
@@ -68,7 +70,19 @@ dynamics_fast(model, q0s, q1s, u1s, γ1s, b1s, q2s)
 
 
 
+zs = rand(SizedVector{nz})
+zs0 = deepcopy(zs)
+θs = rand(SizedVector{nθ})
+θs0 = deepcopy(θs)
+ρs = 1e-3
 
+residual(model, zs, θs, ρs)
+
+zs1 = deepcopy(zs)
+θs1 = deepcopy(θs)
+
+zs1 == zs0
+θs1 == θs0
 
 
 
@@ -82,50 +96,78 @@ function generate_residual_expressions(model::ContactDynamicsModel)
 	nu = model.dim.u
 	nγ = model.dim.γ
 	nb = model.dim.b
-	# # Declare variables
-	# @variables q0[1:nq]
-	# @variables q1[1:nq]
-	# @variables u1[1:nu]
-	# @variables γ1[1:nγ]
-	# @variables b1[1:nb]
-	# @variables q2[1:nq]
-	# @variables dt[1:1]
-	#
-	# # Dynamics
-	# d = dynamics(model,dt[1],q0,q1,u1,γ1,b1,q2)
-	# d = ModelingToolkit.simplify.(d)
-	# dz  = ModelingToolkit.jacobian(d, [q0; q1; u1; γ1; b1; q2], simplify=true)
-	# dq0 = ModelingToolkit.jacobian(d, q0, simplify=true)
-	# dq1 = ModelingToolkit.jacobian(d, q1,   simplify=true)
-	# du1 = ModelingToolkit.jacobian(d, u1,   simplify=true)
-	# dγ1 = ModelingToolkit.jacobian(d, γ1,   simplify=true)
-	# db1 = ModelingToolkit.jacobian(d, b1,   simplify=true)
-	# dq2 = ModelingToolkit.jacobian(d, q2,  simplify=true)
-	#
-	# # Build function
-	# expr = Dict{Symbol, Expr}()
-	# expr[:d]   = build_function(d,   dt, q0, q1, u1, γ1, b1, q2)[1]
-	# expr[:dz]  = build_function(dz,  dt, q0, q1, u1, γ1, b1, q2)[2]
-	# expr[:dq0] = build_function(dq0, dt, q0, q1, u1, γ1, b1, q2)[2]
-	# expr[:dq1] = build_function(dq1, dt, q0, q1, u1, γ1, b1, q2)[2]
-	# expr[:du1] = build_function(du1, dt, q0, q1, u1, γ1, b1, q2)[2]
-	# expr[:dγ1] = build_function(dγ1, dt, q0, q1, u1, γ1, b1, q2)[2]
-	# expr[:db1] = build_function(db1, dt, q0, q1, u1, γ1, b1, q2)[2]
-	# expr[:dq2] = build_function(dq2, dt, q0, q1, u1, γ1, b1, q2)[2]
-	# return expr
+	nz = model.dim.z
+	nθ = model.dim.θ
+
+	# Declare variables
+	@variables dt[1:1]
+	@variables z[1:nz]
+	@variables θ[1:nθ]
+	@variables ρ[1:1]
+	# # Residual
+	r = residual(model, dt[1], z, θ, ρ[1])
+	# r = ModelingToolkit.simplify.(r)
+	# rz = ModelingToolkit.sparsejacobian(r, z, simplify=true)
+	# rθ = ModelingToolkit.sparsejacobian(r, θ, simplify=true)
+
+
+	# Residual
+	# r = [z[1], z[2], θ[1], ρ[1], dt[1]]
+	r = ModelingToolkit.simplify.(r)
+	rz = ModelingToolkit.sparsejacobian(r, z, simplify=true)
+	rθ = ModelingToolkit.sparsejacobian(r, θ, simplify=true)
+
+
+	# Build function
+	expr = Dict{Symbol, Expr}()
+	expr[:r]  = build_function(r,  dt, z, θ, ρ)[2]
+	expr[:rz] = build_function(rz, dt, z, θ, ρ)[2]
+	# expr[:rθ] = build_function(rθ, dt, z, θ, ρ)[2]
+	return expr, r, rz, rθ
 end
 
 
 model = deepcopy(quadruped)
-instantiate_base!(model, joinpath(@__DIR__, ".expr/quadruped_base.jld2"))
-instantiate_dynamics!(model, joinpath(@__DIR__, ".expr/quadruped_dynamics.jld2"))
+# instantiate_base!(model, joinpath(@__DIR__, ".expr/quadruped_base.jld2"))
+# instantiate_dynamics!(model, joinpath(@__DIR__, ".expr/quadruped_dynamics.jld2"))
+expr_res, r_, rz_, rθ_ = generate_residual_expressions(model)
+rz_
+rθ_
+rθ_.nzval[1:10]
+rθ_.nzval[11:20]
+rθ_.nzval[21:30]
+rθ_.nzval[31:39]
+rθ_.colptr
+rθ_.rowval
 
-expr_res = generate_residual_expressions(model)
-save_expressions(expr_res, joinpath(@__DIR__, ".expr/quadruped_residual.jld2"), overwrite=true)
-instantiate_residual!(model, joinpath(@__DIR__, ".expr/quadruped_residual.jld2"))
 
 
 
-r(model, zs, θs)
-rz!(model, ∇zs, zs, θs)
-rθ!(model, ∇θs, zs, θs)
+
+
+
+save_expressions(expr_res, joinpath(@__DIR__, ".expr/quadruped_residual_dummy.jld2"), overwrite=true)
+instantiate_residual!(model, joinpath(@__DIR__, ".expr/quadruped_residual_dummy.jld2"))
+
+
+aaa = [1 0 0 0 2;
+	   3 4 5 0 1]
+bbb = sparse(aaa)
+
+
+
+zs = rand(SizedVector{nz})
+θs = rand(SizedVector{nθ})
+ρs = 1e-3
+rs = rand(SizedVector{nz})
+∇zs = rand(nz,nz)
+∇θs = rand(nz,nθ)
+@btime r_fast!(model, rs, zs, θs, ρs)
+@btime rz_fast!(model, ∇zs, zs, θs, ρs)
+@btime rθ_fast!(model, ∇θs, zs, θs, ρs)
+
+∇zs
+sparse(∇zs)
+215/nz^2
+sparse(∇θs)
+162/(nz*nθ)
