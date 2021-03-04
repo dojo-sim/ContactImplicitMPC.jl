@@ -97,6 +97,40 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	return expr
 end
 
+
+"""
+	generate_residual_expressions(model::ContactDynamicsModel)
+Generate fast residual methods using ModelingToolkit symbolic computing tools.
+"""
+function generate_residual_expressions(model::ContactDynamicsModel)
+	nq = model.dim.q
+	nu = model.dim.u
+	nγ = model.dim.γ
+	nb = model.dim.b
+	nz = model.dim.z
+	nθ = model.dim.θ
+
+	# Declare variables
+	@variables dt[1:1]
+	@variables z[1:nz]
+	@variables θ[1:nθ]
+	@variables ρ[1:1]
+	# Residual
+	r = residual(model, dt[1], z, θ, ρ[1])
+	r = ModelingToolkit.simplify.(r)
+	rz = ModelingToolkit.jacobian(r, z, simplify=true)
+	rθ = ModelingToolkit.jacobian(r, θ, simplify=true)
+
+
+	# Build function
+	expr = Dict{Symbol, Expr}()
+	expr[:r]  = build_function(r,  dt, z, θ, ρ)[2]
+	expr[:rz] = build_function(rz, dt, z, θ, ρ)[2]
+	expr[:rθ] = build_function(rθ, dt, z, θ, ρ)[2]
+	return expr
+end
+
+
 """
 	save_expressions(expr::Dict{Symbol,Expr},
 		path::AbstractString="dynamics_expressions.jld2"; overwrite::Bool=false)

@@ -1,7 +1,7 @@
 function dynamics(model::QuadrupedModel, dt::T, q0::Vq0, q1::Vq1,
 	u1::Vu1, γ1::Vγ1, b1::Vb1, q2::Vq2) where {T,Vq0,Vq1,Vu1,Vγ1,Vb1,Vq2}
 
-	v = (q2[3:end] - q1[3:end]) / dt
+	v = (q2[3:end] - q1[3:end]) / dt[1]
 	joint_fric = [zeros(2); model.joint_friction * v]
 
 	return (1.0 / dt *
@@ -71,8 +71,7 @@ function residual(model::QuadrupedModel, dt::T, z::AbstractVector, θ::AbstractV
 	lin_vT = P_func(model, q2)*(q2 .- q1) ./ model.dt
 	# action optimality conditions
 	[
-	# dynamics(model, dt, q0, q1, u1, γ1, b1, q2);
-	q0.*q0 .+ q0.*dt .+ q0.*ρ;
+	dynamics(model, dt, q0, q1, u1, γ1, b1, q2);
 	s1 - ϕ;
 	γ1 .* s1 .- ρ;
 
