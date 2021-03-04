@@ -126,8 +126,8 @@ function r!(r, z, data)
     κ = data.κ
     model = data.info[:model]
 
-    q2, γ, b, ψ, η, s1, s2 = unpack_z(z)
-    q0, q1, u, w = unpack_θ(θ)
+    q2, γ, b, ψ, η, s1, s2 = unpack_z(z, model)
+    q0, q1, u, w = unpack_θ(θ, model)
 
     ϕ = signed_distance(model, q2)        # signed-distance function
     vT = (tangent_jacobian(model, q2) * q2 - tangent_jacobian(model, q1) * q1) / h # tangent velocity
@@ -163,4 +163,13 @@ q1 = @SVector [0.1, 0.0, 1.0]
 sim = simulator(model, q0, q1, h, T)
 @time simulate!(sim)
 
-plot(hcat(sim.q...)')
+sim.ip_data.δz
+sim.q
+sim.u
+sim.γ
+sim.dq2dq0
+sim.dγdq0
+
+SizedMatrix{100,100}(zeros(100,100))
+
+xx = [@SVector ones(3) for t = 1:5]

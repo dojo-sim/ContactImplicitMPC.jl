@@ -25,10 +25,10 @@ function rθ!(rθ, z, θ)
     nothing
 end
 
-mutable struct ResidualData
-    r::Vector # pre-allocated memory for residual
-    θ::Vector # pre-allocated memory for problem data
-    κ         # barrier parameter
+mutable struct ResidualData{T}
+    r::Vector{T} # pre-allocated memory for residual
+    θ::Vector{T} # pre-allocated memory for problem data
+    κ::T         # barrier parameter
     info::Dict   # additional info
 end
 
@@ -37,22 +37,19 @@ function residual_data(num_var, num_data)
 end
 
 # data structure containing pre-allocated memory for interior-point solver
-struct InteriorPointData
-    z # current point
-    z̄ # candidate point
-    r # residual
-    r_norm  # residual norm
-    r̄ # candidate residual
-    r̄_norm   # candidate residual norm
-    rz           # residual Jacobian wrt z
-    rθ           # residual Jacobian wrt θ
-    Δ::Vector # search direction
-
-    idx_ineq     # indices for inequality constraints
-
-    δz           # solution gradients
-
-    data::ResidualData # residual data
+struct InteriorPointData{T}
+    z::Vector{T}           # current point
+    z̄::Vector{T}           # candidate point
+    r::Vector{T}           # residual
+    r_norm::T              # residual norm
+    r̄::Vector{T}           # candidate residual
+    r̄_norm::T              # candidate residual norm
+    rz::Array{T,2}         # residual Jacobian wrt z
+    rθ::Array{T,2}         # residual Jacobian wrt θ
+    Δ::Vector{T}           # search direction
+    idx_ineq::Vector{Int}  # indices for inequality constraints
+    δz::Array{T,2}         # solution gradients
+    data::ResidualData{T}  # residual data
 end
 
 function interior_point_data(num_var, num_data, idx_ineq)
@@ -74,14 +71,14 @@ function interior_point_data(num_var, num_data, idx_ineq)
 end
 
 # interior-point solver options
-@with_kw mutable struct InteriorPointOptions
-    r_tol = 1.0e-5
-    κ_tol = 1.0e-5
-    κ_init = 1.0
-    κ_scale = 0.1
-    max_iter = 100
-    max_ls = 50
-    diff_sol = false
+@with_kw mutable struct InteriorPointOptions{T}
+    r_tol::T = 1.0e-5
+    κ_tol::T = 1.0e-5
+    κ_init::T = 1.0
+    κ_scale::T = 0.1
+    max_iter::Int = 100
+    max_ls::Int = 50
+    diff_sol::Bool = false
 end
 
 # interior point solver
@@ -107,6 +104,7 @@ function interior_point!(data::InteriorPointData;
     r̄_norm = data.r̄_norm
     rz = data.rz
     Δ = data.Δ
+    idx_ineq = data.idx_ineq
 
     # initialize barrier parameter
     θ.κ = κ_init
@@ -126,6 +124,9 @@ function interior_point!(data::InteriorPointData;
             rz!(rz, z, θ)
 
             # compute step
+            # Δ .= r
+            # info = LAPACK.getrf!(rz)
+            # LAPACK.getrs!('N', info[1], info[2], Δ)
             Δ .= rz \ r
 
             # initialize step length

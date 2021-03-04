@@ -1,27 +1,27 @@
-struct Simulator
-    T
+struct Simulator{S,nq,nu,nc,nb,nw}
+    T::Int
 
-    q
-    u
-    γ
-    b
-    w
+    q::Vector{SArray{Tuple{nq},S,1,nq}}
+    u::Vector{SArray{Tuple{nu},S,1,nu}}
+    γ::Vector{SArray{Tuple{nc},S,1,nc}}
+    b::Vector{SArray{Tuple{nb},S,1,nb}}
+    w::Vector{SArray{Tuple{nw},S,1,nw}}
 
-    dq2q0
-    dq2dq1
-    dq2du
-    dγdq0
-    dγdq1
-    dγdu
-    dbdq0
-    dbdq1
-    dbdu
+    dq2dq0::Vector{SizedArray{Tuple{nq,nq},S,2,2}}
+    dq2dq1::Vector{SizedArray{Tuple{nq,nq},S,2,2}}
+    dq2du::Vector{SizedArray{Tuple{nq,nu},S,2,2}}
+    dγdq0::Vector{SizedArray{Tuple{nc,nq},S,2,2}}
+    dγdq1::Vector{SizedArray{Tuple{nc,nq},S,2,2}}
+    dγdu::Vector{SizedArray{Tuple{nc,nu},S,2,2}}
+    dbdq0::Vector{SizedArray{Tuple{nb,nq},S,2,2}}
+    dbdq1::Vector{SizedArray{Tuple{nb,nq},S,2,2}}
+    dbdu::Vector{SizedArray{Tuple{nb,nu},S,2,2}}
 
-    ip_data
-    ip_opts
+    ip_data::InteriorPointData{S}
+    ip_opts::InteriorPointOptions{S}
 end
 
-function simulator(model, q0, q1, h, T;
+function simulator(model, q0::SVector, q1::SVector, h, T::Int;
     u = [@SVector zeros(model.nu) for t = 1:T],
     w = [@SVector zeros(model.nw) for t = 1:T],
     diff_sol = false,
@@ -37,15 +37,15 @@ function simulator(model, q0, q1, h, T;
     γ = [@SVector zeros(nc) for t = 1:T]
     b = [@SVector zeros(nb) for t = 1:T]
 
-    dq2q0 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:T]
+    dq2dq0 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:T]
     dq2dq1 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:T]
     dq2du = [SizedMatrix{nq,nu}(zeros(nq, nu)) for t = 1:T]
     dγdq0 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:T]
     dγdq1 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:T]
-    dγdu = [SizedMatrix{nc, nu}(zeros(nc, nu)) for t = 1:T]
-    dbdq0 = [SizedMatrix{nb, nq}(zeros(nb, nq)) for t = 1:T]
-    dbdq1 = [SizedMatrix{nb, nq}(zeros(nb, nq)) for t = 1:T]
-    dbdu = [SizedMatrix{nb, nu}(zeros(nb, nu)) for t = 1:T]
+    dγdu = [SizedMatrix{nc,nu}(zeros(nc, nu)) for t = 1:T]
+    dbdq0 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:T]
+    dbdq1 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:T]
+    dbdu = [SizedMatrix{nb,nu}(zeros(nb, nu)) for t = 1:T]
 
     ip_data = interior_point_data(num_var(model),
         num_data(model),
@@ -59,7 +59,7 @@ function simulator(model, q0, q1, h, T;
         γ,
         b,
         w,
-        dq2q0,
+        dq2dq0,
         dq2dq1,
         dq2du,
         dγdq0,
@@ -93,7 +93,7 @@ function step!(sim, t)
 
     if status
         # parse result
-        q2, γ, b, _ = unpack_z(z)
+        q2, γ, b, _ = unpack_z(z, model)
         sim.q[t+2] = copy(q2)
         sim.γ[t] = γ
         sim.b[t] = b
@@ -104,7 +104,7 @@ function step!(sim, t)
             nc = model.nc
             nb = model.nb
 
-            sim.dq2q0[t] = view(ip_data.δz, 1:nq, 1:nq)
+            sim.dq2dq0[t] = view(ip_data.δz, 1:nq, 1:nq)
             sim.dq2dq1[t] = view(ip_data.δz, 1:nq, nq .+ (1:nq))
             sim.dq2du[t] = view(ip_data.δz, 1:nq, 2 * nq .+ (1:nu))
             sim.dγdq0[t] = view(ip_data.δz, nq .+ (1:nc), 1:nq)
@@ -126,10 +126,10 @@ end
 """
 function simulate!(sim::Simulator; verbose = false)
 
-    println("\nSimulation")
+    verbose && println("\nSimulation")
 
     for t = 1:sim.T
-        verbose && println("   t = $t")
+        verbose && println("t = $t")
         status = step!(sim, t)
         !status && (@error "failed step (t = $t)")
     end
