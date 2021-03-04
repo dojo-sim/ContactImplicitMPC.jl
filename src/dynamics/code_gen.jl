@@ -20,7 +20,7 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 	# Dynamics
 	d = dynamics(model,dt[1],q0,q1,u1,γ1,b1,q2)
 	d = ModelingToolkit.simplify.(d)
-	dz  = ModelingToolkit.jacobian(d, [q0; q1; u1; γ1; b1; q2], simplify=true)
+	dy  = ModelingToolkit.jacobian(d, [q0; q1; u1; γ1; b1; q2], simplify=true)
 	dq0 = ModelingToolkit.jacobian(d, q0, simplify=true)
 	dq1 = ModelingToolkit.jacobian(d, q1,   simplify=true)
 	du1 = ModelingToolkit.jacobian(d, u1,   simplify=true)
@@ -31,7 +31,7 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 	# Build function
 	expr = Dict{Symbol, Expr}()
 	expr[:d]   = build_function(d,   dt, q0, q1, u1, γ1, b1, q2)[1]
-	expr[:dz]  = build_function(dz,  dt, q0, q1, u1, γ1, b1, q2)[2]
+	expr[:dy]  = build_function(dy,  dt, q0, q1, u1, γ1, b1, q2)[2]
 	expr[:dq0] = build_function(dq0, dt, q0, q1, u1, γ1, b1, q2)[2]
 	expr[:dq1] = build_function(dq1, dt, q0, q1, u1, γ1, b1, q2)[2]
 	expr[:du1] = build_function(du1, dt, q0, q1, u1, γ1, b1, q2)[2]
@@ -145,7 +145,7 @@ Evaluates the dynamics expressions to generate functions, stores them into the d
 """
 function instantiate_dynamics!(fct::DynamicsMethods13, expr::Dict{Symbol,Expr})
 	fct.d   = eval(expr[:d])
-	fct.dz  = eval(expr[:dz])
+	fct.dy  = eval(expr[:dy])
 	fct.dq0 = eval(expr[:dq0])
 	fct.dq1 = eval(expr[:dq1])
 	fct.du1 = eval(expr[:du1])
@@ -179,5 +179,29 @@ function instantiate_base!(fct::BaseMethods12, expr::Dict{Symbol,Expr})
 	fct.N    = eval(expr[:N])
 	fct.P    = eval(expr[:P])
 	fct.C    = eval(expr[:C])
+	return nothing
+end
+
+"""
+	instantiate_residual!(model::QuadrupedModel,
+		path::AbstractString=".expr/quadruped_residual.jld2")
+Loads the residual expressions from the `path`, evaluates them to generate functions,
+stores them into the model.
+"""
+function instantiate_residual!(model::QuadrupedModel, path::AbstractString=".expr/quadruped_residual.jld2")
+	expr = load_expressions(path)
+	instantiate_base!(model.res, expr)
+	return nothing
+end
+
+"""
+	instantiate_residual!(model::QuadrupedModel,
+		path::AbstractString=".expr/quadruped_residual.jld2")
+Evaluates the residual expressions to generate functions, stores them into the model.
+"""
+function instantiate_residual!(fct::BaseMethods12, expr::Dict{Symbol,Expr})
+	fct.r   = eval(expr[r])
+	fct.rz = eval(expr[rz])
+	fct.rθ = eval(expr[rθ])
 	return nothing
 end

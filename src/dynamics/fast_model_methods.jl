@@ -1,3 +1,4 @@
+# Base functions
 function lagrangian_fast(model::ContactDynamicsModel, q, q̇)
     return model.bas.L(q, q̇)
 end
@@ -22,12 +23,14 @@ function C_fast(model::ContactDynamicsModel, q, q̇)
     return model.bas.C(q, q̇)
 end
 
+
+# Dynamics functions
 function dynamics_fast(model::ContactDynamicsModel, q0, q1, u1, γ1, b1, q2)
     return model.dyn.d(model.dt, q0, q1, u1, γ1, b1, q2)
 end
 
-function ∇z_dynamics_fast!(model::ContactDynamicsModel, ∇, q0, q1, u1, γ1, b1, q2)
-    return model.dyn.dz(∇, model.dt, q0, q1, u1, γ1, b1, q2)
+function ∇y_dynamics_fast!(model::ContactDynamicsModel, ∇, q0, q1, u1, γ1, b1, q2)
+    return model.dyn.dy(∇, model.dt, q0, q1, u1, γ1, b1, q2)
 end
 
 function ∇q0_dynamics_fast!(model::ContactDynamicsModel, ∇, q0, q1, u1, γ1, b1, q2)
@@ -52,4 +55,18 @@ end
 
 function ∇q2_dynamics_fast!(model::ContactDynamicsModel, ∇, q0, q1, u1, γ1, b1, q2)
     return model.dyn.dq2(∇, model.dt, q0, q1, u1, γ1, b1, q2)
+end
+
+
+# Residual methods
+function r_fast!(model::ContactDynamicsModel, z, θ)
+    return model.res.r(z, θ)
+end
+
+function rz_fast!(model::ContactDynamicsModel, z, θ)
+    return model.res.rz(z, θ)
+end
+
+function rθ_fast!(model::ContactDynamicsModel, z, θ)
+    return model.res.rθ(z, θ)
 end

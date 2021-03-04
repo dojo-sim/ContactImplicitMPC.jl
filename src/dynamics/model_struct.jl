@@ -13,7 +13,7 @@ mutable struct Dimensions12
 	n::Int         # state dim
 	θ::Int         # data dim
 	w::Int         # sol dim
-	z::Int         # whole dim
+	y::Int         # whole dim
 end
 
 function Dimensions12(q::Int,u::Int,c::Int,b::Int)
@@ -21,8 +21,8 @@ function Dimensions12(q::Int,u::Int,c::Int,b::Int)
 	n = 2q
 	θ = 2q + u
 	w = γ + b + q
-    z = 3q + u + γ + b
-    return Dimensions12(q,u,γ,b,c,n,θ,w,z)
+    y = 3q + u + γ + b
+    return Dimensions12(q,u,γ,b,c,n,θ,w,y)
 end
 
 mutable struct Indices13{Vq_1,Vq,Vu,Vγ,Vb,Vq1,Vθ,Vw}
@@ -51,7 +51,7 @@ end
 
 mutable struct DynamicsMethods13
 	d::Any
-	dz::Any
+	dy::Any
 	dq0::Any
 	dq1::Any
 	du1::Any
@@ -62,6 +62,7 @@ end
 
 function DynamicsMethods13()
 	function f()
+		error("Not Implemented: use instantiate_dynamics!")
 		return nothing
 	end
 	return DynamicsMethods13(fill(f, 8)...)
@@ -78,7 +79,22 @@ end
 
 function BaseMethods12()
 	function f()
+		error("Not Implemented: use instantiate_base!")
 		return nothing
 	end
 	return BaseMethods12(fill(f, 6)...)
+end
+
+mutable struct ResidualMethods12
+	r::Any
+	rz::Any
+	rθ::Any
+end
+
+function ResidualMethods12()
+	function f()
+		error("Not Implemented: use instantiate_residual!")
+		return nothing
+	end
+	return ResidualMethods12(fill(f, 3)...)
 end
