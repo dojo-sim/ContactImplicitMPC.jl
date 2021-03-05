@@ -63,10 +63,10 @@ rθ! = eval(ModelingToolkit.build_function(rθ_exp, z_sym, θ_sym, κ_sym,
 # rθ!(rθ_sp, z, θ, κ)
 # @benchmark rθ!($rθ_sp, $z, $θ, $κ)
 
-num_var = 2 * n
-num_data = 2 * n
-idx_ineq = collect(1:num_var)
-ip = interior_point(num_var, num_data, idx_ineq;
+num_var() = 2 * n
+num_data() = 2 * n
+idx_ineq = collect(1:num_var())
+ip = interior_point(num_var(), num_data(), idx_ineq,
     rz = rz_sp,
     rθ = rθ_sp)
 

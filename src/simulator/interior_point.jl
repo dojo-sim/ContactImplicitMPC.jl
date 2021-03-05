@@ -28,8 +28,8 @@ struct InteriorPoint{T}
     r_norm::T                  # residual norm
     r̄::Vector{T}               # candidate residual
     r̄_norm::T                  # candidate residual norm
-    rz::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
-    rθ::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
+    rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
+    rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
     idx_ineq::Vector{Int}      # indices for inequality constraints
     z̄_ineq                     # variables subject to inequality constraints
@@ -39,12 +39,10 @@ struct InteriorPoint{T}
 end
 
 function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
-        rz::SparseMatrixCSC{T,Int} = spzeros(num_var, num_var),
-        rθ::SparseMatrixCSC{T,Int} = spzeros(num_var, num_data)) where T
+        rz = spzeros(num_var, num_var),
+        rθ = spzeros(num_var, num_data)) where T
 
-    n_ineq = length(idx_ineq)
-
-    ip = InteriorPoint(
+    InteriorPoint(
         zeros(num_var),
         zeros(num_var),
         zeros(num_var),
@@ -55,15 +53,10 @@ function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
         rθ,
         zeros(num_var),
         idx_ineq,
-        view(zeros(n_ineq), idx_ineq),
+        view(zeros(num_var), idx_ineq),
         spzeros(num_var, num_data),
         zeros(num_data),
         zeros(1))
-
-    # # create view
-    # ip.z̄_ineq .= view(ip.z̄, ip.idx_ineq)
-
-    return ip
 end
 
 # interior-point solver options
@@ -99,6 +92,7 @@ function interior_point!(ip::InteriorPoint{T};
     r̄_norm = ip.r̄_norm
     rz = ip.rz
     Δ = ip.Δ
+    idx_ineq = ip.idx_ineq
     # ip.z̄_ineq .= view(ip.z̄, ip.idx_ineq)
     # z̄_ineq = ip.z̄_ineq
     θ = ip.θ

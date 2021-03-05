@@ -1,5 +1,6 @@
 include("interior_point.jl")
 include("simulator.jl")
+using InteractiveUtils, BenchmarkTools, ModelingToolkit
 
 """
     particle dynamics
@@ -45,7 +46,7 @@ end
 
 # signed distance function
 function signed_distance(model, q)
-    q[3]
+    q[3:3]
 end
 
 # control Jacobian
@@ -84,8 +85,9 @@ function num_var(model)
 end
 
 function num_data(model)
-    model.nq + model.nq + model.nu + 2
+    model.nq + model.nq + model.nu + model.nw
 end
+num_data(model)
 
 function z_initialize!(z, model, q1)
     z .= 1.0
@@ -96,16 +98,17 @@ function θ_initialize!(θ, model, q0, q1, u, w)
     θ[1:3] = q0
     θ[4:6] = q1
     θ[7:9] = u
+    θ[10:10] = w
 end
 
 function unpack_z(z, model)
     q2 = view(z, 1:3)  # configuration
     γ = view(z, 4:4)   # normal impulse
     b = view(z, 5:8)   # friction impulse (double parameterized)
-    ψ = z[9]           # friction cone dual (magnitude of tangential velocity)
+    ψ = view(z, 9:9)   # friction cone dual (magnitude of tangential velocity)
     η = view(z, 10:13) # friction impulse duals
-    s1 = z[14]         # signed-distance slack
-    s2 = z[15]         # friction cone slack
+    s1 = view(z, 14:14)# signed-distance slack
+    s2 = view(z, 15:15)# friction cone slack
 
     return q2, γ, b, ψ, η, s1, s2
 end
@@ -114,62 +117,81 @@ function unpack_θ(θ, model)
     q0 = view(θ, 1:3)  # configuration
     q1 = view(θ, 4:6)  # configuration
     u = view(θ, 7:9)
-    w = nothing
+    w = view(θ, 10:10)
     return q0, q1, u, w
 end
 
-inequality_indices(model) = collect(model.nq .+ (1:(model.nq - num_var(model))))
+inequality_indices(model) = collect(model.nq .+ (1:(num_var(model) - model.nq)))
 
-function r!(r, z, data)
-    # unpack
-    θ = data.θ
-    κ = data.κ
-    model = data.info[:model]
+# Model
+h = 0.01
+T = 500
+model = Particle(1.0, 9.81, 1.0, h, 3, 3, 1, 4, 1)
 
+function _r!(r, z, θ, κ)
     q2, γ, b, ψ, η, s1, s2 = unpack_z(z, model)
     q0, q1, u, w = unpack_θ(θ, model)
+    h = model.h
 
     ϕ = signed_distance(model, q2)        # signed-distance function
     vT = (tangent_jacobian(model, q2) * q2 - tangent_jacobian(model, q1) * q1) / h # tangent velocity
 
     r[1:3] = dynamics(model, q0, q1, q2, u, γ, b, w, h)
-    r[4] = s1 - ϕ
-    r[5] = γ[1] * s1 - κ
+    r[4:4] = s1 - ϕ
+    r[5:5] = γ .* s1 - κ
     r[6:9] = vT - η
     r[6:9] .+= ψ
-    r[10] = s2 - (model.μ * γ[1] - sum(b))
-    r[11] = ψ * s2 - κ
+    r[10:10] = s2 - (model.μ * γ .- sum(b))
+    r[11:11] = ψ .* s2 - κ
     r[12:15] = b .* η .- κ
 
     nothing
 end
 
-function rz!(rz, z, data)
-    _r(a, b) = r!(a, b, data)
-    ForwardDiff.jacobian!(rz, _r, data.r, z)
-end
+r = zeros(num_var(model))
+z = ones(num_var(model))
+θ = ones(num_data(model))
+κ = 1.0
+@code_warntype _r!(r, z, θ, κ)
+# @benchmark _r!($r, $z, $θ, $κ)
 
-function rθ!(rθ, z, data)
-    _r(a, c) = r!(a, z, c, κ)
-    ForwardDiff.jacobian!(rθ, _r, data.r, data.θ)
-end
+@variables r_sym[1:15]
+@variables z_sym[1:num_var(model)]
+@variables θ_sym[1:num_data(model)]
+@variables κ_sym[1:1]
 
-# Model
-h = 0.01
-T = 500
-model = Particle(1.0, 9.81, 1.0, h, 3, 3, 1, 4, 0)
+parallel = false # ModelingToolkit.MultithreadedForm()
+_r!(r_sym, z_sym, θ_sym, κ_sym)
+r_sym = simplify.(r_sym)
+r! = eval(ModelingToolkit.build_function(r_sym, z_sym, θ_sym, κ_sym,
+    parallel = parallel)[2])
+rz_exp = ModelingToolkit.sparsejacobian(r_sym, z_sym, simplify = true)
+rθ_exp = ModelingToolkit.jacobian(r_sym, θ_sym, simplify = true)
+rz_sp = similar(rz_exp, Float64)
+rθ_sp = similar(rθ_exp, Float64)
+rz! = eval(ModelingToolkit.build_function(rz_exp, z_sym, θ_sym, κ_sym,
+    parallel = parallel)[2])
+rθ! = eval(ModelingToolkit.build_function(rθ_exp, z_sym, θ_sym, κ_sym,
+    parallel = parallel)[2])
+
+@code_warntype r!(r, z, θ, κ)
+@benchmark r!($r, $z, $θ, $κ)
+
+@code_warntype rz!(rz_sp, z, θ, κ)
+rz!(rz_sp, z, θ, κ)
+@benchmark rz!($rz_sp, $z, $θ, $κ)
+
+@code_warntype rθ!(r, z, θ, κ)
+rθ!(rθ_sp, z, θ, κ)
+@benchmark rθ!($rθ_sp, $z, $θ, $κ)
+
 q0 = @SVector [0.0, 0.0, 1.0]
-q1 = @SVector [0.1, 0.0, 1.0]
-sim = simulator(model, q0, q1, h, T)
+q1 = @SVector [0.1, -.05, 1.0]
+sim = simulator(model, q0, q1, h, T,
+    rz = rz_sp,
+    rθ = rθ_sp)
+
 @time simulate!(sim)
 
-sim.ip_data.δz
-sim.q
-sim.u
-sim.γ
-sim.dq2dq0
-sim.dγdq0
-
-SizedMatrix{100,100}(zeros(100,100))
-
-xx = [@SVector ones(3) for t = 1:5]
+using Plots
+plot(hcat(Array.(sim.q)...)')

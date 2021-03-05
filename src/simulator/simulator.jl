@@ -26,7 +26,7 @@ end
 function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
     u = [@SVector zeros(model.nu) for t = 1:T],
     w = [@SVector zeros(model.nw) for t = 1:T],
-    ip_opts = InteriorPointOptions(diff_sol = false),
+    ip_opts = InteriorPointOptions(),
     rz = spzeros(num_var(model), num_var(model)),
     rθ = spzeros(num_var(model), num_data(model))) where S
 
@@ -55,8 +55,7 @@ function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
         num_data(model),
         inequality_indices(model),
         rz = rz,
-        rθ = rθ,
-        opts = ip_opts)
+        rθ = rθ)
 
     Simulator(
         model,
