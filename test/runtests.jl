@@ -1,13 +1,11 @@
 using Test
 using ContactControl
-
-using BenchmarkTools
-using Colors
-using FFMPEG
+# using Colors
+# using FFMPEG
 using ForwardDiff
 using JLD2
 using MeshCat
-# using ModelingToolkit
+using ModelingToolkit
 using Parameters
 using Plots
 using Rotations
@@ -18,8 +16,9 @@ using Random
 using SparseArrays
 
 # Dynamics
-include("dynamics/my_test_file.jl")
-
+@testset "Dynamics Tests" begin
+    include("dynamics/fast_model_methods.jl")
+end
 
 # # Simulator
 # include("simulator/my_test_file.jl")

@@ -4,8 +4,8 @@ module ContactControl
 greet() = print("ContactControl")
 
 using BenchmarkTools
-# using Colors
-# using FFMPEG
+using Colors
+using FFMPEG
 using ForwardDiff
 using JLD2
 using MeshCat
@@ -19,6 +19,8 @@ using Logging
 using Random
 using SparseArrays
 using Test
-# using InteractiveTools
+
+include(joinpath(pwd(), "src/dynamics/model.jl"))
+include(joinpath(pwd(), "src/dynamics/code_gen.jl"))
 
 end # module

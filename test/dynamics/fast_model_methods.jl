@@ -1,10 +1,5 @@
 @testset "Fast Base Model Methods" begin
-    dyn_path = joinpath(@__DIR__, "../../src/dynamics")
-    include(joinpath(dyn_path, "quadruped_model.jl"))
-    model = deepcopy(quadruped)
-    # expr_bas = generate_base_expressions(model)
-    # save_expressions(expr_bas, joinpath(dyn_path, ".expr/quadruped_base.jld2"), overwrite=true)
-    instantiate_base!(model, joinpath(dyn_path, ".expr/quadruped_base.jld2"))
+    include(joinpath(pwd(), "src/dynamics/quadruped/model.jl"))
 
     # Setup variables
     T = Float64
@@ -13,100 +8,97 @@
     q̇0s = rand(SizedVector{nq,T})
 
     # Testing fast methods
-    @test norm(M_fast(model, q0s) - M_func(model, q0s), 1) < 1e-14
-    @test norm(B_fast(model, q0s) - B_func(model, q0s), 1) < 1e-14
-    @test norm(N_fast(model, q0s) - N_func(model, q0s), 1) < 1e-14
-    @test norm(P_fast(model, q0s) - P_func(model, q0s), 1) < 1e-14
-    @test norm(C_fast(model, q0s, q̇0s) - _C_func(model, q0s, q̇0s), 1) < 1e-12
+    @test norm(M_fast(q0s) - M_func(model, q0s), 1) < 1.0e-14
+    @test norm(B_fast(q0s) - B_func(model, q0s), 1) < 1.0e-14
+    @test norm(N_fast(q0s) - N_func(model, q0s), 1) < 1.0e-14
+    @test norm(P_fast(q0s) - P_func(model, q0s), 1) < 1.0e-14
+    @test norm(C_fast(q0s, q̇0s) - C_func(model, q0s, q̇0s), 1) < 1.0e-12
 end
 
 @testset "Fast Dynamics Model Methods" begin
-    dyn_path = joinpath(@__DIR__, "../../src/dynamics")
-    include(joinpath(dyn_path, "quadruped_model.jl"))
-    model = deepcopy(quadruped)
-    instantiate_base!(model, joinpath(dyn_path, ".expr/quadruped_base.jld2"))
-    # expr_dyn = generate_dynamics_expressions(model)
-    # save_expressions(expr_dyn, joinpath(dyn_path, ".expr/quadruped_dynamics.jld2"), overwrite=true)
-    instantiate_dynamics!(model, joinpath(dyn_path, ".expr/quadruped_dynamics.jld2"))
+    include(joinpath(pwd(), "src/dynamics/quadruped/model.jl"))
 
     # Setup variables
     T = Float64
+	h = 0.1
     nq = model.dim.q
     nu = model.dim.u
-    nγ = model.dim.γ
+    nw = model.dim.w
+    nc = model.dim.c
     nb = model.dim.b
-    ny = model.dim.y
 
     q0s = rand(SizedVector{nq,T})
     q1s = rand(SizedVector{nq,T})
     u1s = rand(SizedVector{nu,T})
-    γ1s = rand(SizedVector{nγ,T})
+    u1s = rand(SizedVector{nu,T})
+    w1s = rand(SizedVector{nw,T})
+    γ1s = rand(SizedVector{nc,T})
     b1s = rand(SizedVector{nb,T})
     q2s = rand(SizedVector{nq,T})
 
-    ∇ys   = rand(SizedMatrix{nq,ny,T})
+    ∇ys   = rand(SizedMatrix{nq,2nq + nu + nc + nb + nq,T})
     ∇q0s  = rand(SizedMatrix{nq,nq,T})
     ∇q1s  = rand(SizedMatrix{nq,nq,T})
     ∇u1s  = rand(SizedMatrix{nq,nu,T})
-    ∇γ1s  = rand(SizedMatrix{nq,nγ,T})
+    ∇γ1s  = rand(SizedMatrix{nq,nc,T})
     ∇b1s  = rand(SizedMatrix{nq,nb,T})
     ∇q2s  = rand(SizedMatrix{nq,nq,T})
 
     # Testing dynamics methods
-    @test norm(dynamics_fast(model, q0s, q1s, u1s, γ1s, b1s, q2s) -
-        dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    @test norm(d(h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s) -
+        dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s), 1) < 1e-12
 
-    ∇q0_dynamics_fast!(model, ∇q0s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇q0s - ∇q0_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    dq0!(∇q0s, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
+	fq0(x) = dynamics(model, h, x, q1s, u1s, w1s, γ1s, b1s, q2s)
+    @test norm(∇q0s - ForwardDiff.jacobian(fq0, q0s), 1) < 1e-12
 
-    ∇q1_dynamics_fast!(model, ∇q1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇q1s - ∇q1_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    dq1!(∇q1s, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
+	fq1(x) = dynamics(model, h, q0s, x, u1s, w1s, γ1s, b1s, q2s)
+    @test norm(∇q1s - ForwardDiff.jacobian(fq1, q1s), 1) < 1e-12
 
-    ∇u1_dynamics_fast!(model, ∇u1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇u1s - ∇u1_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    du1!(∇u1s, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
+	fu1(x) = dynamics(model, h, q0s, q1s, x, w1s, γ1s, b1s, q2s)
+    @test norm(∇u1s - ForwardDiff.jacobian(fu1, u1s), 1) < 1e-12
 
-    ∇γ1_dynamics_fast!(model, ∇γ1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇γ1s - ∇γ1_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    dγ1!(∇γ1s, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
+	fγ1(x) = dynamics(model, h, q0s, q1s, u1s, w1s, x, b1s, q2s)
+    @test norm(∇γ1s - ForwardDiff.jacobian(fγ1, γ1s), 1) < 1e-12
 
-    ∇b1_dynamics_fast!(model, ∇b1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇b1s - ∇b1_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    db1!(∇b1s, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
+	fb1(x) = dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, x, q2s)
+    @test norm(∇b1s - ForwardDiff.jacobian(fb1, b1s), 1) < 1e-12
 
-    ∇q2_dynamics_fast!(model, ∇q2s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇q2s - ∇q2_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    dq2!(∇q2s, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
+	fq2(x) = dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, b1s, x)
+    @test norm(∇q2s - ForwardDiff.jacobian(fq2, q2s), 1) < 1e-12
 
-    ∇y_dynamics_fast!(model, ∇ys, q0s, q1s, u1s, γ1s, b1s, q2s)
+    dy!(∇ys, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
     @test norm(∇ys - [∇q0s ∇q1s ∇u1s ∇γ1s ∇b1s ∇q2s], 1) < 1e-12
 end
 
 @testset "Fast Residual Model Methods" begin
-    dyn_path = joinpath(@__DIR__, "../../src/dynamics")
-    include(joinpath(dyn_path, "quadruped_model.jl"))
-    model = deepcopy(quadruped)
-    instantiate_base!(model, joinpath(dyn_path, ".expr/quadruped_base.jld2"))
-    instantiate_dynamics!(model, joinpath(dyn_path, ".expr/quadruped_dynamics.jld2"))
-    # expr_res = generate_residual_expressions(model)
-    # save_expressions(expr_dyn, joinpath(dyn_path, ".expr/quadruped_residual.jld2"), overwrite=true)
-    instantiate_residual!(model, joinpath(dyn_path, ".expr/quadruped_residual.jld2"))
+    include(joinpath(pwd(), "src/dynamics/quadruped/model.jl"))
 
     # Setup variables
     T = Float64
-    nz = model.dim.z
-    nθ = model.dim.θ
+	h = 0.1
+    nz = num_var(model)
+    nθ = num_data(model)
 
     zs = rand(SizedVector{nz})
     θs = rand(SizedVector{nθ})
-    κs = 1e-3
+    κs = 1.0
     rs = rand(SizedVector{nz})
-    ∇zs = rand(nz,nz)
-    ∇θs = rand(nz,nθ)
 
     # Testing residual methods
-    r_fast!(model, rs, zs, θs, κs)
-    @test norm(rs - residual(model, model.h, zs, θs, κs), 1) < 1e-12
+    r!(rs, zs, θs, κs)
+    @test norm(rs - residual(model, zs, θs, κs), 1) < 1e-12
 
-    rz_fast!(model, ∇zs, zs, θs, κs)
-    @test norm(∇zs - ∇z_residual(model, model.h, zs, θs, κs), 1) < 1e-12
+    rz!(rz_sp, zs, θs, κs)
+	fz(x) = residual(model, x, θs, κs)
+    @test norm(rz_sp - ForwardDiff.jacobian(fz, zs), 1) < 1e-12
 
-    rθ_fast!(model, ∇θs, zs, θs, κs)
-    @test norm(∇θs - ∇θ_residual(model, model.h, zs, θs, κs), 1) < 1e-12
+	rθ!(rθ_sp, zs, θs, κs)
+	fθ(x) = residual(model, zs, x, κs)
+    @test norm(rθ_sp - ForwardDiff.jacobian(fθ, θs), 1) < 1e-12
 end
