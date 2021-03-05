@@ -54,25 +54,25 @@ end
 
     # Testing dynamics methods
     @test norm(dynamics_fast(model, q0s, q1s, u1s, γ1s, b1s, q2s) -
-        dynamics(model, model.dt, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+        dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
 
     ∇q0_dynamics_fast!(model, ∇q0s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇q0s - ∇q0_dynamics(model, model.dt, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    @test norm(∇q0s - ∇q0_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
 
     ∇q1_dynamics_fast!(model, ∇q1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇q1s - ∇q1_dynamics(model, model.dt, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    @test norm(∇q1s - ∇q1_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
 
     ∇u1_dynamics_fast!(model, ∇u1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇u1s - ∇u1_dynamics(model, model.dt, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    @test norm(∇u1s - ∇u1_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
 
     ∇γ1_dynamics_fast!(model, ∇γ1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇γ1s - ∇γ1_dynamics(model, model.dt, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    @test norm(∇γ1s - ∇γ1_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
 
     ∇b1_dynamics_fast!(model, ∇b1s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇b1s - ∇b1_dynamics(model, model.dt, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    @test norm(∇b1s - ∇b1_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
 
     ∇q2_dynamics_fast!(model, ∇q2s, q0s, q1s, u1s, γ1s, b1s, q2s)
-    @test norm(∇q2s - ∇q2_dynamics(model, model.dt, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
+    @test norm(∇q2s - ∇q2_dynamics(model, model.h, q0s, q1s, u1s, γ1s, b1s, q2s), 1) < 1e-12
 
     ∇y_dynamics_fast!(model, ∇ys, q0s, q1s, u1s, γ1s, b1s, q2s)
     @test norm(∇ys - [∇q0s ∇q1s ∇u1s ∇γ1s ∇b1s ∇q2s], 1) < 1e-12
@@ -95,18 +95,18 @@ end
 
     zs = rand(SizedVector{nz})
     θs = rand(SizedVector{nθ})
-    ρs = 1e-3
+    κs = 1e-3
     rs = rand(SizedVector{nz})
     ∇zs = rand(nz,nz)
     ∇θs = rand(nz,nθ)
 
     # Testing residual methods
-    r_fast!(model, rs, zs, θs, ρs)
-    @test norm(rs - residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+    r_fast!(model, rs, zs, θs, κs)
+    @test norm(rs - residual(model, model.h, zs, θs, κs), 1) < 1e-12
 
-    rz_fast!(model, ∇zs, zs, θs, ρs)
-    @test norm(∇zs - ∇z_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+    rz_fast!(model, ∇zs, zs, θs, κs)
+    @test norm(∇zs - ∇z_residual(model, model.h, zs, θs, κs), 1) < 1e-12
 
-    rθ_fast!(model, ∇θs, zs, θs, ρs)
-    @test norm(∇θs - ∇θ_residual(model, model.dt, zs, θs, ρs), 1) < 1e-12
+    rθ_fast!(model, ∇θs, zs, θs, κs)
+    @test norm(∇θs - ∇θ_residual(model, model.h, zs, θs, κs), 1) < 1e-12
 end

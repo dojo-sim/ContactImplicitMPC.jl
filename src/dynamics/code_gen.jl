@@ -15,10 +15,10 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 	@variables γ1[1:nγ]
 	@variables b1[1:nb]
 	@variables q2[1:nq]
-	@variables dt[1:1]
+	@variables h[1:1]
 
 	# Dynamics
-	d = dynamics(model,dt[1],q0,q1,u1,γ1,b1,q2)
+	d = dynamics(model,h[1],q0,q1,u1,γ1,b1,q2)
 	d = ModelingToolkit.simplify.(d)
 	dy  = ModelingToolkit.jacobian(d, [q0; q1; u1; γ1; b1; q2], simplify=true)
 	dq0 = ModelingToolkit.jacobian(d, q0, simplify=true)
@@ -30,14 +30,14 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
-	expr[:d]   = build_function(d,   dt, q0, q1, u1, γ1, b1, q2)[1]
-	expr[:dy]  = build_function(dy,  dt, q0, q1, u1, γ1, b1, q2)[2]
-	expr[:dq0] = build_function(dq0, dt, q0, q1, u1, γ1, b1, q2)[2]
-	expr[:dq1] = build_function(dq1, dt, q0, q1, u1, γ1, b1, q2)[2]
-	expr[:du1] = build_function(du1, dt, q0, q1, u1, γ1, b1, q2)[2]
-	expr[:dγ1] = build_function(dγ1, dt, q0, q1, u1, γ1, b1, q2)[2]
-	expr[:db1] = build_function(db1, dt, q0, q1, u1, γ1, b1, q2)[2]
-	expr[:dq2] = build_function(dq2, dt, q0, q1, u1, γ1, b1, q2)[2]
+	expr[:d]   = build_function(d,   h, q0, q1, u1, γ1, b1, q2)[1]
+	expr[:dy]  = build_function(dy,  h, q0, q1, u1, γ1, b1, q2)[2]
+	expr[:dq0] = build_function(dq0, h, q0, q1, u1, γ1, b1, q2)[2]
+	expr[:dq1] = build_function(dq1, h, q0, q1, u1, γ1, b1, q2)[2]
+	expr[:du1] = build_function(du1, h, q0, q1, u1, γ1, b1, q2)[2]
+	expr[:dγ1] = build_function(dγ1, h, q0, q1, u1, γ1, b1, q2)[2]
+	expr[:db1] = build_function(db1, h, q0, q1, u1, γ1, b1, q2)[2]
+	expr[:dq2] = build_function(dq2, h, q0, q1, u1, γ1, b1, q2)[2]
 	return expr
 end
 
@@ -111,12 +111,12 @@ function generate_residual_expressions(model::ContactDynamicsModel)
 	nθ = model.dim.θ
 
 	# Declare variables
-	@variables dt[1:1]
+	@variables h[1:1]
 	@variables z[1:nz]
 	@variables θ[1:nθ]
-	@variables ρ[1:1]
+	@variables κ[1:1]
 	# Residual
-	r = residual(model, dt[1], z, θ, ρ[1])
+	r = residual(model, h[1], z, θ, κ[1])
 	r = ModelingToolkit.simplify.(r)
 	rz = ModelingToolkit.jacobian(r, z, simplify=true)
 	rθ = ModelingToolkit.jacobian(r, θ, simplify=true)
@@ -124,9 +124,9 @@ function generate_residual_expressions(model::ContactDynamicsModel)
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
-	expr[:r]  = build_function(r,  dt, z, θ, ρ)[2]
-	expr[:rz] = build_function(rz, dt, z, θ, ρ)[2]
-	expr[:rθ] = build_function(rθ, dt, z, θ, ρ)[2]
+	expr[:r]  = build_function(r,  h, z, θ, κ)[2]
+	expr[:rz] = build_function(rz, h, z, θ, κ)[2]
+	expr[:rθ] = build_function(rθ, h, z, θ, κ)[2]
 	return expr
 end
 

@@ -6,7 +6,7 @@ mutable struct QuadrupedBasic20{T} <: QuadrupedModel
 	res::ResidualMethods14
 	alt::AbstractVector{T}
 
-	dt::T
+	h::T
 	g::T
 	μ::T
 	joint_friction::T
@@ -21,7 +21,7 @@ mutable struct QuadrupedBasic20{T} <: QuadrupedModel
 	# alt3
 	# alt4
 	#
-	# dt
+	# h
     # g
     # μ
 	# joint_friction
@@ -638,7 +638,7 @@ nb = nc * nf
 # ns = 1
 
 # World parameters
-dt = 0.025
+h = 0.025
 μ = 0.5      # coefficient of friction
 g = 9.81     # gravity
 joint_friction = 0.1 # coefficient of torque friction at the joints
@@ -690,7 +690,7 @@ dummy_dyn = DynamicsMethods13()
 dummy_res = ResidualMethods14()
 alt = zeros(SizedVector{nc})
 quadruped = QuadrupedBasic20(dim, ind, dummy_bas, dummy_dyn, dummy_res, alt,
-				dt, g, μ, joint_friction,
+				h, g, μ, joint_friction,
 				# n, m, d,
 				# alt1, alt2, alt3, alt4,
 				l_torso, d_torso, m_torso, J_torso,

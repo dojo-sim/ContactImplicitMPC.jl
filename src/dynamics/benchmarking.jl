@@ -68,9 +68,9 @@ nz = length(z1)
 ∇d1  = rand(SMatrix{nq,nz,T,nq*nz})
 ∇d1s = rand(SizedMatrix{nq,nz,T})
 
-@btime dz_fct(model.dt, z1)
-@btime dz_fct(model.dt, z1s)
-ddd = dz_fct(∇d1s, model.dt, q1s, q2s, u2s, γ2s, b2s, q3s)
+@btime dz_fct(model.h, z1)
+@btime dz_fct(model.h, z1s)
+ddd = dz_fct(∇d1s, model.h, q1s, q2s, u2s, γ2s, b2s, q3s)
 size(∇d1s)
 sparse(∇d1s)
 189/583
@@ -80,14 +80,14 @@ a = 10
 a = 10
 a = 10
 
-@btime ∇q1_dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
-@btime ∇q1_dynamics(model, model.dt, q1s, q2s, u2s, γ2s, b2s, q3s)
+@btime ∇q1_dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)
+@btime ∇q1_dynamics(model, model.h, q1s, q2s, u2s, γ2s, b2s, q3s)
 
-@btime dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
-@btime dynamics(model, model.dt, q1s, q2s, u2s, γ2s, b2s, q3s)
+@btime dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)
+@btime dynamics(model, model.h, q1s, q2s, u2s, γ2s, b2s, q3s)
 
-@btime d_fct(model.dt, q1, q2, u2, γ2, b2, q3)
-@btime d_fct(model.dt, q1s, q2s, u2s, γ2s, b2s, q3s)
+@btime d_fct(model.h, q1, q2, u2, γ2, b2, q3)
+@btime d_fct(model.h, q1s, q2s, u2s, γ2s, b2s, q3s)
 
 @btime L_fct(q1s, q̇1s)
 @btime M_fct(q1s)
@@ -95,11 +95,11 @@ a = 10
 @btime N_fct(q1s)
 @btime P_fct(q1s)
 @btime C_fct(q1s, q̇1s)
-@btime d_fct(model.dt, q1s, q2s, u2s, γ2s, b2s, q3s)
-@btime dynamics(model, model.dt, q1s, q2s, u2s, γ2s, b2s, q3s)
+@btime d_fct(model.h, q1s, q2s, u2s, γ2s, b2s, q3s)
+@btime dynamics(model, model.h, q1s, q2s, u2s, γ2s, b2s, q3s)
 
-@btime d_fct(model.dt, q1, q2, u2, γ2, b2, q3)
-@btime dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
+@btime d_fct(model.h, q1, q2, u2, γ2, b2, q3)
+@btime dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)
 
 
 a = 1; a += 2
@@ -338,8 +338,8 @@ kin1_expr
 
 
 
-@btime dynamics_eval(model, model.dt, q1, q2, u2, γ2, b2, q3)
-@ballocated dynamics_eval(model, model.dt, q1, q2, u2, γ2, b2, q3)
+@btime dynamics_eval(model, model.h, q1, q2, u2, γ2, b2, q3)
+@ballocated dynamics_eval(model, model.h, q1, q2, u2, γ2, b2, q3)
 
 
 
@@ -350,20 +350,20 @@ kin1_expr
 
 
 
-function dynamics_eval(model::ContactDynamicsModel, dt::T, qk_1::Vq_1, qk::Vq, uk::Vu,
-	γk::Vγ, bk::Vb, qk1::Vq) where {T,Vq_1,Vq,Vu,Vγ,Vb,Vq1}
+function dynamics_eval(model::ContactDynamicsModel, h::T, q0::Vq_1, q1::Vq, uk::Vu,
+	γk::Vγ, bk::Vb, q2::Vq) where {T,Vq_1,Vq,Vu,Vγ,Vb,Vq1}
 
-	v = Vector((qk1 - qk) / dt)
+	v = Vector((q2 - q1) / h)
 	joint_fric = model.joint_friction * v
 	joint_fric[1:2] .= 0.0
 
-	return ((1.0 / dt) * (M_func(model, qk_1) * (qk - qk_1)
-	- M_func(model, qk) * (qk1 - qk))
-	+ transpose(B_func(model, qk1)) * uk * 1.0
-	+ transpose(N_func(model, qk1)) * γk * 1.0
-	+ transpose(_P_func(model, qk1)) * bk * 1.0
-	- dt * joint_fric
-	- dt * (1.0 * C_func(model, qk1, (qk1 - qk) / dt)))
+	return ((1.0 / h) * (M_func(model, q0) * (q1 - q0)
+	- M_func(model, q1) * (q2 - q1))
+	+ transpose(B_func(model, q2)) * uk * 1.0
+	+ transpose(N_func(model, q2)) * γk * 1.0
+	+ transpose(_P_func(model, q2)) * bk * 1.0
+	- h * joint_fric
+	- h * (1.0 * C_func(model, q2, (q2 - q1) / h)))
 
     return nothing
 end
@@ -371,62 +371,62 @@ end
 
 #
 #
-# function dynamics(model::QuadrupedModel15, dt::T, qk_1::SVq_1, qk::SVq,
-# 	uk::SVu, γk::SVγ, bk::SVb, qk1::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
+# function dynamics(model::QuadrupedModel15, h::T, q0::SVq_1, q1::SVq,
+# 	uk::SVu, γk::SVγ, bk::SVb, q2::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
 #
-# 	v = Vector((qk1 - qk) / dt)
+# 	v = Vector((q2 - q1) / h)
 # 	joint_fric = model.joint_friction * v
 # 	joint_fric[1:2] .= 0.0
 #
-# 	return ((1.0 / dt) * (M_func(model, qk_1) * (qk - qk_1)
-# 	- M_func(model, qk) * (qk1 - qk))
-# 	+ transpose(B_func(model, qk1)) * uk * 1.0
-# 	+ transpose(N_func(model, qk1)) * γk * 1.0
-# 	+ transpose(_P_func(model, qk1)) * bk * 1.0
-# 	- dt * joint_fric
-# 	- dt * (1.0 * C_func(model, qk1, (qk1 - qk) / dt)))
+# 	return ((1.0 / h) * (M_func(model, q0) * (q1 - q0)
+# 	- M_func(model, q1) * (q2 - q1))
+# 	+ transpose(B_func(model, q2)) * uk * 1.0
+# 	+ transpose(N_func(model, q2)) * γk * 1.0
+# 	+ transpose(_P_func(model, q2)) * bk * 1.0
+# 	- h * joint_fric
+# 	- h * (1.0 * C_func(model, q2, (q2 - q1) / h)))
 # end
 
-function ∇q_1_dynamics(model::QuadrupedModel, dt::T, qk_1::SVq_1, qk::SVq,
-	uk::SVu, γk::SVγ, bk::SVb, qk1::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
-	dynx(x) = dynamics(model, dt, x, qk, uk, γk, bk, qk1)
-	return ForwardDiff.jacobian(dynx, qk_1)
+function ∇q_1_dynamics(model::QuadrupedModel, h::T, q0::SVq_1, q1::SVq,
+	uk::SVu, γk::SVγ, bk::SVb, q2::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
+	dynx(x) = dynamics(model, h, x, q1, uk, γk, bk, q2)
+	return ForwardDiff.jacobian(dynx, q0)
 end
 
-function ∇q_dynamics(model::QuadrupedModel, dt::T, qk_1::SVq_1, qk::SVq,
-	uk::SVu, γk::SVγ, bk::SVb, qk1::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
+function ∇q_dynamics(model::QuadrupedModel, h::T, q0::SVq_1, q1::SVq,
+	uk::SVu, γk::SVγ, bk::SVb, q2::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
 
-	dynx(x) = dynamics(model, dt, qk_1, x, uk, γk, bk, qk1)
-	return ForwardDiff.jacobian(dynx, qk)
+	dynx(x) = dynamics(model, h, q0, x, uk, γk, bk, q2)
+	return ForwardDiff.jacobian(dynx, q1)
 end
 
-function ∇u_dynamics(model::QuadrupedModel, dt::T, qk_1::SVq_1, qk::SVq,
-	uk::SVu, γk::SVγ, bk::SVb, qk1::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
+function ∇u_dynamics(model::QuadrupedModel, h::T, q0::SVq_1, q1::SVq,
+	uk::SVu, γk::SVγ, bk::SVb, q2::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
 
-	dynx(x) = dynamics(model, dt, qk_1, qk, x, γk, bk, qk1)
+	dynx(x) = dynamics(model, h, q0, q1, x, γk, bk, q2)
 	return ForwardDiff.jacobian(dynx, uk)
 end
 
-function ∇γ_dynamics(model::QuadrupedModel, dt::T, qk_1::SVq_1, qk::SVq,
-	uk::SVu, γk::SVγ, bk::SVb, qk1::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
+function ∇γ_dynamics(model::QuadrupedModel, h::T, q0::SVq_1, q1::SVq,
+	uk::SVu, γk::SVγ, bk::SVb, q2::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
 
-	dynx(x) = dynamics(model, dt, qk_1, qk, uk, x, bk, qk1)
+	dynx(x) = dynamics(model, h, q0, q1, uk, x, bk, q2)
 	return ForwardDiff.jacobian(dynx, γk)
 end
 
-function ∇b_dynamics(model::QuadrupedModel, dt::T, qk_1::SVq_1, qk::SVq,
-	uk::SVu, γk::SVγ, bk::SVb, qk1::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
+function ∇b_dynamics(model::QuadrupedModel, h::T, q0::SVq_1, q1::SVq,
+	uk::SVu, γk::SVγ, bk::SVb, q2::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
 
-	dynx(x) = dynamics(model, dt, qk_1, qk, uk, γk, x, qk1)
+	dynx(x) = dynamics(model, h, q0, q1, uk, γk, x, q2)
 	return ForwardDiff.jacobian(dynx, bk)
 end
 
 
-function ∇q1_dynamics(model::QuadrupedModel, dt::T, qk_1::SVq_1, qk::SVq,
-    uk::SVu, γk::SVγ, bk::SVb, qk1::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
+function ∇q1_dynamics(model::QuadrupedModel, h::T, q0::SVq_1, q1::SVq,
+    uk::SVu, γk::SVγ, bk::SVb, q2::SVq1) where {T,SVq_1,SVq,SVu,SVγ,SVb,SVq1}
 
-	dynx(x) = dynamics(model, dt, qk_1, qk, uk, γk, bk, x)
-	return ForwardDiff.jacobian(dynx, qk1)
+	dynx(x) = dynamics(model, h, q0, q1, uk, γk, bk, x)
+	return ForwardDiff.jacobian(dynx, q2)
 end
 
 
@@ -447,10 +447,10 @@ end
 # model
 
 # _P_func(model, q3)
-# @time dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
-# @time ∇q_1_dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
-# @time ∇q_dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
-# @time ∇u_dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
-# @time ∇γ_dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
-# @time ∇b_dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
-# @time ∇q1_dynamics(model, model.dt, q1, q2, u2, γ2, b2, q3)
+# @time dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)
+# @time ∇q_1_dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)
+# @time ∇q_dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)
+# @time ∇u_dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)
+# @time ∇γ_dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)
+# @time ∇b_dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)
+# @time ∇q1_dynamics(model, model.h, q1, q2, u2, γ2, b2, q3)

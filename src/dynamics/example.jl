@@ -64,29 +64,29 @@ nz = model.dim.z
 nθ = model.dim.θ
 zs = rand(SizedVector{nz})
 θs = rand(SizedVector{nθ})
-ρs = 1e-3
+κs = 1e-3
 rs = rand(SizedVector{nz})
 ∇zs = rand(nz,nz)
 ∇θs = rand(nz,nθ)
 
 
-r_fast!(model, rs, zs, θs, ρs)
-rz_fast!(model, ∇zs, zs, θs, ρs)
-rθ_fast!(model, ∇θs, zs, θs, ρs)
+r_fast!(model, rs, zs, θs, κs)
+rz_fast!(model, ∇zs, zs, θs, κs)
+rθ_fast!(model, ∇θs, zs, θs, κs)
 
 
 function line_search_eval3!(model::ContactDynamicsModel, out::Vector{SizedArray{Tuple{nz},T,1,1}},
-    z::SizedVector{nz,T}, δz::SizedVector{nz,T}, θ::SizedVector{nθ,T}, ρ::T, N::Int) where {nz,nθ,T}
+    z::SizedVector{nz,T}, δz::SizedVector{nz,T}, θ::SizedVector{nθ,T}, κ::T, N::Int) where {nz,nθ,T}
     for k = 1:N
-        r_fast!(model, out[k], z+1/2^k*δz, θ, ρ)
+        r_fast!(model, out[k], z+1/2^k*δz, θ, κ)
     end
     return nothing
 end
 
 function multi_line_search_eval3!(model::ContactDynamicsModel, out::Vector{SizedArray{Tuple{nz},T,1,1}},
-    z::SizedVector{nz,T}, δz::SizedVector{nz,T}, θ::SizedVector{nθ,T}, ρ::T, N::Int) where {nz,nθ,T}
+    z::SizedVector{nz,T}, δz::SizedVector{nz,T}, θ::SizedVector{nθ,T}, κ::T, N::Int) where {nz,nθ,T}
     Threads.@threads for k = 1:N
-        r_fast!(model, out[k], z+1/2^k*δz, θ, ρ)
+        r_fast!(model, out[k], z+1/2^k*δz, θ, κ)
     end
     return nothing
 end
@@ -103,14 +103,14 @@ outs1 = [rand(SizedVector{nz,T}) for k=1:N]
 zs = rand(SizedVector{nz,T})
 δzs = rand(SizedVector{nz,T})
 θs = rand(SizedVector{nθ,T})
-ρs = 1e-3
-@time line_search_eval3!(model, outs0, zs, δzs, θs, ρs, N)
-@time multi_line_search_eval3!(model, outs1, zs, δzs, θs, ρs, N)
+κs = 1e-3
+@time line_search_eval3!(model, outs0, zs, δzs, θs, κs, N)
+@time multi_line_search_eval3!(model, outs1, zs, δzs, θs, κs, N)
 
-@btime line_search_eval3!(model, outs0, zs, δzs, θs, ρs, N)
-@btime multi_line_search_eval3!(model, outs1, zs, δzs, θs, ρs, N)
+@btime line_search_eval3!(model, outs0, zs, δzs, θs, κs, N)
+@btime multi_line_search_eval3!(model, outs1, zs, δzs, θs, κs, N)
 
 outs0 == outs1
 
-rz_fast!(model, ∇zs, zs, θs, ρs)
+rz_fast!(model, ∇zs, zs, θs, κs)
 @btime ∇zs\rs

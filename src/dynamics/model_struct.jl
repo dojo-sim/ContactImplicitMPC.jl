@@ -30,14 +30,14 @@ function Dimensions12(q::Int,u::Int,c::Int,b::Int)
 end
 
 mutable struct Indices13{Vq_1,Vq,Vu,Vγ,Vb,Vq1,Vθ,Vw}
-    q0::Vq_1      # qk-1
-    q1::Vq        # qk
+    q0::Vq_1      # q1-1
+    q1::Vq        # q1
     u1::Vu        # uk
     γ1::Vγ        # γk
     b1::Vb        # bk
-    q2::Vq1       # qk+1
-	θ::Vθ         # θ = [qk-1; qk; u_k]
-	w::Vw         # w = [γk; bk; qk+1]
+    q2::Vq1       # q1+1
+	θ::Vθ         # θ = [q1-1; q1; u_k]
+	w::Vw         # w = [γk; bk; q1+1]
 end
 
 function Indices13(q::Int,u::Int,c::Int,b::Int)
