@@ -1,4 +1,6 @@
 struct Simulator{S,nq,nu,nc,nb,nw}
+    model
+
     T::Int
 
     q::Vector{SArray{Tuple{nq},S,1,nq}}
@@ -17,15 +19,16 @@ struct Simulator{S,nq,nu,nc,nb,nw}
     dbdq1::Vector{SizedArray{Tuple{nb,nq},S,2,2}}
     dbdu::Vector{SizedArray{Tuple{nb,nu},S,2,2}}
 
-    ip_data::InteriorPointData{S}
+    ip::InteriorPoint{S}
     ip_opts::InteriorPointOptions{S}
 end
 
-function simulator(model, q0::SVector, q1::SVector, h, T::Int;
+function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
     u = [@SVector zeros(model.nu) for t = 1:T],
     w = [@SVector zeros(model.nw) for t = 1:T],
-    diff_sol = false,
-    ip_opts = InteriorPointOptions(diff_sol = diff_sol))
+    ip_opts = InteriorPointOptions(diff_sol = false),
+    rz = spzeros(num_var(model), num_var(model)),
+    rθ = spzeros(num_var(model), num_data(model))) where S
 
     nq = model.nq
     nu = model.nu
@@ -47,12 +50,16 @@ function simulator(model, q0::SVector, q1::SVector, h, T::Int;
     dbdq1 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:T]
     dbdu = [SizedMatrix{nb,nu}(zeros(nb, nu)) for t = 1:T]
 
-    ip_data = interior_point_data(num_var(model),
+    ip = interior_point(
+        num_var(model),
         num_data(model),
-        inequality_indices(model))
-    ip_data.data.info[:model] = model
+        inequality_indices(model),
+        rz = rz,
+        rθ = rθ,
+        opts = ip_opts)
 
     Simulator(
+        model,
         T,
         q,
         u,
@@ -68,19 +75,19 @@ function simulator(model, q0::SVector, q1::SVector, h, T::Int;
         dbdq0,
         dbdq1,
         dbdu,
-        ip_data,
+        ip,
         ip_opts)
 end
 
 function step!(sim, t)
     # unpack
+    model = sim.model
     q = sim.q
     u = sim.u
     w = sim.w
-    ip_data = sim.ip_data
-    z = ip_data.z
-    θ = ip_data.data.θ
-    model = ip_data.data.info[:model]
+    ip = sim.ip
+    z = ip.z
+    θ = ip.θ
 
     # initialize
     fill!(z, 0.0)
@@ -89,7 +96,7 @@ function step!(sim, t)
     θ_initialize!(θ, model, q[t], q[t+1], u[t], w[t])
 
     # solve
-    status = interior_point!(ip_data, opts = sim.ip_opts)
+    status = interior_point!(ip, opts = sim.ip_opts)
 
     if status
         # parse result

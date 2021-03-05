@@ -1,64 +1,50 @@
 # check that inequality constraints are satisfied
-function inequality_check(z, idx_ineq)
-    if any(view(z, idx_ineq) .<= 0.0)
-        return true
-    else
-        return false
+inequality_check(x, idx_ineq) = any(view(x, idx_ineq) .<= 0.0) ? true : false
+
+"""
+    residual templates
+    # residual
+    function r!(r, z, θ, κ)
+        @warn "residual not defined"
+        nothing
     end
+
+    # residual Jacobian wrt z
+    function rz!(rz, z, θ, κ)
+        @warn "residual Jacobian wrt z not defined"
+        nothing
+    end
+
+    # residual Jacobian wrt θ
+    function rθ!(rθ, z, θ, κ)
+        @warn "residual Jacobian wrt θ not defined"
+        nothing
+    end
+"""
+struct InteriorPoint{T}
+    z::Vector{T}               # current point
+    z̄::Vector{T}               # candidate point
+    r::Vector{T}               # residual
+    r_norm::T                  # residual norm
+    r̄::Vector{T}               # candidate residual
+    r̄_norm::T                  # candidate residual norm
+    rz::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
+    rθ::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
+    Δ::Vector{T}               # search direction
+    idx_ineq::Vector{Int}      # indices for inequality constraints
+    z̄_ineq                     # variables subject to inequality constraints
+    δz::SparseMatrixCSC{T,Int} # solution gradients
+    θ::Vector{T}               # problem data
+    κ::Vector{T}               # barrier parameter
 end
 
-# residual
-# function r!(r, z, θ)
-#     @warn "residual not defined"
-#     nothing
-# end
-#
-# # residual Jacobian wrt z
-# function rz!(rz, z, θ)
-#     @warn "residual Jacobian wrt z not defined"
-#     nothing
-# end
-#
-# # residual Jacobian wrt θ
-# function rθ!(rθ, z, θ)
-#     @warn "residual Jacobian wrt θ not defined"
-#     nothing
-# end
+function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
+        rz::SparseMatrixCSC{T,Int} = spzeros(num_var, num_var),
+        rθ::SparseMatrixCSC{T,Int} = spzeros(num_var, num_data)) where T
 
-mutable struct ResidualData{T}
-    r::Vector{T} # pre-allocated memory for residual
-    θ::Vector{T} # pre-allocated memory for problem data
-    κ::T         # barrier parameter
-    info::Dict   # additional info
-end
+    n_ineq = length(idx_ineq)
 
-function residual_data(num_var, num_data)
-    ResidualData(zeros(num_var), zeros(num_data), 0.0, Dict())
-end
-
-# data structure containing pre-allocated memory for interior-point solver
-struct InteriorPointData{T}
-    z::Vector{T}           # current point
-    z̄::Vector{T}           # candidate point
-    r::Vector{T}           # residual
-    r_norm::T              # residual norm
-    r̄::Vector{T}           # candidate residual
-    r̄_norm::T              # candidate residual norm
-    rz::SparseMatrixCSC{T,Int}         # residual Jacobian wrt z
-    rθ::SparseMatrixCSC{T,Int}         # residual Jacobian wrt θ
-    Δ::Vector{T}           # search direction
-    idx_ineq::Vector{Int}  # indices for inequality constraints
-    δz::SparseMatrixCSC{T,Int}         # solution gradients
-    data::ResidualData{T}  # residual data
-end
-
-function interior_point_data(num_var, num_data, idx_ineq;
-        rz = spzeros(num_var, num_var),
-        rθ = spzeros(num_var, num_data))
-
-    r_data = residual_data(num_var, num_data)
-
-    InteriorPointData(
+    ip = InteriorPoint(
         zeros(num_var),
         zeros(num_var),
         zeros(num_var),
@@ -69,8 +55,15 @@ function interior_point_data(num_var, num_data, idx_ineq;
         rθ,
         zeros(num_var),
         idx_ineq,
+        view(zeros(n_ineq), idx_ineq),
         spzeros(num_var, num_data),
-        r_data)
+        zeros(num_data),
+        zeros(1))
+
+    # # create view
+    # ip.z̄_ineq .= view(ip.z̄, ip.idx_ineq)
+
+    return ip
 end
 
 # interior-point solver options
@@ -85,8 +78,8 @@ end
 end
 
 # interior point solver
-function interior_point!(data::InteriorPointData;
-    opts = InteriorPointOptions())
+function interior_point!(ip::InteriorPoint{T};
+    opts = InteriorPointOptions{T}()) where T
 
     # options
     r_tol = opts.r_tol
@@ -98,22 +91,24 @@ function interior_point!(data::InteriorPointData;
     diff_sol = opts.diff_sol
 
     # unpack pre-allocated data
-    z = data.z
-    z̄ = data.z̄
-    θ = data.data
-    r = data.r
-    r_norm = data.r_norm
-    r̄ = data.r̄
-    r̄_norm = data.r̄_norm
-    rz = data.rz
-    Δ = data.Δ
-    idx_ineq = data.idx_ineq
+    z = ip.z
+    z̄ = ip.z̄
+    r = ip.r
+    r_norm = ip.r_norm
+    r̄ = ip.r̄
+    r̄_norm = ip.r̄_norm
+    rz = ip.rz
+    Δ = ip.Δ
+    # ip.z̄_ineq .= view(ip.z̄, ip.idx_ineq)
+    # z̄_ineq = ip.z̄_ineq
+    θ = ip.θ
+    κ = ip.κ
 
     # initialize barrier parameter
-    θ.κ = κ_init
+    κ[1] = κ_init
 
     # compute residual, residual Jacobian
-    r!(r, z, θ)
+    r!(r, z, θ, κ[1])
     r_norm = norm(r, Inf)
 
     for k = 1:10
@@ -124,13 +119,14 @@ function interior_point!(data::InteriorPointData;
             end
 
             # compute residual Jacobian
-            rz!(rz, z, θ)
+            rz!(rz, z, θ, κ[1])
 
             # compute step
             # Δ .= r
-            # info = LAPACK.getrf!(rz)
+            # info = LAPACK.getrf!(Array(rz))
             # LAPACK.getrs!('N', info[1], info[2], Δ)
             Δ .= rz \ r
+            # Δ .= lu(rz) \ r
 
             # initialize step length
             α = 1.0
@@ -151,13 +147,13 @@ function interior_point!(data::InteriorPointData;
             end
 
             # reduce norm of residual
-            r!(r̄, z̄, θ)
+            r!(r̄, z̄, θ, κ[1])
             r̄_norm = norm(r̄, Inf)
 
             while r̄_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
                 α = 0.5 * α
                 z̄ .= z - α * Δ
-                r!(r̄, z̄, θ)
+                r!(r̄, z̄, θ, κ[1])
                 r̄_norm = norm(r̄, Inf)
 
                 iter += 1
@@ -173,14 +169,14 @@ function interior_point!(data::InteriorPointData;
             r_norm = r̄_norm
         end
 
-        if θ.κ < κ_tol
+        if κ[1] < κ_tol
             return true
         else
             # update barrier parameter
-            θ.κ *= κ_scale
+            κ[1] *= κ_scale
 
             # update residual
-            r!(r, z, θ)
+            r!(r, z, θ, κ[1])
             r_norm = norm(r, Inf)
         end
     end
@@ -190,16 +186,24 @@ function interior_point!(data::InteriorPointData;
     return true
 end
 
-function differentiate_solution!(data)
-    z = data.z
-    θ = data.θ
-    rz = data.rz
-    rθ = data.rθ
-    δz = data.δz
+function interior_point!(ip::InteriorPoint{T}, z::Vector{T}, θ::Vector{T};
+    opts = InteriorPointOptions{T}()) where T
+    ip.z .= z
+    ip.θ .= θ
+    interior_point!(ip, opts = opts)
+end
 
-    rz!(rz, z, θ) # maybe not needed
-    rθ!(rθ, z, θ)
+function differentiate_solution!(ip::InteriorPoint)
+    z = ip.z
+    θ = ip.θ
+    rz = ip.rz
+    rθ = ip.rθ
+    δz = ip.δz
+    κ = ip.κ
 
-    δz .= -1.0 * rz \ rθ
+    rz!(rz, z, θ, κ[1]) # maybe not needed
+    rθ!(rθ, z, θ, κ[1])
+
+    δz .= -1.0 * rz \ Array(rθ) # TODO: fix
     nothing
 end
