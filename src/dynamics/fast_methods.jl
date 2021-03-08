@@ -6,6 +6,10 @@ function B_fast(model::ContactDynamicsModel, q)
     return model.base.B(q)
 end
 
+function A_fast(model::ContactDynamicsModel, q)
+    return model.base.A(q)
+end
+
 function N_fast(model::ContactDynamicsModel, q)
     return model.base.N(q)
 end
@@ -37,6 +41,10 @@ end
 
 function du1_fast!(v, model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
     return model.dyn.du1(v, h, q0, q1, u1, w1, γ1, b1, q2)
+end
+
+function dw1_fast!(v, model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
+    return model.dyn.dw1(v, h, q0, q1, u1, w1, γ1, b1, q2)
 end
 
 function dγ1_fast!(v, model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
