@@ -430,6 +430,11 @@ function B_func(model::Quadruped, q)
 			  0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0]
 end
 
+function A_func(model::Quadruped, q)
+	@SMatrix [1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
+			  0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
+end
+
 function N_func(model::Quadruped, q)
 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
@@ -499,7 +504,7 @@ d_leg = 0.006435
 
 dim = Dimensions(nq, nu, nw, nc, nb)
 
-model = Quadruped(dim, g, μ_world, μ_joint,
+quadruped = Quadruped(dim, g, μ_world, μ_joint,
 				l_torso, d_torso, m_torso, J_torso,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,

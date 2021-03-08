@@ -60,6 +60,13 @@ function B_func(model, q)
                    0.0 0.0 1.0])
 end
 
+# disturbance Jacobian
+function A_func(model, q)
+    SMatrix{3, 3}([1.0 0.0 0.0;
+                   0.0 1.0 0.0;
+                   0.0 0.0 1.0])
+end
+
 # normal Jacobian
 function N_func(model, q)
     SMatrix{1, 3}([0.0, 0.0, 1.0])
