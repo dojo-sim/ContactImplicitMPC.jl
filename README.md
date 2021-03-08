@@ -5,7 +5,6 @@
 - Contact simulator
 - Contact-implicit controller
 
-- [ ] visuals for Particle
-- [ ] Define distrubances for all models
+- [X] visuals for Particle
+- [ ] Define disturbances for all models
 - [ ] Handle disturbances in fast functions
-

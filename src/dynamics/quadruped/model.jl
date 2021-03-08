@@ -510,12 +510,26 @@ model = Quadruped(dim, g, μ_world, μ_joint,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
 				zeros(nc),
-				BaseMethods(), DynamicsMethods(), ResidualMethods().
+				BaseMethods(), DynamicsMethods(), ResidualMethods(),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
-# fast_expressions!(model, "quadruped", generate = false)
-
-# L_fast, M_fast, B_fast, N_fast, P_fast, C_fast, d, dy!, dq0!, dq1!, du1!, dγ1!, db1!, dq2!, r!, rz!, rθ!, rz_sp, rθ_sp = generate_fast_expressions(model, "quadruped", generate = false, verbose = false);
+# path_base = "base.jld2"
+# path_dyn = "dynamics.jld2"
+# path_res = "residual.jld2"
+# path_jac = "sparse_jacobians.jld2"
+#
+# expr_base = generate_base_expressions(model)
+# save_expressions(expr_base, path_base, overwrite=true)
+# instantiate_base!(model, path_base)
+#
+# expr_dyn = generate_dynamics_expressions(model)
+# save_expressions(expr_dyn, path_dyn, overwrite=true)
+# instantiate_dynamics!(model, path_dyn)
+#
+# expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+# save_expressions(expr_res, path_res, overwrite=true)
+# @save path_jac rz_sp rθ_sp
+# instantiate_residual!(model, path_res)
 
 function initial_configuration(model::Quadruped, θ)
     q1 = zeros(model.dim.q)

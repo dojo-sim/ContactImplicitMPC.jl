@@ -1,4 +1,4 @@
-@testset "Model Methods: Fast Base" begin
+@testset "Model Methods: Fast Base (Particle)" begin
     dyn_path = joinpath(@__DIR__, "../../src/dynamics")
     include(joinpath(dyn_path, "particle/model.jl"))
 	model = particle
@@ -18,7 +18,7 @@
     @test norm(ContactControl.C_fast(model, q0s, q̇0s) - C_func(model, q0s, q̇0s), Inf) < 1.0e-8
 end
 
-@testset "Model Methods: Fast Dynamics" begin
+@testset "Model Methods: Fast Dynamics (Particle)" begin
 	dyn_path = joinpath(@__DIR__, "../../src/dynamics")
 	include(joinpath(dyn_path, "particle/model.jl"))
 	model = particle
@@ -84,7 +84,7 @@ end
     # @test norm(∇ys - [∇q0s ∇q1s ∇u1s ∇γ1s ∇b1s ∇q2s], Inf) < 1.0e-8
 end
 
-@testset "Model Methods: Fast Residual" begin
+@testset "Model Methods: Fast Residual (Particle)" begin
 	res_path = joinpath(@__DIR__, "../../src/dynamics")
 	include(joinpath(res_path, "particle/model.jl"))
 	model = particle
