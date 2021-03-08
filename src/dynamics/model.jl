@@ -95,6 +95,7 @@ function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
 		  (M_fast(model, q0) * (q1 - q0)
 		- M_fast(model, q1) * (q2 - q1))
 		+ transpose(B_fast(model, q2)) * u1
+		+ transpose(A_fast(model, q2)) * w1
 		+ transpose(N_fast(model, q2)) * γ1
 		+ transpose(P_fast(model, q2)) * b1
 		- h[1] * C_fast(model, q2, v1)
@@ -125,6 +126,7 @@ mutable struct BaseMethods
 	L::Any
 	M::Any
 	B::Any
+	A::Any
 	N::Any
 	P::Any
 	C::Any
@@ -135,7 +137,7 @@ function BaseMethods()
 		error("Not Implemented: use instantiate_base!")
 		return nothing
 	end
-	return BaseMethods(fill(f, 6)...)
+	return BaseMethods(fill(f, 7)...)
 end
 
 mutable struct DynamicsMethods
@@ -144,6 +146,7 @@ mutable struct DynamicsMethods
 	dq0::Any
 	dq1::Any
 	du1::Any
+	dw1::Any
 	dγ1::Any
 	db1::Any
 	dq2::Any
@@ -154,7 +157,7 @@ function DynamicsMethods()
 		error("Not Implemented: use instantiate_dynamics!")
 		return nothing
 	end
-	return DynamicsMethods(fill(f, 8)...)
+	return DynamicsMethods(fill(f, 9)...)
 end
 
 mutable struct ResidualMethods
