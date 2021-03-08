@@ -6,5 +6,7 @@
 - Contact-implicit controller
 
 - [X] visuals for Particle
-- [ ] Define disturbances for all models
-- [ ] Handle disturbances in fast functions
+- [X] Define disturbances for all models
+- [X] Handle disturbances in fast functions
+- [ ] Write inner solver for controller using IP method
+- [ ] Write outer solver for controller using Newton method
