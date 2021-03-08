@@ -20,10 +20,11 @@ using SparseArrays
     include("dynamics/fast_model_methods.jl")
 end
 
-# # Simulator
-# @testset "Simulator Tests" begin
-#     include("simulator/test_random_qp.jl")
-# end
+# Simulator
+@testset "Simulator Tests" begin
+    include("simulator/random_qp.jl")
+    include("simulator/particle.jl")
+end
 
 # # Controller
 # include("controller/my_test_file.jl")

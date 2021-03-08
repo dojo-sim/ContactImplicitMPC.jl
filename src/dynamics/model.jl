@@ -54,13 +54,15 @@ function unpack_z(model::ContactDynamicsModel, z)
 	return q2, γ1, b1, ψ, η, s1, s2
 end
 
-function num_var(model)
-    model.dim.q + model.dim.c + model.dim.b + model.dim.c + model.dim.b + 2 * model.dim.c
-end
+# function num_var(model)
+#     model.dim.q + model.dim.c + model.dim.b + model.dim.c + model.dim.b + 2 * model.dim.c
+# end
+#
+# function num_data(model)
+#     model.dim.q + model.dim.q + model.dim.u + model.dim.w + 1
+# end
 
-function num_data(model)
-    model.dim.q + model.dim.q + model.dim.u + model.dim.w + 1
-end
+inequality_indices(model) = collect(model.dim.q .+ (1:(num_var(model) - model.dim.q)))
 
 function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
 

@@ -117,7 +117,7 @@ function step!(sim, t)
 
     if status
         # parse result
-        q2, γ, b, _ = unpack_z(z, model)
+        q2, γ, b, _ = unpack_z(model, z)
         sim.q[t+2] = copy(q2)
         sim.γ[t] = γ
         sim.b[t] = b
@@ -153,7 +153,7 @@ function simulate!(sim::Simulator; verbose = false)
     verbose && println("\nSimulation")
 
     # initialize configurations for first step
-    z_initialize!(z, model, sim.q[2])
+    z_initialize!(sim.ip.z, sim.model, sim.q[2])
 
     status = true
 

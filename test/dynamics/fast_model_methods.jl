@@ -1,6 +1,7 @@
 @testset "Model Methods: Fast Base" begin
     dyn_path = joinpath(@__DIR__, "../../src/dynamics")
     include(joinpath(dyn_path, "particle/model.jl"))
+	model = particle
     ContactControl.instantiate_base!(model, joinpath(dyn_path, "particle/base.jld2"))
 
     # Setup variables
@@ -20,6 +21,7 @@ end
 @testset "Model Methods: Fast Dynamics" begin
 	dyn_path = joinpath(@__DIR__, "../../src/dynamics")
 	include(joinpath(dyn_path, "particle/model.jl"))
+	model = particle
 	ContactControl.instantiate_dynamics!(model, joinpath(dyn_path, "particle/dynamics.jld2"))
 
 	# Setup variables
@@ -84,6 +86,7 @@ end
 @testset "Model Methods: Fast Residual" begin
 	res_path = joinpath(@__DIR__, "../../src/dynamics")
 	include(joinpath(res_path, "particle/model.jl"))
+	model = particle
 	ContactControl.instantiate_base!(model, joinpath(res_path, "particle/base.jld2"))
 	ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle/dynamics.jld2"))
 	ContactControl.instantiate_residual!(model, joinpath(res_path, "particle/residual.jld2"))
