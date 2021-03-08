@@ -1,4 +1,70 @@
 """
+	generate_base_expressions(model::ContactDynamicsModel)
+Generate fast base methods using ModelingToolkit symbolic computing tools.
+"""
+function generate_base_expressions(model::ContactDynamicsModel)
+	nq = model.dim.q
+	nu = model.dim.u
+	nw = model.dim.w
+	nc = model.dim.c
+	nb = model.dim.b
+
+	# Declare variables
+	@variables q[1:nq]
+	@variables q̇[1:nq]
+
+	# Lagrangian
+	L = lagrangian(model, q, q̇)
+	L = ModelingToolkit.simplify.(L)
+
+	dLq = ModelingToolkit.gradient(L, q, simplify=true)
+	dLq̇ = ModelingToolkit.gradient(L, q̇, simplify=true)
+	ddL = ModelingToolkit.sparsehessian(L, [q; q̇], simplify=true)
+	ddL = SparseMatrixCSC{Expression,Int64}(ddL)
+	ddLq̇q = ddL[nq .+ (1:nq), 1:nq]
+
+	# Mass Matrix
+	M = M_func(model, q)
+	M = reshape(M, nq, nq)
+	M = ModelingToolkit.simplify.(M)
+
+	# Control input Jacobian
+	B = B_func(model, q)
+	B = reshape(B, (nu, nq))
+	B = ModelingToolkit.simplify.(B)
+
+	# Control input Jacobian
+	A = A_func(model, q)
+	A = reshape(A, (nw, nq))
+	A = ModelingToolkit.simplify.(A)
+
+	# Impact force Jacobian
+	N = N_func(model, q)
+	N = reshape(N, nc, nq)
+	N = ModelingToolkit.simplify.(N)
+
+	# Friction Force Jacobian
+	P = P_func(model, q)
+	P = reshape(P, nb, nq)
+	P = ModelingToolkit.simplify.(P)
+
+	# Coriolis and Centrifugal forces Jacobians
+	C = ddLq̇q * q̇ - dLq
+	C = ModelingToolkit.simplify.(C)
+
+	# Build function
+	expr = Dict{Symbol, Expr}()
+	expr[:L]    = build_function(transpose([L]), q, q̇)[1] # need to transpose to get a line vector
+	expr[:M]    = build_function(M, q)[1]
+	expr[:B]    = build_function(B, q)[1]
+	expr[:A]    = build_function(A, q)[1]
+	expr[:N]    = build_function(N, q)[1]
+	expr[:P]    = build_function(P, q)[1]
+	expr[:C]    = build_function(C, q, q̇)[1]
+	return expr
+end
+
+"""
 	generate_dynamics_expressions(model::ContactDynamicsModel)
 Generate fast dynamics methods using ModelingToolkit symbolic computing tools.
 """
@@ -42,66 +108,6 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 	expr[:dγ1] = build_function(dγ1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
 	expr[:db1] = build_function(db1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
 	expr[:dq2] = build_function(dq2, h, q0, q1, u1, w1, γ1, b1, q2)[2]
-	return expr
-end
-
-
-"""
-	generate_base_expressions(model::ContactDynamicsModel)
-Generate fast base methods using ModelingToolkit symbolic computing tools.
-"""
-function generate_base_expressions(model::ContactDynamicsModel)
-	nq = model.dim.q
-	nu = model.dim.u
-	nc = model.dim.c
-	nb = model.dim.b
-
-	# Declare variables
-	@variables q[1:nq]
-	@variables q̇[1:nq]
-
-	# Lagrangian
-	L = lagrangian(model, q, q̇)
-	L = ModelingToolkit.simplify.(L)
-
-	dLq = ModelingToolkit.gradient(L, q, simplify=true)
-	dLq̇ = ModelingToolkit.gradient(L, q̇, simplify=true)
-	ddL = ModelingToolkit.sparsehessian(L, [q; q̇], simplify=true)
-	ddL = SparseMatrixCSC{Expression,Int64}(ddL)
-	ddLq̇q = ddL[nq .+ (1:nq), 1:nq]
-
-	# Mass Matrix
-	M = M_func(model, q)
-	M = reshape(M, nq, nq)
-	M = ModelingToolkit.simplify.(M)
-
-	# Control input Jacobian
-	B = B_func(model, q)
-	B = reshape(B, (nu, nq))
-	B = ModelingToolkit.simplify.(B)
-
-	# Impact force Jacobian
-	N = N_func(model, q)
-	N = reshape(N, nc, nq)
-	N = ModelingToolkit.simplify.(N)
-
-	# Friction Force Jacobian
-	P = P_func(model, q)
-	P = reshape(P, nb, nq)
-	P = ModelingToolkit.simplify.(P)
-
-	# Coriolis and Centrifugal forces Jacobians
-	C = ddLq̇q * q̇ - dLq
-	C = ModelingToolkit.simplify.(C)
-
-	# Build function
-	expr = Dict{Symbol, Expr}()
-	expr[:L]    = build_function(transpose([L]), q, q̇)[1] # need to transpose to get a line vector
-	expr[:M]    = build_function(M, q)[1]
-	expr[:B]    = build_function(B, q)[1]
-	expr[:N]    = build_function(N, q)[1]
-	expr[:P]    = build_function(P, q)[1]
-	expr[:C]    = build_function(C, q, q̇)[1]
 	return expr
 end
 
@@ -181,6 +187,34 @@ function instantiate_residual(expr::Dict{Symbol,Expr})
 end
 
 """
+	instantiate_base!(model,
+		path::AbstractString="model/base.jld2")
+Loads the base expressions from the `path`, evaluates them to generate functions,
+stores them into the model.
+"""
+function instantiate_base!(model::ContactDynamicsModel, path::AbstractString="model/base.jld2")
+	expr = load_expressions(path)
+	instantiate_base!(model.base, expr)
+	return nothing
+end
+
+"""
+	instantiate_base!(model,
+		path::AbstractString="model/base.jld2")
+Evaluates the base expressions to generate functions, stores them into the model.
+"""
+function instantiate_base!(fct::BaseMethods, expr::Dict{Symbol,Expr})
+	fct.L    = eval(expr[:L])
+	fct.M    = eval(expr[:M])
+	fct.B    = eval(expr[:B])
+	fct.A    = eval(expr[:A])
+	fct.N    = eval(expr[:N])
+	fct.P    = eval(expr[:P])
+	fct.C    = eval(expr[:C])
+	return nothing
+end
+
+"""
 	instantiate_dynamics!(model,
 		path::AbstractString="dynamics.jld2")
 Loads the dynamics expressoins from the `path`, evaluates them to generate functions,
@@ -211,33 +245,6 @@ function instantiate_dynamics!(fct::DynamicsMethods, expr::Dict{Symbol,Expr})
 end
 
 """
-	instantiate_base!(model,
-		path::AbstractString="model/base.jld2")
-Loads the base expressions from the `path`, evaluates them to generate functions,
-stores them into the model.
-"""
-function instantiate_base!(model::ContactDynamicsModel, path::AbstractString="model/base.jld2")
-	expr = load_expressions(path)
-	instantiate_base!(model.base, expr)
-	return nothing
-end
-
-"""
-	instantiate_base!(model,
-		path::AbstractString="model/base.jld2")
-Evaluates the base expressions to generate functions, stores them into the model.
-"""
-function instantiate_base!(fct::BaseMethods, expr::Dict{Symbol,Expr})
-	fct.L    = eval(expr[:L])
-	fct.M    = eval(expr[:M])
-	fct.B    = eval(expr[:B])
-	fct.N    = eval(expr[:N])
-	fct.P    = eval(expr[:P])
-	fct.C    = eval(expr[:C])
-	return nothing
-end
-
-"""
 	instantiate_residual!(model::QuadrupedModel,
 		path::AbstractString=".expr/quadruped_residual.jld2")
 Loads the residual expressions from the `path`, evaluates them to generate functions,
@@ -261,47 +268,47 @@ function instantiate_residual!(fct::ResidualMethods, expr::Dict{Symbol,Expr})
 	return nothing
 end
 
-# function fast_expressions!(model::ContactDynamicsModel, dir::String;
-# 		generate = true, verbose = true)
-# 	verbose && println()
-#
-# 	model = deepcopy(model)
-#
-# 	path_base = "base.jld2"
-# 	path_dyn = "dynamics.jld2"
-# 	path_res = "residual.jld2"
-# 	path_jac = "sparse_jacobians.jld2"
-#
-# 	if generate
-# 		expr_base = generate_base_expressions(model)
-# 		save_expressions(expr_base, path_base, overwrite=true)
-# 		instantiate_base!(model, path_base)
-#
-# 		expr_dyn = generate_dynamics_expressions(model)
-# 		save_expressions(expr_dyn, path_dyn, overwrite=true)
-# 		instantiate_dynamics!(model, path_dyn)
-#
-# 		expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
-# 		save_expressions(expr_res, path_res, overwrite=true)
-# 		@save path_jac rz_sp rθ_sp
-# 		instantiate_residual!(model, path_res)
-# 	else
-# 		verbose && println("loading base methods...")
-# 		expr_base = load_expressions(joinpath(dir, "base.jld2"))
-#
-# 		verbose && println("loading dynamics methods...")
-# 		expr_dyn = load_expressions(joinpath(dir, "dynamics.jld2"))
-#
-# 		verbose && println("loading residual methods...")
-# 		expr_res = load_expressions(joinpath(dir, "residual.jld2"))
-# 		@load joinpath(dir, "sparse_jacobians.jld2") rz_sp rθ_sp
-#
-# 		verbose && println("generated methods: success")
-#
-# 		instantiate_base!(model, path_base)
-# 		instantiate_dynamics!(model, path_dyn)
-# 		instantiate_residual!(model, path_res)
-# 		@load joinpath(dir, "sparse_jacobians.jld2") rz_sp rθ_sp
-# 	end
-# 	verbose && println("instantiating methods: success")
-# end
+function fast_expressions!(model::ContactDynamicsModel, dir::String;
+	generate = true, verbose = true)
+	verbose && println()
+
+	model = deepcopy(model)
+
+	path_base = joinpath(dir, "base.jld2")
+	path_dyn = joinpath(dir, "dynamics.jld2")
+	path_res = joinpath(dir, "residual.jld2")
+	path_jac = joinpath(dir, "sparse_jacobians.jld2")
+
+	if generate
+		expr_base = generate_base_expressions(model)
+		save_expressions(expr_base, path_base, overwrite=true)
+		instantiate_base!(model, path_base)
+
+		expr_dyn = generate_dynamics_expressions(model)
+		save_expressions(expr_dyn, path_dyn, overwrite=true)
+		instantiate_dynamics!(model, path_dyn)
+
+		expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+		save_expressions(expr_res, path_res, overwrite=true)
+		@save path_jac rz_sp rθ_sp
+		instantiate_residual!(model, path_res)
+	else
+		# verbose && println("loading base methods...")
+		# expr_base = load_expressions(joinpath(dir, "base.jld2"))
+		#
+		# verbose && println("loading dynamics methods...")
+		# expr_dyn = load_expressions(joinpath(dir, "dynamics.jld2"))
+		#
+		# verbose && println("loading residual methods...")
+		# expr_res = load_expressions(joinpath(dir, "residual.jld2"))
+		# @load joinpath(dir, "sparse_jacobians.jld2") rz_sp rθ_sp
+
+		verbose && println("generated methods: success")
+
+		instantiate_base!(model, path_base)
+		instantiate_dynamics!(model, path_dyn)
+		instantiate_residual!(model, path_res)
+		@load joinpath(dir, "sparse_jacobians.jld2") rz_sp rθ_sp
+	end
+	verbose && println("instantiating methods: success")
+end

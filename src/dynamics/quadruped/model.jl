@@ -476,7 +476,7 @@ nu = 4 + 4                # control dimension
 nc = 4                    # number of contact points
 nf = 2                    # number of parameters for friction cone
 nb = nc * nf
-nw = 0
+nw = 2
 
 # World parameters
 h = 0.01      # 100Hz

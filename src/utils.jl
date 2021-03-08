@@ -1,7 +1,7 @@
 # Run tests locally
 using Pkg
 Pkg.activate(@__DIR__)
-Pkg.activate(joinpath(@__DIR__, "test")
+# Pkg.activate(joinpath(@__DIR__, "test")
 
 # Pkg.add("BenchmarkTools")
 # Pkg.add("Colors")
@@ -21,4 +21,3 @@ Pkg.activate(joinpath(@__DIR__, "test")
 # Pkg.add("Test")
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
-Pkg.activate(joinpath(@__DIR__, "..", "test"))

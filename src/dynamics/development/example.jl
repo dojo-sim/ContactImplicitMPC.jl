@@ -1,8 +1,116 @@
-include("model.jl")
-include("quadruped/model.jl")
-include("code_gen.jl")
+include("../model.jl")
+include("../code_gen.jl")
+include("../fast_methods.jl")
 
-fast_expressions!(model, "quadruped", generate = false)
+################################################################################
+# Quadruped
+################################################################################
+include("../quadruped/model.jl")
+model = deepcopy(quadruped)
+
+dir = "src/dynamics/quadruped"
+
+path_base = joinpath(dir, "base.jld2")
+path_dyn = joinpath(dir, "dynamics.jld2")
+path_res = joinpath(dir, "residual.jld2")
+path_jac = joinpath(dir, "sparse_jacobians.jld2")
+
+expr_base = generate_base_expressions(model)
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(model, path_res)
+
+
+
+################################################################################
+# Particle
+################################################################################
+include("../particle/model.jl")
+model = deepcopy(particle)
+
+dir = "src/dynamics/particle"
+
+path_base = joinpath(dir, "base.jld2")
+path_dyn = joinpath(dir, "dynamics.jld2")
+path_res = joinpath(dir, "residual.jld2")
+path_jac = joinpath(dir, "sparse_jacobians.jld2")
+
+expr_base = generate_base_expressions(model)
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(model, path_res)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fast_expressions!(model, "src/dynamics/particle", generate = true)
+
+
+dir = "src/dynamics/particle"
+path_base = joinpath(dir, "base.jld2")
+path_dyn = joinpath(dir, "dynamics.jld2")
+path_res = joinpath(dir, "residual.jld2")
+path_jac = joinpath(dir, "sparse_jacobians.jld2")
+expr_base = generate_base_expressions(model)
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(model, path_res)
+
+
+
+
+a = 10
+a = 10
+a = 10
+a = 10
+a = 10
+a = 10
+
+
+
+
+
+
 # L_fast, M_fast, B_fast, N_fast, P_fast, C_fast, d, dy!, dq0!, dq1!, du1!, dγ1!, db1!, dq2!, r!, rz!, rθ!, rz_sp, rθ_sp = generate_fast_expressions(model, "quadruped", generate = false);
 
 # nq = model.dim.q
