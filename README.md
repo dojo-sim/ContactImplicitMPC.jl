@@ -4,3 +4,8 @@
 - Dynamics computation
 - Contact simulator
 - Contact-implicit controller
+
+- [ ] visuals for Particle
+- [ ] Define distrubances for all models
+- [ ] Handle disturbances in fast functions
+- [ ] 
