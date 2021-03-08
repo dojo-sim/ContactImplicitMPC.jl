@@ -1,7 +1,14 @@
+@with_kw struct SimulatorOptions{T}
+    warmstart::Bool = true
+    z_warmstart::T = 0.001
+    κ_warmstart::T = 0.001
+end
+
 struct Simulator{S,nq,nu,nc,nb,nw}
     model
 
     T::Int
+    h::S
 
     q::Vector{SArray{Tuple{nq},S,1,nq}}
     u::Vector{SArray{Tuple{nu},S,1,nu}}
@@ -21,20 +28,24 @@ struct Simulator{S,nq,nu,nc,nb,nw}
 
     ip::InteriorPoint{S}
     ip_opts::InteriorPointOptions{S}
+
+    sim_opts::SimulatorOptions{S}
 end
 
 function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
-    u = [@SVector zeros(model.nu) for t = 1:T],
-    w = [@SVector zeros(model.nw) for t = 1:T],
-    ip_opts = InteriorPointOptions(),
+    u = [@SVector zeros(model.dim.u) for t = 1:T],
+    w = [@SVector zeros(model.dim.w) for t = 1:T],
+    ip_opts = InteriorPointOptions{S}(),
+    r! = r!, rz! = rz!, rθ! = rθ!,
     rz = spzeros(num_var(model), num_var(model)),
-    rθ = spzeros(num_var(model), num_data(model))) where S
+    rθ = spzeros(num_var(model), num_data(model)),
+    sim_opts = SimulatorOptions{S}()) where S
 
-    nq = model.nq
-    nu = model.nu
-    nw = model.nw
-    nc = model.nc
-    nb = model.nb
+    nq = model.dim.q
+    nu = model.dim.u
+    nw = model.dim.w
+    nc = model.dim.c
+    nb = model.dim.b
 
     q = [q0, q1, [@SVector zeros(nq) for t = 1:T]...]
     γ = [@SVector zeros(nc) for t = 1:T]
@@ -54,12 +65,13 @@ function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
         num_var(model),
         num_data(model),
         inequality_indices(model),
+        r! = r!, rz! = rz!, rθ! = rθ!,
         rz = rz,
         rθ = rθ)
 
     Simulator(
         model,
-        T,
+        T, h,
         q,
         u,
         γ,
@@ -75,8 +87,10 @@ function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
         dbdq1,
         dbdu,
         ip,
-        ip_opts)
+        ip_opts,
+        sim_opts)
 end
+
 
 function step!(sim, t)
     # unpack
@@ -84,15 +98,19 @@ function step!(sim, t)
     q = sim.q
     u = sim.u
     w = sim.w
+    h = sim.h
     ip = sim.ip
     z = ip.z
     θ = ip.θ
 
     # initialize
-    fill!(z, 0.0)
-    fill!(θ, 0.0)
-    z_initialize!(z, model, q[t+1])
-    θ_initialize!(θ, model, q[t], q[t+1], u[t], w[t])
+    if sim.sim_opts.warmstart
+        z .+= sim.sim_opts.z_warmstart * rand(ip.num_var)
+        sim.ip_opts.κ_init = sim.sim_opts.κ_warmstart
+    else
+        z_initialize!(z, model, q[t+1])
+    end
+    θ_initialize!(θ, model, q[t], q[t+1], u[t], w[t], h)
 
     # solve
     status = interior_point!(ip, opts = sim.ip_opts)
@@ -105,10 +123,10 @@ function step!(sim, t)
         sim.b[t] = b
 
         if sim.ip_opts.diff_sol
-            nq = model.nq
-            nu = model.nu
-            nc = model.nc
-            nb = model.nb
+            nq = model.dim.q
+            nu = model.dim.u
+            nc = model.dim.c
+            nb = model.dim.b
 
             sim.dq2dq0[t] = view(ip_data.δz, 1:nq, 1:nq)
             sim.dq2dq1[t] = view(ip_data.δz, 1:nq, nq .+ (1:nq))
@@ -134,9 +152,17 @@ function simulate!(sim::Simulator; verbose = false)
 
     verbose && println("\nSimulation")
 
+    # initialize configurations for first step
+    z_initialize!(z, model, sim.q[2])
+
+    status = true
+
+    # simulate
     for t = 1:sim.T
         verbose && println("t = $t")
         status = step!(sim, t)
         !status && (@error "failed step (t = $t)")
     end
+
+    return status
 end

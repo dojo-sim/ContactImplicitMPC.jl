@@ -20,7 +20,15 @@ using Random
 using SparseArrays
 using Test
 
-include(joinpath(pwd(), "src/dynamics/model.jl"))
-include(joinpath(pwd(), "src/dynamics/code_gen.jl"))
+# Dynamics
+include("dynamics/model.jl")
+include("dynamics/code_gen.jl")
+include("dynamics/fast_methods.jl")
+
+export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods, ResidualMethods
+
+# Simulator
+include("simulator/interior_point.jl")
+include("simulator/simulator.jl")
 
 end # module

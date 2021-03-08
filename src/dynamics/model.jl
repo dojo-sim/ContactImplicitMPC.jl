@@ -68,12 +68,12 @@ function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
 	joint_friction = [zeros(2); model.μ_joint * v1[3:end]] # TODO: only good for planar systems
 
 	return (1.0 / h[1] *
-		  (M_fast(q0) * (q1 - q0)
-		- M_fast(q1) * (q2 - q1))
-		+ transpose(B_fast(q2)) * u1
-		+ transpose(N_fast(q2)) * γ1
-		+ transpose(P_fast(q2)) * b1
-		- h[1] * C_fast(q2, v1)
+		  (M_func(model, q0) * (q1 - q0)
+		- M_func(model, q1) * (q2 - q1))
+		+ transpose(B_func(model, q2)) * u1
+		+ transpose(N_func(model, q2)) * γ1
+		+ transpose(P_func(model, q2)) * b1
+		- h[1] * C_func(model, q2, v1)
 		- h[1] * joint_friction)
 end
 
@@ -85,7 +85,7 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	q2, γ1, b1, ψ, η, s1, s2 = unpack_z(model, z)
 
 	ϕ = ϕ_func(model, q2)
-	vT = (P_fast(q2) * q2 - P_fast(q1) * q1) / h[1]
+	vT = (P_func(model, q2) * q2 - P_func(model, q1) * q1) / h[1]
 
 	[dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2);
 	 s1 - ϕ;
@@ -95,4 +95,54 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	   .- transpose(sum(reshape(b1, (Int(nb/nc), nc)), dims = 1))[:, 1]);
 	 ψ .* s2 .- κ;
 	 b1 .* η .- κ]
+end
+
+mutable struct BaseMethods
+	L::Any
+	M::Any
+	B::Any
+	N::Any
+	P::Any
+	C::Any
+end
+
+function BaseMethods()
+	function f()
+		error("Not Implemented: use instantiate_base!")
+		return nothing
+	end
+	return BaseMethods(fill(f, 6)...)
+end
+
+mutable struct DynamicsMethods
+	d::Any
+	dy::Any
+	dq0::Any
+	dq1::Any
+	du1::Any
+	dγ1::Any
+	db1::Any
+	dq2::Any
+end
+
+function DynamicsMethods()
+	function f()
+		error("Not Implemented: use instantiate_dynamics!")
+		return nothing
+	end
+	return DynamicsMethods(fill(f, 8)...)
+end
+
+mutable struct ResidualMethods
+	r::Any
+	rz::Any
+	rθ::Any
+end
+
+function ResidualMethods()
+	function f()
+		error("Not Implemented: use instantiate_residual!")
+		return nothing
+	end
+	return ResidualMethods(fill(f, 3)...)
 end

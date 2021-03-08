@@ -60,6 +60,11 @@ struct Quadruped{T} <: ContactDynamicsModel
     J_calf4::T
 
 	alt
+
+	# fast methods
+	base
+	dyn
+	res
 end
 
 # kinematics
@@ -502,9 +507,12 @@ model = Quadruped(dim, g, μ_world, μ_joint,
 				l_leg, d_leg, m_leg, J_leg,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
-				zeros(nc))
+				zeros(nc),
+				BaseMethods(), DynamicsMethods(), ResidualMethods())
 
-L_fast, M_fast, B_fast, N_fast, P_fast, C_fast, d, dy!, dq0!, dq1!, du1!, dγ1!, db1!, dq2!, r!, rz!, rθ!, rz_sp, rθ_sp = generate_fast_expressions(model, "quadruped", generate = false, verbose = false);
+# fast_expressions!(model, "quadruped", generate = false)
+
+# L_fast, M_fast, B_fast, N_fast, P_fast, C_fast, d, dy!, dq0!, dq1!, du1!, dγ1!, db1!, dq2!, r!, rz!, rθ!, rz_sp, rθ_sp = generate_fast_expressions(model, "quadruped", generate = false, verbose = false);
 
 function initial_configuration(model::Quadruped, θ)
     q1 = zeros(model.dim.q)

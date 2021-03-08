@@ -1,6 +1,3 @@
-include("interior_point.jl")
-using InteractiveUtils, BenchmarkTools, ModelingToolkit
-
 """
     minimize   x' P x + q' x
     subject to    x >= 0
@@ -8,15 +5,19 @@ using InteractiveUtils, BenchmarkTools, ModelingToolkit
 
 n = 1000
 
-_P = ones(n)
+_P = rand(n)
 P = Diagonal(_P)
-q = ones(n)
+q = rand(n)
 θ = [_P; q]
 z = ones(2 * n)
 r = zeros(2 * n)
 rz = zeros(2 * n, 2 * n)
 rθ = zeros(2 * n, 2 * n)
 κ = 1.0
+
+num_var() = 2 * n
+num_data() = 2 * n
+idx_ineq = collect(1:num_var())
 
 # residual
 function _r!(r, z, θ, κ)
@@ -30,44 +31,40 @@ function _r!(r, z, θ, κ)
     nothing
 end
 
-# @code_warntype _r!(r, z, θ, κ)
-# @benchmark _r!($r, $z, $θ, $κ)
-
 @variables r_sym[1:2000]
 @variables z_sym[1:2000]
 @variables θ_sym[1:2000]
 @variables κ_sym[1:1]
 
-parallel = false # ModelingToolkit.MultithreadedForm()
+parallel = false
 _r!(r_sym, z_sym, θ_sym, κ_sym)
 r_sym = simplify.(r_sym)
-r! = eval(ModelingToolkit.build_function(r_sym, z_sym, θ_sym, κ_sym,
+rf! = eval(ModelingToolkit.build_function(r_sym, z_sym, θ_sym, κ_sym,
     parallel = parallel)[2])
 rz_exp = ModelingToolkit.sparsejacobian(r_sym, z_sym, simplify = true)
 rθ_exp = ModelingToolkit.sparsejacobian(r_sym, θ_sym, simplify = true)
 rz_sp = similar(rz_exp, Float64)
 rθ_sp = similar(rθ_exp, Float64)
-rz! = eval(ModelingToolkit.build_function(rz_exp, z_sym, θ_sym, κ_sym,
+rzf! = eval(ModelingToolkit.build_function(rz_exp, z_sym, θ_sym, κ_sym,
     parallel = parallel)[2])
-rθ! = eval(ModelingToolkit.build_function(rθ_exp, z_sym, θ_sym, κ_sym,
+rθf! = eval(ModelingToolkit.build_function(rθ_exp, z_sym, θ_sym, κ_sym,
     parallel = parallel)[2])
 
-# @code_warntype r!(r, z, θ, κ)
-# @benchmark r!($r, $z, $θ, $κ)
-#
-# @code_warntype rz!(rz_sp, z, θ, κ)
-# rz!(rz_sp, z, θ, κ)
-# @benchmark rz!($rz_sp, $z, $θ, $κ)
-#
-# @code_warntype rθ!(r, z, θ, κ)
-# rθ!(rθ_sp, z, θ, κ)
-# @benchmark rθ!($rθ_sp, $z, $θ, $κ)
-
-num_var() = 2 * n
-num_data() = 2 * n
-idx_ineq = collect(1:num_var())
+# solver
 ip = interior_point(num_var(), num_data(), idx_ineq,
+    r! = rf!, rz! = rzf!, rθ! = rθf!,
     rz = rz_sp,
     rθ = rθ_sp)
 
-@time interior_point!(ip, z, θ, opts = InteriorPointOptions(diff_sol = true))
+# options
+opts = InteriorPointOptions(diff_sol = true)
+
+# solve
+status = interior_point!(ip, z, θ, opts = opts)
+
+# test
+@test status
+@test norm(ip.r, Inf) < opts.r_tol
+@test !inequality_check(ip.z, ip.idx_ineq)
+@test ip.κ[1] < opts.κ_tol
+@test norm(ip.δz, 1) != 0.0

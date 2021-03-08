@@ -2,7 +2,8 @@ include("model.jl")
 include("quadruped/model.jl")
 include("code_gen.jl")
 
-L_fast, M_fast, B_fast, N_fast, P_fast, C_fast, d, dy!, dq0!, dq1!, du1!, dγ1!, db1!, dq2!, r!, rz!, rθ!, rz_sp, rθ_sp = generate_fast_expressions(model, "quadruped", generate = false);
+fast_expressions!(model, "quadruped", generate = false)
+# L_fast, M_fast, B_fast, N_fast, P_fast, C_fast, d, dy!, dq0!, dq1!, du1!, dγ1!, db1!, dq2!, r!, rz!, rθ!, rz_sp, rθ_sp = generate_fast_expressions(model, "quadruped", generate = false);
 
 # nq = model.dim.q
 # nu = model.dim.u

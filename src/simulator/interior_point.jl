@@ -1,27 +1,33 @@
 # check that inequality constraints are satisfied
 inequality_check(x, idx_ineq) = any(view(x, idx_ineq) .<= 0.0) ? true : false
 
-"""
-    residual templates
-    # residual
-    function r!(r, z, θ, κ)
-        @warn "residual not defined"
-        nothing
-    end
 
-    # residual Jacobian wrt z
-    function rz!(rz, z, θ, κ)
-        @warn "residual Jacobian wrt z not defined"
-        nothing
-    end
+# residual
+function r!(r, z, θ, κ)
+    @warn "residual not defined"
+    nothing
+end
 
-    # residual Jacobian wrt θ
-    function rθ!(rθ, z, θ, κ)
-        @warn "residual Jacobian wrt θ not defined"
-        nothing
-    end
-"""
+# residual Jacobian wrt z
+function rz!(rz, z, θ, κ)
+    @warn "residual Jacobian wrt z not defined"
+    nothing
+end
+
+# residual Jacobian wrt θ
+function rθ!(rθ, z, θ, κ)
+    @warn "residual Jacobian wrt θ not defined"
+    nothing
+end
+
+struct InteriorPointMethods
+    r!
+    rz!
+    rθ!
+end
+
 struct InteriorPoint{T}
+    methods::InteriorPointMethods
     z::Vector{T}               # current point
     z̄::Vector{T}               # candidate point
     r::Vector{T}               # residual
@@ -36,13 +42,17 @@ struct InteriorPoint{T}
     δz::SparseMatrixCSC{T,Int} # solution gradients
     θ::Vector{T}               # problem data
     κ::Vector{T}               # barrier parameter
+    num_var::Int
+    num_data::Int
 end
 
 function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
+        r! = r!, rz! = rz!, rθ! = rθ!,
         rz = spzeros(num_var, num_var),
         rθ = spzeros(num_var, num_data)) where T
 
     InteriorPoint(
+        InteriorPointMethods(r!, rz!, rθ!),
         zeros(num_var),
         zeros(num_var),
         zeros(num_var),
@@ -56,7 +66,9 @@ function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
         view(zeros(num_var), idx_ineq),
         spzeros(num_var, num_data),
         zeros(num_data),
-        zeros(1))
+        zeros(1),
+        num_var,
+        num_data)
 end
 
 # interior-point solver options
@@ -73,6 +85,11 @@ end
 # interior point solver
 function interior_point!(ip::InteriorPoint{T};
     opts = InteriorPointOptions{T}()) where T
+
+    # methods
+    r! = ip.methods.r!
+    rz! = ip.methods.rz!
+    rθ! = ip.methods.rθ!
 
     # options
     r_tol = opts.r_tol
@@ -164,6 +181,8 @@ function interior_point!(ip::InteriorPoint{T};
         end
 
         if κ[1] < κ_tol
+            # differentiate solution
+            diff_sol && differentiate_solution!(ip)
             return true
         else
             # update barrier parameter
@@ -174,10 +193,6 @@ function interior_point!(ip::InteriorPoint{T};
             r_norm = norm(r, Inf)
         end
     end
-
-    diff_sol && differentiate_solution!(data)
-
-    return true
 end
 
 function interior_point!(ip::InteriorPoint{T}, z::Vector{T}, θ::Vector{T};
@@ -195,8 +210,8 @@ function differentiate_solution!(ip::InteriorPoint)
     δz = ip.δz
     κ = ip.κ
 
-    rz!(rz, z, θ, κ[1]) # maybe not needed
-    rθ!(rθ, z, θ, κ[1])
+    ip.methods.rz!(rz, z, θ, κ[1]) # maybe not needed
+    ip.methods.rθ!(rθ, z, θ, κ[1])
 
     δz .= -1.0 * rz \ Array(rθ) # TODO: fix
     nothing
