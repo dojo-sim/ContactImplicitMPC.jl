@@ -292,19 +292,8 @@ function fast_expressions!(model::ContactDynamicsModel, dir::String;
 		save_expressions(expr_res, path_res, overwrite=true)
 		@save path_jac rz_sp rθ_sp
 		instantiate_residual!(model, path_res)
-	else
-		# verbose && println("loading base methods...")
-		# expr_base = load_expressions(joinpath(dir, "base.jld2"))
-		#
-		# verbose && println("loading dynamics methods...")
-		# expr_dyn = load_expressions(joinpath(dir, "dynamics.jld2"))
-		#
-		# verbose && println("loading residual methods...")
-		# expr_res = load_expressions(joinpath(dir, "residual.jld2"))
-		# @load joinpath(dir, "sparse_jacobians.jld2") rz_sp rθ_sp
-
 		verbose && println("generated methods: success")
-
+	else
 		instantiate_base!(model, path_base)
 		instantiate_dynamics!(model, path_dyn)
 		instantiate_residual!(model, path_res)

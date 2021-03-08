@@ -3,12 +3,12 @@ include("code_gen.jl")
 include("fast_methods.jl")
 
 ################################################################################
-# Quadruped
+# Particle
 ################################################################################
-include("quadruped/model.jl")
-model = deepcopy(quadruped)
+include("particle/model.jl")
+model = deepcopy(particle)
 
-dir = jointpath(@__DIR__, "quadruped")
+dir = joinpath(@__DIR__, "particle")
 
 path_base = joinpath(dir, "base.jld2")
 path_dyn = joinpath(dir, "dynamics.jld2")
@@ -28,15 +28,13 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-
-
 ################################################################################
-# Particle
+# Quadruped
 ################################################################################
-include("particle/model.jl")
-model = deepcopy(particle)
+include("quadruped/model.jl")
+model = deepcopy(quadruped)
 
-dir = jointpath(@__DIR__, "particle")
+dir = joinpath(@__DIR__, "quadruped")
 
 path_base = joinpath(dir, "base.jld2")
 path_dyn = joinpath(dir, "dynamics.jld2")
