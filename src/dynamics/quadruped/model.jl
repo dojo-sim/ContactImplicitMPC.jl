@@ -65,6 +65,8 @@ struct Quadruped{T} <: ContactDynamicsModel
 	base
 	dyn
 	res
+
+	joint_friction
 end
 
 # kinematics
@@ -508,7 +510,8 @@ model = Quadruped(dim, g, μ_world, μ_joint,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
 				zeros(nc),
-				BaseMethods(), DynamicsMethods(), ResidualMethods())
+				BaseMethods(), DynamicsMethods(), ResidualMethods().
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
 # fast_expressions!(model, "quadruped", generate = false)
 

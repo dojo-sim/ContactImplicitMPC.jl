@@ -22,6 +22,7 @@ end
 	dyn_path = joinpath(@__DIR__, "../../src/dynamics")
 	include(joinpath(dyn_path, "particle/model.jl"))
 	model = particle
+	ContactControl.instantiate_base!(model, joinpath(dyn_path, "particle/base.jld2"))
 	ContactControl.instantiate_dynamics!(model, joinpath(dyn_path, "particle/dynamics.jld2"))
 
 	# Setup variables
@@ -52,30 +53,30 @@ end
 
     # Testing dynamics methods
     @test norm(ContactControl.d_fast(model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s) -
-        dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s), Inf) < 1.0e-8
+        ContactControl.dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s), Inf) < 1.0e-8
 
     ContactControl.dq0_fast!(∇q0s, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
-	fq0(x) = dynamics(model, h, x, q1s, u1s, w1s, γ1s, b1s, q2s)
+	fq0(x) = ContactControl.dynamics(model, h, x, q1s, u1s, w1s, γ1s, b1s, q2s)
     @test norm(∇q0s - ForwardDiff.jacobian(fq0, q0s), Inf) < 1.0e-8
 
     ContactControl.dq1_fast!(∇q1s, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
-	fq1(x) = dynamics(model, h, q0s, x, u1s, w1s, γ1s, b1s, q2s)
+	fq1(x) = ContactControl.dynamics(model, h, q0s, x, u1s, w1s, γ1s, b1s, q2s)
     @test norm(∇q1s - ForwardDiff.jacobian(fq1, q1s), Inf) < 1.0e-8
 
     ContactControl.du1_fast!(∇u1s, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
-	fu1(x) = dynamics(model, h, q0s, q1s, x, w1s, γ1s, b1s, q2s)
+	fu1(x) = ContactControl.dynamics(model, h, q0s, q1s, x, w1s, γ1s, b1s, q2s)
     @test norm(∇u1s - ForwardDiff.jacobian(fu1, u1s), Inf) < 1.0e-8
 
     ContactControl.dγ1_fast!(∇γ1s, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
-	fγ1(x) = dynamics(model, h, q0s, q1s, u1s, w1s, x, b1s, q2s)
+	fγ1(x) = ContactControl.dynamics(model, h, q0s, q1s, u1s, w1s, x, b1s, q2s)
     @test norm(∇γ1s - ForwardDiff.jacobian(fγ1, γ1s), Inf) < 1.0e-8
 
     ContactControl.db1_fast!(∇b1s, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
-	fb1(x) = dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, x, q2s)
+	fb1(x) = ContactControl.dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, x, q2s)
     @test norm(∇b1s - ForwardDiff.jacobian(fb1, b1s), Inf) < 1.0e-8
 
     ContactControl.dq2_fast!(∇q2s, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
-	fq2(x) = dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, b1s, x)
+	fq2(x) = ContactControl.dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, b1s, x)
     @test norm(∇q2s - ForwardDiff.jacobian(fq2, q2s), Inf) < 1.0e-8
 
     # dy_fast!(∇ys, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
@@ -95,8 +96,8 @@ end
     # Setup variables
     T = Float64
 	h = 0.1
-    nz = num_var(model)
-    nθ = num_data(model)
+    nz = ContactControl.num_var(model)
+    nθ = ContactControl.num_data(model)
 
     zs = rand(SizedVector{nz})
     θs = rand(SizedVector{nθ})
@@ -105,13 +106,13 @@ end
 
     # Testing residual methods
     ContactControl.r_fast!(rs, model, zs, θs, κs)
-    @test norm(rs - residual(model, zs, θs, κs), Inf) < 1.0e-8
+    @test norm(rs - ContactControl.residual(model, zs, θs, κs), Inf) < 1.0e-8
 
     ContactControl.rz_fast!(rz_sp, model, zs, θs, κs)
-	fz(x) = residual(model, x, θs, κs)
+	fz(x) = ContactControl.residual(model, x, θs, κs)
     @test norm(rz_sp - ForwardDiff.jacobian(fz, zs), Inf) < 1.0e-8
 
 	ContactControl.rθ_fast!(rθ_sp, model, zs, θs, κs)
-	fθ(x) = residual(model, zs, x, κs)
+	fθ(x) = ContactControl.residual(model, zs, x, κs)
     @test norm(rθ_sp - ForwardDiff.jacobian(fθ, θs), Inf) < 1.0e-8
 end

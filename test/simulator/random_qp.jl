@@ -16,9 +16,7 @@
     rθ = zeros(2 * n, 2 * n)
     κ = 1.0
 
-    num_var() = 2 * n
-    num_data() = 2 * n
-    idx_ineq = collect(1:num_var())
+    idx_ineq = collect(1:2 * n)
 
     # residual
     function _r!(r, z, θ, κ)
@@ -52,7 +50,7 @@
         parallel = parallel)[2])
 
     # solver
-    ip = ContactControl.interior_point(num_var(), num_data(), idx_ineq,
+    ip = ContactControl.interior_point(2 * n, 2 * n, idx_ineq,
         r! = rf!, rz! = rzf!, rθ! = rθf!,
         rz = rz_sp,
         rθ = rθ_sp)

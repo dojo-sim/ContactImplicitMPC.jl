@@ -54,29 +54,51 @@ function unpack_z(model::ContactDynamicsModel, z)
 	return q2, γ1, b1, ψ, η, s1, s2
 end
 
-# function num_var(model)
-#     model.dim.q + model.dim.c + model.dim.b + model.dim.c + model.dim.b + 2 * model.dim.c
-# end
-#
-# function num_data(model)
-#     model.dim.q + model.dim.q + model.dim.u + model.dim.w + 1
-# end
+function z_initialize!(z, model::ContactDynamicsModel, q1)
+	nq = model.dim.q
 
-inequality_indices(model) = collect(model.dim.q .+ (1:(num_var(model) - model.dim.q)))
+    z .= 1.0
+    z[1:nq] = q1
+end
+
+function θ_initialize!(θ, model::ContactDynamicsModel, q0, q1, u, w, h)
+	nq = model.dim.q
+	nu = model.dim.u
+	nw = model.dim.w
+	off = 0
+    θ[1:nq] = q0
+	off += nq
+    θ[off .+ (1:nq)] = q1
+	off += nq
+    θ[off .+ (1:nu)] = u
+	off += nu
+    θ[off .+ (1:nw)] = w
+	off += nw
+    θ[off .+ (1:1)] .= h
+end
+
+function num_var(model::ContactDynamicsModel)
+    model.dim.q + model.dim.c + model.dim.b + model.dim.c + model.dim.b + 2 * model.dim.c
+end
+
+function num_data(model::ContactDynamicsModel)
+    model.dim.q + model.dim.q + model.dim.u + model.dim.w + 1
+end
+
+inequality_indices(model::ContactDynamicsModel) = collect(model.dim.q .+ (1:(num_var(model) - model.dim.q)))
 
 function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
 
 	v1 = (q2 - q1) / h[1]
-	joint_friction = [zeros(2); model.μ_joint * v1[3:end]] # TODO: only good for planar systems
 
 	return (1.0 / h[1] *
-		  (M_func(model, q0) * (q1 - q0)
-		- M_func(model, q1) * (q2 - q1))
-		+ transpose(B_func(model, q2)) * u1
-		+ transpose(N_func(model, q2)) * γ1
-		+ transpose(P_func(model, q2)) * b1
-		- h[1] * C_func(model, q2, v1)
-		- h[1] * joint_friction)
+		  (M_fast(model, q0) * (q1 - q0)
+		- M_fast(model, q1) * (q2 - q1))
+		+ transpose(B_fast(model, q2)) * u1
+		+ transpose(N_fast(model, q2)) * γ1
+		+ transpose(P_fast(model, q2)) * b1
+		- h[1] * C_fast(model, q2, v1)
+		- h[1] * model.joint_friction .* v1)
 end
 
 function residual(model::ContactDynamicsModel, z, θ, κ)
@@ -87,7 +109,7 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	q2, γ1, b1, ψ, η, s1, s2 = unpack_z(model, z)
 
 	ϕ = ϕ_func(model, q2)
-	vT = (P_func(model, q2) * q2 - P_func(model, q1) * q1) / h[1]
+	vT = (P_fast(model, q2) * q2 - P_fast(model, q1) * q1) / h[1]
 
 	[dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2);
 	 s1 - ϕ;
