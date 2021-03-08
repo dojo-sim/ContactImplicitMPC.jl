@@ -26,6 +26,7 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 	dq0 = ModelingToolkit.jacobian(d, q0, simplify=true)
 	dq1 = ModelingToolkit.jacobian(d, q1,  simplify=true)
 	du1 = ModelingToolkit.jacobian(d, u1,  simplify=true)
+	dw1 = ModelingToolkit.jacobian(d, w1,  simplify=true)
 	dγ1 = ModelingToolkit.jacobian(d, γ1,  simplify=true)
 	db1 = ModelingToolkit.jacobian(d, b1,  simplify=true)
 	dq2 = ModelingToolkit.jacobian(d, q2,  simplify=true)
@@ -37,6 +38,7 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 	expr[:dq0] = build_function(dq0, h, q0, q1, u1, w1, γ1, b1, q2)[2]
 	expr[:dq1] = build_function(dq1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
 	expr[:du1] = build_function(du1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
+	expr[:dw1] = build_function(dw1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
 	expr[:dγ1] = build_function(dγ1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
 	expr[:db1] = build_function(db1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
 	expr[:dq2] = build_function(dq2, h, q0, q1, u1, w1, γ1, b1, q2)[2]
@@ -171,7 +173,7 @@ function instantiate_base(expr::Dict{Symbol,Expr})
 end
 
 function instantiate_dynamics(expr::Dict{Symbol,Expr})
-	eval(expr[:d]), eval(expr[:dy]), eval(expr[:dq0]), eval(expr[:dq1]), eval(expr[:du1]), eval(expr[:dγ1]), eval(expr[:db1]), eval(expr[:dq2])
+	eval(expr[:d]), eval(expr[:dy]), eval(expr[:dq0]), eval(expr[:dq1]), eval(expr[:du1]), eval(expr[:dw1]), eval(expr[:dγ1]), eval(expr[:db1]), eval(expr[:dq2])
 end
 
 function instantiate_residual(expr::Dict{Symbol,Expr})
@@ -201,6 +203,7 @@ function instantiate_dynamics!(fct::DynamicsMethods, expr::Dict{Symbol,Expr})
 	fct.dq0 = eval(expr[:dq0])
 	fct.dq1 = eval(expr[:dq1])
 	fct.du1 = eval(expr[:du1])
+	fct.dw1 = eval(expr[:dw1])
 	fct.dγ1 = eval(expr[:dγ1])
 	fct.db1 = eval(expr[:db1])
 	fct.dq2 = eval(expr[:dq2])
@@ -292,7 +295,7 @@ end
 # 		verbose && println("loading residual methods...")
 # 		expr_res = load_expressions(joinpath(dir, "residual.jld2"))
 # 		@load joinpath(dir, "sparse_jacobians.jld2") rz_sp rθ_sp
-# 
+#
 # 		verbose && println("generated methods: success")
 #
 # 		instantiate_base!(model, path_base)
