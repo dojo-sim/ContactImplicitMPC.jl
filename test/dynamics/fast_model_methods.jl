@@ -85,7 +85,7 @@ end
 	fq2(x) = ContactControl.dynamics(model, h, q0s, q1s, u1s, w1s, γ1s, b1s, x)
     @test norm(∇q2s - ForwardDiff.jacobian(fq2, q2s), Inf) < 1.0e-8
 
-    dy_fast!(∇ys, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
+    ContactControl.dy_fast!(∇ys, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
     @test norm(∇ys - [∇q0s ∇q1s ∇u1s ∇w1s ∇γ1s ∇b1s ∇q2s], Inf) < 1.0e-8
 end
 
