@@ -1,5 +1,6 @@
 # check that inequality constraints are satisfied
 inequality_check(x, idx_ineq) = any(view(x, idx_ineq) .<= 0.0) ? true : false
+inequality_check(x) = any(x .<= 0.0) ? true : false
 
 
 # residual
@@ -110,8 +111,7 @@ function interior_point!(ip::InteriorPoint{T};
     rz = ip.rz
     Δ = ip.Δ
     idx_ineq = ip.idx_ineq
-    # ip.z̄_ineq .= view(ip.z̄, ip.idx_ineq)
-    # z̄_ineq = ip.z̄_ineq
+    ip.z̄_ineq .= view(ip.z̄, ip.idx_ineq)
     θ = ip.θ
     κ = ip.κ
 
@@ -122,7 +122,7 @@ function interior_point!(ip::InteriorPoint{T};
     r!(r, z, θ, κ[1])
     r_norm = norm(r, Inf)
 
-    for k = 1:10
+    while true
         for i = 1:max_iter
             # check for converged residual
             if r_norm < r_tol
@@ -147,7 +147,7 @@ function interior_point!(ip::InteriorPoint{T};
 
             # check inequality constraints
             iter = 0
-            while inequality_check(z̄, idx_ineq)
+            while inequality_check(view(z̄, idx_ineq))
                 α = 0.5 * α
                 z̄ .= z - α * Δ
                 iter += 1

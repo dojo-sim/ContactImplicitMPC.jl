@@ -513,10 +513,10 @@ model = Quadruped(dim, g, μ_world, μ_joint,
 				BaseMethods(), DynamicsMethods(), ResidualMethods(),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
-# path_base = "base.jld2"
-# path_dyn = "dynamics.jld2"
-# path_res = "residual.jld2"
-# path_jac = "sparse_jacobians.jld2"
+# path_base = joinpath(@__DIR__, "base.jld2")
+# path_dyn = joinpath(@__DIR__, "dynamics.jld2")
+# path_res = joinpath(@__DIR__, "residual.jld2")
+# path_jac = joinpath(@__DIR__, "sparse_jacobians.jld2")
 #
 # expr_base = generate_base_expressions(model)
 # save_expressions(expr_base, path_base, overwrite=true)
