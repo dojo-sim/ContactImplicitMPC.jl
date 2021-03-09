@@ -181,7 +181,7 @@ function interior_point!(ip::InteriorPoint{T};
             r_norm = r̄_norm
         end
 
-        if κ[1] < κ_tol
+        if κ[1] <= κ_tol
             # differentiate solution
             diff_sol && differentiate_solution!(ip)
             return true

@@ -1,5 +1,5 @@
 
-function easy_lin_step(lin::LinStep14, q1_ref, q2_ref,
+function easy_lin_step(lin::LinStep, q1_ref, q2_ref,
 	model::ContactDynamicsModel; u2_ref=zeros(SVector{model.dim.u,Float64}),
 	ρ0=1e0, outer_iter=5, inner_iter=100, tol=1e-8, step_print::Bool=false, z_init=3e-2)
 	nq = model.dim.q
@@ -270,7 +270,7 @@ z_initialize!(ip.z, model, q1)
 z0 = deepcopy(ip.z)
 θ0 = deepcopy(ip.θ)
 κ0 = deepcopy(ip.κ)
-lin = LinStep14(model, z0, θ0, κ0[1])
+lin = LinStep(model, z0, θ0, κ0[1])
 
 # residual
 function r!(r, z, θ, κ)
@@ -307,7 +307,7 @@ status = interior_point!(ip_approx, opts = ip_opts)
 @test norm(ip_approx.θ - θ0, Inf) < 1e-8
 @test norm(ip_approx.r, Inf) < 1e-5
 
-function lin_step(lin::LinStep14, )
+function lin_step(lin::LinStep, )
 
 
 function inner(b; lin=100, pol=200)
@@ -324,32 +324,109 @@ outer(10,10; lin=100, pol=300)
 
 
 
-mutable struct ControlTraj12{T,nq,nu,nw,nc,nb}
-	N::Int                       # horizon length
-	lin::Vector{LinStep14{T}}    # linearization point length=N
-	q::Vector{SizedVector{nq,T}} # trajectory of q's   length=N+2
-	u::Vector{SizedVector{nu,T}} # trajectory of u's   length=N
-	w::Vector{SizedVector{nw,T}} # trajectory of w's   length=N
-	γ::Vector{SizedVector{nc,T}} # trajectory of γ's   length=N
-	b::Vector{SizedVector{nb,T}} # trajectory of b's   length=N
-	d::Vector{SizedVector{nq,T}} # dynamics violation  length=N
-	δz::SparseMatrixCSC{T,Int}   # solution gradients  length=N
+mutable struct ImplicitDynamicsTraj14{T,nq}
+	N::Int                               # horizon length
+	lin::Vector{LinStep{T}}              # linearization point length=N
+	d::Vector{SizedVector{nq,T}}         # dynamics violation  length=N
+	δz::Vector{SparseMatrixCSC{T,Int}}   # solution gradients  length=N
 end
 
 
-function ControlTraj12(lin::Vector{LinStep14{T}}, q::Vector{SizedVector{nq,T}},
-	u::Vector{SizedVector{nu,T}}, w::Vector{SizedVector{nw,T}},
-	γ::Vector{SizedVector{nc,T}}, b::Vector{SizedVector{nb,T}}) where {T,nq,nu,nw,nc,nb}
+function ImplicitDynamicsTraj14(lin::Vector{LinStep{T}}, q::Vector{<:SizedVector{nq,T}},
+	u::Vector{<:SizedVector{nu,T}}, w::Vector{<:SizedVector{nw,T}},
+	γ::Vector{<:SizedVector{nc,T}}, b::Vector{<:SizedVector{nb,T}}) where {T,nq,nu,nw,nc,nb}
 	N = length(q)-2
 	@assert length(u) == length(w) == length(γ) == length(b) == N
 	nz = length(lin[1].z0)
 	nθ = length(lin[1].θ0)
 
-	d = [zeros(SizedVector{nq,T}) for k=1:T]
-	δz = [spzeros(nz,nθ) for k=1:T]
-	return ControlTraj12{T,nq,nu,nw,nc,nb}(lin,q,u,w,γ,b,d,δz)
+	d = [zeros(SizedVector{nq,T}) for k=1:N]
+	δz = [spzeros(nz,nθ) for k=1:N]
+	return ImplicitDynamicsTraj14{T,nq,nu,nw,nc,nb}(N,lin,q,u,w,γ,b,d,δz)
+end
+
+
+
+N = 10
+model = get_model("particle")
+nq = model.dim.q
+nu = model.dim.u
+nw = model.dim.w
+nγ = model.dim.c
+nb = model.dim.b
+nz = num_var(model)
+nθ = num_data(model)
+z = rand(SizedVector{nz,T})
+θ = rand(SizedVector{nθ,T})
+κ = 1e-3
+lin = [LinStep(model, z, θ, κ) for k = 1:N]
+q = [rand(SizedVector{nq,T}) for k = 1:N+2]
+u = [rand(SizedVector{nu,T}) for k = 1:N]
+w = [rand(SizedVector{nw,T}) for k = 1:N]
+γ = [rand(SizedVector{nc,T}) for k = 1:N]
+b = [rand(SizedVector{nb,T}) for k = 1:N]
+ImplicitDynamicsTraj14(lin, q, u, w, γ, b)
+
+
+
+
+
+mutable struct ContactTraj12{T,nq,nu,nw,nc,nb}
+	N::Int                               # horizon length
+	q::Vector{SizedVector{nq,T}}         # trajectory of q's   length=N+2
+	u::Vector{SizedVector{nu,T}}         # trajectory of u's   length=N
+	w::Vector{SizedVector{nw,T}}         # trajectory of w's   length=N
+	γ::Vector{SizedVector{nc,T}}         # trajectory of γ's   length=N
+	b::Vector{SizedVector{nb,T}}         # trajectory of b's   length=N
+end
+
+function ContactTraj12(N::Int, model::ContactDynamicsModel; T::DataType=Float64)
+	return ContactTraj12(N, model.dim.q, model.dim.u, model.dim.w, model.dim.c, model.dim.b, T=T)
+end
+
+function ContactTraj12(N::Int, nq::Int, nu::Int, nw::Int, nc::Int, nb::Int; T::DataType=Float64)
+	q = [zeros(SizedVector{nq,T}) for k=1:N+2]
+	u = [zeros(SizedVector{nu,T}) for k=1:N]
+	w = [zeros(SizedVector{nw,T}) for k=1:N]
+	γ = [zeros(SizedVector{nc,T}) for k=1:N]
+	b = [zeros(SizedVector{nb,T}) for k=1:N]
+	return ContactTraj12{T,nq,nu,nw,nc,nb}(N,q,u,w,γ,b)
 end
 
 N = 10
-lin = [ for k = 1:N]
-ControlTraj12(lin, q, u, w, γ, b)
+traj0 = ContactTraj12(N, model)
+impl0 = ImplicitDynamicsTraj14()
+
+
+
+
+
+
+
+
+
+
+function implicit_dynamics!(traj::ContactTraj12{T,nq,nu,nw,nc,nb}, impl::ImplicitDynamicsTraj14{T,nq}) where {T,nq,nu,nw,nc,nb}
+	@assert impl.N == traj.N
+	N = traj.N
+	for k = 1:N
+		# Compute the implicit dynamics
+			# constraint violation (solve linearized contact problem)
+			# constraint gradient (implicit function theorem)
+		d[k] = f(lin[k])
+		δz[k] = f(lin[k])
+	end
+	return nothing
+end
+
+
+
+function linearization!(ref_traj::ContactTraj12{T,nq,nu,nw,nc,nb}, impl::ImplicitDynamicsTraj14{T,nq}) where {T,nq,nu,nw,nc,nb}
+	@assert impl.N == traj.N
+	N = traj.N
+	for k = 1:N
+		# Compute the implicit dynamics
+		lin[k] = f(traj[k])
+	end
+	return nothing
+end
