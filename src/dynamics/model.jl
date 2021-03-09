@@ -178,10 +178,10 @@ mutable struct SparseStructure
 	rz_sp::Any
 end
 
-```
+"""
 	get_model(name::String)
 	Helper function that provides a model where fast functions have been instantiated.
-```
+"""
 function get_model(name::String)
 	path = joinpath(@__DIR__, name)
 	include(joinpath(path, "model.jl"))

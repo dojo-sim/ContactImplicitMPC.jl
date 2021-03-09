@@ -35,4 +35,7 @@ export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods, ResidualM
 include("simulator/interior_point.jl")
 include("simulator/simulator.jl")
 
+# COntroller
+include("controller/bilinear.jl")
+
 end # module
