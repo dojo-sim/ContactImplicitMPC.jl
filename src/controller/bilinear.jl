@@ -44,8 +44,14 @@ function get_bilinear_indices(model::ContactDynamicsModel)
 	return bil_terms, bil_vars
 end
 
-function bil_addition!(out::AbstractVector{T1}, i::SVector{n,Int}, a::SizedVector{n,T2},
-	b::SizedVector{n,T3}, ρ::T) where {n,T,T1,T2,T3}
+function bil_addition!(out::AbstractVector{T}, i::SVector{n,Int}, a::SizedVector{n,T},
+	b::SizedVector{n,T}, ρ::T) where {n,T}
+	out[i] = a.*b .- ρ
+	return nothing
+end
+
+function bil_addition!(out::AbstractVector, i::SVector{n,Int}, a::AbstractVector,
+	b::AbstractVector, ρ::T) where {n,T}
 	out[i] = a.*b .- ρ
 	return nothing
 end

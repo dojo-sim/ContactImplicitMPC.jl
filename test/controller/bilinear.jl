@@ -5,28 +5,27 @@
 @testset "Bilinear Approximations" begin
 	names = ["particle", "quadruped"]
 	for name in names
-		model = get_model(name)
 		nz = num_var(model)
 		nθ = num_data(model)
-		z_ = rand(SizedVector{nz,Float64})
-		θ_ = rand(SizedVector{nθ,Float64})
-		κ_ = 1e-5
-		r0_ = rand(SizedVector{nz,Float64})
-		r1_ = rand(SizedVector{nz,Float64})
-		rz0_ = spzeros(nz,nz)
-		rz0_ = similar(model.spa.rz_sp, Float64)
-		rz1_ = deepcopy(rz0_)
-		rθ_ = zeros(nz,nθ)
-		lin = LinStep14(model, z_, θ_, κ_)
+		z = rand(SizedVector{nz,Float64})
+		θ = rand(SizedVector{nθ,Float64})
+		κ = 1e-5
+		r0 = rand(SizedVector{nz,Float64})
+		r1 = rand(SizedVector{nz,Float64})
+		rz0 = spzeros(nz,nz)
+		rz0 = similar(model.spa.rz_sp, Float64)
+		rz1 = deepcopy(rz0)
+		rθ = zeros(nz,nθ)
+		lin = LinStep14(model, z, θ, κ)
 
 		# Test r!
-		model.res.r(r0_, z_, θ_, κ_)
-		r_approx!(model, lin, r1_, z_, θ_, κ_)
-		@test norm(r0_ - r1_, Inf) < 1e-8
+		model.res.r(r0, z, θ, κ)
+		r_approx!(model, lin, r1, z, θ, κ)
+		@test norm(r0 - r1, Inf) < 1e-8
 
 		α = 1.1
-		r_approx!(model, lin, r1_, α*z_, α*θ_, κ_)
-		@test r0_ != r1_
+		r_approx!(model, lin, r1, α*z, α*θ, κ)
+		@test r0 != r1
 
 		# Test rz!
 		function rz_approx_FD!(model::ContactDynamicsModel, lin::LinStep14, rz::AbstractMatrix{T},
@@ -35,21 +34,21 @@
 			function f(z)
 				r = zeros(SizedVector{nz,eltype(z)})
 				r_approx!(model, lin, r, z, θ, κ)
-				return r
+				return Vector(r)
 			end
-			return rz = ForwardDiff.jacobian(f, z)
+			return rz = ForwardDiff.jacobian(f, Vector(z))
 		end
 
-		model.res.rz(rz0_, z_, θ_, κ_)
-		rz_approx!(model, lin, rz1_, z_, θ_, κ_)
-		rz_FD = rz_approx_FD!(model, lin, rz1_, z_, θ_, κ_)
-		@test norm(rz0_ - rz1_, Inf) < 1e-8
-		@test norm(rz1_ - rz_FD, Inf) < 1e-8
+		model.res.rz(rz0, z, θ, κ)
+		rz_approx!(model, lin, rz1, z, θ, κ)
+		rz_FD = rz_approx_FD!(model, lin, rz1, z, θ, κ)
+		@test norm(rz0 - rz1, Inf) < 1e-8
+		@test norm(rz1 - rz_FD, Inf) < 1e-8
 
 		α = 1.1
-		rz_approx!(model, lin, rz1_, α*z_, α*θ_, κ_)
-		rz_FD = rz_approx_FD!(model, lin, rz1_, α*z_, α*θ_, κ_)
-		@test rz0_ != rz1_
-		@test norm(rz_FD - rz1_, Inf) < 1e-8
+		rz_approx!(model, lin, rz1, α*z, α*θ, κ)
+		rz_FD = rz_approx_FD!(model, lin, rz1, α*z, α*θ, κ)
+		@test rz0 != rz1
+		@test norm(rz_FD - rz1, Inf) < 1e-8
 	end
 end
