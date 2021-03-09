@@ -66,55 +66,18 @@ function triv_lin_rzθ(model::ContactDynamicsModel, lin::LinStep13, z, θ, κ)
 	return r
 end
 
-mutable struct LinStep12{T}
-	z0::AbstractVector{T}
-	θ0::AbstractVector{T}
-	κ0::T
-	r0::AbstractVector{T}
-	rz0::AbstractMatrix{T}
-	rθ0::AbstractMatrix{T}
-end
 
-function LinStep12(model::ContactDynamicsModel, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
-	nz = num_var(model)
-	nθ = num_data(model)
-	z0 = SizedVector{nz,T}(z)
-	θ0 = SizedVector{nθ,T}(θ)
-	κ0 = κ
-	r0 = zeros(SizedVector{nz,T})
-	rz0 = spzeros(nz,nz)
-	rz0 = similar(model.spa.rz_sp, T)
-	rθ0 = zeros(nz, nθ)
-	model.res.r(r0, z0, θ0, κ0)
-	model.res.rz(rz0, z0, θ0, κ0)
-	model.res.rθ(rθ0, z0, θ0, κ0)
-	return LinStep12{T}(z0, θ0, κ0, r0, rz0, rθ0)
-end
-
-function get_bilinear_indices(model)
-	nq = model.dim.q
-	nu = model.dim.u
-	nγ = model.dim.γ
-	nb = model.dim.b
-
-	# lin_terms = [Vector(1:nq),
-	# 			 Vector(nq .+ (1:nγ)),
-	# 			 Vector(nq+2nγ .+ (1:2nb)),
-	# 			 Vector(nq+2nγ+2nb .+ (1:nγ))]
-	bil_terms = [SVector{nγ,Int}(nq+nγ .+ (1:nγ)),
-				 SVector{nγ,Int}(nq+3nγ+2nb .+ (1:nγ)),
-				 SVector{2nb,Int}(nq+4nγ+2nb .+ (1:2nb))]
-	bil_vars = [[SVector{nγ,Int}(nq .+ (1:nγ)), SVector{nγ}(nq+2nγ+4nb .+ (1:nγ))],  # γ2, s1
-				[SVector{nγ,Int}(nq+nγ+2nb .+ (1:nγ)), SVector{nγ}(nq+3nγ+4nb .+ (1:nγ))],  # ψ, s2
-				[SVector{2nb,Int}(nq+nγ .+ (1:2nb)), SVector{2nb}(nq+2nγ+2nb .+ (1:2nb))]] # b2, η
-	return bil_terms, bil_vars
-end
-
-
-function r_approx!(model::ContactDynamicsModel, lin::LinStep12, r::AbstractVector{T},
+function r_approx!(model::ContactDynamicsModel, lin::LinStep14, r::AbstractVector{T},
 	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 	@assert norm(κ - lin.κ0)/κ < 1e-10
 	r .= lin.r0 + lin.rz0 * (z-lin.z0) + lin.rθ0 * (θ-lin.θ0)
+	for i = 1:length(lin.bil_terms)
+		t = lin.bil_terms[i]
+		v1 = lin.bil_vars[i][1]
+		v2 = lin.bil_vars[i][2]
+		# r[t] = z[v1].*z[v2] .- κ
+		bil_addition!(r, t, z[v1], z[v2], κ)
+	end
     return nothing
 end
 
@@ -134,17 +97,13 @@ rz_ = spzeros(nz,nz)
 rz_ = similar(rz_sp, Float64)
 rθ_ = zeros(nz,nθ)
 
-lin = LinStep12(model, z_, θ_, κ_)
+lin = LinStep14(model, z_, θ_, κ_)
 model.res.r(r0_, z_, θ_, κ_)
 r_approx!(model, lin, r1_, z_, θ_, κ_)
-
 
 r0_ - r1_
 r0_
 r1_
-
-
-
 
 
 r_
@@ -155,6 +114,51 @@ a = 10
 a = 10
 a = 10
 a = 10
+
+
+
+
+################################################################################
+# Test
+################################################################################
+res_path = joinpath(@__DIR__, "../../src/dynamics")
+include(joinpath(res_path, "particle/model.jl"))
+model = particle
+instantiate_base!(model, joinpath(res_path, "particle/base.jld2"))
+instantiate_dynamics!(model, joinpath(res_path, "particle/dynamics.jld2"))
+instantiate_residual!(model, joinpath(res_path, "particle/residual.jld2"))
+@load joinpath(res_path, "particle/sparse_jacobians.jld2") rz_sp rθ_sp
+model.spa.rz_sp = rz_sp
+
+nz = num_var(model)
+nθ = num_data(model)
+z_ = rand(SizedVector{nz,Float64})
+θ_ = rand(SizedVector{nθ,Float64})
+κ_ = 1e-5
+r0_ = rand(SizedVector{nz,Float64})
+r1_ = rand(SizedVector{nz,Float64})
+rz_ = spzeros(nz,nz)
+rz_ = similar(rz_sp, Float64)
+rθ_ = zeros(nz,nθ)
+
+lin = LinStep14(model, z_, θ_, κ_)
+model.res.r(r0_, z_, θ_, κ_)
+r_approx!(model, lin, r1_, z_, θ_, κ_)
+@test norm(r0_ - r1_, Inf) < 1e-8
+
+α = 1.1
+r_approx!(model, lin, r1_, α*z_, α*θ_, κ_)
+@test r0_ != r1_
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -178,7 +182,7 @@ r1!(r_, z_, θ_, κ_)
 rz1!(rz_, z_, θ_, κ_)
 rθ1!(rθ_, z_, θ_, κ_)
 
-LinStep12(model, z_, θ_, κ_)
+LinStep14(model, z_, θ_, κ_)
 
 
 
