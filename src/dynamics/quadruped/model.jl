@@ -65,6 +65,7 @@ struct Quadruped{T} <: ContactDynamicsModel
 	base
 	dyn
 	res
+	spa
 
 	joint_friction
 end
@@ -503,7 +504,6 @@ d_thigh = 0.00323
 d_leg = 0.006435
 
 dim = Dimensions(nq, nu, nw, nc, nb)
-
 quadruped = Quadruped(dim, g, μ_world, μ_joint,
 				l_torso, d_torso, m_torso, J_torso,
 				l_thigh, d_thigh, m_thigh, J_thigh,
@@ -516,6 +516,7 @@ quadruped = Quadruped(dim, g, μ_world, μ_joint,
 				l_leg, d_leg, m_leg, J_leg,
 				zeros(nc),
 				BaseMethods(), DynamicsMethods(), ResidualMethods(),
+				SparseStructure(spzeros(0,0)),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
 # path_base = joinpath(@__DIR__, "base.jld2")

@@ -173,3 +173,7 @@ function ResidualMethods()
 	end
 	return ResidualMethods(fill(f, 3)...)
 end
+
+mutable struct SparseStructure
+	rz_sp::Any
+end

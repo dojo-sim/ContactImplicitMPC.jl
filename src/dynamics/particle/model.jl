@@ -20,7 +20,7 @@ struct Particle{T} <: ContactDynamicsModel
 	base::BaseMethods
 	dyn::DynamicsMethods
 	res::ResidualMethods
-
+	spa::SparseStructure
 	joint_friction::SVector
 end
 
@@ -83,6 +83,7 @@ end
 # Model
 particle = Particle(Dimensions(3, 3, 3, 1, 4), 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(),
+	SparseStructure(spzeros(0,0)),
 	@SVector zeros(3))
 
 # path_base = joinpath(@__DIR__, "base.jld2")
