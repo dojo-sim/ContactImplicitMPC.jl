@@ -44,8 +44,49 @@ function get_bilinear_indices(model::ContactDynamicsModel)
 	return bil_terms, bil_vars
 end
 
-function bil_addition!(out::AbstractVector{T}, i::SVector{n,Int}, a::SizedVector{n,T},
-	b::SizedVector{n,T}, ρ::T) where {n,T}
+function bil_addition!(out::AbstractVector{T1}, i::SVector{n,Int}, a::SizedVector{n,T2},
+	b::SizedVector{n,T3}, ρ::T) where {n,T,T1,T2,T3}
 	out[i] = a.*b .- ρ
 	return nothing
+end
+
+"""
+	r_approx!(model::ContactDynamicsModel, lin::LinStep14, r::AbstractVector{T1},
+	z::AbstractVector{T1}, θ::AbstractVector{T}, κ::T) where {T,T1}
+Compute an approximate residual. The approximation results from the linearization of the non-linear
+terms in the residual about a reference point. The bilinear terms (complementarity constraints) are
+not linearized.
+"""
+function r_approx!(model::ContactDynamicsModel, lin::LinStep14, r::AbstractVector{T1},
+	z::AbstractVector{T1}, θ::AbstractVector{T}, κ::T) where {T,T1}
+	@assert norm(κ - lin.κ0)/κ < 1e-10
+	r .= lin.r0 + lin.rz0 * (z-lin.z0) + lin.rθ0 * (θ-lin.θ0)
+	for i = 1:length(lin.bil_terms)
+		t = lin.bil_terms[i]
+		v1 = lin.bil_vars[i][1]
+		v2 = lin.bil_vars[i][2]
+		# r[t] = z[v1].*z[v2] .- κ
+		bil_addition!(r, t, z[v1], z[v2], κ)
+	end
+    return nothing
+end
+
+"""
+	rz_approx!(model::ContactDynamicsModel, lin::LinStep14, rz::AbstractMatrix{T},
+	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
+Compute an approximate residual jacobian with respect to z. The approximation results from the linearization of the non-linear
+terms in the residual about a reference point. The bilinear terms (complementarity constraints) are
+not linearized.
+"""
+function rz_approx!(model::ContactDynamicsModel, lin::LinStep14, rz::AbstractMatrix{T},
+	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
+	rz .= lin.rz0
+	for i = 1:length(lin.bil_terms)
+		t = lin.bil_terms[i]
+		v1 = lin.bil_vars[i][1]
+		v2 = lin.bil_vars[i][2]
+		rz[t,v1] .= Diagonal(z[v2])
+		rz[t,v2] .= Diagonal(z[v1])
+	end
+    return nothing
 end
