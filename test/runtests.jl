@@ -26,5 +26,7 @@ end
     include("simulator/particle.jl")
 end
 
-# # Controller
-# include("controller/my_test_file.jl")
+# Controller
+@testset "Controller Tests" begin
+    include("controller/bilinear.jl")
+end

@@ -25,17 +25,19 @@ include("dynamics/model.jl")
 include("dynamics/code_gen.jl")
 include("dynamics/fast_methods.jl")
 
-# Models
-include("dynamics/particle/model.jl")
-# include("dynamics/quadruped/model.jl")
-
 export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods, ResidualMethods
 
 # Simulator
 include("simulator/interior_point.jl")
 include("simulator/simulator.jl")
 
-# COntroller
+# Controller
 include("controller/bilinear.jl")
+
+export SparseStructure, LinStep14, get_bilinear_indices, bil_addition!, r_approx!, rz_approx!
+
+# Models
+include("dynamics/particle/model.jl")
+# include("dynamics/quadruped/model.jl")
 
 end # module
