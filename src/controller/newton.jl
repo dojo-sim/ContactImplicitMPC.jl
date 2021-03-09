@@ -230,3 +230,70 @@ function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
         ip_opts,
         sim_opts)
 end
+
+T = Float64
+model = get_model("particle")
+nq = model.dim.q
+nc = model.dim.c
+nu = model.dim.u
+nw = model.dim.w
+nz = num_var(model)
+nθ = num_data(model)
+
+ip_opts = InteriorPointOptions(κ_init=1e-3, κ_tol=1e-2)
+ip = interior_point(
+	num_var(model),
+	num_data(model),
+	inequality_indices(model),
+	r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
+	rz = model.spa.rz_sp,
+	rθ = model.spa.rz_sp) # not correct
+
+q0 = zeros(SizedVector{nq,T})
+q1 = zeros(SizedVector{nq,T})
+u1 = rand(SizedVector{nu,T})
+w1 = rand(SizedVector{nw,T})
+h = 0.01
+θ_initialize!(ip.θ, model, q0, q1, u1, w1, h)
+z_initialize!(ip.z, model, q1)
+
+status = interior_point!(ip, opts = ip_opts)
+
+z0 = deepcopy(ip.z)
+θ0 = deepcopy(ip.θ)
+κ0 = deepcopy(ip.κ)
+lin = LinStep14(model, z0, θ0, κ0[1])
+
+# residual
+function r!(r, z, θ, κ)
+    @warn "approx"
+	r_approx!(model, lin, r, z, θ, κ)
+end
+
+# residual Jacobian wrt z
+function rz!(rz, z, θ, κ)
+	@warn "approx"
+	rz_approx!(model, lin, rz, z, θ, κ)
+end
+
+# residual Jacobian wrt θ
+function rθ!(rθ, z, θ, κ)
+	@warn "approx"
+	nothing
+end
+
+ip_approx = interior_point(
+	num_var(model),
+	num_data(model),
+	inequality_indices(model),
+	r! = r!, rz! = rz!, rθ! = rθ!,
+	rz = model.spa.rz_sp,
+	rθ = model.spa.rz_sp) # not correct
+
+θ_initialize!(ip_approx.θ, model, q0, q1, u1, w1, h)
+z_initialize!(ip_approx.z, model, q1)
+
+status = interior_point!(ip_approx, opts = ip_opts)
+@test norm(ip_approx.z - z0, Inf) < 1e-8
+@test norm(ip_approx.θ - θ0, Inf) < 1e-8
+@test norm(ip_approx.r, Inf) < 1e-7
