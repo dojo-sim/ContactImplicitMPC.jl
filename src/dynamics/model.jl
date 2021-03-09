@@ -176,6 +176,7 @@ end
 
 mutable struct SparseStructure
 	rz_sp::Any
+	rθ_sp::Any
 end
 
 """
@@ -197,5 +198,6 @@ function get_model(name::String)
 	instantiate_residual!(model, joinpath(path, "residual.jld2"))
 	@load joinpath(path, "sparse_jacobians.jld2") rz_sp rθ_sp
 	model.spa.rz_sp = rz_sp
+	model.spa.rθ_sp = rθ_sp
 	return model
 end

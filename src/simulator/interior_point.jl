@@ -126,7 +126,8 @@ function interior_point!(ip::InteriorPoint{T};
         for i = 1:max_iter
             # check for converged residual
             if r_norm < r_tol
-                continue
+                # continue
+                break # 20% Faster
             end
 
             # compute residual Jacobian
