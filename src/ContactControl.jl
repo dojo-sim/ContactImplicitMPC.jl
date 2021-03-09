@@ -34,7 +34,7 @@ include("simulator/simulator.jl")
 # Controller
 include("controller/bilinear.jl")
 
-export SparseStructure, LinStep14, get_bilinear_indices, bil_addition!, r_approx!, rz_approx!
+export SparseStructure, LinStep, get_bilinear_indices, bil_addition!, r_approx!, rz_approx!
 
 # Models
 include("dynamics/particle/model.jl")

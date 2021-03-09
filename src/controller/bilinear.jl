@@ -1,4 +1,4 @@
-mutable struct LinStep14{T}
+mutable struct LinStep{T}
 	z0::AbstractVector{T}
 	θ0::AbstractVector{T}
 	κ0::T
@@ -9,7 +9,7 @@ mutable struct LinStep14{T}
 	bil_vars::Any
 end
 
-function LinStep14(model::ContactDynamicsModel, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
+function LinStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 	nz = num_var(model)
 	nθ = num_data(model)
 	z0 = SizedVector{nz,T}(z)
@@ -23,7 +23,7 @@ function LinStep14(model::ContactDynamicsModel, z::AbstractVector{T}, θ::Abstra
 	model.res.rz(rz0, z0, θ0, κ0)
 	model.res.rθ(rθ0, z0, θ0, κ0)
 	bil_terms, bil_vars = get_bilinear_indices(model)
-	return LinStep14{T}(z0, θ0, κ0, r0, rz0, rθ0, bil_terms, bil_vars)
+	return LinStep{T}(z0, θ0, κ0, r0, rz0, rθ0, bil_terms, bil_vars)
 end
 
 function get_bilinear_indices(model::ContactDynamicsModel)
@@ -57,13 +57,13 @@ function bil_addition!(out::AbstractVector, i::SVector{n,Int}, a::AbstractVector
 end
 
 """
-	r_approx!(model::ContactDynamicsModel, lin::LinStep14, r::AbstractVector{T1},
+	r_approx!(lin::LinStep, r::AbstractVector{T1},
 	z::AbstractVector{T1}, θ::AbstractVector{T}, κ::T) where {T,T1}
 Compute an approximate residual. The approximation results from the linearization of the non-linear
 terms in the residual about a reference point. The bilinear terms (complementarity constraints) are
 not linearized.
 """
-function r_approx!(model::ContactDynamicsModel, lin::LinStep14, r::AbstractVector{T1},
+function r_approx!(lin::LinStep, r::AbstractVector{T1},
 	z::AbstractVector{T1}, θ::AbstractVector{T}, κ::T) where {T,T1}
 	@assert norm(κ - lin.κ0)/κ < 1e-10
 	r .= lin.r0 + lin.rz0 * (z-lin.z0) + lin.rθ0 * (θ-lin.θ0)
@@ -78,13 +78,13 @@ function r_approx!(model::ContactDynamicsModel, lin::LinStep14, r::AbstractVecto
 end
 
 """
-	rz_approx!(model::ContactDynamicsModel, lin::LinStep14, rz::AbstractMatrix{T},
+	rz_approx!(lin::LinStep, rz::AbstractMatrix{T},
 	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 Compute an approximate residual jacobian with respect to z. The approximation results from the linearization of the non-linear
 terms in the residual about a reference point. The bilinear terms (complementarity constraints) are
 not linearized.
 """
-function rz_approx!(model::ContactDynamicsModel, lin::LinStep14, rz::AbstractMatrix{T},
+function rz_approx!(lin::LinStep, rz::AbstractMatrix{T},
 	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 	rz .= lin.rz0
 	for i = 1:length(lin.bil_terms)
@@ -94,5 +94,18 @@ function rz_approx!(model::ContactDynamicsModel, lin::LinStep14, rz::AbstractMat
 		rz[t,v1] .= Diagonal(z[v2])
 		rz[t,v2] .= Diagonal(z[v1])
 	end
+    return nothing
+end
+
+"""
+	rθ_approx!(lin::LinStep, rz::AbstractMatrix{T},
+	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
+Compute an approximate residual jacobian with respect to θ The approximation results from the linearization of the non-linear
+terms in the residual about a reference point. The bilinear terms (complementarity constraints) are
+not linearized.
+"""
+function rθ_approx!(lin::LinStep, rθ::AbstractMatrix{T},
+	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
+	rθ .= lin.rθ0
     return nothing
 end

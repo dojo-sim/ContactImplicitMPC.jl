@@ -231,7 +231,13 @@ function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
         sim_opts)
 end
 
+
+
+
+
+
 T = Float64
+model = get_model("quadruped")
 model = get_model("particle")
 nq = model.dim.q
 nc = model.dim.c
@@ -245,9 +251,11 @@ ip = interior_point(
 	num_var(model),
 	num_data(model),
 	inequality_indices(model),
-	r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
+	r! = model.res.r,
+	rz! = model.res.rz,
+	rθ! = model.res.rθ,
 	rz = model.spa.rz_sp,
-	rθ = model.spa.rz_sp) # not correct
+	rθ = model.spa.rθ_sp) # not correct
 
 q0 = zeros(SizedVector{nq,T})
 q1 = zeros(SizedVector{nq,T})
@@ -257,7 +265,7 @@ h = 0.01
 θ_initialize!(ip.θ, model, q0, q1, u1, w1, h)
 z_initialize!(ip.z, model, q1)
 
-status = interior_point!(ip, opts = ip_opts)
+@btime status = interior_point!(ip, opts = ip_opts)
 
 z0 = deepcopy(ip.z)
 θ0 = deepcopy(ip.θ)
@@ -267,18 +275,19 @@ lin = LinStep14(model, z0, θ0, κ0[1])
 # residual
 function r!(r, z, θ, κ)
     @warn "approx"
-	r_approx!(model, lin, r, z, θ, κ)
+	r_approx!(lin, r, z, θ, κ)
 end
 
 # residual Jacobian wrt z
 function rz!(rz, z, θ, κ)
 	@warn "approx"
-	rz_approx!(model, lin, rz, z, θ, κ)
+	rz_approx!(lin, rz, z, θ, κ)
 end
 
 # residual Jacobian wrt θ
 function rθ!(rθ, z, θ, κ)
 	@warn "approx"
+	rθ_approx!(lin, rθ, z, θ, κ)
 	nothing
 end
 
@@ -296,4 +305,51 @@ z_initialize!(ip_approx.z, model, q1)
 status = interior_point!(ip_approx, opts = ip_opts)
 @test norm(ip_approx.z - z0, Inf) < 1e-8
 @test norm(ip_approx.θ - θ0, Inf) < 1e-8
-@test norm(ip_approx.r, Inf) < 1e-7
+@test norm(ip_approx.r, Inf) < 1e-5
+
+function lin_step(lin::LinStep14, )
+
+
+function inner(b; lin=100, pol=200)
+    return lin+pol*b
+end
+
+function outer(a, b; kwargs...)
+    @show kwargs
+    return a + inner(b; kwargs...)
+    return nothing
+end
+
+outer(10,10; lin=100, pol=300)
+
+
+
+mutable struct ControlTraj12{T,nq,nu,nw,nc,nb}
+	N::Int                       # horizon length
+	lin::Vector{LinStep14{T}}    # linearization point length=N
+	q::Vector{SizedVector{nq,T}} # trajectory of q's   length=N+2
+	u::Vector{SizedVector{nu,T}} # trajectory of u's   length=N
+	w::Vector{SizedVector{nw,T}} # trajectory of w's   length=N
+	γ::Vector{SizedVector{nc,T}} # trajectory of γ's   length=N
+	b::Vector{SizedVector{nb,T}} # trajectory of b's   length=N
+	d::Vector{SizedVector{nq,T}} # dynamics violation  length=N
+	δz::SparseMatrixCSC{T,Int}   # solution gradients  length=N
+end
+
+
+function ControlTraj12(lin::Vector{LinStep14{T}}, q::Vector{SizedVector{nq,T}},
+	u::Vector{SizedVector{nu,T}}, w::Vector{SizedVector{nw,T}},
+	γ::Vector{SizedVector{nc,T}}, b::Vector{SizedVector{nb,T}}) where {T,nq,nu,nw,nc,nb}
+	N = length(q)-2
+	@assert length(u) == length(w) == length(γ) == length(b) == N
+	nz = length(lin[1].z0)
+	nθ = length(lin[1].θ0)
+
+	d = [zeros(SizedVector{nq,T}) for k=1:T]
+	δz = [spzeros(nz,nθ) for k=1:T]
+	return ControlTraj12{T,nq,nu,nw,nc,nb}(lin,q,u,w,γ,b,d,δz)
+end
+
+N = 10
+lin = [ for k = 1:N]
+ControlTraj12(lin, q, u, w, γ, b)

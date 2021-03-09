@@ -516,7 +516,7 @@ quadruped = Quadruped(dim, g, μ_world, μ_joint,
 				l_leg, d_leg, m_leg, J_leg,
 				zeros(nc),
 				BaseMethods(), DynamicsMethods(), ResidualMethods(),
-				SparseStructure(spzeros(0,0)),
+				SparseStructure(spzeros(0,0),spzeros(0,0)),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
 # path_base = joinpath(@__DIR__, "base.jld2")

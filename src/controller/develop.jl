@@ -98,7 +98,7 @@ r1!(r_, z_, θ_, κ_)
 rz1!(rz_, z_, θ_, κ_)
 rθ1!(rθ_, z_, θ_, κ_)
 
-LinStep14(model, z_, θ_, κ_)
+LinStep(model, z_, θ_, κ_)
 
 
 

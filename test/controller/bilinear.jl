@@ -17,7 +17,7 @@
 		rz0 = similar(model.spa.rz_sp, Float64)
 		rz1 = deepcopy(rz0)
 		rθ = zeros(nz,nθ)
-		lin = ContactControl.LinStep14(model, z, θ, κ)
+		lin = ContactControl.LinStep(model, z, θ, κ)
 
 		# Test r!
 		model.res.r(r0, z, θ, κ)
@@ -29,7 +29,7 @@
 		@test r0 != r1
 
 		# Test rz!
-		function rz_approx_FD!(model::ContactDynamicsModel, lin::LinStep14, rz::AbstractMatrix{T},
+		function rz_approx_FD!(model::ContactDynamicsModel, lin::LinStep, rz::AbstractMatrix{T},
 			z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 			nz = ContactControl.num_var(model)
 			function f(z)
