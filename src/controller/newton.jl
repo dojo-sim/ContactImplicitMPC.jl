@@ -7,18 +7,18 @@ function easy_lin_trajopt(probsize, model, q1_init, q2_init, q1_ref, q2_ref, lin
     res_tol=1e-8,
     solver_outer_iter::Int=3,
     solver_inner_iter::Int=10,
-    utr_ref=[zeros(probsize.nu)  for k = 1:probsize.N-1],
-    qtr_ref=[zeros(probsize.nq)  for k = 1:probsize.N-1],
-    γtr_ref=[zeros(probsize.nγ)  for k = 1:probsize.N-1],
-    btr_ref=[zeros(2probsize.nb) for k = 1:probsize.N-1],
-    utr_wrm=utr_ref,
-    qtr_wrm=qtr_ref,
-    γtr_wrm=γtr_ref,
-    btr_wrm=btr_ref,
-    Qu=fill(Diagonal(1e-1*ones(probsize.nu)), probsize.N-1),
-    Qq=fill(Diagonal(1e+1*ones(probsize.nq)), probsize.N-1),
-    Qγ=fill(Diagonal(1e-7*ones(probsize.nγ)), probsize.N-1),
-    Qb=fill(Diagonal(1e-7*ones(2probsize.nb)), probsize.N-1),
+    utr_ref=[zeros(probsize.nu)  for k = 1:probsize.N-1],######################################################
+    qtr_ref=[zeros(probsize.nq)  for k = 1:probsize.N-1],######################################################
+    γtr_ref=[zeros(probsize.nγ)  for k = 1:probsize.N-1],######################################################
+    btr_ref=[zeros(2probsize.nb) for k = 1:probsize.N-1],######################################################
+    utr_wrm=utr_ref,######################################################
+    qtr_wrm=qtr_ref,######################################################
+    γtr_wrm=γtr_ref,######################################################
+    btr_wrm=btr_ref,######################################################
+    Qu=fill(Diagonal(1e-1*ones(probsize.nu)), probsize.N-1),#########################
+    Qq=fill(Diagonal(1e+1*ones(probsize.nq)), probsize.N-1),#########################
+    Qγ=fill(Diagonal(1e-7*ones(probsize.nγ)), probsize.N-1),#########################
+    Qb=fill(Diagonal(1e-7*ones(2probsize.nb)), probsize.N-1),#########################
     u_amp=1e-1,
     live_plot::Bool=false,
     z_init=z_init,
@@ -269,3 +269,22 @@ function easy_lin_trajopt(probsize, model, q1_init, q2_init, q1_ref, q2_ref, lin
     traj, flag = solver(traj)
     return traj#, res(traj), jac(traj)#, easy_jac(traj)
 end
+
+
+function control!(ref_traj::ContactTraj, cost::CostFunction)
+
+    return nothing
+end
+
+
+model = get_model("particle")
+H = 10
+nq = model.dim.q
+nu = model.dim.u
+cost0 = CostFunction(H, model.dim)
+cost1 = CostFunction(H, model.dim,
+    Qq=fill(Diagonal(1e-1*ones(SizedVector{nq})), H),
+    Qu=fill(Diagonal(1e-1*ones(SizedVector{nu})), H),
+    )
+
+control!(cost1)

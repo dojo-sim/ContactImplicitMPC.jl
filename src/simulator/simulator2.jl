@@ -4,7 +4,7 @@ struct Simulator2{S,nq,nu,nc,nb,nw,nz,nθ}
     H::Int
     h::S
 
-    traj::ContactTraj14{S,nq,nu,nw,nc,nb,nz,nθ}
+    traj::ContactTraj{S,nq,nu,nw,nc,nb,nz,nθ}
     q::Vector{SArray{Tuple{nq},S,1,nq}}
     u::Vector{SArray{Tuple{nu},S,1,nu}}
     γ::Vector{SArray{Tuple{nc},S,1,nc}}
@@ -66,7 +66,7 @@ function simulator2(model, q0::SVector, q1::SVector, h::S, H::Int;
     γ = [@SVector zeros(nc) for t = 1:H]
     b = [@SVector zeros(nb) for t = 1:H]
 
-    traj = ContactTraj14(H, model)
+    traj = ContactTraj(H, model)
     traj.q = q
     traj.u = u
     traj.w = w
