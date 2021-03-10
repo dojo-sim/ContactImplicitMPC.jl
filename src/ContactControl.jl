@@ -51,8 +51,5 @@ export SparseStructure, LinStep, get_bilinear_indices, bil_addition!, r_approx!,
 export ImplicitTraj, linearization!, implicit_dynamics!
 export CostFunction
 
-# Models
-include("dynamics/particle/model.jl")
-# include("dynamics/quadruped/model.jl")
 
 end # module

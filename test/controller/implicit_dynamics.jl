@@ -1,4 +1,4 @@
-@testset "Newton" begin
+@testset "Controller: Implicit Dynamics" begin
 	T = Float64
 	model = ContactControl.get_model("particle")
 	H = 10

@@ -1,7 +1,7 @@
 @testset "Simulation: Particle (3D)" begin
     res_path = joinpath(@__DIR__, "../../src/dynamics")
-    include(joinpath(res_path, "particle/model.jl"))
-    model = deepcopy(particle)
+    # include(joinpath(res_path, "particle/model.jl"))
+    model = deepcopy(ContactControl.particle)
     ContactControl.instantiate_base!(model, joinpath(res_path, "particle/flat/base.jld2"))
     ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle/flat/dynamics.jld2"))
     ContactControl.instantiate_residual!(model, joinpath(res_path, "particle/flat/residual.jld2"))
@@ -91,8 +91,8 @@ end
 
 @testset "Simulation: Particle (3D) in Quadratic Bowl" begin
     res_path = joinpath(@__DIR__, "../../src/dynamics")
-    include(joinpath(res_path, "particle/model.jl"))
-    model = deepcopy(particle_quadratic)
+    # include(joinpath(res_path, "particle/model.jl"))
+    model = deepcopy(ContactControl.particle_quadratic)
     ContactControl.instantiate_base!(model, joinpath(res_path, "particle/quadratic/base.jld2"))
     ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle/quadratic/dynamics.jld2"))
     ContactControl.instantiate_residual!(model, joinpath(res_path, "particle/quadratic/residual.jld2"))

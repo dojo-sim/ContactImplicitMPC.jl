@@ -182,6 +182,11 @@ function ResidualMethods()
 	return ResidualMethods(fill(f, 3)...)
 end
 
+mutable struct SparseStructure
+	rz_sp::Any
+	rθ_sp::Any
+end
+
 """
 	get_model(name::String)
 	Helper function that provides a model where fast functions have been instantiated.
@@ -196,10 +201,10 @@ function get_model(name::String)
 	else
 		error("Unknown model name")
 	end
-	instantiate_base!(model, joinpath(path, "base.jld2"))
-	instantiate_dynamics!(model, joinpath(path, "dynamics.jld2"))
-	instantiate_residual!(model, joinpath(path, "residual.jld2"))
-	@load joinpath(path, "sparse_jacobians.jld2") rz_sp rθ_sp
+	instantiate_base!(model, joinpath(path, "flat/base.jld2"))
+	instantiate_dynamics!(model, joinpath(path, "flat/dynamics.jld2"))
+	instantiate_residual!(model, joinpath(path, "flat/residual.jld2"))
+	@load joinpath(path, "flat/sparse_jacobians.jld2") rz_sp rθ_sp
 	model.spa.rz_sp = rz_sp
 	model.spa.rθ_sp = rθ_sp
 	return model

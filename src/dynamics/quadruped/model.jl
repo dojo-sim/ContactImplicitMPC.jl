@@ -66,6 +66,8 @@ struct Quadruped{T} <: ContactDynamicsModel
 	dyn
 	res
 
+	spa::SparseStructure
+
 	joint_friction
 
 	env::Environment
@@ -437,31 +439,6 @@ function A_func(model::Quadruped, q)
 			  0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-# function N_func(model::Quadruped, q)
-# 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
-# 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
-# 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
-# 	J_calf_4 = jacobian_3(model, q, body = :calf_4, mode = :ee)
-#
-# 	return [view(J_calf_1, 2:2, :);
-# 			view(J_calf_2, 2:2, :);
-# 			view(J_calf_3, 2:2, :);
-# 			view(J_calf_4, 2:2, :)]
-# end
-#
-# function P_func(model::Quadruped, q)
-# 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
-# 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
-# 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
-# 	J_calf_4 = jacobian_3(model, q, body = :calf_4, mode = :ee)
-# 	map = [1.0; -1.0]
-#
-# 	return [map * view(J_calf_1, 1:1, :);
-# 			map * view(J_calf_2, 1:1, :);
-# 			map * view(J_calf_3, 1:1, :);
-# 			map * view(J_calf_4, 1:1, :)]
-# end
-
 function J_func(model::Quadruped, q)
 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
@@ -530,6 +507,7 @@ quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				l_leg, d_leg, m_leg, J_leg,
 				zeros(nc),
 				BaseMethods(), DynamicsMethods(), ResidualMethods(),
+				SparseStructure(spzeros(0,0),spzeros(0,0)),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				environment_2D_flat())
 
