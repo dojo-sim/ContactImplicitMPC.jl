@@ -29,4 +29,6 @@ end
 # Controller
 @testset "Controller Tests" begin
     include("controller/bilinear.jl")
+    include("controller/implicit_dynamics.jl")
+    # include("controller/newton.jl")
 end

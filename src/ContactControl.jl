@@ -36,8 +36,10 @@ include("simulator/simulator2.jl")
 
 # Controller
 include("controller/bilinear.jl")
+include("controller/newton.jl")
 
 export SparseStructure, LinStep, get_bilinear_indices, bil_addition!, r_approx!, rz_approx!
+export ImplicitTraj, linearization!, implicit_dynamics!
 
 # Models
 include("dynamics/particle/model.jl")
