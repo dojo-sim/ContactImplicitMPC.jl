@@ -1,23 +1,23 @@
 
 # Trajectory Optimizer
 function easy_lin_trajopt(probsize, model, q1_init, q2_init, q1_ref, q2_ref, lint0;
-    ρ0=1e-3,
-    β=1e1,
-    outer_iter=1,
-    res_tol=1e-8,
-    solver_outer_iter::Int=3,
-    solver_inner_iter::Int=10,
+    ρ0=1e-3,#############################################
+    β=1e1,#############################################
+    outer_iter=1,#############################################
+    res_tol=1e-8,#############################################
+    solver_outer_iter::Int=3,#############################################
+    solver_inner_iter::Int=10,#############################################
     utr_ref=[zeros(probsize.nu)  for k = 1:probsize.N-1],######################################################
     qtr_ref=[zeros(probsize.nq)  for k = 1:probsize.N-1],######################################################
     γtr_ref=[zeros(probsize.nγ)  for k = 1:probsize.N-1],######################################################
     btr_ref=[zeros(2probsize.nb) for k = 1:probsize.N-1],######################################################
-    utr_wrm=utr_ref,######################################################
-    qtr_wrm=qtr_ref,######################################################
-    γtr_wrm=γtr_ref,######################################################
-    btr_wrm=btr_ref,######################################################
-    Qu=fill(Diagonal(1e-1*ones(probsize.nu)), probsize.N-1),#########################
-    Qq=fill(Diagonal(1e+1*ones(probsize.nq)), probsize.N-1),#########################
-    Qγ=fill(Diagonal(1e-7*ones(probsize.nγ)), probsize.N-1),#########################
+    utr_wrm=utr_ref,############################################################################
+    qtr_wrm=qtr_ref,############################################################################
+    γtr_wrm=γtr_ref,############################################################################
+    btr_wrm=btr_ref,############################################################################
+    Qu=fill(Diagonal(1e-1*ones(probsize.nu)), probsize.N-1),##########################
+    Qq=fill(Diagonal(1e+1*ones(probsize.nq)), probsize.N-1),##########################
+    Qγ=fill(Diagonal(1e-7*ones(probsize.nγ)), probsize.N-1),##########################
     Qb=fill(Diagonal(1e-7*ones(2probsize.nb)), probsize.N-1),#########################
     u_amp=1e-1,
     live_plot::Bool=false,
@@ -271,20 +271,62 @@ function easy_lin_trajopt(probsize, model, q1_init, q2_init, q1_ref, q2_ref, lin
 end
 
 
-function control!(ref_traj::ContactTraj, cost::CostFunction)
+function control!(model::ContactDynamicsModel, impl::ImplicitTraj,
+    ref_traj::ContactTraj, cost::CostFunction, s_opts::NewtonOptions{T}) where {T}
+
+
 
     return nothing
 end
 
 
-model = get_model("particle")
+mutable struct Newton11{T}
+    jac::
+    r::
+    r̄::Vector{T}
+end
+
+
+
+
+# interior-point solver options
+@with_kw mutable struct NewtonOptions{T}
+    r_tol::T = 1.0e-5            # primal dual residual tolerance
+    solver_outer_iter::Int = 3   # outer iter on the κ parameter
+    solver_inner_iter::Int = 10  # primal dual iter
+    κ_init::T = 1e-3             # inner solver intialization
+    κ_scale::T = 0.1             # inner solver scaling
+    κ_tol::T = 2.0e-3            # inner solver tolerance
+    β::T = 1e1                   # dual regularization
+end
+
+
+T = Float64
 H = 10
+h = 0.03
+κ = 1e-3
+model = get_model("particle")
 nq = model.dim.q
 nu = model.dim.u
-cost0 = CostFunction(H, model.dim)
-cost1 = CostFunction(H, model.dim,
+
+q0 = SVector{nq,T}([0.0, 0.0, 0.2])
+q1 = SVector{nq,T}([0.1, 0.1, 0.2])
+
+
+ip_opts = InteriorPointOptions(κ_init=κ, κ_tol=κ*2, r_tol=1e-5)
+sim0 = simulator2_base(model, q0, q1, h, H;
+    u = [@SVector zeros(model.dim.u) for t = 1:H],
+    w = [@SVector zeros(model.dim.w) for t = 1:H],
+    ip_opts = ip_opts,
+    sim_opts = SimulatorOptions{T}())
+
+simulate!(sim0; verbose = false)
+ref_traj0 = deepcopy(sim0.traj)
+cost0 = CostFunction(H, model.dim,
     Qq=fill(Diagonal(1e-1*ones(SizedVector{nq})), H),
     Qu=fill(Diagonal(1e-1*ones(SizedVector{nu})), H),
     )
+n_opts = NewtonOptions()
+impl = ImplicitTraj(H, model)
 
-control!(cost1)
+control!(model, impl, ref_traj0, cost1, n_opts)
