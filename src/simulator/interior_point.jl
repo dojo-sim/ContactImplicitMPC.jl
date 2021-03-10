@@ -196,7 +196,7 @@ function interior_point!(ip::InteriorPoint{T};
     end
 end
 
-function interior_point!(ip::InteriorPoint{T}, z::Vector{T}, θ::Vector{T};
+function interior_point!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::AbstractVector{T};
     opts = InteriorPointOptions{T}()) where T
     ip.z .= z
     ip.θ .= θ

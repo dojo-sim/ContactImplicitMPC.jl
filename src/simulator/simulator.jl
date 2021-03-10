@@ -7,7 +7,7 @@ end
 struct Simulator{S,nq,nu,nc,nb,nw}
     model
 
-    T::Int
+    H::Int
     h::S
 
     q::Vector{SArray{Tuple{nq},S,1,nq}}
@@ -32,9 +32,9 @@ struct Simulator{S,nq,nu,nc,nb,nw}
     sim_opts::SimulatorOptions{S}
 end
 
-function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
-    u = [@SVector zeros(model.dim.u) for t = 1:T],
-    w = [@SVector zeros(model.dim.w) for t = 1:T],
+function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
+    u = [@SVector zeros(model.dim.u) for t = 1:H],
+    w = [@SVector zeros(model.dim.w) for t = 1:H],
     ip_opts = InteriorPointOptions{S}(),
     r! = r!, rz! = rz!, rθ! = rθ!,
     rz = spzeros(num_var(model), num_var(model)),
@@ -47,19 +47,19 @@ function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
     nc = model.dim.c
     nb = model.dim.b
 
-    q = [q0, q1, [@SVector zeros(nq) for t = 1:T]...]
-    γ = [@SVector zeros(nc) for t = 1:T]
-    b = [@SVector zeros(nb) for t = 1:T]
+    q = [q0, q1, [@SVector zeros(nq) for t = 1:H]...]
+    γ = [@SVector zeros(nc) for t = 1:H]
+    b = [@SVector zeros(nb) for t = 1:H]
 
-    dq2dq0 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:T]
-    dq2dq1 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:T]
-    dq2du = [SizedMatrix{nq,nu}(zeros(nq, nu)) for t = 1:T]
-    dγdq0 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:T]
-    dγdq1 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:T]
-    dγdu = [SizedMatrix{nc,nu}(zeros(nc, nu)) for t = 1:T]
-    dbdq0 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:T]
-    dbdq1 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:T]
-    dbdu = [SizedMatrix{nb,nu}(zeros(nb, nu)) for t = 1:T]
+    dq2dq0 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:H]
+    dq2dq1 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:H]
+    dq2du = [SizedMatrix{nq,nu}(zeros(nq, nu)) for t = 1:H]
+    dγdq0 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:H]
+    dγdq1 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:H]
+    dγdu = [SizedMatrix{nc,nu}(zeros(nc, nu)) for t = 1:H]
+    dbdq0 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:H]
+    dbdq1 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:H]
+    dbdu = [SizedMatrix{nb,nu}(zeros(nb, nu)) for t = 1:H]
 
     ip = interior_point(
         num_var(model),
@@ -71,7 +71,7 @@ function simulator(model, q0::SVector, q1::SVector, h::S, T::Int;
 
     Simulator(
         model,
-        T, h,
+        H, h,
         q,
         u,
         γ,
@@ -144,7 +144,7 @@ end
 
 """
     simulate
-    - solves 1-step feasibility problem for T time steps
+    - solves 1-step feasibility problem for H time steps
     - initial configurations: q0, q1
     - time step: h
 """
@@ -158,7 +158,7 @@ function simulate!(sim::Simulator; verbose = false)
     status = true
 
     # simulate
-    for t = 1:sim.T
+    for t = 1:sim.H
         verbose && println("t = $t")
         status = step!(sim, t)
         !status && (@error "failed step (t = $t)")

@@ -328,64 +328,64 @@ outer(10,10; lin=100, pol=300)
 
 
 mutable struct ImplicitTraj15{T,nq}
-	N::Int                               # horizon length
-	lin::Vector{LinStep{T}}              # linearization point length=N
-	d::Vector{SizedVector{nq,T}}         # dynamics violation  length=N
-	δz::Vector{SparseMatrixCSC{T,Int}}   # solution gradients  length=N
+	H::Int                               # horizon length
+	lin::Vector{LinStep{T}}              # linearization point length=H
+	d::Vector{SizedVector{nq,T}}         # dynamics violation  length=H
+	δz::Vector{SparseMatrixCSC{T,Int}}   # solution gradients  length=H
 end
 
 """
 	Create dummy ImplicitTraj15.
 """
-function ImplicitTraj15(N::Int, model::ContactDynamicsModel)
+function ImplicitTraj15(H::Int, model::ContactDynamicsModel)
 	nq = model.dim.q
 	nz = num_var(model)
 	nθ = num_data(model)
-	lin = [LinStep(model) for k = 1:N]
-	d = [zeros(SizedVector{nq}) for k=1:N]
-	δz = [spzeros(nz,nθ) for k=1:N]
-	return ImplicitTraj15{eltype(d[1]),nq}(N,lin,d,δz)
+	lin = [LinStep(model) for k = 1:H]
+	d = [zeros(SizedVector{nq}) for k=1:H]
+	δz = [spzeros(nz,nθ) for k=1:H]
+	return ImplicitTraj15{eltype(d[1]),nq}(H,lin,d,δz)
 end
 
 
 
 mutable struct ContactTraj14{T,nq,nu,nw,nc,nb,nz,nθ}
-	N::Int                               # horizon length
-	q::Vector{SizedVector{nq,T}}         # trajectory of q's   length=N+2
-	u::Vector{SizedVector{nu,T}}         # trajectory of u's   length=N
-	w::Vector{SizedVector{nw,T}}         # trajectory of w's   length=N
-	γ::Vector{SizedVector{nc,T}}         # trajectory of γ's   length=N
-	b::Vector{SizedVector{nb,T}}         # trajectory of b's   length=N
-	z::Vector{SizedVector{nz,T}}         # trajectory of z's   length=N
-	θ::Vector{SizedVector{nθ,T}}         # trajectory of θ's   length=N
+	H::Int                               # horizon length
+	q::Vector{SizedVector{nq,T}}         # trajectory of q's   length=H+2
+	u::Vector{SizedVector{nu,T}}         # trajectory of u's   length=H
+	w::Vector{SizedVector{nw,T}}         # trajectory of w's   length=H
+	γ::Vector{SizedVector{nc,T}}         # trajectory of γ's   length=H
+	b::Vector{SizedVector{nb,T}}         # trajectory of b's   length=H
+	z::Vector{SizedVector{nz,T}}         # trajectory of z's   length=H
+	θ::Vector{SizedVector{nθ,T}}         # trajectory of θ's   length=H
 	κ::T
 end
 
-function ContactTraj14(N::Int, model::ContactDynamicsModel; T::DataType=Float64)
+function ContactTraj14(H::Int, model::ContactDynamicsModel; T::DataType=Float64)
 	nz = num_var(model)
 	nθ = num_data(model)
-	return ContactTraj14(N, model.dim.q, model.dim.u, model.dim.w, model.dim.c, model.dim.b, nz, nθ, T=T)
+	return ContactTraj14(H, model.dim.q, model.dim.u, model.dim.w, model.dim.c, model.dim.b, nz, nθ, T=T)
 end
 
-function ContactTraj14(N::Int, nq::Int, nu::Int, nw::Int, nc::Int, nb::Int,
+function ContactTraj14(H::Int, nq::Int, nu::Int, nw::Int, nc::Int, nb::Int,
 	nz::Int, nθ::Int; T::DataType=Float64)
 
-	q = [zeros(SizedVector{nq,T}) for k=1:N+2]
-	u = [zeros(SizedVector{nu,T}) for k=1:N]
-	w = [zeros(SizedVector{nw,T}) for k=1:N]
-	γ = [zeros(SizedVector{nc,T}) for k=1:N]
-	b = [zeros(SizedVector{nb,T}) for k=1:N]
-	z = [zeros(SizedVector{nz,T}) for k=1:N]
-	θ = [zeros(SizedVector{nθ,T}) for k=1:N]
+	q = [zeros(SizedVector{nq,T}) for k=1:H+2]
+	u = [zeros(SizedVector{nu,T}) for k=1:H]
+	w = [zeros(SizedVector{nw,T}) for k=1:H]
+	γ = [zeros(SizedVector{nc,T}) for k=1:H]
+	b = [zeros(SizedVector{nb,T}) for k=1:H]
+	z = [zeros(SizedVector{nz,T}) for k=1:H]
+	θ = [zeros(SizedVector{nθ,T}) for k=1:H]
 	κ = 0.0
-	return ContactTraj14{T,nq,nu,nw,nc,nb,nz,nθ}(N,q,u,w,γ,b,z,θ,κ)
+	return ContactTraj14{T,nq,nu,nw,nc,nb,nz,nθ}(H,q,u,w,γ,b,z,θ,κ)
 end
 
 function linearization!(model::ContactDynamicsModel, ref_traj::ContactTraj14{T,nq,nu,nw,nc,nb,nz,nθ},
 	impl::ImplicitTraj15{T,nq}, κ::T=ref_traj.κ) where {T,nq,nu,nw,nc,nb,nz,nθ}
-	@assert impl.N == ref_traj.N
-	N = ref_traj.N
-	for k = 1:N
+	@assert impl.H == ref_traj.H
+	H = ref_traj.H
+	for k = 1:H
 		# Compute linearization
 		# we need to figure out, the correct way to handle ref_traj that are optimized at κ=1e-10,
 		# and linearization at κ=1e-3
@@ -397,8 +397,8 @@ end
 
 function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj14{T,nq,nu,nw,nc,nb},
 	impl::ImplicitTraj15{T,nq}, κ::T=traj.κ) where {T,nq,nu,nw,nc,nb}
-	@assert impl.N == traj.N
-	N = traj.N
+	@assert impl.H == traj.H
+	H = traj.H
 	# Compute the implicit dynamics
 	# constraint violation (solve linearized contact problem)
 	# constraint gradient (implicit function theorem)
@@ -415,7 +415,7 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj14{T,n
 		κ_tol=κ,
 		diff_sol=true)
 
-	for k = 1:N
+	for k = 1:H
 		@assert impl.lin[k].κ0 == κ # check that the κ are consistent between the optimized trajectory (traj)
 		# and the linearization (impl.lin).
 
@@ -444,11 +444,12 @@ end
 
 
 
-N = 10
+H = 10
+T = Float64
 model = get_model("particle")
-# nq = model.dim.q
-# nu = model.dim.u
-# nw = model.dim.w
+nq = model.dim.q
+nu = model.dim.u
+nw = model.dim.w
 # nγ = model.dim.c
 # nb = model.dim.b
 # nz = num_var(model)
@@ -456,15 +457,27 @@ model = get_model("particle")
 # z = rand(SizedVector{nz,T})
 # θ = rand(SizedVector{nθ,T})
 # κ = 1e-3
-# lin = [LinStep(model, z, θ, κ) for k = 1:N]
-# q = [rand(SizedVector{nq,T}) for k = 1:N+2]
-# u = [rand(SizedVector{nu,T}) for k = 1:N]
-# w = [rand(SizedVector{nw,T}) for k = 1:N]
-# γ = [rand(SizedVector{nc,T}) for k = 1:N]
-# b = [rand(SizedVector{nb,T}) for k = 1:N]
-traj0 = ContactTraj14(N, model)
-ref_traj0 = ContactTraj14(N, model)
-impl0 = ImplicitTraj15(N, model)
+# lin = [LinStep(model, z, θ, κ) for k = 1:H]
+# q = [rand(SizedVector{nq,T}) for k = 1:H+2]
+# u = [rand(SizedVector{nu,T}) for k = 1:H]
+# w = [rand(SizedVector{nw,T}) for k = 1:H]
+# γ = [rand(SizedVector{nc,T}) for k = 1:H]
+# b = [rand(SizedVector{nb,T}) for k = 1:H]
+q0 = rand(SizedVector{nq,T})
+q1 = rand(SizedVector{nq,T})
+U = [rand(SizedVector{nu,T}) for k = 1:H]
+W = [rand(SizedVector{nw,T}) for k = 1:H]
+h = 0.01
+ref_traj0 = simulate(model, q0, q1, U, W, h)
+
+
+
+traj0 = ContactTraj14(H, model)
+ref_traj0 = ContactTraj14(H, model)
+impl0 = ImplicitTraj15(H, model)
+
 
 linearization!(model, ref_traj0, impl0)
 implicit_dynamics!(model, traj0, impl0)
+
+impl0
