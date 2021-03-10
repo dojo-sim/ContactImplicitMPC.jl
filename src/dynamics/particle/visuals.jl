@@ -1,9 +1,18 @@
+using Colors
+using CoordinateTransformations
+using FileIO
+using GeometryBasics
+using MeshCat, MeshIO, Meshing
+using Rotations
+
 function visualize!(vis, model::Particle, q;
 	Δt = 0.1, r = 0.25)
 
-	# default_background!(vis)
+	default_background!(vis)
+
     setobject!(vis["particle"],
-		Rect(Vec(0, 0, 0),Vec(2r, 2r, 2r)),
+		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
+		convert(Float32, r)),
 		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
 
     anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))

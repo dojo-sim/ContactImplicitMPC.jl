@@ -91,13 +91,17 @@ function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
 
 	v1 = (q2 - q1) / h[1]
 
+	nc = model.dim.c
+	nb = model.dim.b
+	nf = Int(nb / nc)
+	λ1 = vcat([transpose(rotation(model.env, q2)) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...)
+
 	return (1.0 / h[1] *
-		  (M_fast(model, q0) * (q1 - q0)
+		 (M_fast(model, q0) * (q1 - q0)
 		- M_fast(model, q1) * (q2 - q1))
 		+ transpose(B_fast(model, q2)) * u1
 		+ transpose(A_fast(model, q2)) * w1
-		+ transpose(N_fast(model, q2)) * γ1
-		+ transpose(P_fast(model, q2)) * b1
+		+ transpose(J_fast(model, q2)) * λ1
 		- h[1] * C_fast(model, q2, v1)
 		- h[1] * model.joint_friction .* v1)
 end
@@ -105,17 +109,21 @@ end
 function residual(model::ContactDynamicsModel, z, θ, κ)
 	nc = model.dim.c
 	nb = model.dim.b
+	nf = Int(nb / nc)
+	np = dim(model.env)
 
 	q0, q1, u1, w1, h = unpack_θ(model, θ)
 	q2, γ1, b1, ψ, η, s1, s2 = unpack_z(model, z)
 
-	ϕ = ϕ_func(model, q2)
-	vT = (P_fast(model, q2) * q2 - P_fast(model, q1) * q1) / h[1]
+	ϕ = ϕ_fast(model, q2)
+	v = (J_fast(model, q2) * q2 - J_fast(model, q1) * q1) / h[1]
+	vT_stack = vcat([[v[(i-1) * np .+ (1:np-1)]; -v[(i-1) * np .+ (1:np-1)]] for i = 1:nc]...)
+	ψ_stack = vcat([ψi .* ones(nf) for ψi in ψ]...)
 
-	[dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2);
+	[dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2); # TODO: replace with fast version
 	 s1 - ϕ;
 	 γ1 .* s1 .- κ;
-	 vT + vcat([ψi .* ones(Int(nb / nc)) for ψi in ψ]...) - η;
+	 vT_stack + ψ_stack - η;
 	 s2 .- (model.μ_world * γ1
 	   .- transpose(sum(reshape(b1, (Int(nb/nc), nc)), dims = 1))[:, 1]);
 	 ψ .* s2 .- κ;
@@ -124,11 +132,11 @@ end
 
 mutable struct BaseMethods
 	L::Any
+	ϕ::Any
 	M::Any
 	B::Any
 	A::Any
-	N::Any
-	P::Any
+	J::Any
 	C::Any
 end
 
@@ -172,8 +180,4 @@ function ResidualMethods()
 		return nothing
 	end
 	return ResidualMethods(fill(f, 3)...)
-end
-
-mutable struct SparseStructure
-	rz_sp::Any
 end

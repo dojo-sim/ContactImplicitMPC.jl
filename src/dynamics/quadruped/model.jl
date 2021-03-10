@@ -65,9 +65,10 @@ struct Quadruped{T} <: ContactDynamicsModel
 	base
 	dyn
 	res
-	spa
 
 	joint_friction
+
+	env::Environment
 end
 
 # kinematics
@@ -414,10 +415,10 @@ function ϕ_func(model::Quadruped, q)
 	p_calf_4 = kinematics_3(model, q, body = :calf_4, mode = :ee)
 	alt = model.alt
 
-	@SVector [p_calf_1[2] - alt[1],
-			  p_calf_2[2] - alt[2],
-			  p_calf_3[2] - alt[3],
-			  p_calf_4[2] - alt[4]]
+	@SVector [p_calf_1[2] - alt[1] - model.env.surf(p_calf_1[1]),
+			  p_calf_2[2] - alt[2] - model.env.surf(p_calf_2[1]),
+			  p_calf_3[2] - alt[3] - model.env.surf(p_calf_3[1]),
+			  p_calf_4[2] - alt[4] - model.env.surf(p_calf_4[1])]
 end
 
 function B_func(model::Quadruped, q)
@@ -436,29 +437,42 @@ function A_func(model::Quadruped, q)
 			  0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-function N_func(model::Quadruped, q)
+# function N_func(model::Quadruped, q)
+# 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
+# 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
+# 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
+# 	J_calf_4 = jacobian_3(model, q, body = :calf_4, mode = :ee)
+#
+# 	return [view(J_calf_1, 2:2, :);
+# 			view(J_calf_2, 2:2, :);
+# 			view(J_calf_3, 2:2, :);
+# 			view(J_calf_4, 2:2, :)]
+# end
+#
+# function P_func(model::Quadruped, q)
+# 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
+# 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
+# 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
+# 	J_calf_4 = jacobian_3(model, q, body = :calf_4, mode = :ee)
+# 	map = [1.0; -1.0]
+#
+# 	return [map * view(J_calf_1, 1:1, :);
+# 			map * view(J_calf_2, 1:1, :);
+# 			map * view(J_calf_3, 1:1, :);
+# 			map * view(J_calf_4, 1:1, :)]
+# end
+
+function J_func(model::Quadruped, q)
 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
 	J_calf_4 = jacobian_3(model, q, body = :calf_4, mode = :ee)
+	# map = [1.0; -1.0]
 
-	return [view(J_calf_1, 2:2, :);
-			view(J_calf_2, 2:2, :);
-			view(J_calf_3, 2:2, :);
-			view(J_calf_4, 2:2, :)]
-end
-
-function P_func(model::Quadruped, q)
-	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
-	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
-	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
-	J_calf_4 = jacobian_3(model, q, body = :calf_4, mode = :ee)
-	map = [1.0; -1.0]
-
-	return [map * view(J_calf_1, 1:1, :);
-			map * view(J_calf_2, 1:1, :);
-			map * view(J_calf_3, 1:1, :);
-			map * view(J_calf_4, 1:1, :)]
+	return [J_calf_1;
+			J_calf_2;
+			J_calf_3;
+			J_calf_4]
 end
 
 function C_func(model::Quadruped, q, q̇)
@@ -503,8 +517,8 @@ d_torso = 0.0127
 d_thigh = 0.00323
 d_leg = 0.006435
 
-dim = Dimensions(nq, nu, nw, nc, nb)
-quadruped = Quadruped(dim, g, μ_world, μ_joint,
+quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+				g, μ_world, μ_joint,
 				l_torso, d_torso, m_torso, J_torso,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
@@ -516,26 +530,8 @@ quadruped = Quadruped(dim, g, μ_world, μ_joint,
 				l_leg, d_leg, m_leg, J_leg,
 				zeros(nc),
 				BaseMethods(), DynamicsMethods(), ResidualMethods(),
-				SparseStructure(spzeros(0,0)),
-				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
-
-# path_base = joinpath(@__DIR__, "base.jld2")
-# path_dyn = joinpath(@__DIR__, "dynamics.jld2")
-# path_res = joinpath(@__DIR__, "residual.jld2")
-# path_jac = joinpath(@__DIR__, "sparse_jacobians.jld2")
-#
-# expr_base = generate_base_expressions(model)
-# save_expressions(expr_base, path_base, overwrite=true)
-# instantiate_base!(model, path_base)
-#
-# expr_dyn = generate_dynamics_expressions(model)
-# save_expressions(expr_dyn, path_dyn, overwrite=true)
-# instantiate_dynamics!(model, path_dyn)
-#
-# expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
-# save_expressions(expr_res, path_res, overwrite=true)
-# @save path_jac rz_sp rθ_sp
-# instantiate_residual!(model, path_res)
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
+				environment_2D_flat())
 
 function initial_configuration(model::Quadruped, θ)
     q1 = zeros(model.dim.q)

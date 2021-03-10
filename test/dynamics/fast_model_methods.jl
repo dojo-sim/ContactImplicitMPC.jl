@@ -2,7 +2,7 @@
     dyn_path = joinpath(@__DIR__, "../../src/dynamics")
     include(joinpath(dyn_path, "particle/model.jl"))
 	model = particle
-    ContactControl.instantiate_base!(model, joinpath(dyn_path, "particle/base.jld2"))
+    ContactControl.instantiate_base!(model, joinpath(dyn_path, "particle/flat/base.jld2"))
 
     # Setup variables
     T = Float64
@@ -11,11 +11,11 @@
     q̇0s = rand(SizedVector{nq,T})
 
     # Testing fast methods
+	@test norm(ContactControl.ϕ_fast(model, q0s) - ϕ_func(model, q0s), Inf) < 1.0e-8
     @test norm(ContactControl.M_fast(model, q0s) - M_func(model, q0s), Inf) < 1.0e-8
 	@test norm(ContactControl.B_fast(model, q0s) - B_func(model, q0s), Inf) < 1.0e-8
     @test norm(ContactControl.A_fast(model, q0s) - A_func(model, q0s), Inf) < 1.0e-8
-    @test norm(ContactControl.N_fast(model, q0s) - N_func(model, q0s), Inf) < 1.0e-8
-    @test norm(ContactControl.P_fast(model, q0s) - P_func(model, q0s), Inf) < 1.0e-8
+    @test norm(ContactControl.J_fast(model, q0s) - J_func(model, q0s), Inf) < 1.0e-8
     @test norm(ContactControl.C_fast(model, q0s, q̇0s) - C_func(model, q0s, q̇0s), Inf) < 1.0e-8
 end
 
@@ -23,8 +23,8 @@ end
 	dyn_path = joinpath(@__DIR__, "../../src/dynamics")
 	include(joinpath(dyn_path, "particle/model.jl"))
 	model = particle
-	ContactControl.instantiate_base!(model, joinpath(dyn_path, "particle/base.jld2"))
-	ContactControl.instantiate_dynamics!(model, joinpath(dyn_path, "particle/dynamics.jld2"))
+	ContactControl.instantiate_base!(model, joinpath(dyn_path, "particle/flat/base.jld2"))
+	ContactControl.instantiate_dynamics!(model, joinpath(dyn_path, "particle/flat/dynamics.jld2"))
 
 	# Setup variables
     T = Float64
@@ -93,10 +93,10 @@ end
 	res_path = joinpath(@__DIR__, "../../src/dynamics")
 	include(joinpath(res_path, "particle/model.jl"))
 	model = particle
-	ContactControl.instantiate_base!(model, joinpath(res_path, "particle/base.jld2"))
-	ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle/dynamics.jld2"))
-	ContactControl.instantiate_residual!(model, joinpath(res_path, "particle/residual.jld2"))
-	@load joinpath(res_path, "particle/sparse_jacobians.jld2") rz_sp rθ_sp
+	ContactControl.instantiate_base!(model, joinpath(res_path, "particle/flat/base.jld2"))
+	ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle/flat/dynamics.jld2"))
+	ContactControl.instantiate_residual!(model, joinpath(res_path, "particle/flat/residual.jld2"))
+	@load joinpath(res_path, "particle/flat/sparse_jacobians.jld2") rz_sp rθ_sp
 
     # Setup variables
     T = Float64

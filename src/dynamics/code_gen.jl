@@ -8,6 +8,7 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	nw = model.dim.w
 	nc = model.dim.c
 	nb = model.dim.b
+	np = dim(model.env)
 
 	# Declare variables
 	@variables q[1:nq]
@@ -22,6 +23,10 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	ddL = ModelingToolkit.sparsehessian(L, [q; q̇], simplify=true)
 	ddL = SparseMatrixCSC{Expression,Int64}(ddL)
 	ddLq̇q = ddL[nq .+ (1:nq), 1:nq]
+
+	# Signed distance
+	ϕ = ϕ_func(model, q)
+	ϕ = ModelingToolkit.simplify.(ϕ)[1:nc]
 
 	# Mass Matrix
 	M = M_func(model, q)
@@ -38,15 +43,10 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	A = reshape(A, (nw, nq))
 	A = ModelingToolkit.simplify.(A)
 
-	# Impact force Jacobian
-	N = N_func(model, q)
-	N = reshape(N, nc, nq)
-	N = ModelingToolkit.simplify.(N)
-
-	# Friction Force Jacobian
-	P = P_func(model, q)
-	P = reshape(P, nb, nq)
-	P = ModelingToolkit.simplify.(P)
+	# Contact Force Jacobian
+	J = J_func(model, q)
+	J = reshape(J, np * nc, nq)
+	J = ModelingToolkit.simplify.(J)
 
 	# Coriolis and Centrifugal forces Jacobians
 	C = ddLq̇q * q̇ - dLq
@@ -55,11 +55,11 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	# Build function
 	expr = Dict{Symbol, Expr}()
 	expr[:L]    = build_function(transpose([L]), q, q̇)[1] # need to transpose to get a line vector
+	expr[:ϕ]    = build_function(ϕ, q)[1]
 	expr[:M]    = build_function(M, q)[1]
 	expr[:B]    = build_function(B, q)[1]
 	expr[:A]    = build_function(A, q)[1]
-	expr[:N]    = build_function(N, q)[1]
-	expr[:P]    = build_function(P, q)[1]
+	expr[:J]    = build_function(J, q)[1]
 	expr[:C]    = build_function(C, q, q̇)[1]
 	return expr
 end
@@ -174,18 +174,6 @@ function load_expressions(path::AbstractString="dynamics_expressions.jld2")
 	return expr
 end
 
-function instantiate_base(expr::Dict{Symbol,Expr})
-	return eval(expr[:L]), eval(expr[:M]), eval(expr[:B]), eval(expr[:N]), eval(expr[:P]), eval(expr[:C])
-end
-
-function instantiate_dynamics(expr::Dict{Symbol,Expr})
-	eval(expr[:d]), eval(expr[:dy]), eval(expr[:dq0]), eval(expr[:dq1]), eval(expr[:du1]), eval(expr[:dw1]), eval(expr[:dγ1]), eval(expr[:db1]), eval(expr[:dq2])
-end
-
-function instantiate_residual(expr::Dict{Symbol,Expr})
-	eval(expr[:r]), eval(expr[:rz]), eval(expr[:rθ])
-end
-
 """
 	instantiate_base!(model,
 		path::AbstractString="model/base.jld2")
@@ -205,11 +193,11 @@ Evaluates the base expressions to generate functions, stores them into the model
 """
 function instantiate_base!(fct::BaseMethods, expr::Dict{Symbol,Expr})
 	fct.L    = eval(expr[:L])
+	fct.ϕ    = eval(expr[:ϕ])
 	fct.M    = eval(expr[:M])
 	fct.B    = eval(expr[:B])
 	fct.A    = eval(expr[:A])
-	fct.N    = eval(expr[:N])
-	fct.P    = eval(expr[:P])
+	fct.J    = eval(expr[:J])
 	fct.C    = eval(expr[:C])
 	return nothing
 end

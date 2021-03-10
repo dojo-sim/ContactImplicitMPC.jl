@@ -20,8 +20,10 @@ struct Particle{T} <: ContactDynamicsModel
 	base::BaseMethods
 	dyn::DynamicsMethods
 	res::ResidualMethods
-	spa::SparseStructure
+
 	joint_friction::SVector
+
+	env::Environment
 end
 
 function lagrangian(model::Particle, q, q̇)
@@ -34,14 +36,14 @@ function lagrangian(model::Particle, q, q̇)
 end
 
 # mass matrix
-function M_func(model, q)
+function M_func(model::Particle, q)
     m = model.m
 
     Diagonal(@SVector [m, m, m])
 end
 
 # gravity
-function C_func(model, q, q̇)
+function C_func(model::Particle, q, q̇)
     m = model.m
     g = model.g
 
@@ -49,57 +51,39 @@ function C_func(model, q, q̇)
 end
 
 # signed distance function
-function ϕ_func(model, q)
-    q[3:3]
+function ϕ_func(model::Particle, q)
+    q[3:3] .- model.env.surf(q)
 end
 
 # control Jacobian
-function B_func(model, q)
+function B_func(model::Particle, q)
     SMatrix{3, 3}([1.0 0.0 0.0;
                    0.0 1.0 0.0;
                    0.0 0.0 1.0])
 end
 
 # disturbance Jacobian
-function A_func(model, q)
+function A_func(model::Particle, q)
     SMatrix{3, 3}([1.0 0.0 0.0;
                    0.0 1.0 0.0;
                    0.0 0.0 1.0])
 end
 
-# normal Jacobian
-function N_func(model, q)
-    SMatrix{1, 3}([0.0, 0.0, 1.0])
-end
-
-# tangent Jacobian
-function P_func(model, q)
-    SMatrix{4, 3}([1.0 0.0 0.0;
+# contact Jacobian
+function J_func(model::Particle, q)
+    SMatrix{3, 3}([1.0 0.0 0.0;
                    0.0 1.0 0.0;
-                   -1.0 0.0 0.0;
-                   0.0 -1.0 0.0])
+				   0.0 0.0 1.0])
 end
 
-# Model
+# Model (flat surface)
 particle = Particle(Dimensions(3, 3, 3, 1, 4), 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(),
-	SparseStructure(spzeros(0,0)),
-	@SVector zeros(3))
+	SVector{3}(zeros(3)),
+	environment_3D_flat())
 
-# path_base = joinpath(@__DIR__, "base.jld2")
-# path_dyn = joinpath(@__DIR__, "dynamics.jld2")
-# path_res = joinpath(@__DIR__, "residual.jld2")
-# path_jac = joinpath(@__DIR__, "sparse_jacobians.jld2")
-#
-# expr_base = generate_base_expressions(model)
-# save_expressions(expr_base, path_base, overwrite=true)
-# instantiate_base!(model, path_base)
-#
-# expr_dyn = generate_dynamics_expressions(model)
-# save_expressions(expr_dyn, path_dyn, overwrite=true)
-# instantiate_dynamics!(model, path_dyn)
-#
-# expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
-# save_expressions(expr_res, path_res, overwrite=true)
-# @save path_jac rz_sp rθ_sp
-# instantiate_residual!(model, path_res)
+# Model (quadratic bowl)
+particle_quadratic = Particle(Dimensions(3, 3, 3, 1, 4), 1.0, 9.81, 0.1, 0.0,
+	BaseMethods(), DynamicsMethods(), ResidualMethods(),
+	SVector{3}(zeros(3)),
+	environment_3D(x -> transpose(x[1:2]) * x[1:2]))

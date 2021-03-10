@@ -161,7 +161,10 @@ function simulate!(sim::Simulator; verbose = false)
     for t = 1:sim.T
         verbose && println("t = $t")
         status = step!(sim, t)
-        !status && (@error "failed step (t = $t)")
+        if !status
+            @error "failed step (t = $t)"
+            return status
+        end
     end
 
     return status

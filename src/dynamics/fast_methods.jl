@@ -1,3 +1,7 @@
+function ϕ_fast(model::ContactDynamicsModel, q)
+    return model.base.ϕ(Array(q))
+end
+
 function M_fast(model::ContactDynamicsModel, q)
     return model.base.M(q)
 end
@@ -10,12 +14,8 @@ function A_fast(model::ContactDynamicsModel, q)
     return model.base.A(q)
 end
 
-function N_fast(model::ContactDynamicsModel, q)
-    return model.base.N(q)
-end
-
-function P_fast(model::ContactDynamicsModel, q)
-    return model.base.P(q)
+function J_fast(model::ContactDynamicsModel, q)
+    return model.base.J(q)
 end
 
 function C_fast(model::ContactDynamicsModel, q, q̇)
