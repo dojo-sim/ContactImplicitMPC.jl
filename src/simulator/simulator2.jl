@@ -1,15 +1,10 @@
-@with_kw struct SimulatorOptions{T}
-    warmstart::Bool = true
-    z_warmstart::T = 0.001
-    κ_warmstart::T = 0.001
-end
-
-struct Simulator{S,nq,nu,nc,nb,nw}
+struct Simulator2{S,nq,nu,nc,nb,nw,nz,nθ}
     model
 
     H::Int
     h::S
 
+    traj::ContactTraj{S,nq,nu,nw,nc,nb,nz,nθ}
     q::Vector{SArray{Tuple{nq},S,1,nq}}
     u::Vector{SArray{Tuple{nu},S,1,nu}}
     γ::Vector{SArray{Tuple{nc},S,1,nc}}
@@ -33,13 +28,13 @@ struct Simulator{S,nq,nu,nc,nb,nw}
 end
 
 
-function simulator_base(model, q0::SVector, q1::SVector, h::S, H::Int;
+function simulator2_base(model, q0::SVector, q1::SVector, h::S, H::Int;
     u = [@SVector zeros(model.dim.u) for t = 1:H],
     w = [@SVector zeros(model.dim.w) for t = 1:H],
     ip_opts = InteriorPointOptions{S}(),
     sim_opts = SimulatorOptions{S}()) where S
 
-    simulator(model, q0, q1, h, H;
+    simulator2(model, q0, q1, h, H;
         u = u,
         w = w,
         ip_opts = ip_opts,
@@ -52,7 +47,7 @@ function simulator_base(model, q0::SVector, q1::SVector, h::S, H::Int;
 end
 
 
-function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
+function simulator2(model, q0::SVector, q1::SVector, h::S, H::Int;
     u = [@SVector zeros(model.dim.u) for t = 1:H],
     w = [@SVector zeros(model.dim.w) for t = 1:H],
     ip_opts = InteriorPointOptions{S}(),
@@ -70,6 +65,13 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     q = [q0, q1, [@SVector zeros(nq) for t = 1:H]...]
     γ = [@SVector zeros(nc) for t = 1:H]
     b = [@SVector zeros(nb) for t = 1:H]
+
+    traj = ContactTraj(H, model)
+    traj.q = q
+    traj.u = u
+    traj.w = w
+    traj.γ = γ
+    traj.b = b
 
     dq2dq0 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:H]
     dq2dq1 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:H]
@@ -89,9 +91,10 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
         rz = rz,
         rθ = rθ)
 
-    Simulator(
+    Simulator2(
         model,
         H, h,
+        traj,
         q,
         u,
         γ,
@@ -112,12 +115,12 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
 end
 
 
-function step!(sim::Simulator, t)
+function step!(sim::Simulator2, t)
     # unpack
     model = sim.model
-    q = sim.q
-    u = sim.u
-    w = sim.w
+    q = sim.traj.q
+    u = sim.traj.u
+    w = sim.traj.w
     h = sim.h
     ip = sim.ip
     z = ip.z
@@ -138,9 +141,12 @@ function step!(sim::Simulator, t)
     if status
         # parse result
         q2, γ, b, _ = unpack_z(model, z)
-        sim.q[t+2] = copy(q2)
-        sim.γ[t] = γ
-        sim.b[t] = b
+        sim.traj.z[t] = copy(z)
+        sim.traj.θ[t] = copy(θ)
+        sim.traj.q[t+2] = copy(q2)
+        sim.traj.γ[t] = γ
+        sim.traj.b[t] = b
+        sim.traj.κ = ip.κ[1] # the last κ used in the solve.
 
         if sim.ip_opts.diff_sol
             nq = model.dim.q
@@ -168,7 +174,7 @@ end
     - initial configurations: q0, q1
     - time step: h
 """
-function simulate!(sim::Simulator; verbose = false)
+function simulate!(sim::Simulator2; verbose = false)
 
     verbose && println("\nSimulation")
 
@@ -181,10 +187,7 @@ function simulate!(sim::Simulator; verbose = false)
     for t = 1:sim.H
         verbose && println("t = $t")
         status = step!(sim, t)
-        if !status
-            @error "failed step (t = $t)"
-            return status
-        end
+        !status && (@error "failed step (t = $t)")
     end
 
     return status

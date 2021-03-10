@@ -21,7 +21,7 @@ function rθ!(rθ, z, θ, κ)
     nothing
 end
 
-struct InteriorPointMethods
+mutable struct InteriorPointMethods
     r!
     rz!
     rθ!
@@ -126,7 +126,8 @@ function interior_point!(ip::InteriorPoint{T};
         for i = 1:max_iter
             # check for converged residual
             if r_norm < r_tol
-                continue
+                # continue
+                break # 20% Faster
             end
 
             # compute residual Jacobian
@@ -180,7 +181,7 @@ function interior_point!(ip::InteriorPoint{T};
             r_norm = r̄_norm
         end
 
-        if κ[1] < κ_tol
+        if κ[1] <= κ_tol
             # differentiate solution
             diff_sol && differentiate_solution!(ip)
             return true
@@ -195,7 +196,7 @@ function interior_point!(ip::InteriorPoint{T};
     end
 end
 
-function interior_point!(ip::InteriorPoint{T}, z::Vector{T}, θ::Vector{T};
+function interior_point!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::AbstractVector{T};
     opts = InteriorPointOptions{T}()) where T
     ip.z .= z
     ip.θ .= θ

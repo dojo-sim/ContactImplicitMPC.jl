@@ -19,7 +19,7 @@ function visualize!(vis, model::Particle, q;
 
     for t = 1:length(q)
         MeshCat.atframe(anim, t) do
-            settransform!(vis["particle"], Translation(q[t][1:3]...))
+            settransform!(vis["particle"], MeshCat.Translation(q[t][1:3]...))
         end
     end
 

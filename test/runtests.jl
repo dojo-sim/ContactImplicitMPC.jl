@@ -15,5 +15,9 @@ include("dynamics/fast_model_methods.jl")
 include("simulator/random_qp.jl")
 include("simulator/particle.jl")
 
-# # Controller
-# include("controller/my_test_file.jl")
+# Controller
+@testset "Controller Tests" begin
+    include("controller/bilinear.jl")
+    include("controller/implicit_dynamics.jl")
+    # include("controller/newton.jl")
+end
