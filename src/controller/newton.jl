@@ -444,9 +444,10 @@ end
 
 
 
-H = 10
 T = Float64
 model = get_model("particle")
+H = 10
+h = 0.01
 nq = model.dim.q
 nu = model.dim.u
 nw = model.dim.w
@@ -463,14 +464,30 @@ nw = model.dim.w
 # w = [rand(SizedVector{nw,T}) for k = 1:H]
 # γ = [rand(SizedVector{nc,T}) for k = 1:H]
 # b = [rand(SizedVector{nb,T}) for k = 1:H]
-q0 = rand(SizedVector{nq,T})
-q1 = rand(SizedVector{nq,T})
-U = [rand(SizedVector{nu,T}) for k = 1:H]
-W = [rand(SizedVector{nw,T}) for k = 1:H]
-h = 0.01
-ref_traj0 = simulate(model, q0, q1, U, W, h)
+q0 = rand(SVector{nq,T})
+q1 = rand(SVector{nq,T})
+u = [rand(SizedVector{nu,T}) for k = 1:H]
+w = [rand(SizedVector{nw,T}) for k = 1:H]
+ip_opts = InteriorPointOptions(κ_init=1e-3, κ_tol=1e-3)
+sim0 = simulator2(model, q0, q1, h, H;
+    u = [@SVector zeros(model.dim.u) for t = 1:H],
+    w = [@SVector zeros(model.dim.w) for t = 1:H],
+    ip_opts = ip_opts,
+    r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
+    rz = model.spa.rz_sp,
+    rθ = model.spa.rθ_sp,
+    sim_opts = SimulatorOptions{T}())
+
+simulate!(sim0; verbose = false)
+
+# vis = Visualizer()
+# open(vis)
+visualize!(vis, model, sim0.traj.q)
 
 
+ref_traj0 =
+
+ip
 
 traj0 = ContactTraj14(H, model)
 ref_traj0 = ContactTraj14(H, model)
