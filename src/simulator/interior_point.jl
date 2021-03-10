@@ -21,7 +21,7 @@ function rθ!(rθ, z, θ, κ)
     nothing
 end
 
-struct InteriorPointMethods
+mutable struct InteriorPointMethods
     r!
     rz!
     rθ!

@@ -26,6 +26,18 @@ function LinStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::Abstract
 	return LinStep{T}(z0, θ0, κ0, r0, rz0, rθ0, bil_terms, bil_vars)
 end
 
+"""
+	Create dummy LinStep.
+"""
+function LinStep(model::ContactDynamicsModel)
+	nz = num_var(model)
+	nθ = num_data(model)
+	z0 = zeros(SizedVector{nz})
+	θ0 = zeros(SizedVector{nθ})
+	κ0 = 0.0
+	return LinStep(model, z0, θ0, κ0)
+end
+
 function get_bilinear_indices(model::ContactDynamicsModel)
 	nq = model.dim.q
 	nc = model.dim.c
