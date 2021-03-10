@@ -443,11 +443,13 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj14{T,n
 end
 
 
+# vis = Visualizer()
+# open(vis)
 
 T = Float64
 model = get_model("particle")
 H = 10
-h = 0.01
+h = 0.03
 nq = model.dim.q
 nu = model.dim.u
 nw = model.dim.w
@@ -455,17 +457,9 @@ nw = model.dim.w
 # nb = model.dim.b
 # nz = num_var(model)
 # nθ = num_data(model)
-# z = rand(SizedVector{nz,T})
-# θ = rand(SizedVector{nθ,T})
-# κ = 1e-3
-# lin = [LinStep(model, z, θ, κ) for k = 1:H]
-# q = [rand(SizedVector{nq,T}) for k = 1:H+2]
-# u = [rand(SizedVector{nu,T}) for k = 1:H]
-# w = [rand(SizedVector{nw,T}) for k = 1:H]
-# γ = [rand(SizedVector{nc,T}) for k = 1:H]
-# b = [rand(SizedVector{nb,T}) for k = 1:H]
-q0 = rand(SVector{nq,T})
-q1 = rand(SVector{nq,T})
+
+q0 = SVector{nq,T}([0.0, 0.0, 0.2])
+q1 = SVector{nq,T}([0.1, 0.1, 0.2])
 u = [rand(SizedVector{nu,T}) for k = 1:H]
 w = [rand(SizedVector{nw,T}) for k = 1:H]
 ip_opts = InteriorPointOptions(κ_init=1e-3, κ_tol=1e-3)
@@ -479,15 +473,7 @@ sim0 = simulator2(model, q0, q1, h, H;
     sim_opts = SimulatorOptions{T}())
 
 simulate!(sim0; verbose = false)
-
-# vis = Visualizer()
-# open(vis)
 visualize!(vis, model, sim0.traj.q)
-
-
-ref_traj0 =
-
-ip
 
 traj0 = ContactTraj14(H, model)
 ref_traj0 = ContactTraj14(H, model)

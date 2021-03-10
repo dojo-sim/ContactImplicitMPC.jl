@@ -33,7 +33,7 @@ struct Simulator{S,nq,nu,nc,nb,nw}
 end
 
 
-function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
+function simulator_base(model, q0::SVector, q1::SVector, h::S, H::Int;
     u = [@SVector zeros(model.dim.u) for t = 1:H],
     w = [@SVector zeros(model.dim.w) for t = 1:H],
     ip_opts = InteriorPointOptions{S}(),
