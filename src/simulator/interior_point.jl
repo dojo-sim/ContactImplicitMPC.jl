@@ -1,7 +1,12 @@
 # check that inequality constraints are satisfied
-inequality_check(x, idx_ineq) = any(view(x, idx_ineq) .<= 0.0) ? true : false
-inequality_check(x) = any(x .<= 0.0) ? true : false
-
+function inequality_check(x, idx_ineq)
+    for i in idx_ineq
+        if x[i] <= 0.0
+            return true
+        end
+    end
+    return false
+end
 
 # residual
 function r!(r, z, θ, κ)
@@ -35,11 +40,10 @@ struct InteriorPoint{T}
     r_norm::T                  # residual norm
     r̄::Vector{T}               # candidate residual
     r̄_norm::T                  # candidate residual norm
-    rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
+    rz::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
     idx_ineq::Vector{Int}      # indices for inequality constraints
-    z̄_ineq                     # variables subject to inequality constraints
     δz::SparseMatrixCSC{T,Int} # solution gradients
     θ::Vector{T}               # problem data
     κ::Vector{T}               # barrier parameter
@@ -64,7 +68,6 @@ function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
         rθ,
         zeros(num_var),
         idx_ineq,
-        view(zeros(num_var), idx_ineq),
         spzeros(num_var, num_data),
         zeros(num_data),
         zeros(1),
@@ -111,7 +114,6 @@ function interior_point!(ip::InteriorPoint{T};
     rz = ip.rz
     Δ = ip.Δ
     idx_ineq = ip.idx_ineq
-    ip.z̄_ineq .= view(ip.z̄, ip.idx_ineq)
     θ = ip.θ
     κ = ip.κ
 
@@ -126,19 +128,14 @@ function interior_point!(ip::InteriorPoint{T};
         for i = 1:max_iter
             # check for converged residual
             if r_norm < r_tol
-                # continue
-                break # 20% Faster
+                break
             end
 
             # compute residual Jacobian
             rz!(rz, z, θ, κ[1])
 
             # compute step
-            # Δ .= r
-            # info = LAPACK.getrf!(Array(rz))
-            # LAPACK.getrs!('N', info[1], info[2], Δ)
-            Δ .= rz \ r
-            # Δ .= lu(rz) \ r
+            ldiv!(Δ, lu(rz, check = false), r) # TODO: replace with custom linear solver
 
             # initialize step length
             α = 1.0
@@ -148,8 +145,8 @@ function interior_point!(ip::InteriorPoint{T};
 
             # check inequality constraints
             iter = 0
-            while inequality_check(view(z̄, idx_ineq))
-                α = 0.5 * α
+            while inequality_check(z̄, idx_ineq)
+                α *= 0.5
                 z̄ .= z - α * Δ
                 iter += 1
                 if iter > max_ls
@@ -162,8 +159,8 @@ function interior_point!(ip::InteriorPoint{T};
             r!(r̄, z̄, θ, κ[1])
             r̄_norm = norm(r̄, Inf)
 
-            while r̄_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
-                α = 0.5 * α
+            while r̄_norm >= (1.0 - 0.001 * α) * r_norm
+                α *= 0.5
                 z̄ .= z - α * Δ
                 r!(r̄, z̄, θ, κ[1])
                 r̄_norm = norm(r̄, Inf)

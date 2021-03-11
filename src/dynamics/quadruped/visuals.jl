@@ -1,7 +1,8 @@
 # visualization
 function visualize!(vis, model::Quadruped, q;
 	r = 0.025, Δt = 0.1, name::String="quadruped")
-	# default_background!(vis)
+
+	default_background!(vis)
 
 	torso = GeometryBasics.Cylinder(GeometryBasics.Point3f0(0.0, 0.0, 0.0),
 		GeometryBasics.Point3f0(0.0, 0.0, model.l_torso),
@@ -164,6 +165,9 @@ function visualize!(vis, model::Quadruped, q;
 			settransform!(vis[name*"/feet4"], MeshCat.Translation(p_calf_4))
 		end
 	end
+
+	settransform!(vis["/Cameras/default"],
+	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
 
 	MeshCat.setanimation!(vis, anim)
 end
