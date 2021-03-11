@@ -67,61 +67,46 @@ function Residual11(H::Int, dim::Dimensions)
 end
 
 
-mutable struct Newton31{T,nq,nu,nc,nb,n1,n2,n3,
+mutable struct Newton32{T,nq,nu,nc,nb,n1,n2,n3,
     Vq,Vu,Vγ,Vb,
-    # vq,vu,vγ,vb,
     VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vreg,
-    # vd,vI,vq0,vq1,vu1,
     }
-    jcb::Any                               # Jacobian
-    # r::Vector{T}                           # residual
-    r::Residual11{T}                           # residual
-    # r̄::Vector{T}                           # candidate residual
-    r̄::Residual11{T}                       # candidate residual
-    ν::Vector{SizedArray{Tuple{n1},T,1,1}} # implicit dynamics lagrange multiplier
+    jcb::Any                                # Jacobian
+    r::Residual11{T}                        # residual
+    r̄::Residual11{T}                        # candidate residual
+    ν::Vector{SizedArray{Tuple{n1},T,1,1}}  # implicit dynamics lagrange multiplier
     Δq::Vector{SizedArray{Tuple{nq},T,1,1}} # difference between the traj and ref_traj
     Δu::Vector{SizedArray{Tuple{nu},T,1,1}} # difference between the traj and ref_traj
     Δγ::Vector{SizedArray{Tuple{nγ},T,1,1}} # difference between the traj and ref_traj
     Δb::Vector{SizedArray{Tuple{nb},T,1,1}} # difference between the traj and ref_traj
-    H::Int                                 # horizon
-    nd::Int                                # implicit dynamics constraint size
-    nr::Int                                # size of a one-time-step block
-    iq::SizedVector{nq,Int}                # configuration indices
-    iu::SizedVector{nu,Int}                # control indices
-    iγ::SizedVector{nc,Int}                # impact indices
-    ib::SizedVector{nb,Int}                # linear friction indices
-    iν::SizedVector{n1,Int}                # implicit dynamics lagrange multiplier
-    iz::SizedVector{n2,Int}                # IP solver solution [q2, γ1, b1]
-    iθ::SizedVector{n3,Int}                # IP solver data [q0, q1, u1]
+    H::Int                                  # horizon
+    nd::Int                                 # implicit dynamics constraint size
+    nr::Int                                 # size of a one-time-step block
+    iq::SizedVector{nq,Int}                 # configuration indices
+    iu::SizedVector{nu,Int}                 # control indices
+    iγ::SizedVector{nc,Int}                 # impact indices
+    ib::SizedVector{nb,Int}                 # linear friction indices
+    iν::SizedVector{n1,Int}                 # implicit dynamics lagrange multiplier
+    iz::SizedVector{n2,Int}                 # IP solver solution [q2, γ1, b1]
+    iθ::SizedVector{n3,Int}                 # IP solver data [q0, q1, u1]
 
-    Qq::Vector{Vq}                         # jcb cost function views
-    Qu::Vector{Vu}                         # jcb cost function views
-    Qγ::Vector{Vγ}                         # jcb cost function views
-    Qb::Vector{Vb}                         # jcb cost function views
+    Qq::Vector{Vq}                          # jcb cost function views
+    Qu::Vector{Vu}                          # jcb cost function views
+    Qγ::Vector{Vγ}                          # jcb cost function views
+    Qb::Vector{Vb}                          # jcb cost function views
 
-    # qq::Vector{vq}                         # rsd cost function views
-    # qu::Vector{vu}                         # rsd cost function views
-    # qγ::Vector{vγ}                         # rsd cost function views
-    # qb::Vector{vb}                         # rsd cost function views
-
-    IV::Vector{VI}                         # jcb dynamics -I views
-    ITV::Vector{VIT}                       # jcb dynamics -I views transposed
-    q0::Vector{Vq0}                        # jcb dynamics q0 views
-    q0T::Vector{Vq0T}                      # jcb dynamics q0 views transposed
-    q1::Vector{Vq1}                        # jcb dynamics q1 views
-    q1T::Vector{Vq1T}                      # jcb dynamics q1 views transposed
-    u1::Vector{Vu1}                        # jcb dynamics u1 views
-    u1T::Vector{Vu1T}                      # jcb dynamics u1 views transposed
-    reg::Vector{Vreg}                      # jcb dual regularization views
-
-    # rd::Vector{vd}                         # rsd dynamics lagrange multiplier views
-    # rI::Vector{vI}                         # rsd dynamics -I views
-    # rq0::Vector{vq0}                       # rsd dynamics q0 views
-    # rq1::Vector{vq1}                       # rsd dynamics q1 views
-    # ru1::Vector{vu1}                       # rsd dynamics u1 views
+    IV::Vector{VI}                          # jcb dynamics -I views
+    ITV::Vector{VIT}                        # jcb dynamics -I views transposed
+    q0::Vector{Vq0}                         # jcb dynamics q0 views
+    q0T::Vector{Vq0T}                       # jcb dynamics q0 views transposed
+    q1::Vector{Vq1}                         # jcb dynamics q1 views
+    q1T::Vector{Vq1T}                       # jcb dynamics q1 views transposed
+    u1::Vector{Vu1}                         # jcb dynamics u1 views
+    u1T::Vector{Vu1T}                       # jcb dynamics u1 views transposed
+    reg::Vector{Vreg}                       # jcb dual regularization views
 end
 
-function Newton31(H::Int, dim::Dimensions)
+function Newton32(H::Int, dim::Dimensions)
     nq = dim.q # configuration
     nu = dim.u # control
     nc = dim.c # contact
@@ -140,8 +125,8 @@ function Newton31(H::Int, dim::Dimensions)
 
     jcb = spzeros(H*nr,H*nr)
     jcbV = [view(jcb, (t-1)*nr .+ (1:nr), (t-1)*nr .+ (1:nr)) for t=1:H]
-    r = zeros(H*nr)
-    r̄ = zeros(H*nr)
+    r = Residual11(H,dim)
+    r̄ = Residual11(H,dim)
 
     ν = [zeros(SizedVector{nd}) for t=1:H]
     Δq  = [zeros(SizedVector{nq}) for t=1:H]
@@ -154,11 +139,6 @@ function Newton31(H::Int, dim::Dimensions)
     Qγ  = [view(jcb, (t-1)*nr .+ iγ, (t-1)*nr .+ iγ) for t=1:H]
     Qb  = [view(jcb, (t-1)*nr .+ ib, (t-1)*nr .+ ib) for t=1:H]
 
-    qq  = [view(r, (t-1)*nr .+ iq) for t=1:H]
-    qu  = [view(r, (t-1)*nr .+ iu) for t=1:H]
-    qγ  = [view(r, (t-1)*nr .+ iγ) for t=1:H]
-    qb  = [view(r, (t-1)*nr .+ ib) for t=1:H]
-
     IV  = [view(jcb, (t-1)*nr .+ iz, (t-1)*nr .+ iν) for t=1:H]
     ITV = [view(jcb, (t-1)*nr .+ iν, (t-1)*nr .+ iz) for t=1:H]
     q0  = [view(jcb, (t-1)*nr .+ iν, (t-3)*nr .+ iq) for t=3:H]
@@ -169,28 +149,18 @@ function Newton31(H::Int, dim::Dimensions)
     u1T = [view(jcb, (t-1)*nr .+ iu, (t-1)*nr .+ iν) for t=1:H]
     reg = [view(jcb, (t-1)*nr .+ iν, (t-1)*nr .+ iν) for t=1:H]
 
-    rd  = [view(r, (t-1)*nr .+ iν) for t=1:H]
-    rI  = [view(r, (t-1)*nr .+ iz) for t=1:H]
-    rq0 = [view(r, (t-3)*nr .+ iq) for t=3:H]
-    rq1 = [view(r, (t-2)*nr .+ iq) for t=2:H]
-    ru1 = [view(r, (t-1)*nr .+ iu) for t=1:H]
-
-    return Newton31{T,nq,nu,nc,nb,nd,nd,2nq+nu,
+    return Newton32{T,nq,nu,nc,nb,nd,nd,2nq+nu,
         eltype.((Qq, Qu, Qγ, Qb))...,
-        # eltype.((qq, qu, qγ, qb))...,
         eltype.((IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg))...,
-        # eltype.((rd, rI, rq0, rq1, ru1))...,
         }(
         jcb, r, r̄, ν, Δq, Δu, Δγ, Δb, H, nd, nr,
         iq, iu, iγ, ib, iν, iz, iθ,
         Qq, Qu, Qγ, Qb,
-        # qq, qu, qγ, qb,
         IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg,
-        # rd, rI, rq0, rq1, ru1,
         )
 end
 
-function jacobian!(core::Newton31, impl::ImplicitTraj11{T},
+function jacobian!(core::Newton32, impl::ImplicitTraj11{T},
     cost::CostFunction, n_opts::NewtonOptions{T}) where {T}
     # unpack
     H = core.H
@@ -222,12 +192,11 @@ function jacobian!(core::Newton31, impl::ImplicitTraj11{T},
     return nothing
 end
 
-function residual!(core::Newton31, impl::ImplicitTraj11{T},
+function residual!(core::Newton32, res::Residual11,  impl::ImplicitTraj11{T},
     cost::CostFunction, traj::ContactTraj{T,nq,nu,nc,nb}, ref_traj::ContactTraj{T,nq,nu,nc,nb},
     n_opts::NewtonOptions{T}) where {T,nq,nu,nc,nb}
     # unpack
-    r = core.r
-    r .= 0.0
+    res.r .= 0.0
 
     for t in eachindex(core.ν)
         # Cost function
@@ -235,18 +204,18 @@ function residual!(core::Newton31, impl::ImplicitTraj11{T},
         delta!(core.Δu[t], traj.u[t], ref_traj.u[t])
         delta!(core.Δγ[t], traj.γ[t], ref_traj.γ[t])
         delta!(core.Δb[t], traj.b[t], ref_traj.b[t])
-        mul!(core.qq[t], cost.Qq[t], core.Δq[t])
-        mul!(core.qu[t], cost.Qu[t], core.Δu[t])
-        mul!(core.qγ[t], cost.Qγ[t], core.Δγ[t])
-        mul!(core.qb[t], cost.Qb[t], core.Δb[t])
+        mul!(res.qq[t], cost.Qq[t], core.Δq[t])
+        mul!(res.qu[t], cost.Qu[t], core.Δu[t])
+        mul!(res.qγ[t], cost.Qγ[t], core.Δγ[t])
+        mul!(res.qb[t], cost.Qb[t], core.Δb[t])
         # Implicit dynamics
-        set!(core.rd[t], impl.d[t])
+        set!(res.rd[t], impl.d[t])
         # Minus Identity term #∇qk1, ∇γk, ∇bk
-        setminus!(core.rI[t], core.ν[t])
+        setminus!(res.rI[t], core.ν[t])
         # Implicit function theorem part #∇qk_1, ∇qk, ∇uk
-        t >= 3 ? mul!(core.rq0[t-2], impl.δq0[t]', core.ν[t]) : nothing
-        t >= 2 ? mul!(core.rq1[t-1], impl.δq1[t]', core.ν[t]) : nothing
-        mul!(core.ru1[t], impl.δu1[t]', core.ν[t])
+        t >= 3 ? mul!(res.rq0[t-2], impl.δq0[t]', core.ν[t]) : nothing
+        t >= 2 ? mul!(res.rq1[t-1], impl.δq1[t]', core.ν[t]) : nothing
+        mul!(res.ru1[t], impl.δu1[t]', core.ν[t])
     end
     return nothing
 end
@@ -292,7 +261,7 @@ nq = model.dim.q
 nu = model.dim.u
 nγ = model.dim.c
 nb = model.dim.b
-core0 = Newton31(H, model.dim)
+core0 = Newton32(H, model.dim)
 impl0 = ImplicitTraj11(H, model)
 
 q0 = SVector{nq,T}([2.0, 2.0, zeros(nq-2)...])
@@ -316,11 +285,11 @@ cost0 = CostFunction(H, model.dim,
     Qb=fill(Diagonal(1e-4*ones(SizedVector{nb})), H),
     )
 n_opts = NewtonOptions()
-@allocated residual!(core0, impl0, cost0, traj0, ref_traj0, n_opts)
-@allocated residual!(core0, impl0, cost0, traj0, ref_traj0, n_opts)
-@allocated residual!(core0, impl0, cost0, traj0, ref_traj0, n_opts)
-@code_warntype residual!(core0, impl0, cost0, traj0, ref_traj0, n_opts)
-@benchmark residual!(core0, impl0, cost0, traj0, ref_traj0, n_opts)
+@allocated residual!(core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
+@allocated residual!(core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
+@allocated residual!(core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
+@code_warntype residual!(core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
+@benchmark residual!(core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
 
 @allocated jacobian!(core0, impl0, cost0, n_opts)
 @allocated jacobian!(core0, impl0, cost0, n_opts)
