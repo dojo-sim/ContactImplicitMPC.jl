@@ -108,9 +108,9 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj{T,nq,
 		impl.d[k] = ip.z[1:nd] - [q2; γ1; b1]
 		impl.δz[k]  = copy(ip.δz)
 		off = 0
-		impl.δq0[k] = copy(ip.δq0[1:nd, off .+ (1:nq)]); off += nq # ndxnq
-		impl.δq1[k] = copy(ip.δq1[1:nd, off .+ (1:nq)]); off += nq # ndxnq
-		impl.δu1[k] = copy(ip.δu1[1:nd, off .+ (1:nu)]); off += nu # ndxnu
+		impl.δq0[k] = copy(ip.δz[1:nd, off .+ (1:nq)]); off += nq # ndxnq
+		impl.δq1[k] = copy(ip.δz[1:nd, off .+ (1:nq)]); off += nq # ndxnq
+		impl.δu1[k] = copy(ip.δz[1:nd, off .+ (1:nu)]); off += nu # ndxnu
 	end
 	return nothing
 end
