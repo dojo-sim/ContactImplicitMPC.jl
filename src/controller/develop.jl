@@ -736,7 +736,7 @@ visualize!(vis, model, sim0.traj.q)
 ref_traj0 = deepcopy(sim0.traj)
 traj0 = deepcopy(ref_traj0)
 
-impl0 = ImplicitTraj(H, model)
+impl0 = ImplicitTraj11(H, model)
 linearization!(model, ref_traj0, impl0)
 implicit_dynamics!(model, traj0, impl0, κ=κ)
 
@@ -767,7 +767,7 @@ simulate!(sim0; verbose = false)
 ref_traj0 = deepcopy(sim0.traj)
 traj0 = deepcopy(ref_traj0)
 
-impl0 = ImplicitTraj(H, model)
+impl0 = ImplicitTraj11(H, model)
 linearization!(model, ref_traj0, impl0)
 implicit_dynamics!(model, traj0, impl0, κ=κ)
 

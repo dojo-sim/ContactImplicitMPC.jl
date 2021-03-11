@@ -19,7 +19,7 @@
 	ref_traj0 = deepcopy(sim0.traj)
 	traj0 = deepcopy(ref_traj0)
 
-	impl0 = ContactControl.ImplicitTraj(H, model)
+	impl0 = ContactControl.ImplicitTraj11(H, model)
 	ContactControl.linearization!(model, ref_traj0, impl0)
 	ContactControl.implicit_dynamics!(model, traj0, impl0, κ=κ)
 

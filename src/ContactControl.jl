@@ -48,7 +48,7 @@ include("controller/cost_function.jl")
 # include("controller/newton.jl")
 
 export SparseStructure, LinStep, get_bilinear_indices, bil_addition!, r_approx!, rz_approx!
-export ImplicitTraj, linearization!, implicit_dynamics!
+export ImplicitTraj11, linearization!, implicit_dynamics!
 export CostFunction
 
 

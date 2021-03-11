@@ -271,7 +271,7 @@ function easy_lin_trajopt(probsize, model, q1_init, q2_init, q1_ref, q2_ref, lin
 end
 
 
-function control!(model::ContactDynamicsModel, impl::ImplicitTraj,
+function control!(model::ContactDynamicsModel, impl::ImplicitTraj11,
     ref_traj::ContactTraj, cost::CostFunction, s_opts::NewtonOptions{T}) where {T}
 
     # we have an initial state q0 q1
@@ -281,7 +281,7 @@ function control!(model::ContactDynamicsModel, impl::ImplicitTraj,
 end
 
 
-function residual!(model::ContactDynamicsModel, impl::ImplicitTraj,
+function residual!(model::ContactDynamicsModel, impl::ImplicitTraj11,
     ref_traj::ContactTraj, cost::CostFunction, s_opts::NewtonOptions{T}) where {T}
     # we have an initial state q0 q1
 
@@ -358,8 +358,8 @@ end
 
 
 
-mutable struct Newton17{T,nq,nu,nc,nb,n1,n2,n3}
-    jac::Any                     # Jacobian
+mutable struct Newton25{T,nq,nu,nc,nb,n1,n2,n3,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T}
+    jcb::Any                     # Jacobian
     r::Vector{T}                 # residual
     r̄::Vector{T}                 # candidate residual
     ν::Vector{SizedVector{n1,T}} # implicit dynamics lagrange multiplier
@@ -370,12 +370,25 @@ mutable struct Newton17{T,nq,nu,nc,nb,n1,n2,n3}
     iu::SizedVector{nu,Int}      # control indices
     iγ::SizedVector{nc,Int}      # impact indices
     ib::SizedVector{nb,Int}      # linear friction indices
+    iν::SizedVector{n1,Int}      # implicit dynamics lagrange multiplier
     iz::SizedVector{n2,Int}      # IP solver solution [q2, γ1, b1]
     iθ::SizedVector{n3,Int}      # IP solver data [q0, q1, u1]
+    Qq::Vector{Vq}              # cost function views
+    Qu::Vector{Vu}              # cost function views
+    Qγ::Vector{Vγ}              # cost function views
+    Qb::Vector{Vb}              # cost function views
+    IV::Vector{VI}              # dynamics -I views
+    ITV::Vector{VIT}            # dynamics -I views transposed
+    q0::Vector{Vq0}             # dynamics q0 views
+    q0T::Vector{Vq0T}           # dynamics q0 views transposed
+    q1::Vector{Vq1}             # dynamics q1 views
+    q1T::Vector{Vq1T}           # dynamics q1 views transposed
+    u1::Vector{Vu1}             # dynamics u1 views
+    u1T::Vector{Vu1T}           # dynamics u1 views transposed
 end
 
 
-function Newton17(H::Int, dim::Dimensions)
+function Newton25(H::Int, dim::Dimensions)
     nq = dim.q # configuration
     nu = dim.u # control
     nc = dim.c # contact
@@ -393,41 +406,122 @@ function Newton17(H::Int, dim::Dimensions)
     iθ = vcat(iq .- 2nr, iq .- nr, iu) # index of the IP solver data [q0, q1, u1]
 
     jcb = spzeros(H*nr,H*nr)
-    jcbtr = [view(jcb, (t-1)*nr .+ (1:nr), (t-1)*nr .+ (1:nr)) for t=1:H]
+    jcbV = [view(jcb, (t-1)*nr .+ (1:nr), (t-1)*nr .+ (1:nr)) for t=1:H]
+    Qq  = [view(jcb, (t-1)*nr .+ iq, (t-1)*nr .+ iq) for t=1:H]
+    Qu  = [view(jcb, (t-1)*nr .+ iu, (t-1)*nr .+ iu) for t=1:H]
+    Qγ  = [view(jcb, (t-1)*nr .+ iγ, (t-1)*nr .+ iγ) for t=1:H]
+    Qb  = [view(jcb, (t-1)*nr .+ ib, (t-1)*nr .+ ib) for t=1:H]
+    IV  = [view(jcb, (t-1)*nr .+ iz, (t-1)*nr .+ iν) for t=1:H]
+    ITV = [view(jcb, (t-1)*nr .+ iν, (t-1)*nr .+ iz) for t=1:H]
+    q0  = [view(jcb, (t-1)*nr .+ iν, (t-3)*nr .+ iq) for t=3:H]
+    q0T = [view(jcb, (t-3)*nr .+ iq, (t-1)*nr .+ iν) for t=3:H]
+    q1  = [view(jcb, (t-1)*nr .+ iν, (t-2)*nr .+ iq) for t=2:H]
+    q1T = [view(jcb, (t-2)*nr .+ iq, (t-1)*nr .+ iν) for t=2:H]
+    u1  = [view(jcb, (t-1)*nr .+ iν, (t-1)*nr .+ iu) for t=1:H]
+    u1T = [view(jcb, (t-1)*nr .+ iu, (t-1)*nr .+ iν) for t=1:H]
     ν = [zeros(SizedVector{nd}) for t=1:H]
     r = zeros(H*nr)
     r̄ = zeros(H*nr)
-    return Newton17{T,nq,nu,nc,nb,nd,nd,2nq+nu}(jcb, r, r̄, ν, H, nd, nr, iq, iu, iγ, ib, iz, iθ)
+    return Newton25{T,nq,nu,nc,nb,nd,nd,2nq+nu,
+        eltype.((Qq, Qu, Qγ, Qb))...,
+        eltype.((IV, ITV, q0, q0T, q1, q1T, u1, u1T))...,
+        }(
+        jcb, r, r̄, ν, H, nd, nr,
+        iq, iu, iγ, ib, iν, iz, iθ,
+        Qq, Qu, Qγ, Qb, IV, ITV, q0, q0T, q1, q1T, u1, u1T)
 end
 
-function jacobian!(core::Newton17, impl::ImplicitTraj,
+
+function sparse_zero!(spm::SparseMatrixCSC)
+	n = length(spm.nzval)
+	for i = 1:n
+		spm.nzval[i] = 0.0
+	end
+	return nothing
+end
+
+function jacobian!(core::Newton25, impl::ImplicitTraj11,
     cost::CostFunction, s_opts::NewtonOptions{T}) where {T}
+    # unpack
+    H = core.H
+    jcb = core.jcb
+    jcb = sparse_zero!(jcb)
 
     for t=1:H
+        # Cost function
+        core.Qq[t] .= cost.Qq[t]
+        core.Qu[t] .= cost.Qu[t]
+        core.Qγ[t] .= cost.Qγ[t]
+        core.Qb[t] .= cost.Qb[t]
+        # Implicit dynamics
+        core.IV[t][diagind(core.IV[t])]   .= - 1.0
+        core.ITV[t][diagind(core.ITV[t])] .= - 1.0
+        if t >=3
+            core.q0[t-2]  .= impl.δq0[t]
+            core.q0T[t-2] .= impl.δq0[t]'
+        end
+        if t >= 2
+            core.q1[t-1]  .= impl.δq1[t]
+            core.q1T[t-1] .= impl.δq1[t]'
+        end
+        core.u1[t]  .= impl.δu1[t]
+        core.u1T[t] .= impl.δu1[t]'
     end
-
     return nothing
 end
 
 T = Float64
-H = 10
+H = 50
 h = 0.03
 κ = 1e-3
-model = get_model("quadruped")
+model = get_model("particle")
 nq = model.dim.q
 nu = model.dim.u
+nγ = model.dim.c
+nb = model.dim.b
 
-core0 = Newton17(H, model.dim)
-impl0 = ImplicitTraj(H, model)
+core0 = Newton25(H, model.dim)
+impl0 = ImplicitTraj11(H, model)
 cost0 = CostFunction(H, model.dim,
     Qq=fill(Diagonal(1e-1*ones(SizedVector{nq})), H),
-    Qu=fill(Diagonal(1e-1*ones(SizedVector{nu})), H),
+    Qu=fill(Diagonal(1e-2*ones(SizedVector{nu})), H),
+    Qγ=fill(Diagonal(1e-3*ones(SizedVector{nγ})), H),
+    Qb=fill(Diagonal(1e-4*ones(SizedVector{nb})), H),
     )
-jacobian!(core0, impl0, cost0,  )
+n_opts = NewtonOptions()
+@allocated jacobian!(core0, impl0, cost0, n_opts)
+@allocated jacobian!(core0, impl0, cost0, n_opts)
+@allocated jacobian!(core0, impl0, cost0, n_opts)
+@allocated jacobian!(core0, impl0, cost0, n_opts)
+@allocated jacobian!(core0, impl0, cost0, n_opts)
+@benchmark jacobian!(core0, impl0, cost0, n_opts)
+core0.jcb
 
 
 
 
+
+plot(Gray.(Matrix((1e3.*core0.jcb))))
+core0.IV[1][diagind(core0.IV[1])] .= 1.0
+
+
+a = spzeros(3,3)
+a[1,1] = 10
+a = similar(a, T)
+
+A = [10 20 30 ; 40 50 60 ; 70 80 90]
+LinearIndices(A)[2:3, 2]
+A[2:3, 2]
+
+view(A, LinearIndices(A)[diagind(A)])
+LinearIndices(A)
+A[diagind(A)]
+
+LinearIndices(A)[diagind(A)]
+
+diagind(A)
+
+A
 
 # interior-point solver options
 @with_kw mutable struct NewtonOptions{T}
@@ -439,6 +533,8 @@ jacobian!(core0, impl0, cost0,  )
     κ_tol::T = 2.0e-3            # inner solver tolerance
     β::T = 1e1                   # dual regularization
 end
+
+
 
 
 T = Float64
@@ -467,6 +563,6 @@ cost0 = CostFunction(H, model.dim,
     Qu=fill(Diagonal(1e-1*ones(SizedVector{nu})), H),
     )
 n_opts = NewtonOptions()
-impl = ImplicitTraj(H, model)
+impl = ImplicitTraj11(H, model)
 
 control!(model, impl, ref_traj0, cost1, n_opts)
