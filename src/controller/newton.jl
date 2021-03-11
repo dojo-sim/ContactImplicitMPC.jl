@@ -297,8 +297,13 @@ n_opts = NewtonOptions()
 @allocated jacobian!(core0, impl0, cost0, n_opts)
 @benchmark jacobian!(core0, impl0, cost0, n_opts)
 
-
+@benchmark core0.jcb\core0.r.r
 
 
 
 plot(Gray.(Matrix((1e3.*core0.jcb))))
+
+
+F = qdldl(core0.jcb)
+x = solve(F, core0.r.r)
+solve!(F, b)
