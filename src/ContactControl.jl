@@ -30,12 +30,13 @@ include("dynamics/code_gen.jl")
 include("dynamics/fast_methods.jl")
 include("dynamics/visuals.jl")
 
+export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods, ResidualMethods, Environment
+export environment_2D, environment_3D, environment_2D_flat, environment_3D_flat, get_model
+
 # Models
 include("dynamics/particle/model.jl")
+include("dynamics/particle_2D/model.jl")
 include("dynamics/quadruped/model.jl")
-
-export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods, ResidualMethods, Environment
-export environment_2D, environment_3D, environment_2D_flat, environment_3D_flat
 
 # Simulator
 include("simulator/trajectory.jl")

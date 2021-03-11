@@ -41,6 +41,7 @@ struct InteriorPoint{T}
     r̄::Vector{T}               # candidate residual
     r̄_norm::T                  # candidate residual norm
     rz::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
+    rz_dense::Array{T, 2}
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
     idx_ineq::Vector{Int}      # indices for inequality constraints
@@ -65,6 +66,7 @@ function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
         zeros(num_var),
         0.0,
         rz,
+        zeros(num_var, num_var),
         rθ,
         zeros(num_var),
         idx_ineq,
@@ -112,6 +114,7 @@ function interior_point!(ip::InteriorPoint{T};
     r̄ = ip.r̄
     r̄_norm = ip.r̄_norm
     rz = ip.rz
+    rz_dense = ip.rz_dense
     Δ = ip.Δ
     idx_ineq = ip.idx_ineq
     θ = ip.θ
@@ -135,7 +138,9 @@ function interior_point!(ip::InteriorPoint{T};
             rz!(rz, z, θ, κ[1])
 
             # compute step
-            ldiv!(Δ, lu(rz, check = false), r) # TODO: replace with custom linear solver
+            rz_dense .= rz
+            ldiv!(Δ, lu!(rz_dense, check = false), r) # TODO: replace with custom linear solver
+            # ldiv!(Δ, lu!(rz_dense, check = false), r) # TODO: replace with custom linear solver
 
             # initialize step length
             α = 1.0

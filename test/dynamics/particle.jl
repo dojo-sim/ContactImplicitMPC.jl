@@ -1,8 +1,5 @@
 @testset "Model Methods: Fast Base (Particle)" begin
-    dyn_path = joinpath(@__DIR__, "../../src/dynamics")
-    include(joinpath(dyn_path, "particle/model.jl"))
-	model = deepcopy(particle)
-    ContactControl.instantiate_base!(model, joinpath(dyn_path, "particle/flat/base.jld2"))
+    model = ContactControl.get_model("particle")
 
     # Setup variables
     T = Float64
@@ -11,20 +8,16 @@
     q̇0s = rand(SizedVector{nq,T})
 
     # Testing fast methods
-	@test norm(ContactControl.ϕ_fast(model, q0s) - ϕ_func(model, q0s), Inf) < 1.0e-8
-    @test norm(ContactControl.M_fast(model, q0s) - M_func(model, q0s), Inf) < 1.0e-8
-	@test norm(ContactControl.B_fast(model, q0s) - B_func(model, q0s), Inf) < 1.0e-8
-    @test norm(ContactControl.A_fast(model, q0s) - A_func(model, q0s), Inf) < 1.0e-8
-    @test norm(ContactControl.J_fast(model, q0s) - J_func(model, q0s), Inf) < 1.0e-8
-    @test norm(ContactControl.C_fast(model, q0s, q̇0s) - C_func(model, q0s, q̇0s), Inf) < 1.0e-8
+	@test norm(ContactControl.ϕ_fast(model, q0s) - ContactControl.ϕ_func(model, q0s), Inf) < 1.0e-8
+    @test norm(ContactControl.M_fast(model, q0s) - ContactControl.M_func(model, q0s), Inf) < 1.0e-8
+	@test norm(ContactControl.B_fast(model, q0s) - ContactControl.B_func(model, q0s), Inf) < 1.0e-8
+    @test norm(ContactControl.A_fast(model, q0s) - ContactControl.A_func(model, q0s), Inf) < 1.0e-8
+    @test norm(ContactControl.J_fast(model, q0s) - ContactControl.J_func(model, q0s), Inf) < 1.0e-8
+    @test norm(ContactControl.C_fast(model, q0s, q̇0s) - ContactControl.C_func(model, q0s, q̇0s), Inf) < 1.0e-8
 end
 
 @testset "Model Methods: Fast Dynamics (Particle)" begin
-	dyn_path = joinpath(@__DIR__, "../../src/dynamics")
-	include(joinpath(dyn_path, "particle/model.jl"))
-	model = deepcopy(particle)
-	ContactControl.instantiate_base!(model, joinpath(dyn_path, "particle/flat/base.jld2"))
-	ContactControl.instantiate_dynamics!(model, joinpath(dyn_path, "particle/flat/dynamics.jld2"))
+	model = ContactControl.get_model("particle")
 
 	# Setup variables
     T = Float64
@@ -90,13 +83,7 @@ end
 end
 
 @testset "Model Methods: Fast Residual (Particle)" begin
-	res_path = joinpath(@__DIR__, "../../src/dynamics")
-	include(joinpath(res_path, "particle/model.jl"))
-	model = deepcopy(particle)
-	ContactControl.instantiate_base!(model, joinpath(res_path, "particle/flat/base.jld2"))
-	ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle/flat/dynamics.jld2"))
-	ContactControl.instantiate_residual!(model, joinpath(res_path, "particle/flat/residual.jld2"))
-	@load joinpath(res_path, "particle/flat/sparse_jacobians.jld2") rz_sp rθ_sp
+	model = ContactControl.get_model("particle")
 
     # Setup variables
     T = Float64
@@ -113,11 +100,11 @@ end
     ContactControl.r_fast!(rs, model, zs, θs, κs)
     @test norm(rs - ContactControl.residual(model, zs, θs, κs), Inf) < 1.0e-8
 
-    ContactControl.rz_fast!(rz_sp, model, zs, θs, κs)
+    ContactControl.rz_fast!(model.spa.rz_sp, model, zs, θs, κs)
 	fz(x) = ContactControl.residual(model, x, θs, κs)
-    @test norm(rz_sp - ForwardDiff.jacobian(fz, zs), Inf) < 1.0e-8
+    @test norm(model.spa.rz_sp - ForwardDiff.jacobian(fz, zs), Inf) < 1.0e-8
 
-	ContactControl.rθ_fast!(rθ_sp, model, zs, θs, κs)
+	ContactControl.rθ_fast!(model.spa.rθ_sp, model, zs, θs, κs)
 	fθ(x) = ContactControl.residual(model, zs, x, κs)
-    @test norm(rθ_sp - ForwardDiff.jacobian(fθ, θs), Inf) < 1.0e-8
+    @test norm(model.spa.rθ_sp - ForwardDiff.jacobian(fθ, θs), Inf) < 1.0e-8
 end

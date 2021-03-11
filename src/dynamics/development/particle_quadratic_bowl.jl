@@ -38,32 +38,7 @@
 # plot!([p_cand[1], p_cand[1] + norm_norm[1]],
 # 	[p_cand[3], p_cand[3] + norm_norm[3]], color = :cyan, width = 2.0, label = "")
 
-dir = joinpath(@__DIR__, "../../src/dynamics/particle")
-include(joinpath(dir, "model.jl"))
-model = Particle(Dimensions(3, 3, 3, 1, 4), 1.0, 9.81, 0.1, 0.0,
-	BaseMethods(), DynamicsMethods(), ResidualMethods(),
-	SVector{3}(zeros(3)),
-	# default_3D_environment())
-	environment_3D(x -> transpose(x[1:2]) * x[1:2]))
-
-path_base = joinpath(dir, "base.jld2")
-path_dyn = joinpath(dir, "dynamics.jld2")
-path_res = joinpath(dir, "residual.jld2")
-path_jac = joinpath(dir, "sparse_jacobians.jld2")
-
-expr_base = generate_base_expressions(model)
-save_expressions(expr_base, path_base, overwrite=true)
-instantiate_base!(model, path_base)
-
-rotation(model.env, rand(nq))
-expr_dyn = generate_dynamics_expressions(model)
-save_expressions(expr_dyn, path_dyn, overwrite=true)
-instantiate_dynamics!(model, path_dyn)
-
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
-save_expressions(expr_res, path_res, overwrite=true)
-@save path_jac rz_sp rθ_sp
-instantiate_residual!(model, path_res)
+model = get_model("particle", surf = "quadratic")
 
 # time
 h = 0.01
@@ -73,9 +48,7 @@ T = 1000
 # initial conditions
 q1 = @SVector [1.0, 0.5, 2.0]
 q0 = @SVector [1.0, 0.5, 2.0]
-@show ϕ_func(model, q1)
-@show model.env.surf(q1)
-@show q1[3]
+
 # simulator
 sim = ContactControl.simulator(model, q0, q1, h, T,
 	r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
@@ -87,14 +60,13 @@ sim = ContactControl.simulator(model, q0, q1, h, T,
 # simulate
 @time status = ContactControl.simulate!(sim)
 @test status
-# @test all(isapprox.(sim.q[end], 0.0, atol = 1.0e-4))
 
 plot(hcat(sim.q[1:3:T]...)', label = ["x" "y" "z"], legend = :bottomleft)
 @show ϕ_func(model, sim.q[end])
 @show model.env.surf(sim.q[end])
 @show sim.q[end]
 
-include(joinpath(dir, "visuals.jl"))
+include(joinpath(pwd(), "src/dynamics/particle/visuals.jl"))
 
 vis = Visualizer()
 render(vis)

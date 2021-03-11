@@ -188,23 +188,18 @@ mutable struct SparseStructure
 end
 
 """
-	get_model(name::String)
+	get_model(name::String, surf::String)
 	Helper function that provides a model where fast functions have been instantiated.
 """
-function get_model(name::String)
+function get_model(name::String; surf::String = "flat")
+	#TODO: assert model exists
 	path = joinpath(@__DIR__, name)
 	include(joinpath(path, "model.jl"))
-	if name == "particle"
-		model = particle
-	elseif name == "quadruped"
-		model = quadruped
-	else
-		error("Unknown model name")
-	end
-	instantiate_base!(model, joinpath(path, "flat/base.jld2"))
-	instantiate_dynamics!(model, joinpath(path, "flat/dynamics.jld2"))
-	instantiate_residual!(model, joinpath(path, "flat/residual.jld2"))
-	@load joinpath(path, "flat/sparse_jacobians.jld2") rz_sp rθ_sp
+	model = eval(Symbol(name * (surf != "flat" ? "_" * surf : "")))
+	instantiate_base!(model, joinpath(path, surf, "base.jld2"))
+	instantiate_dynamics!(model, joinpath(path, surf, "dynamics.jld2"))
+	instantiate_residual!(model, joinpath(path, surf, "residual.jld2"))
+	@load joinpath(path, surf, "sparse_jacobians.jld2") rz_sp rθ_sp
 	model.spa.rz_sp = rz_sp
 	model.spa.rθ_sp = rθ_sp
 	return model

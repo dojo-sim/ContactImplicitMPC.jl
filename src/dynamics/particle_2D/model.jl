@@ -76,14 +76,14 @@ function J_func(model::Particle2D, q)
 end
 
 # Model (flat surface)
-particle2D = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 1.0, 0.0,
+particle_2D = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(),
 	SparseStructure(spzeros(0,0),spzeros(0,0)),
 	SVector{2}(zeros(2)),
 	environment_2D_flat())
 
 # Model (slope)
-particle2D_slope = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 0.1, 0.0,
+particle_2D_slope = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 0.1, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(),
 	SparseStructure(spzeros(0,0),spzeros(0,0)),
 	SVector{2}(zeros(2)),

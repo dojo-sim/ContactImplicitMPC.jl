@@ -1,11 +1,5 @@
 @testset "Simulation: Particle (3D)" begin
-    res_path = joinpath(@__DIR__, "../../src/dynamics")
-    # include(joinpath(res_path, "particle/model.jl"))
-    model = deepcopy(ContactControl.particle)
-    ContactControl.instantiate_base!(model, joinpath(res_path, "particle/flat/base.jld2"))
-    ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle/flat/dynamics.jld2"))
-    ContactControl.instantiate_residual!(model, joinpath(res_path, "particle/flat/residual.jld2"))
-    @load joinpath(res_path, "particle/flat/sparse_jacobians.jld2") rz_sp rθ_sp
+    model = ContactControl.get_model("particle")
 
     # time
     h = 0.01
@@ -19,8 +13,8 @@
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
@@ -33,8 +27,8 @@
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -57,8 +51,8 @@
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
@@ -72,8 +66,8 @@
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -90,13 +84,7 @@
 end
 
 @testset "Simulation: Particle (3D) in Quadratic Bowl" begin
-    res_path = joinpath(@__DIR__, "../../src/dynamics")
-    # include(joinpath(res_path, "particle/model.jl"))
-    model = deepcopy(ContactControl.particle_quadratic)
-    ContactControl.instantiate_base!(model, joinpath(res_path, "particle/quadratic/base.jld2"))
-    ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle/quadratic/dynamics.jld2"))
-    ContactControl.instantiate_residual!(model, joinpath(res_path, "particle/quadratic/residual.jld2"))
-    @load joinpath(res_path, "particle/quadratic/sparse_jacobians.jld2") rz_sp rθ_sp
+    model = get_model("particle", surf = "quadratic")
 
     # time
     h = 0.01
@@ -110,8 +98,8 @@ end
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
@@ -124,8 +112,8 @@ end
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -147,8 +135,8 @@ end
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
@@ -162,8 +150,8 @@ end
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -179,14 +167,10 @@ end
     @test all(isapprox.((sim.q[end] - sim.q[end-1]) ./ h, 0.0, atol = 1.0e-3))
 end
 
+model = ContactControl.get_model("particle_2D")
+
 @testset "Simulation: Particle (2D)" begin
-    res_path = joinpath(@__DIR__, "../../src/dynamics")
-    include(joinpath(res_path, "particle_2D/model.jl"))
-    model = deepcopy(particle2D)
-    ContactControl.instantiate_base!(model, joinpath(res_path, "particle_2D/flat/base.jld2"))
-    ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle_2D/flat/dynamics.jld2"))
-    ContactControl.instantiate_residual!(model, joinpath(res_path, "particle_2D/flat/residual.jld2"))
-    @load joinpath(res_path, "particle_2D/flat/sparse_jacobians.jld2") rz_sp rθ_sp
+    model = ContactControl.get_model("particle_2D")
 
     # time
     h = 0.01
@@ -200,8 +184,8 @@ end
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
@@ -214,8 +198,8 @@ end
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -238,8 +222,8 @@ end
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
@@ -253,8 +237,8 @@ end
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -271,13 +255,7 @@ end
 end
 
 @testset "Simulation: Particle (2D) slope" begin
-    res_path = joinpath(@__DIR__, "../../src/dynamics")
-    include(joinpath(res_path, "particle_2D/model.jl"))
-    model = deepcopy(particle2D)
-    ContactControl.instantiate_base!(model, joinpath(res_path, "particle_2D/slope/base.jld2"))
-    ContactControl.instantiate_dynamics!(model, joinpath(res_path, "particle_2D/slope/dynamics.jld2"))
-    ContactControl.instantiate_residual!(model, joinpath(res_path, "particle_2D/slope/residual.jld2"))
-    @load joinpath(res_path, "particle_2D/slope/sparse_jacobians.jld2") rz_sp rθ_sp
+    model = get_model("particle_2D", surf = "slope")
 
     # time
     h = 0.01
@@ -291,8 +269,8 @@ end
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
         r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = rz_sp,
-        rθ = rθ_sp,
+        rz = model.spa.rz_sp,
+        rθ = model.spa.rθ_sp,
         ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
