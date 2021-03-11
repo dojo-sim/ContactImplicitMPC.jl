@@ -274,17 +274,157 @@ end
 function control!(model::ContactDynamicsModel, impl::ImplicitTraj,
     ref_traj::ContactTraj, cost::CostFunction, s_opts::NewtonOptions{T}) where {T}
 
+    # we have an initial state q0 q1
 
 
     return nothing
 end
 
 
-mutable struct Newton11{T}
-    jac::
-    r::
-    r̄::Vector{T}
+function residual!(model::ContactDynamicsModel, impl::ImplicitTraj,
+    ref_traj::ContactTraj, cost::CostFunction, s_opts::NewtonOptions{T}) where {T}
+    # we have an initial state q0 q1
+
+
+    return nothing
 end
+
+
+
+function jac(traj)
+    jcb = spzeros((N-1)*nr,(N-1)*nr)
+    indu = Vector(1:nu)
+    indq = Vector(nu .+ (1:nq))
+    indγ = Vector(nu+nq .+ (1:nγ))
+    indb = Vector(nu+nq+nγ .+ (1:2nb))
+    indc = Vector(nu+nq+nγ+2nb .+ (1:nλ))
+    # indθ = vcat(indq-) # q1,q2,u2
+    inds = vcat(indq, indγ, indb) # q3,γ2,b2
+    indd = vcat(indq .- 2nr, indq .- nr, indu, indq, indγ, indb) # q1,q2,u2,q3,γ2,b2
+
+    utr = get_var_traj(N,model,traj,:u)
+    qtr = get_var_traj(N,model,traj,:q)
+    γtr = get_var_traj(N,model,traj,:γ)
+    btr = get_var_traj(N,model,traj,:b)
+    λdtr = get_var_traj(N,model,traj,:λd)
+
+    jcbtr = [view(jcb, (k-1)*nr .+ (1:nr), (k-1)*nr .+ (1:nr)) for k=1:N-1]
+    for k = 1:N-1
+        jcbtr[k][indu,indu] .+= Qu[k]
+        jcbtr[k][indq,indq] .+= Qq[k]
+        jcbtr[k][indγ,indγ] .+= Qγ[k]
+        jcbtr[k][indb,indb] .+= Qb[k]
+        jcbtr[k][indc,inds] += -I
+        jcbtr[k][inds,indc] += -I
+
+        # Linearization
+        q1, q2 = get_init_config(N, [q1_init, q2_init], traj, k)
+        zk, ∇k, flag = easy_lin_step(lint0[k],
+            q1, q2, model, u2_ref=utr[k], ρ0=ρ0, outer_iter=outer_iter, z_init=z_init)
+
+        # Implicit function theorem part #∇qk_1, ∇qk, ∇uk
+        off = 0
+        ∇q1 = ∇k[1:nλ, off .+ (1:nq)] # ∈ nλ×nθ
+        off += nq
+        ∇q2 = ∇k[1:nλ, off .+ (1:nq)] # ∈ nλ×nθ
+        off += nq
+        ∇u2 = ∇k[1:nλ, off .+ (1:nu)] # ∈ nλ×nθ
+        off += nu
+
+        ind_k_2 = (k-3)*nr .+ (1:nr)
+        ind_k_1 = (k-2)*nr .+ (1:nr)
+        ind_k   = (k-1)*nr .+ (1:nr)
+
+        k >= 3 ? jcb_2  = view(jcb, ind_k, ind_k_2) : nothing
+        k >= 3 ? jcb_2T = view(jcb, ind_k_2, ind_k) : nothing
+        k >= 2 ? jcb_1  = view(jcb, ind_k, ind_k_1) : nothing
+        k >= 2 ? jcb_1T = view(jcb, ind_k_1, ind_k) : nothing
+        jcb_0 = view(jcb, ind_k, ind_k)
+
+        k >= 3 ? jcb_2[indc, indq] .+= ∇q1 : nothing
+        k >= 2 ? jcb_1[indc, indq] .+= ∇q2 : nothing
+        jcb_0[indc, indu] .+= ∇u2
+
+        k >= 3 ? jcb_2T[indq, indc] .+= ∇q1' : nothing
+        k >= 2 ? jcb_1T[indq, indc] .+= ∇q2' : nothing
+        jcb_0[indu, indc] .+= ∇u2'
+
+        # Regularization
+        jcbtr[k][indc, indc] += -β*ρ0*I
+    end
+    return jcb
+end
+
+
+
+
+mutable struct Newton17{T,nq,nu,nc,nb,n1,n2,n3}
+    jac::Any                     # Jacobian
+    r::Vector{T}                 # residual
+    r̄::Vector{T}                 # candidate residual
+    ν::Vector{SizedVector{n1,T}} # implicit dynamics lagrange multiplier
+    H::Int                       # horizon
+    nd::Int                      # implicit dynamics constraint size
+    nr::Int                      # size of a one-time-step block
+    iq::SizedVector{nq,Int}      # configuration indices
+    iu::SizedVector{nu,Int}      # control indices
+    iγ::SizedVector{nc,Int}      # impact indices
+    ib::SizedVector{nb,Int}      # linear friction indices
+    iz::SizedVector{n2,Int}      # IP solver solution [q2, γ1, b1]
+    iθ::SizedVector{n3,Int}      # IP solver data [q0, q1, u1]
+end
+
+
+function Newton17(H::Int, dim::Dimensions)
+    nq = dim.q # configuration
+    nu = dim.u # control
+    nc = dim.c # contact
+    nb = dim.b # linear friction
+    nd = nq + nc + nb # implicit dynamics constraint
+    nr = nq+nu+nc+nb+nd # size of a one-time-step block
+
+    off = 0
+    iq = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q2
+    iu = SizedVector{nu}(off .+ (1:nu)); off += nu # index of the control u1
+    iγ = SizedVector{nc}(off .+ (1:nc)); off += nc # index of the impact γ1
+    ib = SizedVector{nb}(off .+ (1:nb)); off += nb # index of the linear friction b1
+    iν = SizedVector{nd}(off .+ (1:nd)); off += nd # index of the dynamics lagrange multiplier ν1
+    iz = vcat(iq, iγ, ib) # index of the IP solver solution [q2, γ1, b1]
+    iθ = vcat(iq .- 2nr, iq .- nr, iu) # index of the IP solver data [q0, q1, u1]
+
+    jcb = spzeros(H*nr,H*nr)
+    jcbtr = [view(jcb, (t-1)*nr .+ (1:nr), (t-1)*nr .+ (1:nr)) for t=1:H]
+    ν = [zeros(SizedVector{nd}) for t=1:H]
+    r = zeros(H*nr)
+    r̄ = zeros(H*nr)
+    return Newton17{T,nq,nu,nc,nb,nd,nd,2nq+nu}(jcb, r, r̄, ν, H, nd, nr, iq, iu, iγ, ib, iz, iθ)
+end
+
+function jacobian!(core::Newton17, impl::ImplicitTraj,
+    cost::CostFunction, s_opts::NewtonOptions{T}) where {T}
+
+    for t=1:H
+    end
+
+    return nothing
+end
+
+T = Float64
+H = 10
+h = 0.03
+κ = 1e-3
+model = get_model("quadruped")
+nq = model.dim.q
+nu = model.dim.u
+
+core0 = Newton17(H, model.dim)
+impl0 = ImplicitTraj(H, model)
+cost0 = CostFunction(H, model.dim,
+    Qq=fill(Diagonal(1e-1*ones(SizedVector{nq})), H),
+    Qu=fill(Diagonal(1e-1*ones(SizedVector{nu})), H),
+    )
+jacobian!(core0, impl0, cost0,  )
+
 
 
 
