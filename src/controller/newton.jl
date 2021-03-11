@@ -160,7 +160,7 @@ function Newton32(H::Int, dim::Dimensions)
         )
 end
 
-function jacobian!(core::Newton32, impl::ImplicitTraj11{T},
+function jacobian!(core::Newton32, impl::ImplicitTraj{T},
     cost::CostFunction, n_opts::NewtonOptions{T}) where {T}
     # unpack
     H = core.H
@@ -192,7 +192,7 @@ function jacobian!(core::Newton32, impl::ImplicitTraj11{T},
     return nothing
 end
 
-function residual!(core::Newton32, res::Residual11,  impl::ImplicitTraj11{T},
+function residual!(core::Newton32, res::Residual11,  impl::ImplicitTraj{T},
     cost::CostFunction, traj::ContactTraj{T,nq,nu,nc,nb}, ref_traj::ContactTraj{T,nq,nu,nc,nb},
     n_opts::NewtonOptions{T}) where {T,nq,nu,nc,nb}
     # unpack
@@ -262,7 +262,7 @@ nu = model.dim.u
 nγ = model.dim.c
 nb = model.dim.b
 core0 = Newton32(H, model.dim)
-impl0 = ImplicitTraj11(H, model)
+impl0 = ImplicitTraj(H, model)
 
 q0 = SVector{nq,T}([2.0, 2.0, zeros(nq-2)...])
 q1 = SVector{nq,T}([2.0, 2.0, zeros(nq-2)...])

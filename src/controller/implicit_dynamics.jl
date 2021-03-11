@@ -1,10 +1,10 @@
 """
-	ImplicitTraj11{T,nd}
+	ImplicitTraj{T,nd}
 This structure holds the trajectory of evaluations and Jacobians of the implicit dynamics.
 These evaluations and Jacobians are computed using a linear approximation computed around `lin`.
 
 """
-mutable struct ImplicitTraj11{T,nd}
+mutable struct ImplicitTraj{T,nd}
 	H::Int                               # horizon length
 	lin::Vector{LinStep{T}}              # linearization point  length=H
 	d::Vector{SizedVector{nd,T}}         # dynamics violation   length=H
@@ -15,9 +15,9 @@ mutable struct ImplicitTraj11{T,nd}
 end
 
 """
-	Create dummy ImplicitTraj11.
+	Create dummy ImplicitTraj.
 """
-function ImplicitTraj11(H::Int, model::ContactDynamicsModel)
+function ImplicitTraj(H::Int, model::ContactDynamicsModel)
 	nq = model.dim.q
 	nu = model.dim.u
 	nc = model.dim.c
@@ -31,17 +31,17 @@ function ImplicitTraj11(H::Int, model::ContactDynamicsModel)
 	δq0 = [spzeros(nd,nq) for k=1:H]
 	δq1 = [spzeros(nd,nq) for k=1:H]
 	δu1 = [spzeros(nd,nu) for k=1:H]
-	return ImplicitTraj11{eltype(d[1]),nd}(H,lin,d,δz,δq0,δq1,δu1)
+	return ImplicitTraj{eltype(d[1]),nd}(H,lin,d,δz,δq0,δq1,δu1)
 end
 
 """
 	linearization!(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
-		impl::ImplicitTraj11{T,nd}, κ::T=ref_traj.κ) where {T,nq,nu,nw,nc,nb,nz,nθ,nd}
+		impl::ImplicitTraj{T,nd}, κ::T=ref_traj.κ) where {T,nq,nu,nw,nc,nb,nz,nθ,nd}
 Linearization of the model around the reference trajectory `ref_traj`, the resulting linearization is stored
 in `impl.lin`.
 """
 function linearization!(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
-	impl::ImplicitTraj11{T,nd}, κ::T=ref_traj.κ) where {T,nq,nu,nw,nc,nb,nz,nθ,nd}
+	impl::ImplicitTraj{T,nd}, κ::T=ref_traj.κ) where {T,nq,nu,nw,nc,nb,nz,nθ,nd}
 	@assert impl.H == ref_traj.H
 	H = ref_traj.H
 	for k = 1:H
@@ -55,12 +55,12 @@ end
 
 """
 		implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj{T,nq,nu,nw,nc,nb},
-	impl::ImplicitTraj11{T,nd}; κ::T=traj.κ) where {T,nq,nu,nw,nc,nb,nd}
+	impl::ImplicitTraj{T,nd}; κ::T=traj.κ) where {T,nq,nu,nw,nc,nb,nd}
 Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
 approximated since it relies on a linearization about a reference trajectory.
 """
 function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj{T,nq,nu,nw,nc,nb},
-	impl::ImplicitTraj11{T,nd}; κ::T=traj.κ) where {T,nq,nu,nw,nc,nb,nd}
+	impl::ImplicitTraj{T,nd}; κ::T=traj.κ) where {T,nq,nu,nw,nc,nb,nd}
 	@assert impl.H == traj.H
 	H = traj.H
 	# Compute the implicit dynamics

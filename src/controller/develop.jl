@@ -736,7 +736,7 @@ visualize!(vis, model, sim0.traj.q)
 ref_traj0 = deepcopy(sim0.traj)
 traj0 = deepcopy(ref_traj0)
 
-impl0 = ImplicitTraj11(H, model)
+impl0 = ImplicitTraj(H, model)
 linearization!(model, ref_traj0, impl0)
 implicit_dynamics!(model, traj0, impl0, κ=κ)
 
@@ -767,7 +767,7 @@ simulate!(sim0; verbose = false)
 ref_traj0 = deepcopy(sim0.traj)
 traj0 = deepcopy(ref_traj0)
 
-impl0 = ImplicitTraj11(H, model)
+impl0 = ImplicitTraj(H, model)
 linearization!(model, ref_traj0, impl0)
 implicit_dynamics!(model, traj0, impl0, κ=κ)
 
@@ -1067,7 +1067,7 @@ function easy_lin_trajopt(probsize, model, q1_init, q2_init, q1_ref, q2_ref, lin
 end
 
 
-function control!(model::ContactDynamicsModel, impl::ImplicitTraj11,
+function control!(model::ContactDynamicsModel, impl::ImplicitTraj,
     ref_traj::ContactTraj, cost::CostFunction, s_opts::NewtonOptions{T}) where {T}
 
     # we have an initial state q0 q1
