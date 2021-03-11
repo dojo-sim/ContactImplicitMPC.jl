@@ -130,4 +130,5 @@ instantiate_dynamics!(model, path_dyn)
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
+@load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)

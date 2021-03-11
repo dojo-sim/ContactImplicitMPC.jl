@@ -9,7 +9,8 @@ using Random
 using SparseArrays
 
 # Dynamics
-include("dynamics/fast_model_methods.jl")
+include("dynamics/particle.jl")
+# include("dynamics/quadruped.jl")
 
 # Simulator
 include("simulator/random_qp.jl")
