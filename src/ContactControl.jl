@@ -15,6 +15,7 @@ using ModelingToolkit
 using Parameters
 using Plots
 using Rotations
+using CoordinateTransformations
 using StaticArrays
 using LinearAlgebra
 using Logging

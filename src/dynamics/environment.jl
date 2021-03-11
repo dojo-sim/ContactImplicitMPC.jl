@@ -15,11 +15,11 @@ function environment_3D_flat()
 end
 
 function environment_2D(surf)
-	@variables q
+	@variables q[1:1]
 
 	s = surf(q)
 	s = ModelingToolkit.simplify.(s)
-	ds = ModelingToolkit.derivative(s, q, simplify = true)
+	ds = ModelingToolkit.gradient(s, q, simplify = true)
 
 	surf_fast = eval(ModelingToolkit.build_function(s, q))
 	surf_grad_fast = eval(ModelingToolkit.build_function(ds, q)[1])
@@ -68,16 +68,11 @@ end
 
 function rotation(env::Environment{R2}, q)
 	# unit surface normal (3D)
-	n = @SVector [-1.0 * env.surf_grad(q[1]), 1.0]
+	n = [-1.0 * env.surf_grad(q[1]); 1.0]
 	ns = n ./ sqrt(transpose(n) * n)
 
 	# world-frame normal
 	nw = @SVector [0.0, 1.0]
-
-	# s = norm(cross(ns, nw))
-	cx = cross(ns, nw)
-	s = sqrt(transpose(cx) * cx)
-	c = ns' * nw
 
 	ang = atan(nw[2], nw[1]) - atan(ns[2], ns[1])
 
