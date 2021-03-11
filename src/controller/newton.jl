@@ -9,7 +9,7 @@
     β::T = 1e1                   # dual regularization
 end
 
-mutable struct Residual11{T,
+mutable struct Residual{T,
     vq,vu,vγ,vb,
     vd,vI,vq0,vq1,vu1,
     }
@@ -27,7 +27,7 @@ mutable struct Residual11{T,
     ru1::Vector{vu1}                       # rsd dynamics u1 views
 end
 
-function Residual11(H::Int, dim::Dimensions)
+function Residual(H::Int, dim::Dimensions)
     nq = dim.q # configuration
     nu = dim.u # control
     nc = dim.c # contact
@@ -56,7 +56,7 @@ function Residual11(H::Int, dim::Dimensions)
     rq1 = [view(r, (t-2)*nr .+ iq) for t=2:H]
     ru1 = [view(r, (t-1)*nr .+ iu) for t=1:H]
 
-    return Residual11{T,
+    return Residual{T,
         eltype.((qq, qu, qγ, qb))...,
         eltype.((rd, rI, rq0, rq1, ru1))...,
         }(
@@ -67,17 +67,17 @@ function Residual11(H::Int, dim::Dimensions)
 end
 
 
-mutable struct Newton32{T,nq,nu,nc,nb,n1,n2,n3,
+mutable struct Newton{T,nq,nu,nc,nb,n1,n2,n3,
     Vq,Vu,Vγ,Vb,
     VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vreg,
     }
     jcb::Any                                # Jacobian
-    r::Residual11{T}                        # residual
-    r̄::Residual11{T}                        # candidate residual
+    r::Residual{T}                        # residual
+    r̄::Residual{T}                        # candidate residual
     ν::Vector{SizedArray{Tuple{n1},T,1,1}}  # implicit dynamics lagrange multiplier
     Δq::Vector{SizedArray{Tuple{nq},T,1,1}} # difference between the traj and ref_traj
     Δu::Vector{SizedArray{Tuple{nu},T,1,1}} # difference between the traj and ref_traj
-    Δγ::Vector{SizedArray{Tuple{nγ},T,1,1}} # difference between the traj and ref_traj
+    Δγ::Vector{SizedArray{Tuple{nc},T,1,1}} # difference between the traj and ref_traj
     Δb::Vector{SizedArray{Tuple{nb},T,1,1}} # difference between the traj and ref_traj
     H::Int                                  # horizon
     nd::Int                                 # implicit dynamics constraint size
@@ -106,7 +106,7 @@ mutable struct Newton32{T,nq,nu,nc,nb,n1,n2,n3,
     reg::Vector{Vreg}                       # jcb dual regularization views
 end
 
-function Newton32(H::Int, dim::Dimensions)
+function Newton(H::Int, dim::Dimensions)
     nq = dim.q # configuration
     nu = dim.u # control
     nc = dim.c # contact
@@ -125,13 +125,13 @@ function Newton32(H::Int, dim::Dimensions)
 
     jcb = spzeros(H*nr,H*nr)
     jcbV = [view(jcb, (t-1)*nr .+ (1:nr), (t-1)*nr .+ (1:nr)) for t=1:H]
-    r = Residual11(H,dim)
-    r̄ = Residual11(H,dim)
+    r = Residual(H,dim)
+    r̄ = Residual(H,dim)
 
     ν = [zeros(SizedVector{nd}) for t=1:H]
     Δq  = [zeros(SizedVector{nq}) for t=1:H]
     Δu  = [zeros(SizedVector{nu}) for t=1:H]
-    Δγ  = [zeros(SizedVector{nγ}) for t=1:H]
+    Δγ  = [zeros(SizedVector{nc}) for t=1:H]
     Δb  = [zeros(SizedVector{nb}) for t=1:H]
 
     Qq  = [view(jcb, (t-1)*nr .+ iq, (t-1)*nr .+ iq) for t=1:H]
@@ -149,7 +149,7 @@ function Newton32(H::Int, dim::Dimensions)
     u1T = [view(jcb, (t-1)*nr .+ iu, (t-1)*nr .+ iν) for t=1:H]
     reg = [view(jcb, (t-1)*nr .+ iν, (t-1)*nr .+ iν) for t=1:H]
 
-    return Newton32{T,nq,nu,nc,nb,nd,nd,2nq+nu,
+    return Newton{eltype(ν[1]),nq,nu,nc,nb,nd,nd,2nq+nu,
         eltype.((Qq, Qu, Qγ, Qb))...,
         eltype.((IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg))...,
         }(
@@ -160,7 +160,7 @@ function Newton32(H::Int, dim::Dimensions)
         )
 end
 
-function jacobian!(core::Newton32, impl::ImplicitTraj{T},
+function jacobian!(core::Newton, impl::ImplicitTraj{T},
     cost::CostFunction, n_opts::NewtonOptions{T}) where {T}
     # unpack
     H = core.H
@@ -192,7 +192,7 @@ function jacobian!(core::Newton32, impl::ImplicitTraj{T},
     return nothing
 end
 
-function residual!(core::Newton32, res::Residual11,  impl::ImplicitTraj{T},
+function residual!(core::Newton, res::Residual,  impl::ImplicitTraj{T},
     cost::CostFunction, traj::ContactTraj{T,nq,nu,nc,nb}, ref_traj::ContactTraj{T,nq,nu,nc,nb},
     n_opts::NewtonOptions{T}) where {T,nq,nu,nc,nb}
     # unpack
@@ -259,9 +259,9 @@ h = 0.03
 model = get_model("quadruped")
 nq = model.dim.q
 nu = model.dim.u
-nγ = model.dim.c
+nc = model.dim.c
 nb = model.dim.b
-core0 = Newton32(H, model.dim)
+core0 = Newton(H, model.dim)
 impl0 = ImplicitTraj(H, model)
 
 q0 = SVector{nq,T}([2.0, 2.0, zeros(nq-2)...])
@@ -281,7 +281,7 @@ implicit_dynamics!(model, ref_traj0, impl0, κ=κ)
 cost0 = CostFunction(H, model.dim,
     Qq=fill(Diagonal(1e-1*ones(SizedVector{nq})), H),
     Qu=fill(Diagonal(1e-2*ones(SizedVector{nu})), H),
-    Qγ=fill(Diagonal(1e-3*ones(SizedVector{nγ})), H),
+    Qγ=fill(Diagonal(1e-3*ones(SizedVector{nc})), H),
     Qb=fill(Diagonal(1e-4*ones(SizedVector{nb})), H),
     )
 n_opts = NewtonOptions()
@@ -297,13 +297,91 @@ n_opts = NewtonOptions()
 @allocated jacobian!(core0, impl0, cost0, n_opts)
 @benchmark jacobian!(core0, impl0, cost0, n_opts)
 
-@benchmark core0.jcb\core0.r.r
-
-
 
 plot(Gray.(Matrix((1e3.*core0.jcb))))
 
+# function ttt(F::QDLDL.QDLDLFactorisation{Float64,Int64}, jcb::SparseMatrixCSC{Float64,Int64},
+#     res::Vector{T}, out::Vector{T}) where {T}
+#     F = qdldl(jcb)
+#     solve!(F,res)
+#     return nothing
+# end
+#
+# F = qdldl(core0.jcb)
+# jcb = deepcopy(core0.jcb)
+# out = deepcopy(core0.r.r)
+# res = deepcopy(core0.r.r)
+# @btime ttt(F, jcb, res, out)
 
-F = qdldl(core0.jcb)
-x = solve(F, core0.r.r)
-solve!(F, b)
+# typeof(F)
+# F
+# x = solve(F, core0.r.r)
+# solve!(F, b)
+# 72000/2700
+
+
+
+# Solves Ax = b using LDL factors for A.
+# Solves in place (x replaces b)
+function solve!(F::QDLDLFactorisation,b)
+
+    #bomb if logical factorisation only
+    if F.logical
+        error("Can't solve with logical factorisation only")
+    end
+
+    #permute b
+    tmp = F.perm == nothing ? b : permute!(F.workspace.fwork,b,F.perm)
+
+    QDLDL_solve!(F.workspace.Ln,
+                 F.workspace.Lp,
+                 F.workspace.Li,
+                 F.workspace.Lx,
+                 F.workspace.Dinv,
+                 tmp)
+
+    #inverse permutation
+    b = F.perm == nothing ? tmp : ipermute!(b,F.workspace.fwork,F.perm)
+
+    return nothing
+end
+
+
+
+
+A = deepcopy(core0.jcb)
+b = deepcopy(core0.r.r) + 0.1*rand(length(core0.r.r))
+A1 = deepcopy(2A)
+A1[1:10, 1:10] += Diagonal(rand(10))
+A2 = deepcopy(A1)
+A2[1:1000, 1:1000] += Diagonal(rand(1000))
+
+rank(A)
+rank(A1)
+rank(A2)
+
+
+F = qdldl(A)
+x1 = deepcopy(b)
+QDLDL.solve!(F,x1)
+norm(A*x1 - b, Inf)
+
+G = QDLDLFactorisationAF4(A,F)
+qdldl!(A,G)
+x2 = deepcopy(b)
+QDLDL.solve!(G.F,x2)
+norm(b, Inf)
+norm(A*x2 - b, Inf)
+
+
+qdldl!(A1,G)
+x4 = deepcopy(b)
+QDLDL.solve!(G.F,x4)
+norm(A1*x4 - b, Inf)
+
+qdldl!(A2,G)
+x5 = deepcopy(b)
+QDLDL.solve!(G.F,x5)
+norm(A*x5 - b, Inf)
+norm(A1*x5 - b, Inf)
+norm(A2*x5 - b, Inf)
