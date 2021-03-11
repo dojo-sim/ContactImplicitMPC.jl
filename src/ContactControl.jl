@@ -9,6 +9,7 @@ using FFMPEG
 using ForwardDiff
 using GeometryBasics
 using JLD2
+using QDLDL
 using MeshCat
 using ModelingToolkit
 using Parameters

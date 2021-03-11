@@ -6,9 +6,12 @@ These evaluations and Jacobians are computed using a linear approximation comput
 """
 mutable struct ImplicitTraj{T,nd}
 	H::Int                               # horizon length
-	lin::Vector{LinStep{T}}              # linearization point length=H
-	d::Vector{SizedVector{nd,T}}         # dynamics violation  length=H
-	δz::Vector{SparseMatrixCSC{T,Int}}   # solution gradient   length=H
+	lin::Vector{LinStep{T}}              # linearization point  length=H
+	d::Vector{SizedVector{nd,T}}         # dynamics violation   length=H
+	δz::Vector{SparseMatrixCSC{T,Int}}   # solution gradient    length=H
+	δq0::Vector{SparseMatrixCSC{T,Int}}  # q0 solution gradient length=H
+	δq1::Vector{SparseMatrixCSC{T,Int}}  # q0 solution gradient length=H
+	δu1::Vector{SparseMatrixCSC{T,Int}}  # q0 solution gradient length=H
 end
 
 """
@@ -16,6 +19,7 @@ end
 """
 function ImplicitTraj(H::Int, model::ContactDynamicsModel)
 	nq = model.dim.q
+	nu = model.dim.u
 	nc = model.dim.c
 	nb = model.dim.b
 	nd = nq+nc+nb
@@ -23,8 +27,11 @@ function ImplicitTraj(H::Int, model::ContactDynamicsModel)
 	nθ = num_data(model)
 	lin = [LinStep(model) for k = 1:H]
 	d = [zeros(SizedVector{nd}) for k=1:H]
-	δz = [spzeros(nz,nθ) for k=1:H]
-	return ImplicitTraj{eltype(d[1]),nd}(H,lin,d,δz)
+	δz  = [spzeros(nz,nθ) for k=1:H]
+	δq0 = [spzeros(nd,nq) for k=1:H]
+	δq1 = [spzeros(nd,nq) for k=1:H]
+	δu1 = [spzeros(nd,nu) for k=1:H]
+	return ImplicitTraj{eltype(d[1]),nd}(H,lin,d,δz,δq0,δq1,δu1)
 end
 
 """
@@ -95,8 +102,15 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj{T,nq,
 		γ1 = traj.γ[k]
 		b1 = traj.b[k]
 
-		impl.d[k] = ip.z[1:nq+nc+nb] - [q2; γ1; b1]
-		impl.δz[k] = copy(ip.δz)
+		# nd = nq+nc+nb # TODO we need to make this general in the code
+		# TODO we need to have a struct that stores the indices of q2, γ1, b1 in z
+
+		impl.d[k] = ip.z[1:nd] - [q2; γ1; b1]
+		impl.δz[k]  = copy(ip.δz)
+		off = 0
+		impl.δq0[k] = copy(ip.δz[1:nd, off .+ (1:nq)]); off += nq # ndxnq
+		impl.δq1[k] = copy(ip.δz[1:nd, off .+ (1:nq)]); off += nq # ndxnq
+		impl.δu1[k] = copy(ip.δz[1:nd, off .+ (1:nu)]); off += nu # ndxnu
 	end
 	return nothing
 end
