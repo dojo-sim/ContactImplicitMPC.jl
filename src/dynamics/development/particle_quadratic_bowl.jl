@@ -47,13 +47,13 @@ T = 1000
 ## DROP
 # initial conditions
 q1 = @SVector [1.0, 0.5, 2.0]
-q0 = @SVector [1.0, 0.5, 2.0]
+q0 = @SVector [1.1, 0.5, 2.0]
 
 # simulator
 sim = ContactControl.simulator(model, q0, q1, h, T,
 	r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-	rz = rz_sp,
-	rθ = rθ_sp,
+	rz = model.spa.rz_sp,
+	rθ = model.spa.rθ_sp,
 	ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-6, κ_tol = 1.0e-6),
 	sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
