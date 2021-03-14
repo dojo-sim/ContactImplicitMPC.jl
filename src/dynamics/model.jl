@@ -87,23 +87,38 @@ end
 
 inequality_indices(model::ContactDynamicsModel) = collect(model.dim.q .+ (1:(num_var(model) - model.dim.q)))
 
+function E_func(model::ContactDynamicsModel)
+	SMatrix{model.dim.c, model.dim.b}(kron(Diagonal(ones(model.dim.c)), ones(1, Int(model.dim.b / model.dim.c))))
+end
+
+# https://github.com/HarvardAgileRoboticsLab/drake/blob/75b260c9eb250d08ffbbf3daa80758e4fe558d7f/drake/matlab/solvers/trajectoryOptimization/VariationalTrajectoryOptimization.m
+function lagrangian_derivatives(model::ContactDynamicsModel, q, v)
+	D1L = -1.0 * C_fast(model, q, v)
+    D2L = M_fast(model, q) * v
+	return D1L, D2L
+end
+
 function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
 
-	v1 = (q2 - q1) / h[1]
+	# evalutate at midpoint
+	qm1 = 0.5 * (q0 + q1)
+    vm1 = (q1 - q0) / h[1]
+    qm2 = 0.5 * (q1 + q2)
+    vm2 = (q2 - q1) / h[1]
+
+	D1L1, D2L1 = lagrangian_derivatives(model, qm1, vm1)
+	D1L2, D2L2 = lagrangian_derivatives(model, qm2, vm2)
 
 	nc = model.dim.c
 	nb = model.dim.b
 	nf = Int(nb / nc)
 	λ1 = vcat([transpose(rotation(model.env, q2)) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...)
 
-	return (1.0 / h[1] *
-		 (M_fast(model, q0) * (q1 - q0)
-		- M_fast(model, q1) * (q2 - q1))
-		+ transpose(B_fast(model, q2)) * u1
-		+ transpose(A_fast(model, q2)) * w1
+	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
+		+ transpose(B_fast(model, qm2)) * u1
+		+ transpose(A_fast(model, qm2)) * w1
 		+ transpose(J_fast(model, q2)) * λ1
-		- h[1] * C_fast(model, q2, v1)
-		- h[1] * model.joint_friction .* v1)
+		- h[1] * model.joint_friction .* vm2)
 end
 
 function residual(model::ContactDynamicsModel, z, θ, κ)
@@ -116,16 +131,15 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	q2, γ1, b1, ψ, η, s1, s2 = unpack_z(model, z)
 
 	ϕ = ϕ_fast(model, q2)
-	v = (J_fast(model, q2) * q2 - J_fast(model, q1) * q1) / h[1]
+	v = J_fast(model, q2) * (q2 - q1) / h[1]
 	vT_stack = vcat([[v[(i-1) * np .+ (1:np-1)]; -v[(i-1) * np .+ (1:np-1)]] for i = 1:nc]...)
-	ψ_stack = vcat([ψi .* ones(nf) for ψi in ψ]...)
+	ψ_stack = E_func(model)' * ψ
 
 	[dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2); # TODO: replace with fast version
 	 s1 - ϕ;
 	 γ1 .* s1 .- κ;
 	 vT_stack + ψ_stack - η;
-	 s2 .- (model.μ_world * γ1
-	   .- transpose(sum(reshape(b1, (Int(nb/nc), nc)), dims = 1))[:, 1]);
+	 s2 .- (model.μ_world * γ1 .- E_func(model) * b1);
 	 ψ .* s2 .- κ;
 	 b1 .* η .- κ]
 end

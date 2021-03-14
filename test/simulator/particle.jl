@@ -167,8 +167,6 @@ end
     @test all(isapprox.((sim.q[end] - sim.q[end-1]) ./ h, 0.0, atol = 1.0e-3))
 end
 
-model = ContactControl.get_model("particle_2D")
-
 @testset "Simulation: Particle (2D)" begin
     model = ContactControl.get_model("particle_2D")
 

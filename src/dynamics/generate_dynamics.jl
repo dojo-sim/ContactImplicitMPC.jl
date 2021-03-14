@@ -58,7 +58,7 @@ instantiate_residual!(model, path_res)
 # Particle 2D (flat)
 ################################################################################
 include("particle_2D/model.jl")
-model = deepcopy(particle2D)
+model = deepcopy(particle_2D)
 
 dir = joinpath(@__DIR__, "particle_2D")
 
@@ -84,7 +84,7 @@ instantiate_residual!(model, path_res)
 # Particle 2D (slope)
 ################################################################################
 include("particle_2D/model.jl")
-model = deepcopy(particle2D_slope)
+model = deepcopy(particle_2D_slope)
 
 dir = joinpath(@__DIR__, "particle_2D")
 
@@ -111,7 +111,11 @@ instantiate_residual!(model, path_res)
 ################################################################################
 include("quadruped/model.jl")
 model = deepcopy(quadruped)
-
+SMatrix{model.dim.c, model.dim.b}(kron(Diagonal(ones(model.dim.c)), ones(1, Int(model.dim.b / model.dim.c))))
+E_func(model)
+model.dim.b
+kron(Diagonal(ones(model.dim.c)), ones(1, Int(model.dim.b / model.dim.c)))
+model.dim.b
 dir = joinpath(@__DIR__, "quadruped")
 
 path_base = joinpath(dir, "flat/base.jld2")
