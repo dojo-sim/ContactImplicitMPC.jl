@@ -54,5 +54,9 @@ export SparseStructure, LinStep, get_bilinear_indices, bil_addition!, r_approx!,
 export ImplicitTraj, linearization!, implicit_dynamics!
 export CostFunction
 
+# CGS
+include("cgs/cgs.jl")
+
+export triangularize, triu_perm, CGSData13, CGSData13!, cgs!, qr_solve!
 
 end # module
