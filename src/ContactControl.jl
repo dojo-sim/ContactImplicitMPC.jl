@@ -48,6 +48,7 @@ include("simulator/simulator2.jl")
 include("controller/bilinear.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/cost_function.jl")
+include("controller/qdldl.jl")
 # include("controller/newton.jl")
 
 export SparseStructure, LinStep, get_bilinear_indices, bil_addition!, r_approx!, rz_approx!
