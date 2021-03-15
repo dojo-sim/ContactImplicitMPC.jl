@@ -78,11 +78,19 @@ function θ_initialize!(θ, model::ContactDynamicsModel, q0, q1, u, w, h)
 end
 
 function num_var(model::ContactDynamicsModel)
-    model.dim.q + model.dim.c + model.dim.b + model.dim.c + model.dim.b + 2 * model.dim.c
+	num_var(model.dim)
 end
 
 function num_data(model::ContactDynamicsModel)
-    model.dim.q + model.dim.q + model.dim.u + model.dim.w + 1
+	num_data(model.dim)
+end
+
+function num_var(dim::Dimensions)
+    dim.q + dim.c + dim.b + dim.c + dim.b + 2 * dim.c
+end
+
+function num_data(dim::Dimensions)
+    dim.q + dim.q + dim.u + dim.w + 1
 end
 
 inequality_indices(model::ContactDynamicsModel) = collect(model.dim.q .+ (1:(num_var(model) - model.dim.q)))

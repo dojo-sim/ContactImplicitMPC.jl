@@ -52,8 +52,8 @@ function simulator2(model, q0::SVector, q1::SVector, h::S, H::Int;
     w = [@SVector zeros(model.dim.w) for t = 1:H],
     ip_opts = InteriorPointOptions{S}(),
     r! = r!, rz! = rz!, rθ! = rθ!,
-    rz = spzeros(num_var(model), num_var(model)),
-    rθ = spzeros(num_var(model), num_data(model)),
+    rz = model.spa.rz_sp,
+    rθ = model.spa.rθ_sp,
     sim_opts = SimulatorOptions{S}()) where S
 
     nq = model.dim.q
@@ -66,7 +66,7 @@ function simulator2(model, q0::SVector, q1::SVector, h::S, H::Int;
     γ = [@SVector zeros(nc) for t = 1:H]
     b = [@SVector zeros(nb) for t = 1:H]
 
-    traj = ContactTraj(H, model)
+    traj = ContactTraj(H, h, model)
     traj.q = q
     traj.u = u
     traj.w = w

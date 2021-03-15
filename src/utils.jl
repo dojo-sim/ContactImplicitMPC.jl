@@ -21,6 +21,5 @@ Pkg.activate(@__DIR__)
 # Pkg.add("Test")
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
-# Pkg.activate(joinpath(@__DIR__, "../src/mgs/"))
 
 #

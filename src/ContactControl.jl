@@ -56,8 +56,8 @@ export ImplicitTraj, linearization!, implicit_dynamics!
 export CostFunction
 
 # CGS
-include("cgs/cgs.jl")
+# include("gram_schmidt/gram_schmidt.jl")
 
-export triangularize, triu_perm, CGSData13, CGSData13!, cgs!, qr_solve!
+# export triangularize, triu_perm, CGSData13, CGSData13!, cgs!, qr_solve!
 
 end # module

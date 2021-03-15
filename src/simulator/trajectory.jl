@@ -1,5 +1,6 @@
 mutable struct ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}
-	H::Int                               # horizon length
+	H::Int                                         # horizon length
+	h::T                                           # time step length
 	q::Vector{SizedArray{Tuple{nq},T,1,1}}         # trajectory of q's   length=H+2
 	u::Vector{SizedArray{Tuple{nu},T,1,1}}         # trajectory of u's   length=H
 	w::Vector{SizedArray{Tuple{nw},T,1,1}}         # trajectory of w's   length=H
@@ -10,15 +11,18 @@ mutable struct ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}
 	κ::T
 end
 
-function ContactTraj(H::Int, model::ContactDynamicsModel; T::DataType=Float64)
-	nz = num_var(model)
-	nθ = num_data(model)
-	return ContactTraj(H, model.dim.q, model.dim.u, model.dim.w, model.dim.c, model.dim.b, nz, nθ, T=T)
+function ContactTraj(H::Int, h::T, model::ContactDynamicsModel) where {T}
+	return ContactTraj(H, h, model.dim)
 end
 
-function ContactTraj(H::Int, nq::Int, nu::Int, nw::Int, nc::Int, nb::Int,
-	nz::Int, nθ::Int; T::DataType=Float64)
+function ContactTraj(H::Int, h::T, dim::Dimensions) where {T}
+	nz = num_var(dim)
+	nθ = num_data(dim)
+	return ContactTraj(H, h, dim.q, dim.u, dim.w, dim.c, dim.b, nz, nθ)
+end
 
+function ContactTraj(H::Int, h::T, nq::Int, nu::Int, nw::Int, nc::Int, nb::Int,
+	nz::Int, nθ::Int) where{T}
 	q = [zeros(SizedVector{nq,T}) for k=1:H+2]
 	u = [zeros(SizedVector{nu,T}) for k=1:H]
 	w = [zeros(SizedVector{nw,T}) for k=1:H]
@@ -27,5 +31,5 @@ function ContactTraj(H::Int, nq::Int, nu::Int, nw::Int, nc::Int, nb::Int,
 	z = [zeros(SizedVector{nz,T}) for k=1:H]
 	θ = [zeros(SizedVector{nθ,T}) for k=1:H]
 	κ = 0.0
-	return ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}(H,q,u,w,γ,b,z,θ,κ)
+	return ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}(H,h,q,u,w,γ,b,z,θ,κ)
 end
