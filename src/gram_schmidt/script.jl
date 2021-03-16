@@ -1,5 +1,5 @@
 using Pkg
-Pkg.activate(joinpath(@__DIR__, "../src/mgs/"))
+# Pkg.activate(joinpath(@__DIR__, "../src/mgs/"))
 
 using Symbolics
 using LinearAlgebra

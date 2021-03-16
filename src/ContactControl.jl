@@ -23,6 +23,9 @@ using Random
 using SparseArrays
 using Test
 
+# Solver
+include("solver/interior_point.jl")
+
 # Dynamics
 include("dynamics/environment.jl")
 include("dynamics/model.jl")
@@ -34,15 +37,13 @@ export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods, ResidualM
 export environment_2D, environment_3D, environment_2D_flat, environment_3D_flat, get_model
 
 # Models
-include("dynamics/particle/model.jl")
 include("dynamics/particle_2D/model.jl")
+include("dynamics/particle/model.jl")
 include("dynamics/quadruped/model.jl")
 
 # Simulator
 include("simulator/trajectory.jl")
-include("simulator/interior_point.jl")
 include("simulator/simulator.jl")
-include("simulator/simulator2.jl")
 
 # Controller
 include("controller/bilinear.jl")
@@ -54,7 +55,7 @@ include("controller/qdldl.jl")
 export SparseStructure, LinStep, get_bilinear_indices, bil_addition!, r_approx!, rz_approx!
 export ImplicitTraj, linearization!, implicit_dynamics!
 export CostFunction
-export
+
 # CGS
 # include("gram_schmidt/gram_schmidt.jl")
 

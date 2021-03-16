@@ -1,4 +1,4 @@
-@testset "Classical Gram Schmidt" begin
+@testset "Solver: Classical Gram Schmidt" begin
     T = Float64
     n = 20
     Random.seed!(100)
@@ -23,7 +23,7 @@
     @test norm(c - x, Inf) < 1e-10
 end
 
-@testset "Modified Gram Schmidt" begin
+@testset "Solver: Modified Gram Schmidt" begin
     T = Float64
     n = 20
     Random.seed!(100)

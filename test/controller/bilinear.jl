@@ -4,7 +4,7 @@
 
 @testset "Controller: Bilinear Approximations" begin
 	names = ["particle", "quadruped"]
-	
+
 	for name in names
 		model = ContactControl.get_model(name)
 		nz = ContactControl.num_var(model)

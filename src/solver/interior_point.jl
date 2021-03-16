@@ -83,8 +83,10 @@ end
     κ_tol::T = 1.0e-5
     κ_init::T = 1.0
     κ_scale::T = 0.1
-    max_iter::Int = 100
+    max_iter_inner::Int = 100
+    max_iter_outer::Int = 10
     max_ls::Int = 50
+    max_time::T = 60.0
     diff_sol::Bool = false
 end
 
@@ -102,7 +104,9 @@ function interior_point!(ip::InteriorPoint{T};
     κ_tol = opts.κ_tol
     κ_init = opts.κ_init
     κ_scale = opts.κ_scale
-    max_iter = opts.max_iter
+    max_iter_inner = opts.max_iter_inner
+    max_iter_outer = opts.max_iter_outer
+    max_time = opts.max_time
     max_ls = opts.max_ls
     diff_sol = opts.diff_sol
 
@@ -127,8 +131,8 @@ function interior_point!(ip::InteriorPoint{T};
     r!(r, z, θ, κ[1])
     r_norm = norm(r, Inf)
 
-    while true
-        for i = 1:max_iter
+    for i = 1:max_iter_outer
+        for j = 1:max_iter_inner
             # check for converged residual
             if r_norm < r_tol
                 break

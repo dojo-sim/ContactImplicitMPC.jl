@@ -28,7 +28,7 @@ sim = simulator(model, q0, q1, h, T,
 # simulate
 status = simulate!(sim)
 @test status
-@test all(isapprox.(sim.q[end], 0.0, atol = 1.0e-6))
+@test all(isapprox.(sim.traj.q[end], 0.0, atol = 1.0e-6))
 
 
 
@@ -452,7 +452,7 @@ end
 function easy_lin_step!(sim, t)
     # unpack
     model = sim.model
-    q = sim.q
+    q = sim.traj.q
     u = sim.u
     w = sim.w
     h = sim.h
@@ -475,7 +475,7 @@ function easy_lin_step!(sim, t)
     if status
         # parse result
         q2, γ, b, _ = unpack_z(model, z)
-        sim.q[t+2] = copy(q2)
+        sim.traj.q[t+2] = copy(q2)
         sim.γ[t] = γ
         sim.b[t] = b
 

@@ -1,4 +1,4 @@
-@testset "Simulator: Random QP" begin
+@testset "Solver: Random QP" begin
     """
         minimize   x' P x + q' x
         subject to    x >= 0

@@ -37,7 +37,7 @@ include(joinpath(pwd(), "src/dynamics/quadruped/visuals.jl"))
 vis = Visualizer()
 render(vis)
 # visualize!(vis, model, q, Δt = h)
-visualize!(vis, model, sim.q, Δt = h)
+visualize!(vis, model, sim.traj.q, Δt = h)
 open(vis)
 
 nb

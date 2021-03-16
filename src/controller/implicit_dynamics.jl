@@ -40,15 +40,15 @@ end
 Linearization of the model around the reference trajectory `ref_traj`, the resulting linearization is stored
 in `impl.lin`.
 """
-function linearization!(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
-	impl::ImplicitTraj{T,nd}, κ::T=ref_traj.κ) where {T,nq,nu,nw,nc,nb,nz,nθ,nd}
+function linearization!(model::ContactDynamicsModel, ref_traj,
+	impl::ImplicitTraj{T, nd}, κ=ref_traj.κ) where {T,nd}
 	@assert impl.H == ref_traj.H
 	H = ref_traj.H
 	for k = 1:H
 		# Compute linearization
 		# we need to figure out, the correct way to handle ref_traj that are optimized at κ=1e-10,
 		# and linearization at κ=1e-3
-		impl.lin[k] = LinStep(model, ref_traj.z[k], ref_traj.θ[k], κ)
+		impl.lin[k] = LinStep(model, ref_traj.z[k], ref_traj.θ[k], κ[1])
 	end
 	return nothing
 end
@@ -59,8 +59,8 @@ end
 Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
 approximated since it relies on a linearization about a reference trajectory.
 """
-function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj{T,nq,nu,nw,nc,nb},
-	impl::ImplicitTraj{T,nd}; κ::T=traj.κ) where {T,nq,nu,nw,nc,nb,nd}
+function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
+	impl::ImplicitTraj{T, nd}; κ=traj.κ) where {T,nd}
 	@assert impl.H == traj.H
 	H = traj.H
 	# Compute the implicit dynamics
@@ -80,7 +80,7 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj{T,nq,
 		diff_sol=true)
 
 	for k = 1:H
-		@assert abs.(impl.lin[k].κ0 - κ)/κ < 1e-5 # check that the κ are consistent between the optimized trajectory (traj)
+		@assert abs.(impl.lin[k].κ0 - κ[1])/κ[1] < 1e-5 # check that the κ are consistent between the optimized trajectory (traj)
 		# and the linearization (impl.lin).
 
 		# Define local residual functions
@@ -103,7 +103,8 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj{T,nq,
 		b1 = traj.b[k]
 
 		# TODO we need to have a struct that stores the indices of q2, γ1, b1 in z
-
+		nq = model.dim.q
+		nu = model.dim.u
 		impl.d[k] = ip.z[1:nd] - [q2; γ1; b1]
 		impl.δz[k]  = copy(ip.δz)
 		off = 0

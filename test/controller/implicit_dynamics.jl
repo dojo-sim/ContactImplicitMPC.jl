@@ -9,7 +9,7 @@
 	q0 = SVector{nq,T}([0.0, 0.0, 0.2])
 	q1 = SVector{nq,T}([0.1, 0.1, 0.2])
 	ip_opts = ContactControl.InteriorPointOptions(κ_init=κ, κ_tol=κ*2, r_tol=1e-5)
-	sim0 = ContactControl.simulator2_base(model, q0, q1, h, H;
+	sim0 = ContactControl.simulator(model, q0, q1, h, H;
 	    u = [@SVector zeros(model.dim.u) for t = 1:H],
 	    w = [@SVector zeros(model.dim.w) for t = 1:H],
 	    ip_opts = ip_opts,

@@ -4,8 +4,8 @@
     H = 10
     h = 0.1
     model = ContactControl.get_model("quadruped")
-    target = ContactControl.ContactTraj(H, h, model.dim)
-    source = ContactControl.ContactTraj(H, h, model.dim)
+    target = ContactControl.contact_trajectory(H, h, model)
+    source = ContactControl.contact_trajectory(H, h, model)
 	nq = model.dim.q # configuration
 	nu = model.dim.u # control
 	nc = model.dim.c # contact

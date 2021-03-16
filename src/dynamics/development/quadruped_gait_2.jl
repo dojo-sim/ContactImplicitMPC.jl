@@ -34,14 +34,6 @@ sim = simulator(model, q0, q1, h, T,
 @time status = simulate!(sim, verbose = true)
 
 include(joinpath(pwd(), "src/dynamics/quadruped/visuals.jl"))
-# vis = Visualizer()
-# open(vis)
-visualize!(vis, model, q, Δt = h)
-visualize!(vis, model, sim.q, Δt = h)
-
-plot(norm.(q .- sim.q))
-
-
-nb
-nc
-transpose(sum(reshape(b[1], (Int(nb/nc), nc)), dims = 1))
+vis = Visualizer()
+render(vis)
+visualize!(vis, model, sim.traj.q, Δt = h)
