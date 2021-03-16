@@ -246,10 +246,10 @@ function jacobian!(core::Newton23, jcb::Jacobian12, impl::ImplicitTraj{T},
 
     for t=1:H
         # Cost function
-        jcb.Qq[t] .= cost.Qq[t]
-        jcb.Qu[t] .= cost.Qu[t]
-        jcb.Qγ[t] .= cost.Qγ[t]
-        jcb.Qb[t] .= cost.Qb[t]
+        jcb.Qq2[t] .= cost.Qq[t]
+        jcb.Qu1[t] .= cost.Qu[t]
+        jcb.Qγ1[t] .= cost.Qγ[t]
+        jcb.Qb1[t] .= cost.Qb[t]
         # Implicit dynamics
         jcb.IV[t][diagind(jcb.IV[t])]   .= - 1.0
         jcb.ITV[t][diagind(jcb.ITV[t])] .= - 1.0
@@ -269,30 +269,34 @@ function jacobian!(core::Newton23, jcb::Jacobian12, impl::ImplicitTraj{T},
     return nothing
 end
 
-function residual!(core::Newton23, res::Residual11, impl::ImplicitTraj{T},
-    cost::CostFunction, traj::ContactTraj{T,nq,nu,nc,nb}, ref_traj::ContactTraj{T,nq,nu,nc,nb},
+function residual!(model::ContactDynamicsModel, core::Newton23, res::Residual11,
+    impl::ImplicitTraj{T}, cost::CostFunction,
+    traj::ContactTraj{T,nq,nu,nc,nb}, ref_traj::ContactTraj{T,nq,nu,nc,nb},
     n_opts::Newton23Options{T}) where {T,nq,nu,nc,nb}
     # unpack
     res.r .= 0.0
 
+    # @show "Recompute implicit dynamics"
+    implicit_dynamics!(model, traj, impl; κ=traj.κ)
+
     for t in eachindex(core.ν)
         # Cost function
-        delta!(core.Δq[t], traj.q[t], ref_traj.q[t])
+        delta!(core.Δq[t], traj.q[t+2], ref_traj.q[t+2])
         delta!(core.Δu[t], traj.u[t], ref_traj.u[t])
         delta!(core.Δγ[t], traj.γ[t], ref_traj.γ[t])
         delta!(core.Δb[t], traj.b[t], ref_traj.b[t])
-        mul!(res.qq[t], cost.Qq[t], core.Δq[t])
-        mul!(res.qu[t], cost.Qu[t], core.Δu[t])
-        mul!(res.qγ[t], cost.Qγ[t], core.Δγ[t])
-        mul!(res.qb[t], cost.Qb[t], core.Δb[t])
+        mul!(res.q2[t], cost.Qq[t], core.Δq[t])
+        mul!(res.u1[t], cost.Qu[t], core.Δu[t])
+        mul!(res.γ1[t], cost.Qγ[t], core.Δγ[t])
+        mul!(res.b1[t], cost.Qb[t], core.Δb[t])
         # Implicit dynamics
         set!(res.rd[t], impl.d[t])
         # Minus Identity term #∇qk1, ∇γk, ∇bk
         setminus!(res.rI[t], core.ν[t])
         # Implicit function theorem part #∇qk_1, ∇qk, ∇uk
-        t >= 3 ? mul!(res.rq0[t-2], impl.δq0[t]', core.ν[t]) : nothing
-        t >= 2 ? mul!(res.rq1[t-1], impl.δq1[t]', core.ν[t]) : nothing
-        mul!(res.ru1[t], impl.δu1[t]', core.ν[t])
+        t >= 3 ? mul!(res.q0[t-2], impl.δq0[t]', core.ν[t]) : nothing
+        t >= 2 ? mul!(res.q1[t-1], impl.δq1[t]', core.ν[t]) : nothing
+        mul!(res.u1[t], impl.δu1[t]', core.ν[t])
     end
     return nothing
 end
@@ -322,17 +326,51 @@ function sparse_zero!(spm::SparseMatrixCSC)
 	return nothing
 end
 
+function set_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
+        source::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
+        νtarget::Vector{SizedArray{Tuple{n1},T,1,1}},
+        νsource::Vector{SizedArray{Tuple{n1},T,1,1}},
+        Δ::Residual11{T},
+        α::T,
+        ) where {T,nq,nu,nw,nc,nb,nz,nθ,n1,I}
+    # Check that trajectory propoerties match
+    H = target.H
+    @assert H == source.H
+    @assert (target.h - source.h)/target.h < 1e-4
+    @assert (target.κ - source.κ)/(target.κ+1e-10) < 1e-4
+
+    for t = 1:H
+        target.q[t+2] .= source.q[t+2] .+ α.*Δ.q2[t]
+        target.u[t] .= source.u[t] .+ α.*Δ.u1[t]
+        # target.w[t] .= source.w[t] + α.*Δ.w1[t]
+        target.γ[t] .= source.γ[t] .+ α.*Δ.γ1[t]
+        target.b[t] .= source.b[t] .+ α.*Δ.b1[t]
+        # target.z[t] .= source.z[t] + α.*Δ.z[t]
+        # target.θ[t] .= source.θ[t] + α.*Δ.θ[t]
+        νtarget[t]  .= νsource[t] .+ α.*Δ.rd[t]
+    end
+    return nothing
+end
 
 function newton_solve!(model::ContactDynamicsModel, core::Newton23, impl::ImplicitTraj{T},
     cost::CostFunction, ref_traj::ContactTraj{T,nq,nu,nc,nb},
     n_opts::Newton23Options{T}) where {T,nq,nu,nc,nb}
 
+    H = core.H
     n_opts.β = n_opts.β_init
-    # set ν to 0
+    # Reset
+    # set Δ, ν to 0
+    core.Δ.r .= 0.0
     for t = 1:H
         core.ν[t] .= 0.0
         core.ν_[t] .= 0.0
     end
+    # Initialization
+    core.traj = deepcopy(ref_traj)
+    rd = 0.1*rand(model.dim.q)
+    core.traj.q[1] .+= rd
+    core.traj.q[2] .+= rd
+    core.trial_traj = deepcopy(core.traj)
 
     # for i = 1:n_opts.solver_outer_iter
         # (n_opts.live_plot) && (visualize!(vis, model, traj.q, Δt=h))
@@ -341,10 +379,10 @@ function newton_solve!(model::ContactDynamicsModel, core::Newton23, impl::Implic
         # Compute Jacobian12
         jacobian!(core, core.j, impl, cost, n_opts)
         # Compute residual
-        residual!(core, core.r, impl, cost, core.traj, ref_traj, n_opts)
+        residual!(model, core, core.r, impl, cost, core.traj, ref_traj, n_opts)
 
-        core.Δ = core.j.j \ core.r.r
-        @show norm(core.r.r,1)/length(core.r.r)
+        core.Δ.r .= - core.j.j \ core.r.r
+
         if norm(core.r.r,1)/length(core.r.r) < n_opts.r_tol
             break
         end
@@ -352,122 +390,143 @@ function newton_solve!(model::ContactDynamicsModel, core::Newton23, impl::Implic
         # line search the step direction
         α = 1.0
         iter = 0
-        set_traj!(core.trial_traj, core.traj, -α*core.Δ)
+        plt = plot()
+        plot!(hcat(Vector.(core.ν)...)', label="ν")
+        plot!(hcat(Vector.(core.ν_)...)', linewidth=3.0, linestyle=:dot, label="ν_")
+        # plot!(hcat(Vector.(core.traj.q)...)', label="q")
+        # plot!(hcat(Vector.(ref_traj.q)...)', linewidth=3.0, linestyle=:dot, label="q")
+        # plot!(hcat(Vector.(core.traj.u)...)', label="u")
+        # plot!(hcat(Vector.(ref_traj.u)...)', linewidth=3.0, linestyle=:dot, label="u")
+        display(plt)
 
-        # plt = plot()
-        # plot!(reshape(vcat(traj.u)...), (model.dim.u,core.H))', label="u")
-        # display(plt)
+        set_traj!(core.trial_traj, core.traj, core.ν_, core.ν, core.Δ, α)
 
-        residual!(core, core.r̄, impl, cost, core.trial_traj, ref_traj, n_opts)
-        while norm(core.r̄)^2.0 >= (1.0 - 0.001 * α) * norm(core.r)^2.0
+        residual!(model, core, core.r̄, impl, cost, core.trial_traj, ref_traj, n_opts)
+        while norm(core.r̄.r)^2.0 >= (1.0 - 0.001 * α) * norm(core.r.r)^2.0
+            println("     r̄: ", scn(norm(core.r̄.r,1)/length(core.r̄.r), digits=4))
             α = 0.5 * α
             # println("   α = $α")
             iter += 1
             if iter > 6
                 break
             end
-            # trial_traj = deepcopy(traj)
-            # trial_traj[mask] -= α * Δ
-            set_traj!(core.trial_traj, core.traj, -α*core.Δ)
-            residual!(core, core.r̄, impl, cost, core.trial_traj, ref_traj, n_opts)
+            set_traj!(core.trial_traj, core.traj, core.ν_, core.ν, core.Δ, α)
+            residual!(model, core, core.r̄, impl, cost, core.trial_traj, ref_traj, n_opts)
         end
 
-        # update
+        # update # maybe not useful never activated
         if iter > 6
             n_opts.β = min(n_opts.β*1.3, 1e2)
         else
             n_opts.β = max(1e1, n_opts.β/1.3)
         end
-        println(" κ: ", scn(κ, digits=0) ,
-            "     r: ", scn(norm(core.r̄,1)/length(core.r̄), digits=0),
-            "     Δ: ", scn(norm(core.Δ,1)/length(core.Δ), digits=0),
+        println(" κ: ", scn(core.traj.κ, digits=0) ,
+            "     r̄: ", scn(norm(core.r̄.r,1)/length(core.r̄.r), digits=0),
+            "     r: ", scn(norm(core.r.r,1)/length(core.r.r), digits=0),
+            "     Δ: ", scn(norm(core.Δ.r,1)/length(core.Δ.r), digits=0),
             "     α: ", -Int(round(log(α))))
-        traj[mask] -= α * Δ
-        set_traj!(core.traj, traj, -α*core.Δ)
+        set_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
     end
     #     κ /= 10.0
     # end
     return nothing
 end
 
-n_opts.r_tol = 1e-8
-newton_solve!(model, core0, impl0, cost0, ref_traj0, n_opts)
+# vis = Visualizer()
+# open(vis)
 
 
+n_opts.r_tol = 1e-6
+core1 = Newton23(H, h, model.dim)
+# @code_warntype newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts)
+@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts)
 
-function set_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
-        source::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
-        νtarget::Vector{SizedArray{Tuple{n1},T,1,1}},
-        νsource::Vector{SizedArray{Tuple{n1},T,1,1}},
-        Δ::Residual11{T}, ind::CoreIndex14{nq,nu,nc,nb,n1,n2,n3,I}) where
-        {T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3,I}
-    # Check that trajectory propoerties match
-    H = target.H
-    @assert H == source.H
-    @assert (target.h - source.h)/target.h < 1e-4
-    @assert (target.κ - source.κ)/(target.κ+1e-10) < 1e-4
 
-    for t = 1:H
-        target.q[t] .= source.q[t] .+ Δ.q2[t]
-        target.u[t] .= source.u[t] .+ Δ.u1[t]
-        # target.w[t] .= source.w[t] + Δ.w1[t]
-        target.γ[t] .= source.γ[t] .+ Δ.γ1[t]
-        target.b[t] .= source.b[t] .+ Δ.b1[t]
-        # target.z[t] .= source.z[t] + Δ.z[t]
-        # target.θ[t] .= source.θ[t] + Δ.θ[t]
-        νtarget[t]  .= νsource[t] .+ Δ.rd[t]
+visualize!(vis, model, ref_traj0.q, Δt=10*h)
+visualize!(vis, model, core0.traj.q, Δt=10*h)
+visualize!(vis, model, core0.trial_traj.q, Δt=10*h)
+
+plot(hcat(Vector.(ref_traj0.q)...)')
+plot(hcat(Vector.(core0.traj.q)...)')
+plot(hcat(Vector.(core0.trial_traj.q)...)')
+
+
+residual!(model, core0, core0.r, impl0, cost0, core0.traj, ref_traj0, n_opts)
+norm(impl0.d[1])
+norm(core0.r.r)
+residual!(model, core0, core0.r, impl0, cost0, core0.trial_traj, ref_traj0, n_opts)
+norm(impl0.d[1])
+norm(core0.r.r)
+residual!(model, core0, core0.r, impl0, cost0, ref_traj0, ref_traj0, n_opts)
+norm(impl0.d[1])
+norm(core0.r.r)
+
+
+# @profiler fff(20)
+function fff(M)
+    for k = 1:M
+        newton_solve!(model, core0, impl0, cost0, ref_traj0, n_opts)
     end
     return nothing
 end
+
+core0.Δ
+core0.Δ.r .+= 100
+core0.Δ.r
+core0.Δ.q2
+
+res = Residual11(H, model.dim)
+res.r .= 100
+res.q2
+
+core1 = Newton23(H,h,model.dim)
+core1.Δ.r .+= 233
+core1.Δ.q2
+
+a = 10
+a = 10
+a = 10
+a = 10
+
+# # Test set_traj!
+# T = Float64
+# H = 10
+# h = 0.1
+# # model = get_model("quadruped")
+# target = ContactTraj(H, h, model.dim)
+# source = ContactTraj(H, h, model.dim)
+# nd = model.dim.q + model.dim.c + model.dim.b
+# νtarget = [-30*ones(SizedVector{nd,T}) for t=1:H]
+# νsource = [+30*ones(SizedVector{nd,T}) for t=1:H]
+# for t = 1:H
+#     source.q[t] .= +1.0
+#     source.u[t] .= +2.0
+#     source.w[t] .= +3.0
+#     source.γ[t] .= +4.0
+#     source.b[t] .= +5.0
+#     source.z[t] .= +6.0
+#     source.θ[t] .= +7.0
 #
-function ddd(t::SizedVector{n,T}, s::SizedVector{n,T}, Δ::Vector{T}, i::SizedVector{n,Int}) where {n,T}
-    t .= s + Δ[i]
-    return nothing
-end
-
-# Test set_traj!
-T = Float64
-H = 10
-h = 0.1
-model = get_model("quadruped")
-target = ContactTraj(H, h, model.dim)
-source = ContactTraj(H, h, model.dim)
-nd = model.dim.q + model.dim.c + model.dim.b
-νtarget = [-30*ones(SizedVector{nd,T}) for t=1:H]
-νsource = [+30*ones(SizedVector{nd,T}) for t=1:H]
-for t = 1:H
-    source.q[t] .= +1.0
-    source.u[t] .= +2.0
-    source.w[t] .= +3.0
-    source.γ[t] .= +4.0
-    source.b[t] .= +5.0
-    source.z[t] .= +6.0
-    source.θ[t] .= +7.0
-
-    target.q[t] .= -1.0
-    target.u[t] .= -2.0
-    target.w[t] .= -3.0
-    target.γ[t] .= -4.0
-    target.b[t] .= -5.0
-    target.z[t] .= -6.0
-    target.θ[t] .= -7.0
-end
-Δ0 = Residual11(H, model.dim)
-Δ0.r .+= 100*ones(ind0.nr*H)
-set_traj2!(target, source, νtarget, νsource, Δ0, ind0)
-@code_warntype set_traj2!(target, source, νtarget, νsource, Δ0, ind0)
-@benchmark set_traj2!(target, source, νtarget, νsource, Δ0, ind0)
-source.q[1] .+= 1000.0
-source.u[1] .+= 1000.0
-@test target.q[1][1] == 101.0
-@test target.u[1][1] == 102.0
-@test target.γ[1][1] == 104.0
-@test target.b[1][1] == 105.0
-@test νtarget[1][1]  == 130.0
-
-
-
-
+#     target.q[t] .= -1.0
+#     target.u[t] .= -2.0
+#     target.w[t] .= -3.0
+#     target.γ[t] .= -4.0
+#     target.b[t] .= -5.0
+#     target.z[t] .= -6.0
+#     target.θ[t] .= -7.0
+# end
+# Δ0 = Residual11(H, model.dim)
+# Δ0.r .+= 100*ones(ind0.nr*H)
+# set_traj!(target, source, νtarget, νsource, Δ0, 2.0)
+# @code_warntype set_traj!(target, source, νtarget, νsource, Δ0, 2.0)
+# @benchmark set_traj!(target, source, νtarget, νsource, Δ0, 2.0)
+# source.q[1] .+= 1000.0
+# source.u[1] .+= 1000.0
+# @test target.q[1][1] == 201.0
+# @test target.u[1][1] == 202.0
+# @test target.γ[1][1] == 204.0
+# @test target.b[1][1] == 205.0
+# @test νtarget[1][1]  == 230.0
 
 # ρ0=1e-3,
 # β=1e1,
@@ -575,8 +634,8 @@ source.u[1] .+= 1000.0
 
 
 T = Float64
-κ = 1e-3
-model = get_model("quadruped")
+κ = 1e-4
+# model = get_model("quadruped")
 @load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
 # time
 h = h̄
@@ -604,7 +663,7 @@ sim0 = simulator2(model, q0, q1, h, H,
     r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
     rz = model.spa.rz_sp,
     rθ = model.spa.rθ_sp,
-    ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2.0e-3, κ_init = 1.0e-3),
+    ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
     sim_opts = SimulatorOptions(warmstart = true))
 
 simulate!(sim0; verbose = false)
@@ -614,10 +673,10 @@ linearization!(model, ref_traj0, impl0)
 implicit_dynamics!(model, ref_traj0, impl0, κ=κ)
 
 cost0 = CostFunction(H, model.dim,
-    Qq=fill(Diagonal(1e-1*ones(SizedVector{nq})), H),
-    Qu=fill(Diagonal(1e-2*ones(SizedVector{nu})), H),
-    Qγ=fill(Diagonal(1e-3*ones(SizedVector{nc})), H),
-    Qb=fill(Diagonal(1e-4*ones(SizedVector{nb})), H),
+    Qq=fill(Diagonal(1e-2*SizedVector{nq}([0.02,0.02,1,.15,.15,.15,.15,.15,.15,.15,.15,])), H),
+    Qu=fill(Diagonal(3e-2*ones(SizedVector{nu})), H),
+    Qγ=fill(Diagonal(1e-100*ones(SizedVector{nc})), H),
+    Qb=fill(Diagonal(1e-100*ones(SizedVector{nb})), H),
     )
 n_opts = Newton23Options()
 @allocated residual!(core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
@@ -633,34 +692,64 @@ n_opts = Newton23Options()
 # @benchmark jacobian!(core0, core0.j, impl0, cost0, n_opts)
 
 newton_solve!(model, core0, impl0, cost0, ref_traj0, n_opts)
+visualize!(vis, model, ref_traj0.q, Δt=5*h)
 
 
 
 
+
+
+
+
+
+T = Float64
+κ = 1e-4
+# model = get_model("quadruped")
+@load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
+# time
+h = h̄
+H = length(u)
+
+# initial conditions
+q0 = SVector{model.dim.q}(q[1])
+q1 = SVector{model.dim.q}(q[2])
+
+function z_initialize!(z, model::Quadruped, q1)
+	nq = model.dim.q
+    z .= 1.0e-1
+    z[1:nq] = q1
+end
+
+sim0 = simulator2(model, q0, q1, h, H,
+    u = [SVector{model.dim.u}(h * ut) for ut in u],
+    r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
+    rz = model.spa.rz_sp,
+    rθ = model.spa.rθ_sp,
+    ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
+    sim_opts = SimulatorOptions(warmstart = true))
+simulate!(sim0; verbose = false)
+
+ref_traj0 = deepcopy(sim0.traj)
+ref_traj1 = deepcopy(ref_traj0)
+for t = 1:H+2
+    ref_traj1.q[t] .+= 1e-0*rand(model.dim.q)
+end
+
+impl0 = ImplicitTraj(H, model)
+impl1 = ImplicitTraj(H, model)
+linearization!(model, ref_traj0, impl0, ref_traj0.κ)
+linearization!(model, ref_traj0, impl1, ref_traj0.κ)
+
+implicit_dynamics!(model, ref_traj0, impl0)
+mean(norm.(impl0.d, 2)) < 5e-3
+plot(norm.(impl0.d, 2))
+implicit_dynamics!(model, ref_traj1, impl1)
+mean(norm.(impl1.d, 2)) > 5e-1
+plot(norm.(impl1.d, 2))
 
 
 
 plot(Gray.(Matrix((1e3.*core0.j.j[1:300, 1:300]))))
-
-# function ttt(F::QDLDL.QDLDLFactorisation{Float64,Int64}, jcb::SparseMatrixCSC{Float64,Int64},
-#     res::Vector{T}, out::Vector{T}) where {T}
-#     F = qdldl(jcb)
-#     solve!(F,res)
-#     return nothing
-# end
-#
-# F = qdldl(core0.jcb)
-# jcb = deepcopy(core0.jcb)
-# out = deepcopy(core0.r.r)
-# res = deepcopy(core0.r.r)
-# @btime ttt(F, jcb, res, out)
-
-# typeof(F)
-# F
-# x = solve(F, core0.r.r)
-# solve!(F, b)
-# 72000/2700
-
 
 
 # Solves Ax = b using LDL factors for A.

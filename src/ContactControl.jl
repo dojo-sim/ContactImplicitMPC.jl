@@ -54,7 +54,7 @@ include("controller/qdldl.jl")
 export SparseStructure, LinStep, get_bilinear_indices, bil_addition!, r_approx!, rz_approx!
 export ImplicitTraj, linearization!, implicit_dynamics!
 export CostFunction
-
+export
 # CGS
 # include("gram_schmidt/gram_schmidt.jl")
 

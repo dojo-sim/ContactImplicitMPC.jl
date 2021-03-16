@@ -96,13 +96,12 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj{T,nq,
 		ip.methods.rθ! = rθ!
 
 		z_initialize!(ip.z, model, traj.q[k+2]) # initialize with our best guess.
-		status = interior_point!(ip, ip.z, traj.θ[k]; opts = ip_opts)
+		status = interior_point!(ip, ip.z, traj.θ[k]; opts=ip_opts)
 
 		q2 = traj.q[k+2]
 		γ1 = traj.γ[k]
 		b1 = traj.b[k]
 
-		# nd = nq+nc+nb # TODO we need to make this general in the code
 		# TODO we need to have a struct that stores the indices of q2, γ1, b1 in z
 
 		impl.d[k] = ip.z[1:nd] - [q2; γ1; b1]
