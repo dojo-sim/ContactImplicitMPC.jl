@@ -140,8 +140,8 @@ function generate_residual_expressions(model::ContactDynamicsModel; T = Float64)
 	# Build function
 	expr = Dict{Symbol, Expr}()
 	expr[:r]  = build_function(r, z, θ, κ)[2]
-	expr[:rz] = build_function(rz, z, θ, κ)[2]
-	expr[:rθ] = build_function(rθ, z, θ, κ)[2]
+	expr[:rz] = build_function(rz, z, θ)[2]
+	expr[:rθ] = build_function(rθ, z, θ)[2]
 	return expr, rz_sp, rθ_sp
 end
 

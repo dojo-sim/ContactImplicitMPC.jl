@@ -20,8 +20,8 @@ function LinStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::Abstract
 	rz0 = similar(model.spa.rz_sp, T)
 	rθ0 = zeros(nz, nθ)
 	model.res.r(r0, z0, θ0, κ0)
-	model.res.rz(rz0, z0, θ0, κ0)
-	model.res.rθ(rθ0, z0, θ0, κ0)
+	model.res.rz(rz0, z0, θ0)
+	model.res.rθ(rθ0, z0, θ0)
 	bil_terms, bil_vars = get_bilinear_indices(model)
 	return LinStep{T}(z0, θ0, κ0, r0, rz0, rθ0, bil_terms, bil_vars)
 end
@@ -97,7 +97,7 @@ terms in the residual about a reference point. The bilinear terms (complementari
 not linearized.
 """
 function rz_approx!(lin::LinStep, rz::AbstractMatrix{T},
-	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
+	z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
 	rz .= lin.rz0
 	for i = 1:length(lin.bil_terms)
 		t = lin.bil_terms[i]
@@ -117,7 +117,7 @@ terms in the residual about a reference point. The bilinear terms (complementari
 not linearized.
 """
 function rθ_approx!(lin::LinStep, rθ::AbstractMatrix{T},
-	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
+	z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
 	rθ .= lin.rθ0
     return nothing
 end

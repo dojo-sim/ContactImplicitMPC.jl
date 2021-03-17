@@ -22,4 +22,4 @@ include("simulator/particle.jl")
 # Controller
 include("controller/bilinear.jl")
 include("controller/implicit_dynamics.jl")
-include("controller/newton.jl")
+# include("controller/newton.jl")

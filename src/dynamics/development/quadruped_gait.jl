@@ -17,7 +17,7 @@ q1 = SVector{model.dim.q}(q[2])
 function z_initialize!(z, model::Quadruped, q1)
 	nq = model.dim.q
 
-    z .= 1.0e-1
+    z .= 1.0
     z[1:nq] = q1
 end
 
@@ -35,11 +35,7 @@ sim = ContactControl.simulator(model, q0, q1, h, T,
 
 include(joinpath(pwd(), "src/dynamics/quadruped/visuals.jl"))
 vis = Visualizer()
+# open(vis)
 render(vis)
 # visualize!(vis, model, q, Δt = h)
 visualize!(vis, model, sim.traj.q, Δt = h)
-open(vis)
-
-nb
-nc
-transpose(sum(reshape(b[1], (Int(nb/nc), nc)), dims = 1))

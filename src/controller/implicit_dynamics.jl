@@ -87,9 +87,9 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		# residual
 		r!(r, z, θ, κ) = r_approx!(impl.lin[k], r, z, θ, κ)
 		# residual Jacobian wrt z
-		rz!(rz, z, θ, κ) = rz_approx!(impl.lin[k], rz, z, θ, κ)
+		rz!(rz, z, θ) = rz_approx!(impl.lin[k], rz, z, θ)
 		# residual Jacobian wrt θ
-		rθ!(rθ, z, θ, κ) = rθ_approx!(impl.lin[k], rθ, z, θ, κ)
+		rθ!(rθ, z, θ) = rθ_approx!(impl.lin[k], rθ, z, θ)
 		# Set the residual functions
 		ip.methods.r! = r!
 		ip.methods.rz! = rz!

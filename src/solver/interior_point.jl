@@ -1,3 +1,5 @@
+abstract type LinearSolver end
+
 # check that inequality constraints are satisfied
 function inequality_check(x, idx_ineq)
     for i in idx_ineq
@@ -15,13 +17,13 @@ function r!(r, z, θ, κ)
 end
 
 # residual Jacobian wrt z
-function rz!(rz, z, θ, κ)
+function rz!(rz, z, θ)
     @warn "residual Jacobian wrt z not defined"
     nothing
 end
 
 # residual Jacobian wrt θ
-function rθ!(rθ, z, θ, κ)
+function rθ!(rθ, z, θ)
     @warn "residual Jacobian wrt θ not defined"
     nothing
 end
@@ -41,7 +43,6 @@ struct InteriorPoint{T}
     r̄::Vector{T}               # candidate residual
     r̄_norm::T                  # candidate residual norm
     rz::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
-    rz_dense::Array{T, 2}
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
     idx_ineq::Vector{Int}      # indices for inequality constraints
@@ -50,31 +51,36 @@ struct InteriorPoint{T}
     κ::Vector{T}               # barrier parameter
     num_var::Int
     num_data::Int
+    solver::LinearSolver
 end
 
 function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
+        x = ones(num_var), θ = zeros(num_data),
         r! = r!, rz! = rz!, rθ! = rθ!,
         rz = spzeros(num_var, num_var),
-        rθ = spzeros(num_var, num_data)) where T
+        rθ = spzeros(num_var, num_data),
+        solver = :lu_solver) where T
+
+    rz!(rz, x, θ) # compute Jacobian for pre-factorization
 
     InteriorPoint(
         InteriorPointMethods(r!, rz!, rθ!),
-        zeros(num_var),
+        x,
         zeros(num_var),
         zeros(num_var),
         0.0,
         zeros(num_var),
         0.0,
         rz,
-        zeros(num_var, num_var),
         rθ,
         zeros(num_var),
         idx_ineq,
         spzeros(num_var, num_data),
-        zeros(num_data),
+        θ,
         zeros(1),
         num_var,
-        num_data)
+        num_data,
+        eval(solver)(rz))
 end
 
 # interior-point solver options
@@ -118,11 +124,11 @@ function interior_point!(ip::InteriorPoint{T};
     r̄ = ip.r̄
     r̄_norm = ip.r̄_norm
     rz = ip.rz
-    rz_dense = ip.rz_dense
     Δ = ip.Δ
     idx_ineq = ip.idx_ineq
     θ = ip.θ
     κ = ip.κ
+    solver = ip.solver
 
     # initialize barrier parameter
     κ[1] = κ_init
@@ -139,12 +145,10 @@ function interior_point!(ip::InteriorPoint{T};
             end
 
             # compute residual Jacobian
-            rz!(rz, z, θ, κ[1])
+            rz!(rz, z, θ)
 
             # compute step
-            rz_dense .= rz
-            ldiv!(Δ, lu!(rz_dense, check = false), r) # TODO: replace with custom linear solver
-            # ldiv!(Δ, lu!(rz_dense, check = false), r) # TODO: replace with custom linear solver
+            linear_solve!(solver, Δ, rz, r)
 
             # initialize step length
             α = 1.0
@@ -217,8 +221,8 @@ function differentiate_solution!(ip::InteriorPoint)
     δz = ip.δz
     κ = ip.κ
 
-    ip.methods.rz!(rz, z, θ, κ[1]) # maybe not needed
-    ip.methods.rθ!(rθ, z, θ, κ[1])
+    ip.methods.rz!(rz, z, θ) # maybe not needed
+    ip.methods.rθ!(rθ, z, θ)
 
     δz .= -1.0 * rz \ Array(rθ) # TODO: fix
     nothing

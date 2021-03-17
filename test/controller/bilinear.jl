@@ -31,7 +31,7 @@
 
 		# Test rz!
 		function rz_approx_FD!(model::ContactDynamicsModel, lin::LinStep, rz::AbstractMatrix{T},
-			z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
+			z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
 			nz = ContactControl.num_var(model)
 			function f(z)
 				r = zeros(SizedVector{nz,eltype(z)})
@@ -41,15 +41,15 @@
 			return rz = ForwardDiff.jacobian(f, Vector(z))
 		end
 
-		model.res.rz(rz0, z, θ, κ)
-		ContactControl.rz_approx!(lin, rz1, z, θ, κ)
-		rz_FD = rz_approx_FD!(model, lin, rz1, z, θ, κ)
+		model.res.rz(rz0, z, θ)
+		ContactControl.rz_approx!(lin, rz1, z, θ)
+		rz_FD = rz_approx_FD!(model, lin, rz1, z, θ)
 		@test norm(rz0 - rz1, Inf) < 1e-8
 		@test norm(rz1 - rz_FD, Inf) < 1e-8
 
 		α = 1.1
-		ContactControl.rz_approx!(lin, rz1, α*z, α*θ, κ)
-		rz_FD = rz_approx_FD!(model, lin, rz1, α*z, α*θ, κ)
+		ContactControl.rz_approx!(lin, rz1, α*z, α*θ)
+		rz_FD = rz_approx_FD!(model, lin, rz1, α*z, α*θ)
 		@test rz0 != rz1
 		@test norm(rz_FD - rz1, Inf) < 1e-8
 	end
