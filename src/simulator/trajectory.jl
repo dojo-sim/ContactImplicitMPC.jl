@@ -34,15 +34,15 @@ function contact_trajectory(H::Int, h::T, model::ContactDynamicsModel) where {T}
 end
 
 struct ContactDerivTraj{S,nq,nu,nc,nb}
-	dq2dq0::Vector{SizedArray{Tuple{nq,nq},S,2,2}}
-    dq2dq1::Vector{SizedArray{Tuple{nq,nq},S,2,2}}
-    dq2du::Vector{SizedArray{Tuple{nq,nu},S,2,2}}
-    dγdq0::Vector{SizedArray{Tuple{nc,nq},S,2,2}}
-    dγdq1::Vector{SizedArray{Tuple{nc,nq},S,2,2}}
-    dγdu::Vector{SizedArray{Tuple{nc,nu},S,2,2}}
-    dbdq0::Vector{SizedArray{Tuple{nb,nq},S,2,2}}
-    dbdq1::Vector{SizedArray{Tuple{nb,nq},S,2,2}}
-    dbdu::Vector{SizedArray{Tuple{nb,nu},S,2,2}}
+	dq2dq0::Vector{SizedArray{Tuple{nq,nq},S,2,2,Array{S,2}}}
+    dq2dq1::Vector{SizedArray{Tuple{nq,nq},S,2,2,Array{S,2}}}
+    dq2du::Vector{SizedArray{Tuple{nq,nu},S,2,2,Array{S,2}}}
+    dγdq0::Vector{SizedArray{Tuple{nc,nq},S,2,2,Array{S,2}}}
+    dγdq1::Vector{SizedArray{Tuple{nc,nq},S,2,2,Array{S,2}}}
+    dγdu::Vector{SizedArray{Tuple{nc,nu},S,2,2,Array{S,2}}}
+    dbdq0::Vector{SizedArray{Tuple{nb,nq},S,2,2,Array{S,2}}}
+    dbdq1::Vector{SizedArray{Tuple{nb,nq},S,2,2,Array{S,2}}}
+    dbdu::Vector{SizedArray{Tuple{nb,nu},S,2,2,Array{S,2}}}
 end
 
 function contact_derivative_trajectory(H::Int, model::ContactDynamicsModel)

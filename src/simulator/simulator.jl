@@ -25,7 +25,8 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     rθ! = model.res.rθ,
     rz = model.spa.rz_sp,
     rθ = model.spa.rθ_sp,
-    sim_opts = SimulatorOptions{S}()) where S
+    sim_opts = SimulatorOptions{S}(),
+    solver = :lu_solver) where S
 
     traj = contact_trajectory(H, h, model)
     traj.q[1] = q0
@@ -35,15 +36,23 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
 
     traj_deriv = contact_derivative_trajectory(H, model)
 
+    # initialize interior point solver (for pre-factorization)
+    z = zeros(num_var(model))
+    θ = zeros(num_data(model))
+    z_initialize!(z, model, q1)
+    θ_initialize!(θ, model, q0, q1, u[1], w[1], h)
+
     ip = interior_point(
         num_var(model),
         num_data(model),
         inequality_indices(model),
+        x = z, θ = θ,
         r! = r!,
         rz! = rz!,
         rθ! = rθ!,
         rz = rz,
-        rθ = rθ)
+        rθ = rθ,
+        solver = solver)
 
     Simulator(
         model,

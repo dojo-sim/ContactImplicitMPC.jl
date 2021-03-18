@@ -42,7 +42,7 @@ struct InteriorPoint{T}
     r_norm::T                  # residual norm
     r̄::Vector{T}               # candidate residual
     r̄_norm::T                  # candidate residual norm
-    rz::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
+    rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
     idx_ineq::Vector{Int}      # indices for inequality constraints
@@ -227,3 +227,5 @@ function differentiate_solution!(ip::InteriorPoint)
     δz .= -1.0 * rz \ Array(rθ) # TODO: fix
     nothing
 end
+
+linear_solve!(solver::LinearSolver, x::Vector{T}, A::Array{T, 2}, b::Vector{T}) where T = linear_solve!(solver, x, sparse(A), b)

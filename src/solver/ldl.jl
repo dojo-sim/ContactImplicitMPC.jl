@@ -111,26 +111,14 @@ mutable struct LDLSolver{T} <: LinearSolver
     F::ContactControl.QDLDLFactorisationAF{T,Int}
 end
 
-function ldl_solver(A)
-    # random initialization for factorization setup
-    # s = size(A)
-    # a = rand(s...)
-    # B = sparse(a' * a)
-    # LDLSolver(QDLDLFactorisationAF(B, qdldl(B)))
+function ldl_solver(A::SparseMatrixCSC{T,Int}) where T
     LDLSolver(QDLDLFactorisationAF(A, qdldl(A)))
 end
+
+ldl_solver(A::Array{T, 2}) where T = ldl_solver(sparse(A))
 
 function linear_solve!(solver::LDLSolver{T}, x::Vector{T}, A::SparseMatrixCSC{T,Int}, b::Vector{T}) where T
     qdldl!(A, solver.F) # factorize
     x .= b
     QDLDL.solve!(solver.F.F, x) # solve
 end
-
-# s = size(ones(5, 5))
-# a = rand(s...)
-# B = sparse(a' * a)
-# LDLSolver(QDLDLFactorisationAF(B, qdldl(B)))
-#
-# a = rand(5, 5)
-# A = sparse(a' * a)
-# qdldl(A)

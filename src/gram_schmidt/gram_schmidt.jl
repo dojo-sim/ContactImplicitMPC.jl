@@ -1,5 +1,4 @@
-abstract type GSData{n,T}
-end
+abstract type GSData{n,T} end
 
 function triangularize(rs::AbstractVector,n::Int)
     R = zeros(n,n)

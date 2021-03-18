@@ -11,7 +11,7 @@ using GeometryBasics
 using JLD2
 using QDLDL
 using MeshCat
-using ModelingToolkit
+using Symbolics
 using Parameters
 using Plots
 using Rotations
@@ -27,6 +27,7 @@ using Test
 include("solver/interior_point.jl")
 include("solver/lu.jl")
 include("solver/ldl.jl")
+include("solver/qr.jl")
 
 # Dynamics
 include("dynamics/environment.jl")

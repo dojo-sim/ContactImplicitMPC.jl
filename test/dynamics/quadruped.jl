@@ -4,8 +4,8 @@
     # Setup variables
     T = Float64
     nq = model.dim.q
-    q0s = rand(SizedVector{nq,T})
-    q̇0s = rand(SizedVector{nq,T})
+    q0s = rand(nq)
+    q̇0s = rand(nq)
 
     # Testing fast methods
 	@test norm(ContactControl.ϕ_fast(model, q0s) - ContactControl.ϕ_func(model, q0s), Inf) < 1.0e-8
@@ -22,23 +22,23 @@
     nc = model.dim.c
     nb = model.dim.b
 
-    q0s = rand(SizedVector{nq,T})
-    q1s = rand(SizedVector{nq,T})
-    u1s = rand(SizedVector{nu,T})
-    u1s = rand(SizedVector{nu,T})
-    w1s = rand(SizedVector{nw,T})
-    γ1s = rand(SizedVector{nc,T})
-    b1s = rand(SizedVector{nb,T})
-    q2s = rand(SizedVector{nq,T})
+    q0s = rand(nq)
+    q1s = rand(nq)
+    u1s = rand(nu)
+    u1s = rand(nu)
+    w1s = rand(nw)
+    γ1s = rand(nc)
+    b1s = rand(nb)
+    q2s = rand(nq)
 
-    ∇ys   = rand(SizedMatrix{nq,2nq + nu + nw + nc + nb + nq,T})
-    ∇q0s  = rand(SizedMatrix{nq,nq,T})
-    ∇q1s  = rand(SizedMatrix{nq,nq,T})
-	∇u1s  = rand(SizedMatrix{nq,nu,T})
-    ∇w1s  = rand(SizedMatrix{nq,nw,T})
-    ∇γ1s  = rand(SizedMatrix{nq,nc,T})
-    ∇b1s  = rand(SizedMatrix{nq,nb,T})
-    ∇q2s  = rand(SizedMatrix{nq,nq,T})
+    ∇ys   = rand(nq,2nq + nu + nw + nc + nb + nq)
+    ∇q0s  = rand(nq,nq)
+    ∇q1s  = rand(nq,nq)
+	∇u1s  = rand(nq,nu)
+    ∇w1s  = rand(nq,nw)
+    ∇γ1s  = rand(nq,nc)
+    ∇b1s  = rand(nq,nb)
+    ∇q2s  = rand(nq,nq)
 
     # Testing dynamics methods
     @test norm(ContactControl.d_fast(model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s) -
@@ -78,10 +78,10 @@
 	nz = ContactControl.num_var(model)
     nθ = ContactControl.num_data(model)
 
-    zs = rand(SizedVector{nz})
-    θs = rand(SizedVector{nθ})
+    zs = rand(nz)
+    θs = rand(nθ)
     κs = 1.0
-    rs = rand(SizedVector{nz})
+    rs = rand(nz)
 
     # Testing residual methods
     ContactControl.r_fast!(rs, model, zs, θs, κs)

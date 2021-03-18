@@ -7,7 +7,7 @@ Pkg.add("JLD2")
 
 using StaticArrays
 using ForwardDiff
-using ModelingToolkit
+using Symbolics
 using BenchmarkTools
 using LinearAlgebra
 using JLD2
@@ -112,18 +112,18 @@ b
 #NOTE: if a new model is instantiated, re-run the lines below
 @variables z_sym[1:quadruped.n]
 l(z) = lagrangian(quadruped, view(z, 1:quadruped.nq), view(z, quadruped.nq .+ (1:quadruped.nq)))
-_l = ModelingToolkit.simplify.(l(z_sym))
-_dL = ModelingToolkit.gradient(_l, z_sym)
+_l = Symbolics.simplify.(l(z_sym))
+_dL = Symbolics.gradient(_l, z_sym)
 _dLq = view(_dL, 1:quadruped.nq)
 _dLq̇ = view(_dL, quadruped.nq .+ (1:quadruped.nq))
-_ddL = ModelingToolkit.sparsehessian(_l, z_sym)
+_ddL = Symbolics.sparsehessian(_l, z_sym)
 _ddLq̇q = view(_ddL, quadruped.nq .+ (1:quadruped.nq), 1:quadruped.nq)
 
-dL = eval(ModelingToolkit.build_function(_dL, z_sym)[1])
-dLq = eval(ModelingToolkit.build_function(_dLq, z_sym)[1])
-dLq̇ = eval(ModelingToolkit.build_function(_dLq̇, z_sym)[1])
-ddLq̇q = eval(ModelingToolkit.build_function(_ddLq̇q, z_sym)[1])
-ddL = eval(ModelingToolkit.build_function(_ddL, z_sym)[1])
+dL = eval(Symbolics.build_function(_dL, z_sym)[1])
+dLq = eval(Symbolics.build_function(_dLq, z_sym)[1])
+dLq̇ = eval(Symbolics.build_function(_dLq̇, z_sym)[1])
+ddLq̇q = eval(Symbolics.build_function(_ddLq̇q, z_sym)[1])
+ddL = eval(Symbolics.build_function(_ddL, z_sym)[1])
 
 function C_func(model::QuadrupedBasic11, q, q̇)
 	ddLq̇q([q; q̇]) * q̇ - dLq(Vector([q; q̇]))
@@ -151,7 +151,7 @@ end
 
 """
 	generate_C_func(model::ContactDynamicsModel)
-Generate a fast method for Coriolis and Centrifugal Dynamics terms computation using ModelingToolkit symbolic computing tools.
+Generate a fast method for Coriolis and Centrifugal Dynamics terms computation using Symbolics symbolic computing tools.
 """
 function generate_C_func(model::ContactDynamicsModel)
 	# Declare variables
@@ -159,7 +159,7 @@ function generate_C_func(model::ContactDynamicsModel)
 	@variables q̇[1:model.dim.q]
 	# Symbolic computing
 	C = C_func(model, q, q̇)
-	C = ModelingToolkit.simplify.(C)
+	C = Symbolics.simplify.(C)
 	# Build function
 	expr = build_function(C, q, q̇)[1]
 	fct = eval(expr)
@@ -198,7 +198,7 @@ q1sq̇1s = [q1s;q̇1s]
 
 
 
-using ModelingToolkit, LinearAlgebra, SparseArrays
+using Symbolics, LinearAlgebra, SparseArrays
 
 # Define the constants for the PDE
 const α₂ = 1.0
@@ -250,19 +250,19 @@ du = simplify.(f(u,nothing,0.0))
 @show size(du)
 @show size(u)
 
-fastf = eval(ModelingToolkit.build_function(du,u,
-            parallel=ModelingToolkit.MultithreadedForm())[2])
+fastf = eval(Symbolics.build_function(du,u,
+            parallel=Symbolics.MultithreadedForm())[2])
 
 
 
-jac = ModelingToolkit.sparsejacobian(vec(du),vec(u))
-fjac = eval(ModelingToolkit.build_function(jac,u,
-            parallel=ModelingToolkit.MultithreadedForm())[2])
+jac = Symbolics.sparsejacobian(vec(du),vec(u))
+fjac = eval(Symbolics.build_function(jac,u,
+            parallel=Symbolics.MultithreadedForm())[2])
 
-njac = eval(ModelingToolkit.build_function(jac,u)[2])
+njac = eval(Symbolics.build_function(jac,u)[2])
 
-ModelingToolkit.build_function(jac,u,
-            parallel=ModelingToolkit.MultithreadedForm())
+Symbolics.build_function(jac,u,
+            parallel=Symbolics.MultithreadedForm())
 
 
 using OrdinaryDiffEq
@@ -310,7 +310,7 @@ function generate_kin1(model::QuadrupedModel)
 	@variables q[1:model.dim.q]
 	k1 = kinematics_1(model, q, body=:torso, mode=:ee)
 	k1 = transpose(k1)
-    k1 = ModelingToolkit.simplify.(k1)
+    k1 = Symbolics.simplify.(k1)
 
 	expr = build_function(k1, q)[1]
 	fct = eval(expr)

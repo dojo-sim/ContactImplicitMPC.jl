@@ -2,19 +2,21 @@ using Test
 using ContactControl
 using ForwardDiff
 using JLD2
-using ModelingToolkit
+using QDLDL
+using Symbolics
 using StaticArrays
 using LinearAlgebra
 using Random
 using SparseArrays
 
 # Solver
-# include("solver/cgs.jl")
+include("solver/gs.jl")
+include("solver/qdldl.jl")
 include("solver/random_qp.jl")
 
 # Dynamics
 include("dynamics/particle.jl")
-# include("dynamics/quadruped.jl")
+include("dynamics/quadruped.jl")
 
 # Simulator
 include("simulator/particle.jl")

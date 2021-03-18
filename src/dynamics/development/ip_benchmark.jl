@@ -39,15 +39,15 @@ end
 parallel = false
 _r!(r_sym, z_sym, θ_sym, κ_sym)
 r_sym = simplify.(r_sym)
-rf! = eval(ModelingToolkit.build_function(r_sym, z_sym, θ_sym, κ_sym,
+rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
     parallel = parallel)[2])
-rz_exp = ModelingToolkit.sparsejacobian(r_sym, z_sym, simplify = true)
-rθ_exp = ModelingToolkit.sparsejacobian(r_sym, θ_sym, simplify = true)
+rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
+rθ_exp = Symbolics.sparsejacobian(r_sym, θ_sym, simplify = true)
 rz_sp = similar(rz_exp, Float64)
 rθ_sp = similar(rθ_exp, Float64)
-rzf! = eval(ModelingToolkit.build_function(rz_exp, z_sym, θ_sym, κ_sym,
+rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym, κ_sym,
     parallel = parallel)[2])
-rθf! = eval(ModelingToolkit.build_function(rθ_exp, z_sym, θ_sym, κ_sym,
+rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym, κ_sym,
     parallel = parallel)[2])
 
 # solver

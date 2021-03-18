@@ -5,10 +5,8 @@ include("fast_methods.jl")
 ################################################################################
 # Particle (flat)
 ################################################################################
-include("particle/model.jl")
-model = deepcopy(particle)
-
 dir = joinpath(@__DIR__, "particle")
+model = deepcopy(particle)
 
 path_base = joinpath(dir, "flat/base.jld2")
 path_dyn = joinpath(dir, "flat/dynamics.jld2")
@@ -31,10 +29,8 @@ instantiate_residual!(model, path_res)
 ################################################################################
 # Particle (quadratic)
 ################################################################################
-include("particle/model.jl")
-model = deepcopy(particle_quadratic)
-
 dir = joinpath(@__DIR__, "particle")
+model = deepcopy(particle_quadratic)
 
 path_base = joinpath(dir, "quadratic/base.jld2")
 path_dyn = joinpath(dir, "quadratic/dynamics.jld2")
@@ -57,10 +53,8 @@ instantiate_residual!(model, path_res)
 ################################################################################
 # Particle 2D (flat)
 ################################################################################
-include("particle_2D/model.jl")
-model = deepcopy(particle_2D)
-
 dir = joinpath(@__DIR__, "particle_2D")
+model = deepcopy(particle_2D)
 
 path_base = joinpath(dir, "flat/base.jld2")
 path_dyn = joinpath(dir, "flat/dynamics.jld2")
@@ -83,11 +77,8 @@ instantiate_residual!(model, path_res)
 ################################################################################
 # Particle 2D (slope)
 ################################################################################
-include("particle_2D/model.jl")
-model = deepcopy(particle_2D_slope)
-
 dir = joinpath(@__DIR__, "particle_2D")
-
+model = deepcopy(particle_2D_slope)
 path_base = joinpath(dir, "slope/base.jld2")
 path_dyn = joinpath(dir, "slope/dynamics.jld2")
 path_res = joinpath(dir, "slope/residual.jld2")
@@ -109,15 +100,8 @@ instantiate_residual!(model, path_res)
 ################################################################################
 # Quadruped
 ################################################################################
-include("quadruped/model.jl")
-model = deepcopy(quadruped)
-SMatrix{model.dim.c, model.dim.b}(kron(Diagonal(ones(model.dim.c)), ones(1, Int(model.dim.b / model.dim.c))))
-E_func(model)
-model.dim.b
-kron(Diagonal(ones(model.dim.c)), ones(1, Int(model.dim.b / model.dim.c)))
-model.dim.b
 dir = joinpath(@__DIR__, "quadruped")
-
+model = deepcopy(quadruped)
 path_base = joinpath(dir, "flat/base.jld2")
 path_dyn = joinpath(dir, "flat/dynamics.jld2")
 path_res = joinpath(dir, "flat/residual.jld2")

@@ -1,6 +1,6 @@
 """
 	generate_base_expressions(model::ContactDynamicsModel)
-Generate fast base methods using ModelingToolkit symbolic computing tools.
+Generate fast base methods using Symbolics symbolic computing tools.
 """
 function generate_base_expressions(model::ContactDynamicsModel)
 	nq = model.dim.q
@@ -16,45 +16,45 @@ function generate_base_expressions(model::ContactDynamicsModel)
 
 	# Lagrangian
 	L = lagrangian(model, q, q̇)
-	L = ModelingToolkit.simplify.(L)
+	L = Symbolics.simplify.(L)
 
-	dLq = ModelingToolkit.gradient(L, q, simplify=true)
-	dLq̇ = ModelingToolkit.gradient(L, q̇, simplify=true)
-	ddL = ModelingToolkit.sparsehessian(L, [q; q̇], simplify=true)
-	ddL = SparseMatrixCSC{Expression,Int64}(ddL)
+	dLq = Symbolics.gradient(L, q, simplify=true)
+	dLq̇ = Symbolics.gradient(L, q̇, simplify=true)
+	ddL = Symbolics.sparsehessian(L, [q; q̇], simplify=true)
+	# ddL = SparseMatrixCSC{Expression,Int64}(ddL)
 	ddLq̇q = ddL[nq .+ (1:nq), 1:nq]
 
 	# Signed distance
 	ϕ = ϕ_func(model, q)
-	ϕ = ModelingToolkit.simplify.(ϕ)[1:nc]
+	ϕ = Symbolics.simplify.(ϕ)[1:nc]
 
 	# Mass Matrix
 	M = M_func(model, q)
 	M = reshape(M, nq, nq)
-	M = ModelingToolkit.simplify.(M)
+	M = Symbolics.simplify.(M)
 
 	# Control input Jacobian
 	B = B_func(model, q)
 	B = reshape(B, (nu, nq))
-	B = ModelingToolkit.simplify.(B)
+	B = Symbolics.simplify.(B)
 
 	# Control input Jacobian
 	A = A_func(model, q)
 	A = reshape(A, (nw, nq))
-	A = ModelingToolkit.simplify.(A)
+	A = Symbolics.simplify.(A)
 
 	# Contact Force Jacobian
 	J = J_func(model, q)
 	J = reshape(J, np * nc, nq)
-	J = ModelingToolkit.simplify.(J)
+	J = Symbolics.simplify.(J)
 
 	# Coriolis and Centrifugal forces Jacobians
 	C = ddLq̇q * q̇ - dLq
-	C = ModelingToolkit.simplify.(C)
+	C = Symbolics.simplify.(C)
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
-	expr[:L]    = build_function(transpose([L]), q, q̇)[1] # need to transpose to get a line vector
+	expr[:L]    = build_function([L], q, q̇)[1] # need to transpose to get a line vector
 	expr[:ϕ]    = build_function(ϕ, q)[1]
 	expr[:M]    = build_function(M, q)[1]
 	expr[:B]    = build_function(B, q)[1]
@@ -66,7 +66,7 @@ end
 
 """
 	generate_dynamics_expressions(model::ContactDynamicsModel)
-Generate fast dynamics methods using ModelingToolkit symbolic computing tools.
+Generate fast dynamics methods using Symbolics symbolic computing tools.
 """
 function generate_dynamics_expressions(model::ContactDynamicsModel)
 	nq = model.dim.q
@@ -83,19 +83,19 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 	@variables γ1[1:nc]
 	@variables b1[1:nb]
 	@variables q2[1:nq]
-	@variables h[1:1]
+	@variables h
 
 	# Dynamics
-	d = dynamics(model, h[1], q0, q1, u1, w1, γ1, b1, q2)
-	d = ModelingToolkit.simplify.(d)
-	dy  = ModelingToolkit.jacobian(d, [q0; q1; u1; w1; γ1; b1; q2], simplify=true)
-	dq0 = ModelingToolkit.jacobian(d, q0, simplify=true)
-	dq1 = ModelingToolkit.jacobian(d, q1,  simplify=true)
-	du1 = ModelingToolkit.jacobian(d, u1,  simplify=true)
-	dw1 = ModelingToolkit.jacobian(d, w1,  simplify=true)
-	dγ1 = ModelingToolkit.jacobian(d, γ1,  simplify=true)
-	db1 = ModelingToolkit.jacobian(d, b1,  simplify=true)
-	dq2 = ModelingToolkit.jacobian(d, q2,  simplify=true)
+	d = dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2)
+	d = Symbolics.simplify.(d)
+	dy  = Symbolics.jacobian(d, [q0; q1; u1; w1; γ1; b1; q2], simplify=true)
+	dq0 = Symbolics.jacobian(d, q0, simplify=true)
+	dq1 = Symbolics.jacobian(d, q1,  simplify=true)
+	du1 = Symbolics.jacobian(d, u1,  simplify=true)
+	dw1 = Symbolics.jacobian(d, w1,  simplify=true)
+	dγ1 = Symbolics.jacobian(d, γ1,  simplify=true)
+	db1 = Symbolics.jacobian(d, b1,  simplify=true)
+	dq2 = Symbolics.jacobian(d, q2,  simplify=true)
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
@@ -113,7 +113,7 @@ end
 
 """
 	generate_residual_expressions(model::ContactDynamicsModel)
-Generate fast residual methods using ModelingToolkit symbolic computing tools.
+Generate fast residual methods using Symbolics symbolic computing tools.
 """
 function generate_residual_expressions(model::ContactDynamicsModel; T = Float64)
 	nq = model.dim.q
@@ -126,13 +126,13 @@ function generate_residual_expressions(model::ContactDynamicsModel; T = Float64)
 	# Declare variables
 	@variables z[1:nz]
 	@variables θ[1:nθ]
-	@variables κ[1:1]
+	@variables κ
 
 	# Residual
-	r = residual(model, z, θ, κ[1])
-	r = ModelingToolkit.simplify.(r)
-	rz = ModelingToolkit.sparsejacobian(r, z, simplify = true)
-	rθ = ModelingToolkit.jacobian(r, θ, simplify = true) # TODO: sparse version
+	r = residual(model, z, θ, κ)
+	r = Symbolics.simplify.(r)
+	rz = Symbolics.jacobian(r, z, simplify = true)
+	rθ = Symbolics.jacobian(r, θ, simplify = true) # TODO: sparse version
 
 	rz_sp = similar(rz, T)
 	rθ_sp = similar(rθ, T)
@@ -148,7 +148,7 @@ end
 """
 	save_expressions(expr::Dict{Symbol,Expr},
 		path::AbstractString="dynamics_expressions.jld2"; overwrite::Bool=false)
-Save the fast expressions obtained with ModelingToolkit in a `jld2` file.
+Save the fast expressions obtained with Symbolics in a `jld2` file.
 """
 function save_expressions(expr::Dict{Symbol,Expr},
 	path::AbstractString="dynamics_expressions.jld2"; overwrite::Bool=false)
@@ -163,7 +163,7 @@ end
 
 """
 	load_expressions(path::AbstractString="dynamics_expressions.jld2")
-Load the fast expressions obtained with ModelingToolkit from a `jld2` file.
+Load the fast expressions obtained with Symbolics from a `jld2` file.
 """
 function load_expressions(path::AbstractString="dynamics_expressions.jld2")
 	path = abspath(path)

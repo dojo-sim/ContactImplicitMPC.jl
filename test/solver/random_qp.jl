@@ -4,7 +4,7 @@
         subject to    x >= 0
     """
 
-    n = 1000
+    n = 100
 
     _P = rand(n)
     P = Diagonal(_P)
@@ -20,33 +20,33 @@
 
     # residual
     function _r!(r, z, θ, κ)
-        x = z[1:1000]
-        y = z[1001:2000]
-        P = θ[1:1000]
-        q = θ[1001:2000]
+        x = z[1:100]
+        y = z[101:200]
+        P = θ[1:100]
+        q = θ[101:200]
 
-        r[1:1000] = 2.0 * Diagonal(P) * x + q - y
-        r[1001:2000] = Diagonal(x) * y .- κ
+        r[1:100] = 2.0 * Diagonal(P) * x + q - y
+        r[101:200] = Diagonal(x) * y .- κ
         nothing
     end
 
-    @variables r_sym[1:2000]
-    @variables z_sym[1:2000]
-    @variables θ_sym[1:2000]
-    @variables κ_sym[1:1]
+    @variables r_sym[1:200]
+    @variables z_sym[1:200]
+    @variables θ_sym[1:200]
+    @variables κ_sym
 
-    parallel = false
+    parallel = Symbolics.SerialForm()
     _r!(r_sym, z_sym, θ_sym, κ_sym)
     r_sym = simplify.(r_sym)
-    rf! = eval(ModelingToolkit.build_function(r_sym, z_sym, θ_sym, κ_sym,
+    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
         parallel = parallel)[2])
-    rz_exp = ModelingToolkit.sparsejacobian(r_sym, z_sym, simplify = true)
-    rθ_exp = ModelingToolkit.sparsejacobian(r_sym, θ_sym, simplify = true)
+    rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
+    rθ_exp = Symbolics.sparsejacobian(r_sym, θ_sym, simplify = true)
     rz_sp = similar(rz_exp, Float64)
     rθ_sp = similar(rθ_exp, Float64)
-    rzf! = eval(ModelingToolkit.build_function(rz_exp, z_sym, θ_sym,
+    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym,
         parallel = parallel)[2])
-    rθf! = eval(ModelingToolkit.build_function(rθ_exp, z_sym, θ_sym,
+    rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
         parallel = parallel)[2])
 
     # solver
@@ -109,20 +109,19 @@ end
     @variables r_sym[1:15]
     @variables z_sym[1:15]
     @variables θ_sym[1:70]
-    @variables κ_sym[1:1]
+    @variables κ_sym
 
-    parallel = false
+    parallel = Symbolics.SerialForm()
     _r!(r_sym, z_sym, θ_sym, κ_sym)
     r_sym = simplify.(r_sym)
-    rf! = eval(ModelingToolkit.build_function(r_sym, z_sym, θ_sym, κ_sym,
+    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
         parallel = parallel)[2])
-    rz_exp = ModelingToolkit.sparsejacobian(r_sym, z_sym, simplify = true)
-    # rθ_exp = ModelingToolkit.jacobian(r_sym, θ_sym, simplify = false)
+    rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
+    # rθ_exp = Symbolics.jacobian(r_sym, θ_sym, simplify = false)
     rz_sp = similar(rz_exp, Float64)
     rθ_sp = zeros(0, 0) #similar(rθ_exp, Float64)
-    rzf! = eval(ModelingToolkit.build_function(rz_exp, z_sym, θ_sym,
-        parallel = parallel)[2])
-    rθf! = x -> nothing #eval(ModelingToolkit.build_function(rθ_exp, z_sym, θ_sym,
+    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym)[2])
+    rθf! = x -> nothing #eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
         # parallel = parallel)[2])
 
     # solver
@@ -144,4 +143,89 @@ end
     @test status
     @test norm(ip.r, Inf) < opts.r_tol
     @test norm(A * ip.z[1:n] - b, Inf) < opts.r_tol
+end
+
+@testset "Solver: Random QP (QR)" begin
+    """
+        minimize   x' P x + q' x
+        subject to    x >= 0
+    """
+
+    n = 10
+
+    _P = rand(n)
+    P = Diagonal(_P)
+    q = rand(n)
+    θ = [_P; q]
+    z = ones(2 * n)
+    r = zeros(2 * n)
+    rz = zeros(2 * n, 2 * n)
+    rθ = zeros(2 * n, 2 * n)
+    κ = 1.0
+
+    idx_ineq = collect(1:2 * n)
+
+    # residual
+    function _r!(r, z, θ, κ)
+        x = z[1:10]
+        y = z[11:20]
+        P = θ[1:10]
+        q = θ[11:20]
+
+        r[1:10] = 2.0 * Diagonal(P) * x + q - y
+        r[11:20] = Diagonal(x) * y .- κ
+        nothing
+    end
+
+    @variables r_sym[1:20]
+    @variables z_sym[1:20]
+    @variables θ_sym[1:20]
+    @variables κ_sym
+
+    parallel = Symbolics.SerialForm()
+    _r!(r_sym, z_sym, θ_sym, κ_sym)
+    r_sym = simplify.(r_sym)
+    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
+        parallel = parallel)[2])
+    rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
+    rθ_exp = Symbolics.sparsejacobian(r_sym, θ_sym, simplify = true)
+    rz_sp = similar(rz_exp, Float64)
+    rθ_sp = similar(rθ_exp, Float64)
+    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym,
+        parallel = parallel)[2])
+    rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
+        parallel = parallel)[2])
+
+    # solver
+    ip_cgs = ContactControl.interior_point(2 * n, 2 * n, idx_ineq,
+        x = z, θ = θ,
+        r! = rf!, rz! = rzf!, rθ! = rθf!,
+        rz = rz_sp,
+        rθ = rθ_sp,
+        solver = :cgs_solver)
+
+    ip_mgs = ContactControl.interior_point(2 * n, 2 * n, idx_ineq,
+        x = z, θ = θ,
+        r! = rf!, rz! = rzf!, rθ! = rθf!,
+        rz = rz_sp,
+        rθ = rθ_sp,
+        solver = :mgs_solver)
+
+    # options
+    opts = ContactControl.InteriorPointOptions(diff_sol = false)
+
+    # solve
+    status_cgs = ContactControl.interior_point!(ip_cgs, z, θ, opts = opts)
+    status_mgs = ContactControl.interior_point!(ip_mgs, z, θ, opts = opts)
+
+    # test
+    @test status_cgs
+    @test norm(ip_cgs.r, Inf) < opts.r_tol
+    @test !ContactControl.inequality_check(ip_cgs.z, ip_cgs.idx_ineq)
+    @test ip_cgs.κ[1] < opts.κ_tol
+
+    @test status_mgs
+    @test norm(ip_mgs.r, Inf) < opts.r_tol
+    @test !ContactControl.inequality_check(ip_mgs.z, ip_mgs.idx_ineq)
+    @test ip_mgs.κ[1] < opts.κ_tol
 end

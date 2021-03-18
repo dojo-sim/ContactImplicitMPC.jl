@@ -121,6 +121,7 @@ function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
 	nb = model.dim.b
 	nf = Int(nb / nc)
 	λ1 = vcat([transpose(rotation(model.env, q2)) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...)
+	# λ1 = vcat([[friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...)
 
 	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
 		+ transpose(B_fast(model, qm2)) * u1
@@ -143,7 +144,7 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	vT_stack = vcat([[v[(i-1) * np .+ (1:np-1)]; -v[(i-1) * np .+ (1:np-1)]] for i = 1:nc]...)
 	ψ_stack = transpose(E_func(model)) * ψ
 
-	[dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2); # TODO: replace with fast version
+	[d_fast(model, h, q0, q1, u1, w1, γ1, b1, q2); # TODO: replace with fast version
 	 s1 - ϕ;
 	 γ1 .* s1 .- κ;
 	 vT_stack + ψ_stack - η;

@@ -8,4 +8,4 @@
 - [x] Write inner solver for controller using IP method
 - [ ] Write outer solver for controller using Newton method
 - [ ] Decide on the use of SVector vs SizedVector
-- [ ] Merge simulator and simulator2
+- [X] Merge simulator and simulator2

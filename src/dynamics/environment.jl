@@ -18,11 +18,11 @@ function environment_2D(surf)
 	@variables q[1:1]
 
 	s = surf(q)
-	s = ModelingToolkit.simplify.(s)
-	ds = ModelingToolkit.gradient(s, q, simplify = true)
+	s = Symbolics.simplify.(s)
+	ds = Symbolics.gradient(s, q, simplify = true)
 
-	surf_fast = eval(ModelingToolkit.build_function(s, q))
-	surf_grad_fast = eval(ModelingToolkit.build_function(ds, q)[1])
+	surf_fast = eval(Symbolics.build_function(s, q))
+	surf_grad_fast = eval(Symbolics.build_function(ds, q)[1])
 
 	Environment{R2}(surf_fast, surf_grad_fast)
 end
@@ -31,11 +31,11 @@ function environment_3D(surf)
 	@variables q[1:2]
 
 	s = surf(q)
-	s = ModelingToolkit.simplify.(s)
-	ds = ModelingToolkit.gradient(s, q, simplify = true)
+	s = Symbolics.simplify.(s)
+	ds = Symbolics.gradient(s, q, simplify = true)
 
-	surf_fast = eval(ModelingToolkit.build_function(s, q))
-	surf_grad_fast = eval(ModelingToolkit.build_function(ds, q)[1])
+	surf_fast = eval(Symbolics.build_function(s, q))
+	surf_grad_fast = eval(Symbolics.build_function(ds, q)[1])
 
 	Environment{R3}(surf_fast, surf_grad_fast)
 end

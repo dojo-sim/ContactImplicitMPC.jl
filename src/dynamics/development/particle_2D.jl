@@ -1,5 +1,5 @@
 model = get_model("particle_2D")
-num_var(model)
+
 # time
 h = 0.01
 T = 200

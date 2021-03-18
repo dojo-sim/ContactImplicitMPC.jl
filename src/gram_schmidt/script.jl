@@ -27,13 +27,12 @@ while rank(A) < n
 end
 
 # Generate the code to handle matrices with A's sparsity pattern
-cgs_data = CGSData!(A,n)
+cgs_data = CGSData(A,n)
 
 # Compute the Q and R matrices
 @time cgs!(cgs_data, A)
 @benchmark cgs!(cgs_data, A)
 @test norm(A - hcat(cgs_data.qs...)*triangularize(cgs_data.rs,n), Inf) < 1e-10
-
 
 @variables q[1:n]
 d = [2.0 * q[1:2]; -1.0]
