@@ -141,7 +141,7 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	ϕ = ϕ_fast(model, q2)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
 	vT_stack = vcat([[v[(i-1) * np .+ (1:np-1)]; -v[(i-1) * np .+ (1:np-1)]] for i = 1:nc]...)
-	ψ_stack = E_func(model)' * ψ
+	ψ_stack = transpose(E_func(model)) * ψ
 
 	[dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2); # TODO: replace with fast version
 	 s1 - ϕ;

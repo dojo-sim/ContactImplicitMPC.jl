@@ -34,6 +34,16 @@ cgs_data = CGSData!(A,n)
 @benchmark cgs!(cgs_data, A)
 @test norm(A - hcat(cgs_data.qs...)*triangularize(cgs_data.rs,n), Inf) < 1e-10
 
+
+@variables q[1:n]
+d = [2.0 * q[1:2]; -1.0]
+d1 = simplify.(d ./ sqrt.(sum(d.^2, dims = 1)))
+
+
+
+
+
+d2 = simplify.(d ./ sqrt(transpose(d) * d))
 # Test it on a different matrix with the same sparsity pattern
 A1 = deepcopy(A)
 A1.nzval .+= rand(nnz(A))
