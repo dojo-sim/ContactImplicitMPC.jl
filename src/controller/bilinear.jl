@@ -67,7 +67,7 @@ function get_bilinear_indices(model::ContactDynamicsModel)
 				 SVector{nb,Int}(nq+4nc+nb .+ (1:nb))]
 	bil_vars = [[SVector{nc,Int}(nq .+ (1:nc)), SVector{nc}(nq+2nc+2nb .+ (1:nc))],  # γ1, s1
 				[SVector{nc,Int}(nq+nc+nb .+ (1:nc)), SVector{nc}(nq+3nc+2nb .+ (1:nc))],  # ψ, s2
-				[SVector{nb,Int}(nq+nc .+ (1:nb)), SVector{nb}(nq+2nc+nb .+ (1:nb))]] # b2, η
+				[SVector{nb,Int}(nq+nc .+ (1:nb)), SVector{nb}(nq+2nc+nb .+ (1:nb))]] # b1, η
 	return bil_terms, bil_vars
 end
 
@@ -138,40 +138,40 @@ function rθ_approx!(lin::LinStep, rθ::AbstractMatrix{T},
 end
 
 
-function bilinear_code_gen(model::ContactDynamicsModel)
-    bil_terms, bil_vars = get_bilinear_indices(model)
-    nz = num_var(model)
-    nθ - num_data(model)
-
-    @variables   z[1:nz]
-	@variables   θ[1:nθ]
-	@variables   κ[1:1]
-    @variables  z0[1:nz]
-    @variables  θ0[1:nθ]
-    @variables  r0[1:nz]
-    @variables rz0[1:nz,1:nz]
-    @variables rθ0[1:nz,1:nθ]
-
-	# r_approx rz_approx, rθ_approx
-    r = r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
-	rz = rz0
-	rθ = rθ0
-	for i = 1:length(bil_terms)
-		t = bil_terms[i]
-		v1 = bil_vars[i][1]
-		v2 = bil_vars[i][2]
-		for j = 1:length(t)
-			r[t[j]] = z[v1[j]]*z[v2[j]] - κ[1]
-			rz[t[j], v1[j]] = z[v2[j]]
-			rz[t[j], v2[j]] = z[v1[j]]
-		end
-	end
-	r = simplify.(r)
-	rz = simplify.(rz)
-    rθ = simplify.(rθ)
-
-	r_expr  = eval(build_function(r,  z, θ, κ, z0, θ0, r0, rz0, rθ0)[2])
-	rz_expr = eval(build_function(rz, z, rz0)[2])
-	rθ_expr = eval(build_function(rθ, rθ0)[2])
-    return r_expr, rz_expr, rθ_expr
-end
+# function bilinear_code_gen(model::ContactDynamicsModel)
+#     bil_terms, bil_vars = get_bilinear_indices(model)
+#     nz = num_var(model)
+#     nθ - num_data(model)
+#
+#     @variables   z[1:nz]
+# 	@variables   θ[1:nθ]
+# 	@variables   κ[1:1]
+#     @variables  z0[1:nz]
+#     @variables  θ0[1:nθ]
+#     @variables  r0[1:nz]
+#     @variables rz0[1:nz,1:nz]
+#     @variables rθ0[1:nz,1:nθ]
+#
+# 	# r_approx rz_approx, rθ_approx
+#     r = r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
+# 	rz = rz0
+# 	rθ = rθ0
+# 	for i = 1:length(bil_terms)
+# 		t = bil_terms[i]
+# 		v1 = bil_vars[i][1]
+# 		v2 = bil_vars[i][2]
+# 		for j = 1:length(t)
+# 			r[t[j]] = z[v1[j]]*z[v2[j]] - κ[1]
+# 			rz[t[j], v1[j]] = z[v2[j]]
+# 			rz[t[j], v2[j]] = z[v1[j]]
+# 		end
+# 	end
+# 	r = simplify.(r)
+# 	rz = simplify.(rz)
+#     rθ = simplify.(rθ)
+#
+# 	r_expr  = eval(build_function(r,  z, θ, κ, z0, θ0, r0, rz0, rθ0)[2])
+# 	rz_expr = eval(build_function(rz, z, rz0)[2])
+# 	rθ_expr = eval(build_function(rθ, rθ0)[2])
+#     return r_expr, rz_expr, rθ_expr
+# end
