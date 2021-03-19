@@ -1200,7 +1200,8 @@
 
 
 
-
+include("newton.jl")
+include("tested.jl")
 
 function newton_solve!(model::ContactDynamicsModel, core::Newton23, impl::ImplicitTraj{T},
     cost::CostFunction, ref_traj::ContactTraj{T,nq,nu,nc,nb},
@@ -1323,19 +1324,16 @@ norm(core0.r.r)
 
 
 
-@show typeof(core1.ν[1])
-
-Array{SizedArray{Tuple{23},Float64,1,1,AbstractArray{Float64,1},1}}
 
 T = Float64
 κ = 1e-4
-# model = get_model("quadruped")
+model = get_model("quadruped")
 @load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
 
 # time
 h = h̄
 H = length(u)
-# H = 30
+# H = 1
 
 nq = model.dim.q
 nu = model.dim.u
@@ -1385,8 +1383,26 @@ model.res.r(r0, traj0.z[1], traj0.θ[1], κ)
 # # open(vis)
 
 linearization!(model, ref_traj0, impl0)
-implicit_dynamics!(model, ref_traj0, impl0, κ=κ)
+@profiler implicit_dynamics!(model, ref_traj0, impl0, κ=κ)
 @test mean([norm(d) for d in impl0.d]) < 5e-3
+mean([norm(d) for d in impl0.d])
+
+rθ1 = rand(nz, nθ)
+z1 = rand(nz)
+θ1 = rand(nθ)
+impl0.lin[1].methods.rθ!(rθ1, z1, θ1)
+
+model.res.rz(rz1, z1, θ1)
+model.res.rθ(rθ1, z1, θ1)
+
+rz1
+rθ1
+
+rθ1 - impl0.lin[1].rθ0
+impl0.lin[1].rθ0
+rθ1
+impl0
+
 
 δz_ = [impl0.δq0[1] impl0.δq1[1] impl0.δu1[1]]
 @test norm(impl0.δz[1][1:size(δz_)[1], 1:size(δz_)[2]] - δz_) == 0.0

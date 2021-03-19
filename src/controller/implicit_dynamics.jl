@@ -91,16 +91,23 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		# and the linearization (impl.lin).
 
 		# Define local residual functions
-		# # residual
+		# residual
 		# r!(r, z, θ, κ) = r_approx!(impl.lin[k], r, z, θ, κ)
-		# # residual Jacobian wrt z
+		r!(r, z, θ, κ) = model.approx.r(r, z, θ, κ, impl.lin[k].z0, impl.lin[k].θ0, impl.lin[k].r0, impl.lin[k].rz0, impl.lin[k].rθ0)
+		# residual Jacobian wrt z
 		# rz!(rz, z, θ) = rz_approx!(impl.lin[k], rz, z, θ)
-		# # residual Jacobian wrt θ
+		rz!(rz, z, θ) = model.approx.rz(rz, z, impl.lin[k].rz0)
+		# residual Jacobian wrt θ
 		# rθ!(rθ, z, θ) = rθ_approx!(impl.lin[k], rθ, z, θ)
+		rθ!(rθ, z, θ) = model.approx.rθ(rθ, impl.lin[k].rθ0)
 		# Set the residual functions
-		ip.methods.r! = impl.lin[k].methods.r!
-		ip.methods.rz! = impl.lin[k].methods.rz!
-		ip.methods.rθ! = impl.lin[k].methods.rθ!
+		ip.methods.r! = r! #impl.lin[k].methods.r!
+		ip.methods.rz! = rz! #impl.lin[k].methods.rz!
+		ip.methods.rθ! = rθ! #impl.lin[k].methods.rθ!
+
+		# ip.methods.r! = impl.lin[k].methods.r!
+		# ip.methods.rz! = impl.lin[k].methods.rz!
+		# ip.methods.rθ! = impl.lin[k].methods.rθ!
 
 		z_initialize!(ip.z, model, traj.q[k+2]) # initialize with our best guess.
 		# status = interior_point!(ip, ip.z, traj.θ[k]; opts=ip_opts)
