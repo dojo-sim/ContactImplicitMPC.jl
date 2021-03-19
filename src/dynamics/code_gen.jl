@@ -206,6 +206,7 @@ function generate_approx_expressions(model::ContactDynamicsModel; T = Float64)
     nz = num_var(model)
     nθ = num_data(model)
 
+	# r_approx rz_approx, rθ_approx
     @variables   z[1:nz]
 	@variables   θ[1:nθ]
 	@variables   κ[1:1]
@@ -214,23 +215,38 @@ function generate_approx_expressions(model::ContactDynamicsModel; T = Float64)
     @variables  r0[1:nz]
     @variables rz0[1:nz,1:nz]
     @variables rθ0[1:nz,1:nθ]
-
-	# r_approx rz_approx, rθ_approx
-    r = r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
-	rz = rz0
-	rθ = rθ0
+	r = zeros(eltype(z), nz)
+    r .= r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
 	for i = 1:length(bil_terms)
 		t = bil_terms[i]
 		v1 = bil_vars[i][1]
 		v2 = bil_vars[i][2]
 		for j = 1:length(t)
 			r[t[j]] = z[v1[j]]*z[v2[j]] - κ[1]
+		end
+	end
+	r = simplify.(r)
+
+	# r_approx rz_approx, rθ_approx
+    @variables   z[1:nz]
+    @variables rz0[1:nz,1:nz]
+	rz = zeros(eltype(z), nz, nz)
+	rz .= rz0
+	for i = 1:length(bil_terms)
+		t = bil_terms[i]
+		v1 = bil_vars[i][1]
+		v2 = bil_vars[i][2]
+		for j = 1:length(t)
 			rz[t[j], v1[j]] = z[v2[j]]
 			rz[t[j], v2[j]] = z[v1[j]]
 		end
 	end
-	r = simplify.(r)
 	rz = simplify.(rz)
+
+	# r_approx rz_approx, rθ_approx
+    @variables rθ0[1:nz,1:nθ]
+	rθ = zeros(eltype(rθ0), nz, nθ)
+	rθ .= rθ0
     rθ = simplify.(rθ)
 
 	# Build function
