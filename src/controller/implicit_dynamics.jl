@@ -67,18 +67,14 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 	# constraint violation (solve linearized contact problem)
 	# constraint gradient (implicit function theorem)
 
-	# plt = plot()
-    # plot!(hcat(Vector.(traj.q)...)', label="q_implicit!!")
-    # display(plt)
+	ip_opts = InteriorPointOptions(
+		κ_init = κ,
+		κ_tol = κ,
+		diff_sol = true)
 
 	# INITIALIZATION
-	ip = interior_point(
-		num_var(model),
-		num_data(model),
-		inequality_indices(model),
-		r! = model.res.r,
-		rz! = model.res.rz,
-		rθ! = model.res.rθ,
+	ip = interior_point(zeros(num_var(model)), zeros(num_data(model)),
+		idx_ineq = inequality_indices(model),
 		rz = model.spa.rz_sp,
 		rθ = model.spa.rθ_sp,
 		solver=:lu_solver)
@@ -111,8 +107,8 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		# ip.methods.rθ! = impl.lin[k].methods.rθ!
 
 		z_initialize!(ip.z, model, traj.q[k+2]) # initialize with our best guess.
-		# status = interior_point!(ip, ip.z, traj.θ[k]; opts=ip_opts)
-		status = interior_point!(ip, ip.z, [traj.q[k]; traj.q[k+1]; traj.u[k]; traj.w[k]; traj.h]; opts=ip_opts) #########$$$$$$$$$$$$$$$$$$$$$BAD
+		ip.θ .= traj.θ[k]
+		status = interior_point!(ip)#, ip.z, traj.θ[k]; opts=ip_opts)
 
 		q2 = traj.q[k+2]
 		γ1 = traj.γ[k]

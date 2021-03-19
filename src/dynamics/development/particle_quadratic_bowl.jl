@@ -51,7 +51,8 @@ q0 = @SVector [1.1, 0.5, 2.0]
 
 # simulator
 sim = ContactControl.simulator(model, q0, q1, h, T,
-	ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-6, κ_tol = 1.0e-6),
+	ip_opts = ContactControl.InteriorPointOptions(
+		r_tol = 1.0e-6, κ_tol = 1.0e-6),
 	sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 # simulate

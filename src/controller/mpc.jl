@@ -1,4 +1,4 @@
-function hopper_mpc_init2(model,
+function mpc_init(model,
     q1_init, q2_init, q1_ref, q2_ref, u_ref, q_ref, γ_ref, b_ref;
     Nsample::Int=3, Nmpc::Int=20, z_init=3e-2)
 
@@ -38,7 +38,8 @@ function hopper_mpc_init2(model,
         traj, u_rot, q_rot, γ_rot, b_rot, lint0, compute_times
 end
 
-function hopper_mpc_steps3(model, model_oa, N, Nsample, Nmpc,
+
+function mpc_step(model, model_oa, N, Nsample, Nmpc,
     q_truth, u_truth, dist_truth, γ_truth,
     q1_init_rot, q2_init_rot, q1_ref_rot, q2_ref_rot,
     traj, u_rot, q_rot, γ_rot, b_rot, lint0, compute_times;
@@ -234,3 +235,128 @@ function hopper_mpc_steps3(model, model_oa, N, Nsample, Nmpc,
         q1_init_rot, q2_init_rot, q1_ref_rot, q2_ref_rot,
         traj, u_rot, q_rot, γ_rot, b_rot, lint0, compute_times
 end
+
+
+function mpc_init(model,
+    q1_init, q2_init, q1_ref, q2_ref, u_ref, q_ref, γ_ref, b_ref;
+    Nsample::Int=3, Nmpc::Int=20, z_init=3e-2)
+
+    N = length(u_ref)+1
+    nq = model.dim.q
+    nu = model.dim.u
+    nγ = model.dim.γ
+    nb = model.dim.b
+    nr = 2nq+nu+2nγ+4nb # outer problem residual size
+
+    q_truth = [q2_init-(q2_init-q1_init)/Nsample, q2_init]
+    u_truth = []
+    dist_truth = []
+    γ_truth = []
+    q1_init_rot = deepcopy(q1_init)
+    q2_init_rot = deepcopy(q2_init)
+    q1_ref_rot = deepcopy(q1_ref)
+    q2_ref_rot = deepcopy(q2_ref)
+    u_rot = deepcopy(u_ref)
+    q_rot = deepcopy([q_ref[1:end-2]; [mpc_stride_q(model,q1_ref), mpc_stride_q(model,q2_ref)]])
+
+    γ_rot = deepcopy(γ_ref)
+    b_rot = deepcopy(b_ref)
+    traj = zeros((Nmpc-1)*nr)
+    set_var_traj!(Nmpc, model, traj, deepcopy(u_rot), :u)
+    set_var_traj!(Nmpc, model, traj, deepcopy(q_rot), :q)
+    set_var_traj!(Nmpc, model, traj, deepcopy(γ_rot), :γ)
+    set_var_traj!(Nmpc, model, traj, deepcopy(b_rot), :b)
+
+    lint0 = lintraj(q1_ref, q2_ref, deepcopy([q_ref[1:end-2]; [q1_ref, q2_ref]]),
+        u_ref, model, ρ0=1e-3, outer_iter=1, z_init=z_init)
+
+    compute_times = zeros(0)
+    return Nsample, Nmpc,
+        q_truth, u_truth, dist_truth, γ_truth,
+        q1_init_rot, q2_init_rot, q1_ref_rot, q2_ref_rot,
+        traj, u_rot, q_rot, γ_rot, b_rot, lint0, compute_times
+end
+
+
+
+
+function mpc_stride_q(q::SizedArray{Tuple{nq},T,1,1,Vector{T}},
+    q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}}) where {nq,T}
+    return q + q_stride
+end
+
+mutable struct MPC11{T,nq,nu,nw,nc,nb}
+    q0_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
+    q1_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
+    q_sim::Vector{SizedArray{Tuple{nq},T,1,1,Vector{T}}} # history of simulator configurations
+    u_sim::Vector{SizedArray{Tuple{nu},T,1,1,Vector{T}}} # history of simulator controls
+    w_sim::Vector{SizedArray{Tuple{nw},T,1,1,Vector{T}}} # history of simulator disturbances
+    γ_sim::Vector{SizedArray{Tuple{nc},T,1,1,Vector{T}}} # history of simulator impact forces
+    b_sim::Vector{SizedArray{Tuple{nb},T,1,1,Vector{T}}} # history of simulator friction forces
+    m_opts::MPC11Options
+    ref_traj::ContactTraj
+    impl::ImplicitTraj
+    q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}} # change in q required to loop the ref trajectories
+end
+
+# MPC options
+@with_kw mutable struct MPC11Options{T}
+    H_sample::Int=3
+    H_mpc::Int=10
+end
+
+
+q = SizedVector{nq}
+
+
+
+T = Float64
+κ = 1e-4
+# model = get_model("quadruped")
+@load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
+
+# time
+h = h̄
+H = length(u)
+
+nq = model.dim.q
+nu = model.dim.u
+nc = model.dim.c
+nb = model.dim.b
+
+# initial conditions
+q0 = SizedVector{model.dim.q}(q[1])
+q1 = SizedVector{model.dim.q}(q[2])
+
+
+m_opts = MPC11Options{T}()
+
+function z_initialize!(z, model::Quadruped, q1)
+	nq = model.dim.q
+    z .= 1.0e-1
+    z[1:nq] = q1
+end
+
+sim0 = simulator(model, q0, q1, h, H,
+    u = [SVector{model.dim.u}(h * u[i]) for i=1:H],
+    r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
+    rz = model.spa.rz_sp,
+    rθ = model.spa.rθ_sp,
+    ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
+    sim_opts = SimulatorOptions(warmstart = true))
+
+simulate!(sim0; verbose = false)
+ref_traj0 = deepcopy(sim0.traj)
+traj0 = deepcopy(sim0.traj)
+
+
+
+function dummy_mpc(m_opts::MPC11Options)
+    for l = 1:m_opts.H_mpc
+
+    end
+    return nothing
+end
+
+
+dummy_mpc(m_opts)

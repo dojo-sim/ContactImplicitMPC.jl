@@ -49,17 +49,19 @@
     rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
         parallel = parallel)[2])
 
-    # solver
-    ip = ContactControl.interior_point(2 * n, 2 * n, idx_ineq,
-        r! = rf!, rz! = rzf!, rθ! = rθf!,
-        rz = rz_sp,
-        rθ = rθ_sp)
-
     # options
     opts = ContactControl.InteriorPointOptions(diff_sol = true)
 
+    # solver
+    ip = ContactControl.interior_point(z, θ,
+        idx_ineq = idx_ineq,
+        r! = rf!, rz! = rzf!, rθ! = rθf!,
+        rz = rz_sp,
+        rθ = rθ_sp,
+        opts = opts)
+
     # solve
-    status = ContactControl.interior_point!(ip, z, θ, opts = opts)
+    status = ContactControl.interior_point!(ip)
 
     # test
     @test status
@@ -124,20 +126,23 @@ end
     rθf! = x -> nothing #eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
         # parallel = parallel)[2])
 
+    # options
+    opts = ContactControl.InteriorPointOptions(
+        diff_sol = false,
+        κ_init = 1.0,
+        κ_tol = 1.0,
+        max_iter_outer = 1,
+        solver = :ldl_solver)
+
     # solver
-    ip = ContactControl.interior_point(n + m, 2 * n + m * n, idx_ineq,
-        x = z, θ = θ,
+    ip = ContactControl.interior_point(z, θ,
+        idx_ineq = idx_ineq,
         r! = rf!, rz! = rzf!, rθ! = rθf!,
         rz = rz_sp,
         rθ = rθ_sp,
-        solver = :ldl_solver)
+        opts = opts)
 
-    opts = ContactControl.InteriorPointOptions(diff_sol = false,
-        κ_init = 1.0,
-        κ_tol = 1.0,
-        max_iter_outer = 1)
-
-    status = ContactControl.interior_point!(ip, z, θ, opts = opts)
+    status = ContactControl.interior_point!(ip, z, θ)
 
     # test
     @test status
@@ -196,36 +201,40 @@ end
     rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
         parallel = parallel)[2])
 
-    # solver
-    ip_cgs = ContactControl.interior_point(2 * n, 2 * n, idx_ineq,
-        x = z, θ = θ,
-        r! = rf!, rz! = rzf!, rθ! = rθf!,
-        rz = rz_sp,
-        rθ = rθ_sp,
-        solver = :cgs_solver)
-
-    ip_mgs = ContactControl.interior_point(2 * n, 2 * n, idx_ineq,
-        x = z, θ = θ,
-        r! = rf!, rz! = rzf!, rθ! = rθf!,
-        rz = rz_sp,
-        rθ = rθ_sp,
-        solver = :mgs_solver)
-
     # options
-    opts = ContactControl.InteriorPointOptions(diff_sol = false)
+    opts_cgs = ContactControl.InteriorPointOptions(
+        diff_sol = false, solver = :cgs_solver)
+
+    opts_mgs = ContactControl.InteriorPointOptions(
+        diff_sol = false, solver = :mgs_solver)
+
+    # solver
+    ip_cgs = ContactControl.interior_point(z, θ,
+        idx_ineq = idx_ineq,
+        r! = rf!, rz! = rzf!, rθ! = rθf!,
+        rz = rz_sp,
+        rθ = rθ_sp,
+        opts = opts_cgs)
+
+    ip_mgs = ContactControl.interior_point(z, θ,
+        idx_ineq = idx_ineq,
+        r! = rf!, rz! = rzf!, rθ! = rθf!,
+        rz = rz_sp,
+        rθ = rθ_sp,
+        opts = opts_mgs)
 
     # solve
-    status_cgs = ContactControl.interior_point!(ip_cgs, z, θ, opts = opts)
-    status_mgs = ContactControl.interior_point!(ip_mgs, z, θ, opts = opts)
+    status_cgs = ContactControl.interior_point!(ip_cgs, z, θ)
+    status_mgs = ContactControl.interior_point!(ip_mgs, z, θ)
 
     # test
     @test status_cgs
-    @test norm(ip_cgs.r, Inf) < opts.r_tol
+    @test norm(ip_cgs.r, Inf) < opts_cgs.r_tol
     @test !ContactControl.inequality_check(ip_cgs.z, ip_cgs.idx_ineq)
-    @test ip_cgs.κ[1] < opts.κ_tol
+    @test ip_cgs.κ[1] < opts_cgs.κ_tol
 
     @test status_mgs
-    @test norm(ip_mgs.r, Inf) < opts.r_tol
+    @test norm(ip_mgs.r, Inf) < opts_mgs.r_tol
     @test !ContactControl.inequality_check(ip_mgs.z, ip_mgs.idx_ineq)
-    @test ip_mgs.κ[1] < opts.κ_tol
+    @test ip_mgs.κ[1] < opts_mgs.κ_tol
 end
