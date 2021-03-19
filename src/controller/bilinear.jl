@@ -18,8 +18,8 @@ function LinStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::Abstract
 	κ0 = κ
 	r0 = zeros(SizedVector{nz,T})
 	# rz0 = spzeros(nz,nz) # SPARSE
-	rz0 = similar(model.spa.rz_sp, T)
-	rθz = zeros(nz, nz)
+	# rz0 = similar(model.spa.rz_sp, T)
+	rz0 = zeros(nz, nz)
 	rθ0 = zeros(nz, nθ)
 	model.res.r(r0, z0, θ0, κ0)
 	model.res.rz(rz0, z0, θ0)

@@ -77,7 +77,11 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		idx_ineq = inequality_indices(model),
 		rz = model.spa.rz_sp,
 		rθ = model.spa.rθ_sp,
-		opts = ip_opts)
+		solver=:lu_solver)
+	ip_opts = InteriorPointOptions(
+		κ_init=κ[1],
+		κ_tol=κ[1],
+		diff_sol=true)
 
 	for k = 1:H
 		@assert abs.(impl.lin[k].κ0 - κ[1])/κ[1] < 1e-5 # check that the κ are consistent between the optimized trajectory (traj)

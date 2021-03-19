@@ -53,3 +53,5 @@ function scn(a::Float64; digits::Int=1)
     sgne = e >= 0 ? "+" : ""
     return "$sgn$(strm)e$sgne$e"
 end
+
+#
