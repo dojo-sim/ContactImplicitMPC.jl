@@ -11,22 +11,20 @@ struct Simulator{S,nq,nu,nc,nb,nw,nz,nθ}
     deriv_traj::ContactDerivTraj{S,nq,nu,nc,nb}
 
     ip::InteriorPoint{S}
-    ip_opts::InteriorPointOptions{S}
 
-    sim_opts::SimulatorOptions{S}
+    opts::SimulatorOptions{S}
 end
 
 function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     u = [@SVector zeros(model.dim.u) for t = 1:H],
     w = [@SVector zeros(model.dim.w) for t = 1:H],
-    ip_opts = InteriorPointOptions{S}(),
     r! = model.res.r,
     rz! = model.res.rz,
     rθ! = model.res.rθ,
     rz = model.spa.rz_sp,
     rθ = model.spa.rθ_sp,
-    sim_opts = SimulatorOptions{S}(),
-    solver = :lu_solver) where S
+    ip_opts = InteriorPointOptions{S}(),
+    sim_opts = SimulatorOptions{S}()) where S
 
     traj = contact_trajectory(H, h, model)
     traj.q[1] = q0
@@ -42,24 +40,20 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     z_initialize!(z, model, q1)
     θ_initialize!(θ, model, q0, q1, u[1], w[1], h)
 
-    ip = interior_point(
-        num_var(model),
-        num_data(model),
-        inequality_indices(model),
-        x = z, θ = θ,
+    ip = interior_point(z, θ,
+        idx_ineq = inequality_indices(model),
         r! = r!,
         rz! = rz!,
         rθ! = rθ!,
         rz = rz,
         rθ = rθ,
-        solver = solver)
+        opts = ip_opts)
 
     Simulator(
         model,
         traj,
         traj_deriv,
         ip,
-        ip_opts,
         sim_opts)
 end
 
@@ -76,16 +70,16 @@ function step!(sim::Simulator, t)
     θ = ip.θ
 
     # initialize
-    if sim.sim_opts.warmstart
-        z .+= sim.sim_opts.z_warmstart * rand(ip.num_var)
-        sim.ip_opts.κ_init = sim.sim_opts.κ_warmstart
+    if sim.opts.warmstart
+        z .+= sim.opts.z_warmstart * rand(ip.num_var)
+        sim.ip.opts.κ_init = sim.opts.κ_warmstart
     else
         z_initialize!(z, model, q[t+1])
     end
     θ_initialize!(θ, model, q[t], q[t+1], u[t], w[t], h)
 
     # solve
-    status = interior_point!(ip, opts = sim.ip_opts)
+    status = interior_point!(ip)
 
     if status
         # parse result
@@ -97,7 +91,7 @@ function step!(sim::Simulator, t)
         sim.traj.b[t] = copy(b)
         sim.traj.κ[1] = ip.κ[1] # the last κ used in the solve.
 
-        if sim.ip_opts.diff_sol
+        if sim.ip.opts.diff_sol
             nq = model.dim.q
             nu = model.dim.u
             nc = model.dim.c

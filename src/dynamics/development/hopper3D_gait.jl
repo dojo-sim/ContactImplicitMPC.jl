@@ -22,7 +22,7 @@ sim = ContactControl.simulator(model, q0, q1, h, T,
     rθ = model.spa.rθ_sp,
     ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 1.0e-5, κ_init = 1.0e-4),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true),
-	solver = :lu_solver)
+	solver = :mgs_solver)
 
 # simulate
 @time status = ContactControl.simulate!(sim, verbose = false)

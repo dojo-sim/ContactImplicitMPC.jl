@@ -67,17 +67,17 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 	# constraint violation (solve linearized contact problem)
 	# constraint gradient (implicit function theorem)
 
-	# INITIALIZATION
-	ip = interior_point(
-		num_var(model),
-		num_data(model),
-		inequality_indices(model),
-		rz = model.spa.rz_sp,
-		rθ = model.spa.rθ_sp)
 	ip_opts = InteriorPointOptions(
-		κ_init=κ,
-		κ_tol=κ,
-		diff_sol=true)
+		κ_init = κ,
+		κ_tol = κ,
+		diff_sol = true)
+
+	# INITIALIZATION
+	ip = interior_point(zeros(num_var(model)), zeros(num_data(model)),
+		idx_ineq = inequality_indices(model),
+		rz = model.spa.rz_sp,
+		rθ = model.spa.rθ_sp,
+		opts = ip_opts)
 
 	for k = 1:H
 		@assert abs.(impl.lin[k].κ0 - κ[1])/κ[1] < 1e-5 # check that the κ are consistent between the optimized trajectory (traj)
@@ -96,7 +96,8 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		ip.methods.rθ! = rθ!
 
 		z_initialize!(ip.z, model, traj.q[k+2]) # initialize with our best guess.
-		status = interior_point!(ip, ip.z, traj.θ[k]; opts=ip_opts)
+		ip.θ .= traj.θ[k]
+		status = interior_point!(ip)#, ip.z, traj.θ[k]; opts=ip_opts)
 
 		q2 = traj.q[k+2]
 		γ1 = traj.γ[k]

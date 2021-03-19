@@ -30,7 +30,7 @@ struct Hopper2D{T} <: ContactDynamicsModel
 	env::Environment
 end
 
-lagrangian(model::Particle, q, q̇) = 0.0
+lagrangian(model::Hopper2D, q, q̇) = 0.0
 
 # Kinematics
 function kinematics(::Hopper2D, q)

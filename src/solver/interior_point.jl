@@ -28,6 +28,20 @@ function rθ!(rθ, z, θ)
     nothing
 end
 
+# interior-point solver options
+@with_kw mutable struct InteriorPointOptions{T}
+    r_tol::T = 1.0e-5
+    κ_tol::T = 1.0e-5
+    κ_init::T = 1.0
+    κ_scale::T = 0.1
+    max_iter_inner::Int = 100
+    max_iter_outer::Int = 10
+    max_ls::Int = 50
+    max_time::T = 60.0
+    diff_sol::Bool = false
+    solver::Symbol = :lu_solver
+end
+
 mutable struct InteriorPointMethods
     r!
     rz!
@@ -52,14 +66,17 @@ struct InteriorPoint{T}
     num_var::Int
     num_data::Int
     solver::LinearSolver
+    opts::InteriorPointOptions
 end
 
-function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
-        x = ones(num_var), θ = zeros(num_data),
+function interior_point(x, θ;
+        num_var = length(x),
+        num_data = length(θ),
+        idx_ineq = collect(1:0),
         r! = r!, rz! = rz!, rθ! = rθ!,
         rz = spzeros(num_var, num_var),
         rθ = spzeros(num_var, num_data),
-        solver = :lu_solver) where T
+        opts = InteriorPointOptions()) where T
 
     rz!(rz, x, θ) # compute Jacobian for pre-factorization
 
@@ -80,25 +97,12 @@ function interior_point(num_var::Int, num_data::Int, idx_ineq::Vector{Int};
         zeros(1),
         num_var,
         num_data,
-        eval(solver)(rz))
-end
-
-# interior-point solver options
-@with_kw mutable struct InteriorPointOptions{T}
-    r_tol::T = 1.0e-5
-    κ_tol::T = 1.0e-5
-    κ_init::T = 1.0
-    κ_scale::T = 0.1
-    max_iter_inner::Int = 100
-    max_iter_outer::Int = 10
-    max_ls::Int = 50
-    max_time::T = 60.0
-    diff_sol::Bool = false
+        eval(opts.solver)(rz),
+        opts)
 end
 
 # interior point solver
-function interior_point!(ip::InteriorPoint{T};
-    opts = InteriorPointOptions{T}()) where T
+function interior_point!(ip::InteriorPoint{T}) where T
 
     # methods
     r! = ip.methods.r!
@@ -106,6 +110,7 @@ function interior_point!(ip::InteriorPoint{T};
     rθ! = ip.methods.rθ!
 
     # options
+    opts = ip.opts
     r_tol = opts.r_tol
     κ_tol = opts.κ_tol
     κ_init = opts.κ_init
@@ -206,11 +211,10 @@ function interior_point!(ip::InteriorPoint{T};
     end
 end
 
-function interior_point!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::AbstractVector{T};
-    opts = InteriorPointOptions{T}()) where T
+function interior_point!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
-    interior_point!(ip, opts = opts)
+    interior_point!(ip)
 end
 
 function differentiate_solution!(ip::InteriorPoint)
