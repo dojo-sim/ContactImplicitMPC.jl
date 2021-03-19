@@ -36,7 +36,9 @@
     ContactControl.set_traj!(target, source, νtarget, νsource, Δ0, 2.0)
     source.q[1] .+= 1000.0
     source.u[1] .+= 1000.0
-    @test target.q[1][1] == 201.0
+	@test target.q[1][1] == -1.0
+	@test target.q[2][1] == -1.0
+    @test target.q[3][1] == 201.0
     @test target.u[1][1] == 202.0
     @test target.γ[1][1] == 204.0
     @test target.b[1][1] == 205.0
@@ -62,7 +64,7 @@ end
 	    z[1:nq] = q1
 	end
 
-	sim0 = ContactControl.simulator2(model, q0, q1, h, H,
+	sim0 = ContactControl.simulator(model, q0, q1, h, H,
 	    u = [SVector{model.dim.u}(h * ut) for ut in u],
 	    r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
 	    rz = model.spa.rz_sp,
@@ -83,7 +85,97 @@ end
 	ContactControl.linearization!(model, ref_traj0, impl1, ref_traj0.κ)
 
 	ContactControl.implicit_dynamics!(model, ref_traj0, impl0)
-	mean(norm.(impl0.d, 2)) < 5e-3
+	@test mean(norm.(impl0.d, 2)) < 5e-3
 	ContactControl.implicit_dynamics!(model, ref_traj1, impl1)
-	mean(norm.(impl1.d, 2)) > 5e-1
+	@test mean(norm.(impl1.d, 2)) > 5e-1
+
+
+
+	# Check that we can optimize z with the residual function r and rz
+	# Verify that we get the ~same results using r_approx and rz_approx if the linearization was done about the solution.
+	nq = model.dim.q
+	nz = ContactControl.num_var(model)
+	α = 5e-2
+
+	ref_traj0 = deepcopy(sim0.traj)
+	ref_traj1 = deepcopy(ref_traj0)
+	ref_traj1.q[3] .+= α*ones(model.dim.q)
+	ref_traj1.z[1][1:nq] .= ref_traj1.q[3]
+
+	impl0 = ContactControl.ImplicitTraj(H, model)
+	ContactControl.linearization!(model, ref_traj0, impl0, ref_traj0.κ)
+
+	z1 = ref_traj1.z[1]
+	θ1 = ref_traj1.θ[1]
+	@test norm(θ1 - ref_traj0.θ[1], 1) < 1e-8
+	@test abs(norm(z1 - ref_traj0.z[1], 1) - nq*α) < 1e-8
+
+	r1 = zeros(nz)
+	κ = ref_traj1.κ
+	rz1 = spzeros(nz,nz)
+	model.res.r(r1, z1, θ1, κ)
+	@test norm(r1) > 1.0
+
+	function dummy_newton(z, θ, κ)
+		for k = 1:400
+			r = zeros(nz)
+			rz = spzeros(nz,nz)
+			rz = similar(model.spa.rz_sp)
+			model.res.r(r, z, θ, κ)
+			model.res.rz(rz, z, θ)
+			Δ = - rz \ r
+			z = z + 0.1*Δ
+			# @show norm(r)
+		end
+		return z
+	end
+
+	z2 = dummy_newton(z1, θ1, κ)
+	model.res.r(r1, z2, θ1, κ)
+	@test norm(r1) < 1e-10
+
+	function dummy_linear_newton(impl, z, θ, κ)
+		for k = 1:400
+			r = zeros(nz)
+			rz = spzeros(nz,nz)
+			rz = similar(model.spa.rz_sp)
+			ContactControl.r_approx!(impl.lin[1], r, z, θ, κ[1])
+			ContactControl.rz_approx!(impl.lin[1], rz, z, θ)
+			Δ = - rz \ r
+			z = z + 0.1*Δ
+			# @show norm(r)
+		end
+		return z
+	end
+
+	z3 = dummy_linear_newton(impl0, z1, θ1, κ)
+	ContactControl.r_approx!(impl0.lin[1], r1, z3, θ1, κ[1])
+	@test norm(r1) < 1e-10
+
+	# We recover the original z using r and rz
+	@test norm(ref_traj0.z[1] - z2) < 1e-6
+	# We recover the original z using r_approx and rz_approx
+	@test norm(ref_traj0.z[1] - z3) < 1e-6
+	# We recover the same solution using either methods
+	@test norm(z2 - z3) < 1e-6
 end
+
+@testset "Barrier Function" begin
+	n = 10
+	m = 5
+	a = zeros(n)
+	b = rand(SizedVector{m})
+	v = view(a, 1:m)
+	ContactControl.set!(v, b)
+	@test v == b
+	ContactControl.setminus!(v, -b)
+	@test v == b
+
+	a0 = rand(SizedVector{n})
+	a1 = rand(SizedVector{n})
+	a2 = rand(SizedVector{n})
+	ContactControl.delta!(a0, a1, a2)
+	@test a0 == a1 - a2
+end
+
+# const ContactControl = Main

@@ -204,6 +204,20 @@ function ResidualMethods()
 	return ResidualMethods(fill(f, 3)...)
 end
 
+mutable struct ApproximateMethods
+	r::Any
+	rz::Any
+	rθ::Any
+end
+
+function ApproximateMethods()
+	function f()
+		error("Not Implemented: use instantiate_residual!")
+		return nothing
+	end
+	return ApproximateMethods(fill(f, 3)...)
+end
+
 mutable struct SparseStructure
 	rz_sp::Any
 	rθ_sp::Any
@@ -221,6 +235,7 @@ function get_model(name::String; surf::String = "flat")
 	instantiate_base!(model, joinpath(path, surf, "base.jld2"))
 	instantiate_dynamics!(model, joinpath(path, surf, "dynamics.jld2"))
 	instantiate_residual!(model, joinpath(path, surf, "residual.jld2"))
+	instantiate_approx!(model, joinpath(path, surf, "approx.jld2"))
 	@load joinpath(path, surf, "sparse_jacobians.jld2") rz_sp rθ_sp
 	model.spa.rz_sp = rz_sp
 	model.spa.rθ_sp = rθ_sp

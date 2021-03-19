@@ -28,6 +28,7 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 function scn(a::Number; digits::Int=1)
 	typeof(a) <: Float64 ? nothing : return nothing
 end
+
 function scn(a::Float64; digits::Int=1)
 	@assert digits >= 0
     # a = m x 10^e

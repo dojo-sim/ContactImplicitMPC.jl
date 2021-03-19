@@ -7,6 +7,7 @@ mutable struct LinStep{T}
 	rθ0::AbstractMatrix{T}
 	bil_terms::Any
 	bil_vars::Any
+	methods::InteriorPointMethods
 end
 
 function LinStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
@@ -16,14 +17,28 @@ function LinStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::Abstract
 	θ0 = SizedVector{nθ,T}(θ)
 	κ0 = κ
 	r0 = zeros(SizedVector{nz,T})
-	rz0 = spzeros(nz,nz)
+	# rz0 = spzeros(nz,nz) # SPARSE
 	rz0 = similar(model.spa.rz_sp, T)
+	rθz = zeros(nz, nz)
 	rθ0 = zeros(nz, nθ)
 	model.res.r(r0, z0, θ0, κ0)
 	model.res.rz(rz0, z0, θ0)
 	model.res.rθ(rθ0, z0, θ0)
 	bil_terms, bil_vars = get_bilinear_indices(model)
-	return LinStep{T}(z0, θ0, κ0, r0, rz0, rθ0, bil_terms, bil_vars)
+	function r!(r, z, θ, κ)
+		model.approx.r(r, z, θ, κ, lin.z0, lin.θ0, lin.r0, lin.rz0, lin.rθ0)
+		return nothing
+	end
+	function rz!(rz, z, θ)
+		model.approx.rz(rz, z, lin.rz0)
+		return nothing
+	end
+	function rθ!(rθ, z, θ)
+		model.approx.rθ(rθ, lin.rθ0)
+		return nothing
+	end
+	methods = InteriorPointMethods(r!, rz!, rθ!)
+	return LinStep{T}(z0, θ0, κ0, r0, rz0, rθ0, bil_terms, bil_vars, methods)
 end
 
 """
@@ -52,7 +67,7 @@ function get_bilinear_indices(model::ContactDynamicsModel)
 				 SVector{nb,Int}(nq+4nc+nb .+ (1:nb))]
 	bil_vars = [[SVector{nc,Int}(nq .+ (1:nc)), SVector{nc}(nq+2nc+2nb .+ (1:nc))],  # γ1, s1
 				[SVector{nc,Int}(nq+nc+nb .+ (1:nc)), SVector{nc}(nq+3nc+2nb .+ (1:nc))],  # ψ, s2
-				[SVector{nb,Int}(nq+nc .+ (1:nb)), SVector{nb}(nq+2nc+nb .+ (1:nb))]] # b2, η
+				[SVector{nb,Int}(nq+nc .+ (1:nb)), SVector{nb}(nq+2nc+nb .+ (1:nb))]] # b1, η
 	return bil_terms, bil_vars
 end
 
@@ -83,7 +98,7 @@ function r_approx!(lin::LinStep, r::AbstractVector{T1},
 		t = lin.bil_terms[i]
 		v1 = lin.bil_vars[i][1]
 		v2 = lin.bil_vars[i][2]
-		# r[t] = z[v1].*z[v2] .- κ
+		r[t] = z[v1].*z[v2] .- κ
 		bil_addition!(r, t, z[v1], z[v2], κ)
 	end
     return nothing
