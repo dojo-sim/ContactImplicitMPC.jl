@@ -67,16 +67,23 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 	# constraint violation (solve linearized contact problem)
 	# constraint gradient (implicit function theorem)
 
+	# plt = plot()
+    # plot!(hcat(Vector.(traj.q)...)', label="q_implicit!!")
+    # display(plt)
+
 	# INITIALIZATION
 	ip = interior_point(
 		num_var(model),
 		num_data(model),
 		inequality_indices(model),
+		r! = model.res.r,
+		rz! = model.res.rz,
+		rθ! = model.res.rθ,
 		rz = model.spa.rz_sp,
 		rθ = model.spa.rθ_sp)
 	ip_opts = InteriorPointOptions(
-		κ_init=κ,
-		κ_tol=κ,
+		κ_init=κ[1],
+		κ_tol=κ[1],
 		diff_sol=true)
 
 	for k = 1:H
@@ -84,19 +91,20 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		# and the linearization (impl.lin).
 
 		# Define local residual functions
-		# residual
-		r!(r, z, θ, κ) = r_approx!(impl.lin[k], r, z, θ, κ)
-		# residual Jacobian wrt z
-		rz!(rz, z, θ) = rz_approx!(impl.lin[k], rz, z, θ)
-		# residual Jacobian wrt θ
-		rθ!(rθ, z, θ) = rθ_approx!(impl.lin[k], rθ, z, θ)
+		# # residual
+		# r!(r, z, θ, κ) = r_approx!(impl.lin[k], r, z, θ, κ)
+		# # residual Jacobian wrt z
+		# rz!(rz, z, θ) = rz_approx!(impl.lin[k], rz, z, θ)
+		# # residual Jacobian wrt θ
+		# rθ!(rθ, z, θ) = rθ_approx!(impl.lin[k], rθ, z, θ)
 		# Set the residual functions
-		ip.methods.r! = r!
-		ip.methods.rz! = rz!
-		ip.methods.rθ! = rθ!
+		ip.methods.r! = impl.lin[k].methods.r!
+		ip.methods.rz! = impl.lin[k].methods.rz!
+		ip.methods.rθ! = impl.lin[k].methods.rθ!
 
 		z_initialize!(ip.z, model, traj.q[k+2]) # initialize with our best guess.
-		status = interior_point!(ip, ip.z, traj.θ[k]; opts=ip_opts)
+		# status = interior_point!(ip, ip.z, traj.θ[k]; opts=ip_opts)
+		status = interior_point!(ip, ip.z, [traj.q[k]; traj.q[k+1]; traj.u[k]; traj.w[k]; traj.h]; opts=ip_opts) #########$$$$$$$$$$$$$$$$$$$$$BAD
 
 		q2 = traj.q[k+2]
 		γ1 = traj.γ[k]

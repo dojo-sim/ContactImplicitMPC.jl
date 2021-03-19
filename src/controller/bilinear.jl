@@ -7,6 +7,7 @@ mutable struct LinStep{T}
 	rθ0::AbstractMatrix{T}
 	bil_terms::Any
 	bil_vars::Any
+	methods::InteriorPointMethods
 end
 
 function LinStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
@@ -16,14 +17,28 @@ function LinStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::Abstract
 	θ0 = SizedVector{nθ,T}(θ)
 	κ0 = κ
 	r0 = zeros(SizedVector{nz,T})
-	rz0 = spzeros(nz,nz)
-	rz0 = similar(model.spa.rz_sp, T)
+	# rz0 = spzeros(nz,nz) # SPARSE
+	# rz0 = similar(model.spa.rz_sp, T)
+	rθz = zeros(nz, nz)
 	rθ0 = zeros(nz, nθ)
 	model.res.r(r0, z0, θ0, κ0)
 	model.res.rz(rz0, z0, θ0)
 	model.res.rθ(rθ0, z0, θ0)
 	bil_terms, bil_vars = get_bilinear_indices(model)
-	return LinStep{T}(z0, θ0, κ0, r0, rz0, rθ0, bil_terms, bil_vars)
+	function r!(r, z, θ, κ)
+		model.approx.r(r, z, θ, κ, lin.z0, lin.θ0, lin.r0, lin.rz0, lin.rθ0)
+		return nothing
+	end
+	function rz!(rz, z, θ)
+		model.approx.rz(rz, z, lin.rz0)
+		return nothing
+	end
+	function rθ!(rθ, z, θ)
+		model.approx.rθ(rθ, lin.rθ0)
+		return nothing
+	end
+	methods = InteriorPointMethods(r!, rz!, rθ!)
+	return LinStep{T}(z0, θ0, κ0, r0, rz0, rθ0, bil_terms, bil_vars, methods)
 end
 
 """
@@ -120,4 +135,43 @@ function rθ_approx!(lin::LinStep, rθ::AbstractMatrix{T},
 	z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
 	rθ .= lin.rθ0
     return nothing
+end
+
+
+function bilinear_code_gen(model::ContactDynamicsModel)
+    bil_terms, bil_vars = get_bilinear_indices(model)
+    nz = num_var(model)
+    nθ - num_data(model)
+
+    @variables   z[1:nz]
+	@variables   θ[1:nθ]
+	@variables   κ[1:1]
+    @variables  z0[1:nz]
+    @variables  θ0[1:nθ]
+    @variables  r0[1:nz]
+    @variables rz0[1:nz,1:nz]
+    @variables rθ0[1:nz,1:nθ]
+
+	# r_approx rz_approx, rθ_approx
+    r = r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
+	rz = rz0
+	rθ = rθ0
+	for i = 1:length(bil_terms)
+		t = bil_terms[i]
+		v1 = bil_vars[i][1]
+		v2 = bil_vars[i][2]
+		for j = 1:length(t)
+			r[t[j]] = z[v1[j]]*z[v2[j]] - κ[1]
+			rz[t[j], v1[j]] = z[v2[j]]
+			rz[t[j], v2[j]] = z[v1[j]]
+		end
+	end
+	r = simplify.(r)
+	rz = simplify.(rz)
+    rθ = simplify.(rθ)
+
+	r_expr  = eval(build_function(r,  z, θ, κ, z0, θ0, r0, rz0, rθ0)[2])
+	rz_expr = eval(build_function(rz, z, rz0)[2])
+	rθ_expr = eval(build_function(rθ, rθ0)[2])
+    return r_expr, rz_expr, rθ_expr
 end

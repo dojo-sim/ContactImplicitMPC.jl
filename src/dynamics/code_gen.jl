@@ -101,7 +101,7 @@ function generate_base_expressions_analytical(model::ContactDynamicsModel)
 	J = Symbolics.simplify.(J)
 
 	# Coriolis and Centrifugal forces Jacobians
-	C = C_func(model, q, q̇)
+	C = C_func(model, q)
 	C = Symbolics.simplify.(C)[1:nq]
 
 	# Build function
@@ -113,7 +113,6 @@ function generate_base_expressions_analytical(model::ContactDynamicsModel)
 	expr[:A]    = build_function(A, q)[1]
 	expr[:J]    = build_function(J, q)[1]
 	expr[:C]    = build_function(C, q, q̇)[1]
-	
 	return expr
 end
 
@@ -196,6 +195,50 @@ function generate_residual_expressions(model::ContactDynamicsModel; T = Float64)
 	expr[:rz] = build_function(rz, z, θ)[2]
 	expr[:rθ] = build_function(rθ, z, θ)[2]
 	return expr, rz_sp, rθ_sp
+end
+
+"""
+	generate_approx_expressions(model::ContactDynamicsModel)
+Generate fast approximate methods using Symbolics symbolic computing tools.
+"""
+function generate_approx_expressions(model::ContactDynamicsModel; T = Float64)
+    bil_terms, bil_vars = get_bilinear_indices(model)
+    nz = num_var(model)
+    nθ = num_data(model)
+
+    @variables   z[1:nz]
+	@variables   θ[1:nθ]
+	@variables   κ[1:1]
+    @variables  z0[1:nz]
+    @variables  θ0[1:nθ]
+    @variables  r0[1:nz]
+    @variables rz0[1:nz,1:nz]
+    @variables rθ0[1:nz,1:nθ]
+
+	# r_approx rz_approx, rθ_approx
+    r = r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
+	rz = rz0
+	rθ = rθ0
+	for i = 1:length(bil_terms)
+		t = bil_terms[i]
+		v1 = bil_vars[i][1]
+		v2 = bil_vars[i][2]
+		for j = 1:length(t)
+			r[t[j]] = z[v1[j]]*z[v2[j]] - κ[1]
+			rz[t[j], v1[j]] = z[v2[j]]
+			rz[t[j], v2[j]] = z[v1[j]]
+		end
+	end
+	r = simplify.(r)
+	rz = simplify.(rz)
+    rθ = simplify.(rθ)
+
+	# Build function
+	expr = Dict{Symbol, Expr}()
+	expr[:r]  = build_function(r,  z, θ, κ, z0, θ0, r0, rz0, rθ0)[2]
+	expr[:rz] = build_function(rz, z, rz0)[2]
+	expr[:rθ] = build_function(rθ, rθ0)[2]
+	return expr
 end
 
 """
@@ -303,11 +346,36 @@ end
 Evaluates the residual expressions to generate functions, stores them into the model.
 """
 function instantiate_residual!(fct::ResidualMethods, expr::Dict{Symbol,Expr})
+	fct.r  = eval(expr[:r])
+	fct.rz = eval(expr[:rz])
+	fct.rθ = eval(expr[:rθ])
+	return nothing
+end
+
+"""
+	instantiate_approx!(model::QuadrupedModel,
+		path::AbstractString=".expr/quadruped_approx.jld2")
+Loads the approximate expressions from the `path`, evaluates them to generate functions,
+stores them into the model.
+"""
+function instantiate_approx!(model::ContactDynamicsModel, path::AbstractString="model/approx.jld2")
+	expr = load_expressions(path)
+	instantiate_approx!(model.approx, expr)
+	return nothing
+end
+
+"""
+	instantiate_approx!(model,
+		path::AbstractString="model/approx.jld2")
+Evaluates the approximate expressions to generate functions, stores them into the model.
+"""
+function instantiate_approx!(fct::ApproximateMethods, expr::Dict{Symbol,Expr})
 	fct.r   = eval(expr[:r])
 	fct.rz = eval(expr[:rz])
 	fct.rθ = eval(expr[:rθ])
 	return nothing
 end
+
 
 function fast_expressions!(model::ContactDynamicsModel, dir::String;
 	generate = true, verbose = true)
