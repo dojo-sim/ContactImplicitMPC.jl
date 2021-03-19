@@ -81,7 +81,7 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		rθ! = model.res.rθ,
 		rz = model.spa.rz_sp,
 		rθ = model.spa.rθ_sp,
-		solver=:mgs_solver)
+		solver=:lu_solver)
 	ip_opts = InteriorPointOptions(
 		κ_init=κ[1],
 		κ_tol=κ[1],
