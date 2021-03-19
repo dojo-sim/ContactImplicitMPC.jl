@@ -48,6 +48,8 @@ include("dynamics/quadruped/model.jl")
 
 # Simulator
 include("simulator/trajectory.jl")
+include("simulator/policy.jl")
+include("simulator/disturbances.jl")
 include("simulator/simulator.jl")
 
 # Controller

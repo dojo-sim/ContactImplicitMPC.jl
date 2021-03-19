@@ -241,3 +241,13 @@ function get_model(name::String; surf::String = "flat")
 	model.spa.rθ_sp = rθ_sp
 	return model
 end
+
+function get_gait(name::String, gait::String)
+	#TODO: assert model exists
+	path = joinpath(@__DIR__, name)
+	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
+
+	res = JLD2.jldopen(gait_path)# z̄ x̄ ū h̄ q u γ b
+
+	return res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
+end

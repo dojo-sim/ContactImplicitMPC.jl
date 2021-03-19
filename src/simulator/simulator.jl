@@ -10,14 +10,17 @@ struct Simulator{S,nq,nu,nc,nb,nw,nz,nθ}
     traj::ContactTraj{S,nq,nu,nw,nc,nb,nz,nθ}
     deriv_traj::ContactDerivTraj{S,nq,nu,nc,nb}
 
+    p::Policy
+    d::Disturbances
+
     ip::InteriorPoint{S}
 
     opts::SimulatorOptions{S}
 end
 
 function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
-    u = [@SVector zeros(model.dim.u) for t = 1:H],
-    w = [@SVector zeros(model.dim.w) for t = 1:H],
+    p = no_policy(model),
+    d = no_disturbances(model),
     r! = model.res.r,
     rz! = model.res.rz,
     rθ! = model.res.rθ,
@@ -26,19 +29,20 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     ip_opts = InteriorPointOptions{S}(),
     sim_opts = SimulatorOptions{S}()) where S
 
+    # initialize trajectories
     traj = contact_trajectory(H, h, model)
     traj.q[1] = q0
     traj.q[2] = q1
-    traj.u .= u
-    traj.w .= w
+    traj.u[1] = policy(p, traj.q[2], traj, 0.0)
+    traj.w[1] = disturbances(d, traj.q[2], 0.0)
 
     traj_deriv = contact_derivative_trajectory(H, model)
 
     # initialize interior point solver (for pre-factorization)
     z = zeros(num_var(model))
     θ = zeros(num_data(model))
-    z_initialize!(z, model, q1)
-    θ_initialize!(θ, model, q0, q1, u[1], w[1], h)
+    z_initialize!(z, model, traj.q[2])
+    θ_initialize!(θ, model, traj.q[1], traj.q[2], traj.u[1], traj.w[1], h)
 
     ip = interior_point(z, θ,
         idx_ineq = inequality_indices(model),
@@ -53,6 +57,8 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
         model,
         traj,
         traj_deriv,
+        p,
+        d,
         ip,
         sim_opts)
 end
@@ -68,6 +74,15 @@ function step!(sim::Simulator, t)
     ip = sim.ip
     z = ip.z
     θ = ip.θ
+
+    # current time
+    tc = (t - 1) * h
+
+    # policy
+    u[t] = policy(sim.p, q[t], sim.traj, tc) #TODO: fix time
+
+    # disturbances
+    w[t] = disturbances(sim.d, q[t], tc)
 
     # initialize
     if sim.opts.warmstart
