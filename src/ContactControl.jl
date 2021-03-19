@@ -43,6 +43,7 @@ export environment_2D, environment_3D, environment_2D_flat, environment_3D_flat,
 include("dynamics/particle_2D/model.jl")
 include("dynamics/particle/model.jl")
 include("dynamics/hopper_2D/model.jl")
+include("dynamics/hopper_3D/model.jl")
 include("dynamics/quadruped/model.jl")
 
 # Simulator

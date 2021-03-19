@@ -46,7 +46,7 @@ function M_func(model::Hopper2D, q)
 					   model.ml])
  end
 
-function C_func(model::Hopper2D, q)
+function C_func(model::Hopper2D, q, q̇)
 	@SVector [0.0,
 			  (model.mb + model.ml) * model.g,
 			  0.0,
@@ -94,6 +94,6 @@ hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(), ResidualMethods(),
-			   SparseStructure(spzeros(0,0),spzeros(0,0)),
+			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			   SVector{4}(zeros(4)),
 			   environment_2D_flat())
