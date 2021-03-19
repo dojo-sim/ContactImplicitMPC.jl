@@ -64,6 +64,58 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	return expr
 end
 
+function generate_base_expressions_analytical(model::ContactDynamicsModel)
+	nq = model.dim.q
+	nu = model.dim.u
+	nw = model.dim.w
+	nc = model.dim.c
+	nb = model.dim.b
+	np = dim(model.env)
+
+	# Declare variables
+	@variables q[1:nq]
+	@variables q̇[1:nq]
+
+	# Signed distance
+	ϕ = ϕ_func(model, q)
+	ϕ = Symbolics.simplify.(ϕ)[1:nc]
+
+	# Mass Matrix
+	M = M_func(model, q)
+	M = reshape(M, nq, nq)
+	M = Symbolics.simplify.(M)
+
+	# Control input Jacobian
+	B = B_func(model, q)
+	B = reshape(B, (nu, nq))
+	B = Symbolics.simplify.(B)
+
+	# Control input Jacobian
+	A = A_func(model, q)
+	A = reshape(A, (nw, nq))
+	A = Symbolics.simplify.(A)
+
+	# Contact Force Jacobian
+	J = J_func(model, q)
+	J = reshape(J, np * nc, nq)
+	J = Symbolics.simplify.(J)
+
+	# Coriolis and Centrifugal forces Jacobians
+	C = C_func(model, q)
+	C = Symbolics.simplify.(C)[1:nq]
+
+	# Build function
+	expr = Dict{Symbol, Expr}()
+	expr[:L]    = :(0.0 + 0.0) # TODO: replace with base instantiation
+	expr[:ϕ]    = build_function(ϕ, q)[1]
+	expr[:M]    = build_function(M, q)[1]
+	expr[:B]    = build_function(B, q)[1]
+	expr[:A]    = build_function(A, q)[1]
+	expr[:J]    = build_function(J, q)[1]
+	expr[:C]    = build_function(C, q, q̇)[1]
+	return expr
+end
+
 """
 	generate_dynamics_expressions(model::ContactDynamicsModel)
 Generate fast dynamics methods using Symbolics symbolic computing tools.
