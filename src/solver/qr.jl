@@ -216,6 +216,47 @@ function gs!(cgs_data::CGSData{n,T}, A::SparseMatrixCSC{T,Int}) where {n,T}
     return nothing
 end
 
+mutable struct DMGSData{n,T} <: GSData{n,T}
+    n::Int
+    A::Matrix{T}
+    qs::SVector{n,Vector{T}}
+    rs::Vector{Array{T,1}}
+end
+
+function DMGSData!(A::AbstractMatrix{T}, n::Int) where {T}
+    qs = SVector{n,Vector{T}}([zeros(n) for i=1:n])
+    rs = [zeros(T,1) for i=1:Int((n + 1) * n / 2)]
+    return DMGSData{n,T}(n, A, qs, rs)
+end
+
+function gs!(mgs_data::DMGSData{n,T}, A::Matrix{T}) where {n,T}
+    # Unpack
+    qs = mgs_data.qs
+    rs = mgs_data.rs
+
+    off = 1
+    for j in eachindex((1:n))
+        # qi
+        @inbounds @. @views qs[j] .= A[:,j]
+        for k in eachindex((1:j-1))
+            # rk
+            # @inbounds @views rs[off] .= transpose(qs[j])*qs[k]
+            @inbounds @views rs[off] .= LinearAlgebra.BLAS.dot(qs[j], qs[k])
+            # qu
+            @inbounds @. @views qs[j] .-= qs[k] .* rs[off]
+            off += 1
+        end
+        # re
+        # @inbounds @views rs[off] .= norm(qs[j],2)
+        @inbounds @views rs[off] .= LinearAlgebra.BLAS.nrm2(qs[j])
+        # q
+        @inbounds @. @views qs[j] ./= rs[off]
+        off += 1
+    end
+    return nothing
+end
+
+
 """
     QR solver
 """
@@ -236,5 +277,10 @@ function cgs_solver(A::SparseMatrixCSC{T,Int}) where T
     QRSolver(CGSData(A, size(A, 1)))
 end
 
+function dmgs_solver(A::SparseMatrixCSC{T,Int}) where T
+    QRSolver(DMGSData(A, size(A, 1)))
+end
+
 mgs_solver(A::Array{T, 2}) where T = mgs_solver(sparse(A))
 cgs_solver(A::Array{T, 2}) where T = cgs_solver(sparse(A))
+dmgs_solver(A::Array{T, 2}) where T = dmgs_solver(sparse(A))

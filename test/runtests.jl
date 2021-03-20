@@ -20,8 +20,11 @@ include("dynamics/quadruped.jl")
 
 # Simulator
 include("simulator/particle.jl")
+include("simulator/hopper_2D.jl")
+include("simulator/hopper_3D.jl")
+
 
 # Controller
-include("controller/bilinear.jl")
-include("controller/implicit_dynamics.jl")
+# include("controller/bilinear.jl")
+# include("controller/implicit_dynamics.jl")
 # include("controller/newton.jl")

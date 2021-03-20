@@ -5,7 +5,5 @@
 - Contact simulator
 - Contact-implicit controller
 
-- [x] Write inner solver for controller using IP method
 - [ ] Write outer solver for controller using Newton method
 - [ ] Decide on the use of SVector vs SizedVector
-- [X] Merge simulator and simulator2
