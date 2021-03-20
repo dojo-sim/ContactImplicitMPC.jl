@@ -280,9 +280,10 @@ end
 
 
 
-function mpc_stride_q(q::SizedArray{Tuple{nq},T,1,1,Vector{T}},
-    q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}}) where {nq,T}
-    return q + q_stride
+# MPC options
+@with_kw mutable struct MPC11Options{T}
+    H_sample::Int=3
+    H_mpc::Int=10
 end
 
 mutable struct MPC11{T,nq,nu,nw,nc,nb}
@@ -299,20 +300,10 @@ mutable struct MPC11{T,nq,nu,nw,nc,nb}
     q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}} # change in q required to loop the ref trajectories
 end
 
-# MPC options
-@with_kw mutable struct MPC11Options{T}
-    H_sample::Int=3
-    H_mpc::Int=10
-end
-
-
-q = SizedVector{nq}
-
-
 
 T = Float64
 κ = 1e-4
-# model = get_model("quadruped")
+model = get_model("quadruped")
 @load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
 
 # time
@@ -325,8 +316,8 @@ nc = model.dim.c
 nb = model.dim.b
 
 # initial conditions
-q0 = SizedVector{model.dim.q}(q[1])
-q1 = SizedVector{model.dim.q}(q[2])
+q0 = SVector{model.dim.q}(q[1])
+q1 = SVector{model.dim.q}(q[2])
 
 
 m_opts = MPC11Options{T}()
@@ -339,7 +330,9 @@ end
 
 sim0 = simulator(model, q0, q1, h, H,
     u = [SVector{model.dim.u}(h * u[i]) for i=1:H],
-    r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
+    r! = model.res.r,
+    rz! = model.res.rz,
+    rθ! = model.res.rθ,
     rz = model.spa.rz_sp,
     rθ = model.spa.rθ_sp,
     ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
@@ -350,13 +343,72 @@ ref_traj0 = deepcopy(sim0.traj)
 traj0 = deepcopy(sim0.traj)
 
 
-
-function dummy_mpc(m_opts::MPC11Options)
+function dummy_mpc(ref_traj::ContactTraj, q_stride::AbstractVector{T}, m_opts::MPC11Options)
     for l = 1:m_opts.H_mpc
-
+        plt = plot(legend=false)
+        plot!(hcat(ref_traj.q...)')
+        # plot!([q[1] for q in ref_traj.q])
+        rot_n_stride!(ref_traj, q_stride)
+        display(plt)
     end
     return nothing
 end
 
+function rot_n_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
+    q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}}) where {T,nq,nu,nw,nc,nb,nz,nθ}
+    rotate!(traj)
+    mpc_stride!(traj, q_stride)
+    return nothing
+end
 
-dummy_mpc(m_opts)
+function rotate!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,nw,nc,nb,nz,nθ}
+    @show "rot"
+    q1 = copy(traj.q[1])
+    u1 = copy(traj.u[1])
+    w1 = copy(traj.w[1])
+    γ1 = copy(traj.γ[1])
+    b1 = copy(traj.b[1])
+    z1 = copy(traj.z[1])
+    θ1 = copy(traj.θ[1])
+    for t = 1:H+1
+        traj.q[t] .= traj.q[t+1]
+    end
+    for t = 1:H-1
+        traj.u[t] .= traj.u[t+1]
+        traj.w[t] .= traj.w[t+1]
+        traj.γ[t] .= traj.γ[t+1]
+        traj.b[t] .= traj.b[t+1]
+        traj.z[t] .= traj.z[t+1]
+        traj.θ[t] .= traj.θ[t+1]
+    end
+    traj.q[end] .= q1
+    traj.u[end] .= u1
+    traj.w[end] .= w1
+    traj.γ[end] .= γ1
+    traj.b[end] .= b1
+    traj.z[end] .= z1
+    traj.θ[end] .= θ1
+    return nothing
+end
+
+"""
+    Update the last two cofiguaraton to be equal to the fisrt two up to an constant offset.
+"""
+function mpc_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
+    q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}}) where {T,nq,nu,nw,nc,nb,nz,nθ}
+    traj.q[end-1] .= deepcopy(traj.q[1]+q_stride)
+    traj.q[end  ] .= deepcopy(traj.q[2]+q_stride)
+    return nothing
+end
+
+function get_stride(model::Quadruped, traj::ContactTraj)
+    q_stride = zeros(SizedVector{nq})
+    q_stride[1] = traj.q[end-1][1] - traj.q[1][1]
+    return q_stride
+end
+
+ref_traj0 = deepcopy(sim0.traj)
+q_stride = get_stride(model, ref_traj0)
+
+m_opts.H_mpc = 399
+dummy_mpc(ref_traj0, q_stride, m_opts)
