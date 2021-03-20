@@ -1,6 +1,7 @@
 struct ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}
 	H::Int
 	h::T
+	κ::Vector{T}
 	q::Vector{SizedArray{Tuple{nq},T,1,1}}         # trajectory of q's   length=H+2
 	u::Vector{SizedArray{Tuple{nu},T,1,1}}         # trajectory of u's   length=H
 	w::Vector{SizedArray{Tuple{nw},T,1,1}}         # trajectory of w's   length=H
@@ -8,7 +9,13 @@ struct ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}
 	b::Vector{SizedArray{Tuple{nb},T,1,1}}         # trajectory of b's   length=H
 	z::Vector{SizedArray{Tuple{nz},T,1,1}}         # trajectory of z's   length=H
 	θ::Vector{SizedArray{Tuple{nθ},T,1,1}}         # trajectory of θ's   length=H
-	κ::Vector{T}
+	iq0::SizedArray{Tuple{nq},Int,1,1,Vector{Int}}
+	iq1::SizedArray{Tuple{nq},Int,1,1,Vector{Int}}
+	iu1::SizedArray{Tuple{nu},Int,1,1,Vector{Int}}
+	iw1::SizedArray{Tuple{nw},Int,1,1,Vector{Int}}
+	iq2::SizedArray{Tuple{nq},Int,1,1,Vector{Int}}
+	iγ1::SizedArray{Tuple{nc},Int,1,1,Vector{Int}}
+	ib1::SizedArray{Tuple{nb},Int,1,1,Vector{Int}}
 end
 
 function contact_trajectory(H::Int, h::T, model::ContactDynamicsModel) where {T}
@@ -30,7 +37,16 @@ function contact_trajectory(H::Int, h::T, model::ContactDynamicsModel) where {T}
 	θ = [zeros(SizedVector{nθ,T}) for k=1:H]
 	κ = [0.0]
 
-	return ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}(H,h,q,u,w,γ,b,z,θ,κ)
+	off = 0
+	iq0 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q0
+	iq1 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q1
+	iu1 = SizedVector{nu}(off .+ (1:nu)); off += nu # index of the control u1
+    iw1 = SizedVector{nw}(off .+ (1:nw)); off += nw # index of the disturbance w1
+	off = 0
+	iq2 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q2
+    iγ1 = SizedVector{nc}(off .+ (1:nc)); off += nc # index of the impact γ1
+    ib1 = SizedVector{nb}(off .+ (1:nb)); off += nb # index of the linear friction b1
+	return ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}(H,h,κ,q,u,w,γ,b,z,θ,iq0,iq1,iu1,iw1,iq2,iγ1,ib1)
 end
 
 struct ContactDerivTraj{S,nq,nu,nc,nb}

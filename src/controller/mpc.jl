@@ -301,58 +301,7 @@ mutable struct MPC11{T,nq,nu,nw,nc,nb}
 end
 
 
-T = Float64
-κ = 1e-4
-model = get_model("quadruped")
-@load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
 
-# time
-h = h̄
-H = length(u)
-
-nq = model.dim.q
-nu = model.dim.u
-nc = model.dim.c
-nb = model.dim.b
-
-# initial conditions
-q0 = SVector{model.dim.q}(q[1])
-q1 = SVector{model.dim.q}(q[2])
-
-
-m_opts = MPC11Options{T}()
-
-function z_initialize!(z, model::Quadruped, q1)
-	nq = model.dim.q
-    z .= 1.0e-1
-    z[1:nq] = q1
-end
-
-sim0 = simulator(model, q0, q1, h, H,
-    u = [SVector{model.dim.u}(h * u[i]) for i=1:H],
-    r! = model.res.r,
-    rz! = model.res.rz,
-    rθ! = model.res.rθ,
-    rz = model.spa.rz_sp,
-    rθ = model.spa.rθ_sp,
-    ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
-    sim_opts = SimulatorOptions(warmstart = true))
-
-simulate!(sim0; verbose = false)
-ref_traj0 = deepcopy(sim0.traj)
-traj0 = deepcopy(sim0.traj)
-
-
-function dummy_mpc(ref_traj::ContactTraj, q_stride::AbstractVector{T}, m_opts::MPC11Options)
-    for l = 1:m_opts.H_mpc
-        plt = plot(legend=false)
-        plot!(hcat(ref_traj.q...)')
-        # plot!([q[1] for q in ref_traj.q])
-        rot_n_stride!(ref_traj, q_stride)
-        display(plt)
-    end
-    return nothing
-end
 
 function rot_n_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
     q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}}) where {T,nq,nu,nw,nc,nb,nz,nθ}
@@ -396,8 +345,13 @@ end
 """
 function mpc_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
     q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}}) where {T,nq,nu,nw,nc,nb,nz,nθ}
-    traj.q[end-1] .= deepcopy(traj.q[1]+q_stride)
-    traj.q[end  ] .= deepcopy(traj.q[2]+q_stride)
+    H = traj.H
+    for t = H+1:H+2
+        traj.q[t] .= deepcopy(traj.q[t-H]+q_stride)
+        update_z!(traj, t-2)
+        update_θ!(traj, t-2)
+        update_θ!(traj, t-3)
+    end
     return nothing
 end
 
@@ -407,8 +361,68 @@ function get_stride(model::Quadruped, traj::ContactTraj)
     return q_stride
 end
 
+
+
+
+T = Float64
+κ = 1e-4
+# model = get_model("quadruped")
+@load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
+
+# time
+h = h̄
+H = length(u)
+
+nq = model.dim.q
+nu = model.dim.u
+nc = model.dim.c
+nb = model.dim.b
+
+# initial conditions
+q0 = SVector{model.dim.q}(q[1])
+q1 = SVector{model.dim.q}(q[2])
+
+
+
+function z_initialize!(z, model::Quadruped, q1)
+	nq = model.dim.q
+    z .= 1.0e-1
+    z[1:nq] = q1
+end
+
+sim0 = simulator(model, q0, q1, h, H,
+    p = open_loop_policy([SVector{model.dim.u}(h * u[i]) for i=1:H], h),
+    r! = model.res.r,
+    rz! = model.res.rz,
+    rθ! = model.res.rθ,
+    rz = model.spa.rz_sp,
+    rθ = model.spa.rθ_sp,
+    ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
+    sim_opts = SimulatorOptions(warmstart = true)
+    )
+
+simulate!(sim0; verbose = false)
+ref_traj0 = deepcopy(sim0.traj)
+traj0 = deepcopy(sim0.traj)
+
+function dummy_mpc(ref_traj::ContactTraj, impl::ImplicitTraj,
+    q_stride::AbstractVector{T}, m_opts::MPC11Options)
+    for l = 1:m_opts.H_mpc
+        plt = plot(legend=false)
+        plot!(hcat(ref_traj.q...)')
+        linearization!(model, ref_traj, impl, ref_traj.κ)
+        plot!([l.z0[1] for l in impl.lin], linewidth=5.0)
+
+        rot_n_stride!(ref_traj, q_stride)
+        display(plt)
+    end
+    return nothing
+end
+
 ref_traj0 = deepcopy(sim0.traj)
 q_stride = get_stride(model, ref_traj0)
 
-m_opts.H_mpc = 399
-dummy_mpc(ref_traj0, q_stride, m_opts)
+impl0 = ImplicitTraj(H, model)
+
+m_opts = MPC11Options{T}(H_mpc = 100)
+dummy_mpc(ref_traj0, impl0, q_stride, m_opts)
