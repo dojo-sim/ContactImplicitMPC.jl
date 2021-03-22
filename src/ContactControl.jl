@@ -31,14 +31,13 @@ include("solver/qr.jl")
 
 # Dynamics
 include("dynamics/environment.jl")
-
-# Simulator
-include("simulator/trajectory.jl")
-
 include("dynamics/model.jl")
 include("dynamics/code_gen.jl")
 include("dynamics/fast_methods.jl")
 include("dynamics/visuals.jl")
+
+# Simulator
+include("simulator/trajectory.jl")
 
 export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods, ResidualMethods, Environment
 export environment_2D, environment_3D, environment_2D_flat, environment_3D_flat, get_model
@@ -49,9 +48,9 @@ include("dynamics/particle/model.jl")
 include("dynamics/hopper_2D/model.jl")
 include("dynamics/hopper_3D/model.jl")
 include("dynamics/quadruped/model.jl")
+include("dynamics/biped/model.jl")
 
 # Simulator
-include("simulator/trajectory.jl")
 include("simulator/policy.jl")
 include("simulator/disturbances.jl")
 include("simulator/simulator.jl")

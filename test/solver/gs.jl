@@ -58,7 +58,7 @@ end
         A = sprand(n, n, 0.16)
     end
     Ad = Matrix(A)
-    gs_data = ContactControl.DMGSData!(Ad, n)
+    gs_data = ContactControl.DMGSData(Ad, n)
 
     ContactControl.gs!(gs_data, Ad)
     @test norm(A - hcat(gs_data.qs...) * ContactControl.triangularize(gs_data.rs, n), Inf) < 1e-10

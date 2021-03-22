@@ -1,38 +1,28 @@
 @testset "Simulator: Quadruped" begin
     # Reference trajectory
     model = ContactControl.get_model("quadruped", surf = "flat")
-    q, u, γ, b, h = ContactControl.get_gait("quadruped", "gait1")
+    ref_traj = ContactControl.get_trajectory("quadruped", "gait1")
+    T = ref_traj.H
+    h = ref_traj.h
 
-    # time
-    T = length(u)
-
-    maximum([norm(ContactControl.dynamics(model,
-    	h, q[t], q[t+1], u[t],
-    	zeros(model.dim.w), γ[t], b[t], q[t+2]), Inf) for t = 1:T])
+    for t = 1:T
+    	r = ContactControl.residual(model, ref_traj.z[t], ref_traj.θ[t], 0.0)
+    	@test norm(r) < 1.0e-4
+    end
 
     # initial conditions
-    q0 = SVector{model.dim.q}(q[1])
-    q1 = SVector{model.dim.q}(q[2])
-
-    function z_initialize!(z, model::Quadruped, q1)
-    	nq = model.dim.q
-        z .= 1.0
-        z[1:nq] = q1
-    end
+    q0 = SVector{model.dim.q}(ref_traj.q[1])
+    q1 = SVector{model.dim.q}(ref_traj.q[2])
 
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
-    	p = ContactControl.open_loop_policy([SVector{model.dim.u}(h * ut) for ut in u], h),
-        r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-        rz = model.spa.rz_sp,
-        rθ = model.spa.rθ_sp,
+        p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u], h),
         ip_opts = ContactControl.InteriorPointOptions(
-    		r_tol = 1.0e-8, κ_tol = 1.0e-5, κ_init = 1.0e-4,
-    		solver = :cgs_solver),
+    		r_tol = 1.0e-8, κ_tol = 1.0e-8, κ_init = 1.0e-5, solver = :lu_solver),
         sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
     # simulate
     @time status = ContactControl.simulate!(sim, verbose = false)
     @test status
-    @test norm(q[end][1:3] - sim.traj.q[end][1:3], Inf) < 1.0e-1
+    @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 1.0e-3
 end

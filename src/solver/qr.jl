@@ -223,13 +223,13 @@ mutable struct DMGSData{n,T} <: GSData{n,T}
     rs::Vector{Array{T,1}}
 end
 
-function DMGSData!(A::AbstractMatrix{T}, n::Int) where {T}
+function DMGSData(A::Array{T, 2}, n::Int) where {T}
     qs = SVector{n,Vector{T}}([zeros(n) for i=1:n])
     rs = [zeros(T,1) for i=1:Int((n + 1) * n / 2)]
     return DMGSData{n,T}(n, A, qs, rs)
 end
 
-function gs!(mgs_data::DMGSData{n,T}, A::Matrix{T}) where {n,T}
+function gs!(mgs_data::DMGSData{n,T}, A::Array{T, 2}) where {n,T}
     # Unpack
     qs = mgs_data.qs
     rs = mgs_data.rs
@@ -260,8 +260,18 @@ end
 """
     QR solver
 """
-mutable struct QRSolver <: LinearSolver
-    F::GSData
+abstract type QRSolver <: LinearSolver end
+
+mutable struct CGSSolver <: QRSolver
+    F::CGSData
+end
+
+mutable struct MGSSolver <: QRSolver
+    F::MGSData
+end
+
+mutable struct DMGSSolver <: QRSolver
+    F::DMGSData
 end
 
 function linear_solve!(solver::QRSolver, x::Vector{T}, A::SparseMatrixCSC{T,Int}, b::Vector{T}) where T
@@ -269,18 +279,22 @@ function linear_solve!(solver::QRSolver, x::Vector{T}, A::SparseMatrixCSC{T,Int}
     qr_solve!(solver.F, x, b)
 end
 
+function linear_solve!(solver::DMGSSolver, x::Vector{T}, A::Array{T, 2}, b::Vector{T}) where T
+    gs!(solver.F, A)
+    qr_solve!(solver.F, x, b)
+end
+
 function mgs_solver(A::SparseMatrixCSC{T,Int}) where T
-    QRSolver(MGSData(A, size(A, 1)))
+    MGSSolver(MGSData(A, size(A, 1)))
 end
 
 function cgs_solver(A::SparseMatrixCSC{T,Int}) where T
-    QRSolver(CGSData(A, size(A, 1)))
+    CGSSolver(CGSData(A, size(A, 1)))
 end
 
-function dmgs_solver(A::SparseMatrixCSC{T,Int}) where T
-    QRSolver(DMGSData(A, size(A, 1)))
+function dmgs_solver(A::Array{T, 2}) where T
+    DMGSSolver(DMGSData(A, size(A, 1)))
 end
 
 mgs_solver(A::Array{T, 2}) where T = mgs_solver(sparse(A))
 cgs_solver(A::Array{T, 2}) where T = cgs_solver(sparse(A))
-dmgs_solver(A::Array{T, 2}) where T = dmgs_solver(sparse(A))
