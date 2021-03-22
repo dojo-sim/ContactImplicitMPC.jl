@@ -7,8 +7,8 @@
     T = length(u)
 
     maximum([norm(ContactControl.dynamics(model,
-    	h, q[t], q[t+1], h * u[t],
-    	zeros(model.dim.w), h * γ[t], h * b[t], q[t+2]), Inf) for t = 1:T])
+    	h, q[t], q[t+1], u[t],
+    	zeros(model.dim.w), γ[t], b[t], q[t+2]), Inf) for t = 1:T])
 
     # initial conditions
     q0 = SVector{model.dim.q}(q[1])

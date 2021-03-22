@@ -238,3 +238,28 @@ end
     @test !ContactControl.inequality_check(ip_mgs.z, ip_mgs.idx_ineq)
     @test ip_mgs.κ[1] < opts_mgs.κ_tol
 end
+
+n = 10
+m = 5
+
+P = sparse(Diagonal(rand(n)))
+q = randn(n)
+x = randn(n)
+A = sparse(randn(m, n))
+b = A * x
+l = b - rand(m)
+u = b + rand(m)
+
+model = OSQP.Model()
+options = Dict(:verbose => false,
+               :eps_abs => 1e-09,
+               :eps_rel => 1e-09,
+               :check_termination => 1,
+               :polish => false,
+               :max_iter => 4000,
+               :rho => 0.1,
+               :adaptive_rho => false,
+               :warm_start => true)
+OSQP.setup!(model, P = P, q = q, A = A, l = l, u = u)
+
+@time results = OSQP.solve!(model)
