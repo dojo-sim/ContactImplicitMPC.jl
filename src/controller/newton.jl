@@ -400,8 +400,6 @@ function reset!(core::Newton23, n_opts::Newton23Options, ref_traj::ContactTraj; 
 		end
 		# Set up trajectory
         copy_traj!(core.traj, ref_traj, core.traj.H)
-        core.traj.q[1] .= deepcopy(q0)
-        core.traj.q[2] .= deepcopy(q1)
 		if initial_offset
 		    rd = -0.03*[[1,1]; ones(model.dim.q-2)]
 		    core.traj.q[1] .+= rd
@@ -410,6 +408,14 @@ function reset!(core::Newton23, n_opts::Newton23Options, ref_traj::ContactTraj; 
 			update_θ!(core.traj, 2)
 		end
 	end
+    for t = 1:core.H
+        core.ν[t] .= 0.0
+        core.ν_[t] .= 0.0
+    end
+    core.traj.q[1] .= deepcopy(q0)
+    core.traj.q[2] .= deepcopy(q1)
+    update_θ!(core.traj, 1)
+    update_θ!(core.traj, 2)
 	# Set up traj trial
 	core.trial_traj = deepcopy(core.traj)
 	return nothing
@@ -426,9 +432,9 @@ function newton_solve!(model::ContactDynamicsModel, core::Newton23, impl::Implic
     for l = 1:n_opts.solver_inner_iter
 		# Compute implicit dynamics about traj
 		implicit_dynamics!(model, core.traj, impl; κ=core.traj.κ)
-		plt = plot(legend=false)
-			plot!([log(10, norm(d)) for d in impl.d], ylims=log.(10,(1e-8,1e1)), label="ν")
-		display(plt)
+		# plt = plot(legend=false)
+		# 	plot!([log(10, norm(d)) for d in impl.d], ylims=log.(10,(1e-11,1e1)), label="ν")
+		# display(plt)
 
         # Compute residual
         residual!(model, core, core.r, core.ν, impl, cost, core.traj, ref_traj, n_opts)

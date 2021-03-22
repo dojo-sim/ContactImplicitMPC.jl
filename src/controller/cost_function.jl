@@ -1,4 +1,3 @@
-
 mutable struct CostFunction{T,nq,nu,nc,nb}
     H::Int
     Qq::Vector{Diagonal{T,SizedArray{Tuple{nq},T,1,1,Array{T,1}}}}

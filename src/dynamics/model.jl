@@ -239,7 +239,7 @@ end
 function get_model(name::String; surf::String = "flat")
 	#TODO: assert model exists
 	path = joinpath(@__DIR__, name)
-	include(joinpath(path, "model.jl"))
+	# include(joinpath(path, "model.jl"))
 	model = eval(Symbol(name * (surf != "flat" ? "_" * surf : "")))
 	instantiate_base!(model, joinpath(path, surf, "base.jld2"))
 	instantiate_dynamics!(model, joinpath(path, surf, "dynamics.jld2"))
