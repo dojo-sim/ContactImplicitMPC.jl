@@ -246,7 +246,6 @@ function jacobian!(model::ContactDynamicsModel, core::Newton23, jcb::Jacobian12,
 
     # unpack
     H = core.H
-    # jcb = core.j
     fill!(jcb.j, 0.0)
 
     for t=1:H
@@ -345,7 +344,7 @@ function set_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
         νsource::Vector{SizedArray{Tuple{n1},T,1,1}},
         Δ::Residual11{T},
         α::T,
-        ) where {T,nq,nu,nw,nc,nb,nz,nθ,n1,I}
+        ) where {T,nq,nu,nw,nc,nb,nz,nθ,n1}
     # Check that trajectory propoerties match
     H = target.H
     @assert H == source.H
@@ -362,5 +361,131 @@ function set_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
         # target.θ[t] .= source.θ[t] + α.*Δ.θ[t]
         νtarget[t]  .= νsource[t] .+ α.*Δ.rd[t]
     end
+    update_z!(target)
+    update_θ!(target)
+    return nothing
+end
+
+function copy_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
+        source::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, H::Int) where {T,nq,nu,nw,nc,nb,nz,nθ,n1}
+    Ht = target.H
+    Hs = target.H
+    @assert Hs >= H
+    @assert Ht >= H
+    # target.h = source.h
+    target.κ .= source.κ
+    for t in eachindex(1:H+2)
+        target.q[t] .= source.q[t]
+    end
+    for t in eachindex(1:H)
+        target.u[t] .= source.u[t]
+        target.w[t] .= source.w[t]
+        target.γ[t] .= source.γ[t]
+        target.b[t] .= source.b[t]
+        target.z[t] .= source.z[t]
+        target.θ[t] .= source.θ[t]
+    end
+    return nothing
+end
+
+function reset!(core::Newton23, n_opts::Newton23Options, ref_traj::ContactTraj; warm_start::Bool=false,
+	initial_offset::Bool=false, q0=ref_traj.q[1], q1=ref_traj.q[2]) where {T}
+	# Reset β value
+    n_opts.β = n_opts.β_init
+	if !warm_start
+		# Reset duals
+		for t = 1:core.H
+			core.ν[t] .= 0.0
+			core.ν_[t] .= 0.0
+		end
+		# Set up trajectory
+        copy_traj!(core.traj, ref_traj, core.traj.H)
+        core.traj.q[1] .= deepcopy(q0)
+        core.traj.q[2] .= deepcopy(q1)
+		if initial_offset
+		    rd = -0.03*[[1,1]; ones(model.dim.q-2)]
+		    core.traj.q[1] .+= rd
+		    core.traj.q[2] .+= rd
+			update_θ!(core.traj, 1)
+			update_θ!(core.traj, 2)
+		end
+	end
+	# Set up traj trial
+	core.trial_traj = deepcopy(core.traj)
+	return nothing
+end
+
+function newton_solve!(model::ContactDynamicsModel, core::Newton23, impl::ImplicitTraj{T},
+    cost::CostFunction, ref_traj::ContactTraj{T,nq,nu,nc,nb},
+    n_opts::Newton23Options{T}; warm_start::Bool=false, initial_offset::Bool=false,
+    q0=ref_traj.q[1], q1=ref_traj.q[2]) where {T,nq,nu,nc,nb}
+
+	reset!(core, n_opts, ref_traj; warm_start=warm_start, initial_offset=initial_offset, q0=q0, q1=q1)
+    # for i = 1:n_opts.solver_outer_iter
+        # (n_opts.live_plot) && (visualize!(vis, model, traj.q, Δt=h))
+    for l = 1:n_opts.solver_inner_iter
+		# Compute implicit dynamics about traj
+		implicit_dynamics!(model, core.traj, impl; κ=core.traj.κ)
+		plt = plot(legend=false)
+			plot!([log(10, norm(d)) for d in impl.d], ylims=log.(10,(1e-8,1e1)), label="ν")
+		display(plt)
+
+        # Compute residual
+        residual!(model, core, core.r, core.ν, impl, cost, core.traj, ref_traj, n_opts)
+        # Compute Jacobian12
+        jacobian!(model, core, core.j, impl, cost, n_opts)
+        core.Δ.r .= - core.j.j \ core.r.r
+
+		println("res:", scn(norm(core.r.r,1)/length(core.r.r), digits=3))
+        if norm(core.r.r,1)/length(core.r.r) < n_opts.r_tol
+            break
+        end
+
+        # line search the step direction
+        α = 1.0
+        iter = 0
+        # plt = plot(legend=false)
+        # # plot!([norm(d) for d in impl.d], label="ν")
+        # # plot!(hcat(Vector.(core.ν)...)', label="ν")
+        # # plot!(hcat(Vector.(core.ν_)...)', linewidth=3.0, linestyle=:dot, label="ν_")
+        # plot!(hcat(Vector.(core.traj.q)...)', label="q")
+        # plot!(hcat(Vector.(ref_traj.q)...)', linewidth=3.0, linestyle=:dot, label="q")
+        # # plot!(hcat(Vector.(core.traj.u)...)', label="u")
+        # # plot!(hcat(Vector.(ref_traj.u)...)', linewidth=3.0, linestyle=:dot, label="u")
+        # display(plt)
+
+        set_traj!(core.trial_traj, core.traj, core.ν_, core.ν, core.Δ, α)
+		# Compute implicit dynamics about trial_traj
+		implicit_dynamics!(model, core.trial_traj, impl; κ=core.trial_traj.κ)
+        residual!(model, core, core.r̄, core.ν_, impl, cost, core.trial_traj, ref_traj, n_opts)
+        while norm(core.r̄.r)^2.0 >= (1.0 - 0.001 * α) * norm(core.r.r)^2.0
+            α = 0.5 * α
+            iter += 1
+            if iter > 6
+                break
+            end
+            set_traj!(core.trial_traj, core.traj, core.ν_, core.ν, core.Δ, α)
+			# Compute implicit dynamics about trial_traj
+			implicit_dynamics!(model, core.trial_traj, impl; κ=core.trial_traj.κ)
+            residual!(model, core, core.r̄, core.ν_, impl, cost, core.trial_traj, ref_traj, n_opts)
+        end
+
+        # update # maybe not useful never activated
+        if iter > 6
+            n_opts.β = min(n_opts.β*1.3, 1e2)
+        else
+            n_opts.β = max(1e1, n_opts.β/1.3)
+        end
+        println(" l: ", l ,
+            "     r̄: ", scn(norm(core.r̄.r,1)/length(core.r̄.r), digits=0),
+            "     r: ", scn(norm(core.r.r,1)/length(core.r.r), digits=0),
+            "     Δ: ", scn(norm(core.Δ.r,1)/length(core.Δ.r), digits=0),
+            "     α: ", -Int(round(log(α))),
+            "     κ: ", scn(core.traj.κ[1], digits=0) ,
+            )
+        set_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
+    end
+    #     κ /= 10.0
+    # end
     return nothing
 end

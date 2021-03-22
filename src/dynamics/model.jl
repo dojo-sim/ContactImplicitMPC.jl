@@ -89,7 +89,6 @@ end
 
 function z_initialize!(z, model::ContactDynamicsModel, q1)
 	nq = model.dim.q
-
     z .= 1.0
     z[1:nq] = q1
 end

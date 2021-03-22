@@ -1200,97 +1200,30 @@
 
 
 
+#
+#
+# nz = num_var(model)
+# nθ = num_data(model)
+# r0 = zeros(nz)
+# # z0 = zeros(nz)
+# # θ0 = zeros(nθ)
+# r!(r0, z0, θ0, κ) = model.approx.r(r0, z0, θ0, κ, impl.lin[k].z0, impl.lin[k].θ0, impl.lin[k].r0, impl.lin[k].rz0, impl.lin[k].rθ0)
+# k = 1
+# model.approx.r(r0, ref_traj0.z[k], ref_traj0.θ[k], κ, impl0.lin[k].z0, impl0.lin[k].θ0, impl0.lin[k].r0, impl0.lin[k].rz0, impl0.lin[k].rθ0)
+# @test norm(r0) < 1e-8
+#
+#
+# q0 = Vector(ref_traj0.q[1])
+# q1 = Vector(ref_traj0.q[2])
+# u1 = Vector(ref_traj0.u[1])
+# w1 = Vector(ref_traj0.w[1])
+# γ1 = Vector(ref_traj0.γ[1])
+# b1 = Vector(ref_traj0.b[1])
+# q2 = Vector(ref_traj0.q[3])
+# dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2)
+
+
 include("newton.jl")
-include("tested.jl")
-
-function reset!(core::Newton23, n_opts::Newton23Options, ref_traj::ContactTraj; warm_start::Bool=false)
-	# Reset β value
-    n_opts.β = n_opts.β_init
-	if !warm_start
-		# Reset duals
-		for t = 1:core.H
-			core.ν[t] .= 0.0
-			core.ν_[t] .= 0.0
-		end
-		# Set up trajectory
-	    core.traj = deepcopy(ref_traj)
-	    rd = 0.05*(ones(model.dim.q) .- 0.5)
-	    core.traj.q[1] .+= rd
-	    core.traj.q[2] .+= rd
-	end
-	# Set up traj trial
-	core.trial_traj = deepcopy(core.traj)
-	return nothing
-end
-
-function newton_solve!(model::ContactDynamicsModel, core::Newton23, impl::ImplicitTraj{T},
-    cost::CostFunction, ref_traj::ContactTraj{T,nq,nu,nc,nb},
-    n_opts::Newton23Options{T}; warm_start::Bool=false) where {T,nq,nu,nc,nb}
-
-	reset!(core, n_opts, ref_traj; warm_start=warm_start)
-    # for i = 1:n_opts.solver_outer_iter
-        # (n_opts.live_plot) && (visualize!(vis, model, traj.q, Δt=h))
-    for l = 1:n_opts.solver_inner_iter
-		# Compute implicit dynamics about traj
-		implicit_dynamics!(model, core.traj, impl; κ=core.traj.κ)
-        # Compute residual
-        residual!(model, core, core.r, core.ν, impl, cost, core.traj, ref_traj, n_opts)
-        # Compute Jacobian12
-        jacobian!(model, core, core.j, impl, cost, n_opts)
-        core.Δ.r .= - core.j.j \ core.r.r
-
-        if norm(core.r.r,1)/length(core.r.r) < n_opts.r_tol
-            break
-        end
-
-        # line search the step direction
-        α = 1.0
-        iter = 0
-        # plt = plot()
-        # # plot!([norm(d) for d in impl.d], label="ν")
-        # # plot!(hcat(Vector.(core.ν)...)', label="ν")
-        # # plot!(hcat(Vector.(core.ν_)...)', linewidth=3.0, linestyle=:dot, label="ν_")
-        # plot!(hcat(Vector.(core.traj.q)...)', label="q")
-        # plot!(hcat(Vector.(ref_traj.q)...)', linewidth=3.0, linestyle=:dot, label="q")
-        # # plot!(hcat(Vector.(core.traj.u)...)', label="u")
-        # # plot!(hcat(Vector.(ref_traj.u)...)', linewidth=3.0, linestyle=:dot, label="u")
-        # display(plt)
-
-        set_traj!(core.trial_traj, core.traj, core.ν_, core.ν, core.Δ, α)
-		# Compute implicit dynamics about trial_traj
-		implicit_dynamics!(model, core.trial_traj, impl; κ=core.trial_traj.κ)
-        residual!(model, core, core.r̄, core.ν_, impl, cost, core.trial_traj, ref_traj, n_opts)
-        while norm(core.r̄.r)^2.0 >= (1.0 - 0.001 * α) * norm(core.r.r)^2.0
-            α = 0.5 * α
-            iter += 1
-            if iter > 6
-                break
-            end
-            set_traj!(core.trial_traj, core.traj, core.ν_, core.ν, core.Δ, α)
-			# Compute implicit dynamics about trial_traj
-			implicit_dynamics!(model, core.trial_traj, impl; κ=core.trial_traj.κ)
-            residual!(model, core, core.r̄, core.ν_, impl, cost, core.trial_traj, ref_traj, n_opts)
-        end
-
-        # update # maybe not useful never activated
-        if iter > 6
-            n_opts.β = min(n_opts.β*1.3, 1e2)
-        else
-            n_opts.β = max(1e1, n_opts.β/1.3)
-        end
-        println(" κ: ", scn(core.traj.κ[1], digits=0) ,
-            "     r̄: ", scn(norm(core.r̄.r,1)/length(core.r̄.r), digits=0),
-            "     r: ", scn(norm(core.r.r,1)/length(core.r.r), digits=0),
-            "     Δ: ", scn(norm(core.Δ.r,1)/length(core.Δ.r), digits=0),
-            "     α: ", -Int(round(log(α))))
-        set_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
-    end
-    #     κ /= 10.0
-    # end
-    return nothing
-end
-
-
 
 
 
@@ -1299,8 +1232,9 @@ end
 
 n_opts.r_tol = 1e-6
 core1 = Newton23(H, h, model)
-@profiler newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts)
-@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, warm_start=true)
+linearization!(model, ref_traj0, impl0)
+@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, initial_offset=false)
+@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, warm_start=true, initial_offset=true)
 
 
 
@@ -1325,7 +1259,7 @@ T = Float64
 # time
 h = h̄
 H = length(u)
-H = 15
+# H = 15
 
 nq = model.dim.q
 nu = model.dim.u
@@ -1344,7 +1278,7 @@ function z_initialize!(z, model::Quadruped, q1)
 end
 
 sim0 = simulator(model, q0, q1, h, H,
-    u = [SVector{model.dim.u}(h * u[i]) for i=1:H],
+	p = open_loop_policy([SVector{model.dim.u}(h * u[i]) for i=1:H], h),
     r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
     rz = model.spa.rz_sp,
     rθ = model.spa.rθ_sp,
@@ -1370,13 +1304,20 @@ r0 = zeros(nz)
 model.res.r(r0, traj0.z[1], traj0.θ[1], κ)
 @test norm(r0) < 1e-8
 
-# visualize!(vis, model, traj0.q)
-# # vis = Visualizer()
-# # open(vis)
+# vis = Visualizer()
+# open(vis)
+visualize!(vis, model, traj0.q)
 
 linearization!(model, ref_traj0, impl0)
-@profiler implicit_dynamics!(model, ref_traj0, impl0, κ=κ)
-@test mean([norm(d) for d in impl0.d]) < 5e-3
+@time implicit_dynamics!(model, ref_traj0, impl0, κ=κ)
+@test mean([norm(d) for d in impl0.d]) < 1e-6
+mean([norm(d) for d in impl0.d])
+plot([norm(d,Inf) for d in impl0.d])
+
+
+
+
+
 
 
 δz_ = [impl0.δq0[1] impl0.δq1[1] impl0.δu1[1]]
@@ -1405,18 +1346,18 @@ end
 norm(core0.r.r) == 0.0
 @time residual!(model, core0, core0.r, core0.ν, impl0, cost0, traj1, ref_traj0, n_opts)
 norm(core0.r.r) == 0.0
-
-off = 0
-core0.r.r[off .+ (1:nq)]
-off += nq
-core0.r.r[off .+ (1:nu)]
-off += nu
-core0.r.r[off .+ (1:nc)]
-off += nc
-core0.r.r[off .+ (1:nb)]
-off += nb
-core0.r.r[off:end]
-@time residual!(model, core0, core0.r, core0.ν, impl0, cost0, traj0, ref_traj0, n_opts)
+#
+# off = 0
+# core0.r.r[off .+ (1:nq)]
+# off += nq
+# core0.r.r[off .+ (1:nu)]
+# off += nu
+# core0.r.r[off .+ (1:nc)]
+# off += nc
+# core0.r.r[off .+ (1:nb)]
+# off += nb
+# core0.r.r[off:end]
+@time residual!(model, core0, core0.r, core0.ν, impl0, cost0, ref_traj0, ref_traj0, n_opts)
 # @allocated residual!(model, core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
 # @code_warntype residual!(model, core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
 # @benchmark residual!(model, core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
@@ -1430,3 +1371,5 @@ core0.r.r[off:end]
 # core1 = Newton23(H, h, model)
 # @time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts)
 visualize!(vis, model, ref_traj0.q, Δt=5*h)
+
+scn(norm(core0.r.r, 1)/length(core0.r.r))

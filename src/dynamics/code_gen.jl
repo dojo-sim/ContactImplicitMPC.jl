@@ -216,7 +216,8 @@ function generate_approx_expressions(model::ContactDynamicsModel; T = Float64)
     @variables rz0[1:nz,1:nz]
     @variables rθ0[1:nz,1:nθ]
 	r = zeros(eltype(z), nz)
-    r .= r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
+	r .= r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
+    # r .= rz0 * (z-z0) + rθ0 * (θ-θ0) # wrong
 	for i = 1:length(bil_terms)
 		t = bil_terms[i]
 		v1 = bil_vars[i][1]

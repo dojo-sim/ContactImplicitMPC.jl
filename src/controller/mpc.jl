@@ -281,12 +281,13 @@ end
 
 
 # MPC options
-@with_kw mutable struct MPC11Options{T}
-    H_sample::Int=3
-    H_mpc::Int=10
+@with_kw mutable struct MPC12Options{T}
+    N_sample::Int=3 # Hypersampling factor for dynamics simulation
+    M::Int=3        # Number of MPC loops
+    H_mpc::Int=10   # Horizon of the MPC solver (H_mpc < H)
 end
 
-mutable struct MPC11{T,nq,nu,nw,nc,nb}
+mutable struct MPC12{T,nq,nu,nw,nc,nb}
     q0_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
     q1_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
     q_sim::Vector{SizedArray{Tuple{nq},T,1,1,Vector{T}}} # history of simulator configurations
@@ -294,14 +295,26 @@ mutable struct MPC11{T,nq,nu,nw,nc,nb}
     w_sim::Vector{SizedArray{Tuple{nw},T,1,1,Vector{T}}} # history of simulator disturbances
     γ_sim::Vector{SizedArray{Tuple{nc},T,1,1,Vector{T}}} # history of simulator impact forces
     b_sim::Vector{SizedArray{Tuple{nb},T,1,1,Vector{T}}} # history of simulator friction forces
-    m_opts::MPC11Options
+    m_opts::MPC12Options
     ref_traj::ContactTraj
     impl::ImplicitTraj
     q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}} # change in q required to loop the ref trajectories
 end
 
-
-
+function MPC12(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ};
+        m_opts::MPC12Options=MPC12Options()) where {T,nq,nu,nw,nc,nb,nz,nθ}
+    q0_con = zeros(SizedArray{Tuple{nq},T,1,1,Vector{T}})
+    q1_con = zeros(SizedArray{Tuple{nq},T,1,1,Vector{T}})
+    q_sim = Vector{SizedArray{Tuple{nq},T,1,1,Vector{T}}}([])
+    u_sim = Vector{SizedArray{Tuple{nu},T,1,1,Vector{T}}}([])
+    w_sim = Vector{SizedArray{Tuple{nw},T,1,1,Vector{T}}}([])
+    γ_sim = Vector{SizedArray{Tuple{nc},T,1,1,Vector{T}}}([])
+    b_sim = Vector{SizedArray{Tuple{nb},T,1,1,Vector{T}}}([])
+    H = ref_traj.H
+    impl = ImplicitTraj(H, model)
+    q_stride = get_stride(model, ref_traj)
+    return MPC12{T,nq,nu,nw,nc,nb}(q0_con, q1_con, q_sim, u_sim, w_sim, γ_sim, b_sim, m_opts, ref_traj, impl, q_stride)
+end
 
 function rot_n_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
     q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}}) where {T,nq,nu,nw,nc,nb,nz,nθ}
@@ -311,7 +324,6 @@ function rot_n_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
 end
 
 function rotate!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,nw,nc,nb,nz,nθ}
-    @show "rot"
     q1 = copy(traj.q[1])
     u1 = copy(traj.u[1])
     w1 = copy(traj.w[1])
@@ -366,7 +378,7 @@ end
 
 T = Float64
 κ = 1e-4
-# model = get_model("quadruped")
+model = get_model("quadruped")
 @load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
 
 # time
@@ -383,13 +395,6 @@ q0 = SVector{model.dim.q}(q[1])
 q1 = SVector{model.dim.q}(q[2])
 
 
-
-function z_initialize!(z, model::Quadruped, q1)
-	nq = model.dim.q
-    z .= 1.0e-1
-    z[1:nq] = q1
-end
-
 sim0 = simulator(model, q0, q1, h, H,
     p = open_loop_policy([SVector{model.dim.u}(h * u[i]) for i=1:H], h),
     r! = model.res.r,
@@ -398,6 +403,7 @@ sim0 = simulator(model, q0, q1, h, H,
     rz = model.spa.rz_sp,
     rθ = model.spa.rθ_sp,
     ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
+    # ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
     sim_opts = SimulatorOptions(warmstart = true)
     )
 
@@ -405,24 +411,88 @@ simulate!(sim0; verbose = false)
 ref_traj0 = deepcopy(sim0.traj)
 traj0 = deepcopy(sim0.traj)
 
-function dummy_mpc(ref_traj::ContactTraj, impl::ImplicitTraj,
-    q_stride::AbstractVector{T}, m_opts::MPC11Options)
-    for l = 1:m_opts.H_mpc
-        plt = plot(legend=false)
-        plot!(hcat(ref_traj.q...)')
-        linearization!(model, ref_traj, impl, ref_traj.κ)
-        plot!([l.z0[1] for l in impl.lin], linewidth=5.0)
+function dummy_mpc(model::ContactDynamicsModel, core::Newton23,
+    cost::CostFunction, mpc::MPC12, n_opts::Newton23Options)
+    impl = mpc.impl
+    ref_traj = mpc.ref_traj
+    m_opts = mpc.m_opts
 
-        rot_n_stride!(ref_traj, q_stride)
-        display(plt)
+    q0 = deepcopy(ref_traj.q[1])
+    q1 = deepcopy(ref_traj.q[2])
+    for l = 1:m_opts.M
+        println("mpc:", l)
+        impl = ImplicitTraj(H, model)
+        linearization!(model, ref_traj, impl, ref_traj.κ)
+        newton_solve!(model, core, impl, cost, ref_traj, n_opts; warm_start=false, q0=q0, q1=q1)
+
+        # Apply control and rollout dynamics
+        N_sample = mpc.m_opts.N_sample
+        h_sim = mpc.ref_traj.h/N_sample
+        q0_sim = SVector{model.dim.q}(deepcopy(core.traj.q[2] + (core.traj.q[1] - core.traj.q[2])/N_sample ))
+        q1_sim = SVector{model.dim.q}(deepcopy(core.traj.q[2]))
+        sim = simulator(model, q0_sim, q1_sim, h_sim, N_sample,
+            p = open_loop_policy([SVector{model.dim.u}(deepcopy(core.traj.u[1])) for i=1:N_sample], h_sim),
+            r! = model.res.r,
+            rz! = model.res.rz,
+            rθ! = model.res.rθ,
+            rz = model.spa.rz_sp,
+            rθ = model.spa.rθ_sp,
+            ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
+            sim_opts = SimulatorOptions(warmstart = true)
+            )
+        simulate!(sim; verbose = false)
+        q0 = deepcopy(q1)
+        q1 = deepcopy(sim.traj.q[N_sample+2])
+
+        # plt = plot(xlims=(-2, 20), legend=false)
+        # plot!(hcat(core.traj.q...)', linewidth=1.0)
+        # plot!(hcat(core.trial_traj.q...)', linewidth=1.0)
+        # plot!(hcat(ref_traj.q...)', linestyle=:dot, linewidth=2.0)
+        # # plot!([l.z0[1] for l in impl.lin], linewidth=5.0)
+        # # plot!([l.θ0[1] for l in impl.lin], linewidth=5.0)
+        # display(plt)
+        rot_n_stride!(ref_traj, mpc.q_stride)
     end
     return nothing
 end
 
+cost0 = CostFunction(H, model.dim,
+    Qq=fill(Diagonal(1e-2*SizedVector{nq}([0.02,0.02,1,.15,.15,.15,.15,.15,.15,.15,.15,])), H),
+    Qu=fill(Diagonal(3e-2*ones(SizedVector{nu})), H),
+    Qγ=fill(Diagonal(1e-6*ones(SizedVector{nc})), H),
+    Qb=fill(Diagonal(1e-6*ones(SizedVector{nb})), H),
+    )
+n_opts = Newton23Options()
+
 ref_traj0 = deepcopy(sim0.traj)
 q_stride = get_stride(model, ref_traj0)
-
 impl0 = ImplicitTraj(H, model)
 
-m_opts = MPC11Options{T}(H_mpc = 100)
-dummy_mpc(ref_traj0, impl0, q_stride, m_opts)
+
+n_opts.r_tol = 3e-4
+core1 = Newton23(m_opts.H_mpc, h, model)
+linearization!(model, ref_traj0, impl0)
+@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, initial_offset=false)
+@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, warm_start=true, initial_offset=true)
+
+
+
+m_opts = MPC12Options{T}(M = 10, H_mpc = 10)
+core0 = Newton23(m_opts.H_mpc, h, model)
+mpc0 = MPC12(model, ref_traj0, m_opts=m_opts)
+@time dummy_mpc(model, core0, cost0, mpc0, n_opts)
+n_opts
+
+# vis = Visualizer()
+# open(vis)
+visualize!(vis, model, sim0.traj.q)
+sim0.traj.q[1] - sim0.traj.q[end-1]
+sim0.traj.q[2] - sim0.traj.q[end-0]
+
+sim0.traj
+impl0
+
+core0.H
+core0.traj
+core0.ν
+core0.Δ

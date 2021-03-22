@@ -179,3 +179,24 @@ end
 end
 
 # const ContactControl = Main
+
+
+@testset "Copy_traj!" begin
+	# test copy_traj!
+	model = ContactControl.get_model("quadruped")
+	H = 59
+	h = 0.1
+	nq = model.dim.q
+
+	traj0 = ContactControl.contact_trajectory(H, h, model)
+	traj1 = ContactControl.contact_trajectory(H, h, model)
+	traj1.q[1] .+= 10.0
+
+	traj1.q
+	ContactControl.copy_traj!(traj0, traj1, 1)
+
+	@test traj0.q[1] == 10.0*ones(nq)
+	traj0.q[1] .+= 10.0
+
+	@test traj1.q[1] == 10.0*ones(nq)
+end

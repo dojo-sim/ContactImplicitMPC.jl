@@ -61,27 +61,31 @@ approximated since it relies on a linearization about a reference trajectory.
 """
 function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 	impl::ImplicitTraj{T, nd}; κ=traj.κ) where {T,nd}
-	@assert impl.H == traj.H
+	@assert impl.H >= traj.H
 	H = traj.H
 	# Compute the implicit dynamics
 	# constraint violation (solve linearized contact problem)
 	# constraint gradient (implicit function theorem)
 
 	ip_opts = InteriorPointOptions(
-		κ_init = κ,
-		κ_tol = κ,
+		κ_init = κ[1],
+		κ_tol = κ[1],
 		diff_sol = true)
 
 	# INITIALIZATION
 	ip = interior_point(zeros(num_var(model)), zeros(num_data(model)),
 		idx_ineq = inequality_indices(model),
+		r! = model.res.r,
+		rz! = model.res.rz,
+		rθ! = model.res.rθ,
 		rz = model.spa.rz_sp,
 		rθ = model.spa.rθ_sp,
-		solver=:lu_solver)
-	ip_opts = InteriorPointOptions(
-		κ_init=κ[1],
-		κ_tol=κ[1],
-		diff_sol=true)
+		opts = InteriorPointOptions(
+			κ_init=κ[1],
+			κ_tol=κ[1],
+			r_tol=1e-8,
+			diff_sol=true)
+		)
 
 	for k = 1:H
 		@assert abs.(impl.lin[k].κ0 - κ[1])/κ[1] < 1e-5 # check that the κ are consistent between the optimized trajectory (traj)
@@ -107,6 +111,9 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		# ip.methods.rθ! = impl.lin[k].methods.rθ!
 
 		z_initialize!(ip.z, model, traj.q[k+2]) # initialize with our best guess.
+		#################################
+		# ip.z .= copy(traj.z[k]) # Maybe better needs testing
+		#################################
 		ip.θ .= traj.θ[k]
 		status = interior_point!(ip)#, ip.z, traj.θ[k]; opts=ip_opts)
 
@@ -117,6 +124,40 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		# TODO we need to have a struct that stores the indices of q2, γ1, b1 in z
 		nq = model.dim.q
 		nu = model.dim.u
+
+		# #######################
+		# nc = model.dim.c
+		# nb = model.dim.b
+		# off = 0
+		# q20 = Vector(ip.z[off .+ (1:nq)]); off += nq
+		# γ10 = Vector(ip.z[off .+ (1:nc)]); off += nc
+		# b10 = Vector(ip.z[off .+ (1:nb)]); off += nb
+		# q00, q10, u10, w10 = Vector.(unpack_θ(model, ip.θ))
+		# r0 = zeros(nz)
+		# r1 = zeros(nz)
+		# r2 = zeros(nz)
+		# r3 = zeros(nz)
+		# model.approx.r(r0, ip.z, ip.θ, κ, impl.lin[k].z0, impl.lin[k].θ0, impl.lin[k].r0, impl.lin[k].rz0, impl.lin[k].rθ0)
+		# model.approx.r(r1, traj.z[k], traj.θ[k], κ, impl.lin[k].z0, impl.lin[k].θ0, impl.lin[k].r0, impl.lin[k].rz0, impl.lin[k].rθ0)
+		# model.res.r(r2, ip.z, ip.θ, κ)
+		# model.res.r(r3, traj.z[k], traj.θ[k], κ)
+		# @show norm(ip.θ - traj.θ[k])
+		# @show norm(ip.z - traj.z[k])
+		# @show norm(impl.lin[k].r0[1:nq])
+		# @show norm(r0)
+		# @show norm(r1)
+		# @show norm(r2)
+		# @show norm(r3)
+		# @show norm(r0[1:nq])
+		# @show norm(r1[1:nq])
+		# @show norm(r2[1:nq])
+		# @show norm(r3[1:nq])
+		# dyn0 = dynamics(model, traj.h, q00, q10, u10, w10, γ10, b10, q20)
+		# dyn1 = dynamics(model, traj.h, q00, q10, u10, w10, Vector(γ1), Vector(b1), Vector(q2))
+		# @show norm(dyn0)
+		# @show norm(dyn1)
+		# #######################
+
 		impl.d[k] = ip.z[1:nd] - [q2; γ1; b1]
 		impl.δz[k]  = copy(ip.δz)
 		off = 0
