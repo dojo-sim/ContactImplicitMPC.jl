@@ -27,5 +27,5 @@ include("simulator/hopper_3D.jl")
 # Controller
 include("controller/cost_function.jl")
 include("controller/bilinear.jl")
-# include("controller/implicit_dynamics.jl")
+include("controller/implicit_dynamics.jl")
 # include("controller/newton.jl")

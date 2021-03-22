@@ -67,11 +67,6 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 	# constraint violation (solve linearized contact problem)
 	# constraint gradient (implicit function theorem)
 
-	ip_opts = InteriorPointOptions(
-		κ_init = κ[1],
-		κ_tol = κ[1],
-		diff_sol = true)
-
 	# INITIALIZATION
 	ip = interior_point(zeros(num_var(model)), zeros(num_data(model)),
 		idx_ineq = inequality_indices(model),
@@ -82,7 +77,7 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		rθ = model.spa.rθ_sp,
 		opts = InteriorPointOptions(
 			κ_init=κ[1],
-			κ_tol=κ[1],
+			κ_tol=2κ[1],
 			r_tol=1e-8,
 			diff_sol=true)
 		)
@@ -93,35 +88,27 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 
 		# Define local residual functions
 		# residual
-		# r!(r, z, θ, κ) = r_approx!(impl.lin[k], r, z, θ, κ)
 		r!(r, z, θ, κ) = model.approx.r(r, z, θ, κ, impl.lin[k].z0, impl.lin[k].θ0, impl.lin[k].r0, impl.lin[k].rz0, impl.lin[k].rθ0)
 		# residual Jacobian wrt z
-		# rz!(rz, z, θ) = rz_approx!(impl.lin[k], rz, z, θ)
 		rz!(rz, z, θ) = model.approx.rz(rz, z, impl.lin[k].rz0)
 		# residual Jacobian wrt θ
-		# rθ!(rθ, z, θ) = rθ_approx!(impl.lin[k], rθ, z, θ)
 		rθ!(rθ, z, θ) = model.approx.rθ(rθ, impl.lin[k].rθ0)
 		# Set the residual functions
-		ip.methods.r! = r! #impl.lin[k].methods.r!
-		ip.methods.rz! = rz! #impl.lin[k].methods.rz!
-		ip.methods.rθ! = rθ! #impl.lin[k].methods.rθ!
-
-		# ip.methods.r! = impl.lin[k].methods.r!
-		# ip.methods.rz! = impl.lin[k].methods.rz!
-		# ip.methods.rθ! = impl.lin[k].methods.rθ!
+		ip.methods.r! = r!
+		ip.methods.rz! = rz!
+		ip.methods.rθ! = rθ!
 
 		z_initialize!(ip.z, model, traj.q[k+2]) # initialize with our best guess.
 		#################################
 		# ip.z .= copy(traj.z[k]) # Maybe better needs testing
 		#################################
 		ip.θ .= traj.θ[k]
-		status = interior_point!(ip)#, ip.z, traj.θ[k]; opts=ip_opts)
+		status = interior_point!(ip)
 
 		q2 = traj.q[k+2]
 		γ1 = traj.γ[k]
 		b1 = traj.b[k]
 
-		# TODO we need to have a struct that stores the indices of q2, γ1, b1 in z
 		nq = model.dim.q
 		nu = model.dim.u
 
@@ -161,6 +148,8 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		impl.d[k] = ip.z[1:nd] - [q2; γ1; b1]
 		impl.δz[k]  = copy(ip.δz)
 		off = 0
+		# TODO we need to have a struct that stores the indices of q2, γ1, b1 in z
+		# TODO we need to have a struct that stores the indices of q0, q1, u1 in θ
 		impl.δq0[k] = copy(ip.δz[1:nd, off .+ (1:nq)]); off += nq # ndxnq
 		impl.δq1[k] = copy(ip.δz[1:nd, off .+ (1:nq)]); off += nq # ndxnq
 		impl.δu1[k] = copy(ip.δz[1:nd, off .+ (1:nu)]); off += nu # ndxnu
