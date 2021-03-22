@@ -25,19 +25,22 @@ function LinStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::Abstract
 	model.res.rz(rz0, z0, θ0)
 	model.res.rθ(rθ0, z0, θ0)
 	bil_terms, bil_vars = get_bilinear_indices(model)
-	function r!(r, z, θ, κ)
-		model.approx.r(r, z, θ, κ, lin.z0, lin.θ0, lin.r0, lin.rz0, lin.rθ0)
+	function r_!(r, z, θ, κ)
+		# model.approx.r(r, z, θ, κ, lin.z0, lin.θ0, lin.r0, lin.rz0, lin.rθ0)
+		model.approx.r(r, z, θ, κ, z0, θ0, r0, rz0, rθ0)
 		return nothing
 	end
-	function rz!(rz, z, θ)
-		model.approx.rz(rz, z, lin.rz0)
+	function rz_!(rz, z, θ)
+		# model.approx.rz(rz, z, lin.rz0)
+		model.approx.rz(rz, z, rz0)
 		return nothing
 	end
-	function rθ!(rθ, z, θ)
-		model.approx.rθ(rθ, lin.rθ0)
+	function rθ_!(rθ, z, θ)
+		# model.approx.rθ(rθ, lin.rθ0)
+		model.approx.rθ(rθ, rθ0)
 		return nothing
 	end
-	methods = InteriorPointMethods(r!, rz!, rθ!)
+	methods = InteriorPointMethods(r_!, rz_!, rθ_!)
 	return LinStep{T}(z0, θ0, κ0, r0, rz0, rθ0, bil_terms, bil_vars, methods)
 end
 
@@ -71,17 +74,17 @@ function get_bilinear_indices(model::ContactDynamicsModel)
 	return bil_terms, bil_vars
 end
 
-function bil_addition!(out::AbstractVector{T}, i::SVector{n,Int}, a::SizedVector{n,T},
-	b::SizedVector{n,T}, ρ::T) where {n,T}
-	out[i] = a.*b .- ρ
-	return nothing
-end
-
-function bil_addition!(out::AbstractVector, i::SVector{n,Int}, a::AbstractVector,
-	b::AbstractVector, ρ::T) where {n,T}
-	out[i] = a.*b .- ρ
-	return nothing
-end
+# function bil_addition!(out::AbstractVector{T}, i::SVector{n,Int}, a::SizedVector{n,T},
+# 	b::SizedVector{n,T}, ρ::T) where {n,T}
+# 	out[i] = a.*b .- ρ
+# 	return nothing
+# end
+#
+# function bil_addition!(out::AbstractVector, i::SVector{n,Int}, a::AbstractVector,
+# 	b::AbstractVector, ρ::T) where {n,T}
+# 	out[i] = a.*b .- ρ
+# 	return nothing
+# end
 
 """
 	r_approx!(lin::LinStep, r::AbstractVector{T1},
@@ -99,7 +102,6 @@ function r_approx!(lin::LinStep, r::AbstractVector{T1},
 		v1 = lin.bil_vars[i][1]
 		v2 = lin.bil_vars[i][2]
 		r[t] = z[v1].*z[v2] .- κ
-		bil_addition!(r, t, z[v1], z[v2], κ)
 	end
     return nothing
 end
