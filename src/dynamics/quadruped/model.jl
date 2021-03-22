@@ -507,7 +507,7 @@ quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				l_leg, d_leg, m_leg, J_leg,
 				zeros(nc),
 				BaseMethods(), DynamicsMethods(), ResidualMethods(), ApproximateMethods(),
-				SparseStructure(spzeros(0,0),spzeros(0,0)),
+				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				environment_2D_flat())
 

@@ -54,39 +54,6 @@ function unpack_z(model::ContactDynamicsModel, z)
 	return q2, γ1, b1, ψ, η, s1, s2
 end
 
-function update_z!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) where {T,nq,nu,nw,nc,nb,nz,nθ}
-	if t in (1:traj.H)
-		traj.z[t][traj.iq2] = traj.q[t+2]
-		traj.z[t][traj.iγ1] = traj.γ[t]
-		traj.z[t][traj.ib1] = traj.b[t]
-	end
-	return nothing
-end
-
-function update_z!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,nw,nc,nb,nz,nθ}
-	for t in eachindex((1:traj.H))
-		update_z!(traj, t)
-	end
-	return nothing
-end
-
-function update_θ!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) where {T,nq,nu,nw,nc,nb,nz,nθ}
-	if t in (1:traj.H)
-		traj.θ[t][traj.iq0] = traj.q[t]
-		traj.θ[t][traj.iq1] = traj.q[t+1]
-		traj.θ[t][traj.iu1] = traj.u[t]
-		traj.θ[t][traj.iw1] = traj.w[t]
-	end
-	return nothing
-end
-
-function update_θ!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,nw,nc,nb,nz,nθ}
-	for t in eachindex((1:traj.H))
-		update_θ!(traj, t)
-	end
-	return nothing
-end
-
 function z_initialize!(z, model::ContactDynamicsModel, q1)
 	nq = model.dim.q
     z .= 1.0

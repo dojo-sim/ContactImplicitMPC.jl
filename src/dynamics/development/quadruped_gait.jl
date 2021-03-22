@@ -1,14 +1,13 @@
 # Reference trajectory
 model = get_model("quadruped", surf = "flat")
-@load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
+q, u, γ, b, h = ContactControl.get_gait("quadruped", "gait1")
 
 # time
-h = h̄
 T = length(u)
 
 maximum([norm(dynamics(model,
-	h, q[t], q[t+1], h * u[t],
-	zeros(model.dim.w), h * γ[t], h * b[t], q[t+2]), Inf) for t = 1:T])
+	h, q[t], q[t+1], u[t],
+	zeros(model.dim.w), γ[t], b[t], q[t+2]), Inf) for t = 1:T])
 
 # initial conditions
 q0 = SVector{model.dim.q}(q[1])
@@ -20,11 +19,9 @@ function z_initialize!(z, model::Quadruped, q1)
     z[1:nq] = q1
 end
 
-p = open_loop_policy([SVector{model.dim.u}(h * ut) for ut in u], h)
-
 # simulator
 sim = ContactControl.simulator(model, q0, q1, h, T,
-	p = open_loop_policy([SVector{model.dim.u}(h * ut) for ut in u], h),
+	p = open_loop_policy([SVector{model.dim.u}(ut) for ut in u], h),
     # u = [SVector{model.dim.u}(h * ut) for ut in u],
     r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
     rz = model.spa.rz_sp,
@@ -43,5 +40,3 @@ vis = Visualizer()
 render(vis)
 # visualize!(vis, model, q, Δt = h)
 visualize!(vis, model, sim.traj.q, Δt = h)
-sim.traj.q[end]
-q[end]
