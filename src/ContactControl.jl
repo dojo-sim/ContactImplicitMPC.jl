@@ -33,9 +33,9 @@ include("solver/qr.jl")
 include("dynamics/environment.jl")
 
 # Simulator
-include("simulator/trajectory.jl")
 
 include("dynamics/model.jl")
+include("simulator/trajectory.jl")
 include("dynamics/code_gen.jl")
 include("dynamics/fast_methods.jl")
 include("dynamics/visuals.jl")

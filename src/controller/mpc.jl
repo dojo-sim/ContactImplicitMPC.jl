@@ -423,7 +423,8 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton23,
         println("mpc:", l)
         impl = ImplicitTraj(H, model)
         linearization!(model, ref_traj, impl, ref_traj.κ)
-        newton_solve!(model, core, impl, cost, ref_traj, n_opts; warm_start=false, q0=q0, q1=q1)
+        warm_start = l > 1
+        newton_solve!(model, core, impl, cost, ref_traj, n_opts; warm_start=warm_start, q0=q0, q1=q1)
 
         # Apply control and rollout dynamics
         N_sample = mpc.m_opts.N_sample
@@ -441,16 +442,24 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton23,
             sim_opts = SimulatorOptions(warmstart = true)
             )
         simulate!(sim; verbose = false)
+        ########################
+        plt = plot(legend=false, xlims=(0,15))
+        plot!(hcat(Vector.(core.traj.q)...)', color=:blue, linewidth=1.0)
+        plot!(hcat(Vector.(ref_traj.q)...)', linestyle=:dot, color=:red, linewidth=3.0)
+        scatter!((2-1/N_sample)ones(model.dim.q), q0_sim, markersize=8.0, color=:lightgreen)
+        scatter!(2*ones(model.dim.q), q1_sim, markersize=8.0, color=:lightgreen)
+        @show length(sim.traj.q)
+        scatter!(3*ones(model.dim.q), sim.traj.q[N_sample+2], markersize=8.0, color=:lightgreen)
+        scatter!(1*ones(model.dim.q), q0, markersize=6.0, color=:blue)
+        scatter!(2*ones(model.dim.q), q1, markersize=6.0, color=:blue)
+        scatter!(1*ones(model.dim.q), ref_traj.q[1], markersize=4.0, color=:red)
+        scatter!(2*ones(model.dim.q), ref_traj.q[2], markersize=4.0, color=:red)
+        scatter!(3*ones(model.dim.q), ref_traj.q[3], markersize=4.0, color=:red)
+        display(plt)
+        @show norm(q1 - ref_traj.q[3])
+        ########################
         q0 = deepcopy(q1)
         q1 = deepcopy(sim.traj.q[N_sample+2])
-
-        # plt = plot(xlims=(-2, 20), legend=false)
-        # plot!(hcat(core.traj.q...)', linewidth=1.0)
-        # plot!(hcat(core.trial_traj.q...)', linewidth=1.0)
-        # plot!(hcat(ref_traj.q...)', linestyle=:dot, linewidth=2.0)
-        # # plot!([l.z0[1] for l in impl.lin], linewidth=5.0)
-        # # plot!([l.θ0[1] for l in impl.lin], linewidth=5.0)
-        # display(plt)
         rot_n_stride!(ref_traj, mpc.q_stride)
     end
     return nothing
@@ -477,7 +486,7 @@ linearization!(model, ref_traj0, impl0)
 
 
 
-m_opts = MPC12Options{T}(M = 10, H_mpc = 10)
+m_opts = MPC12Options{T}(N_sample=4, M = 10, H_mpc = 15)
 core0 = Newton23(m_opts.H_mpc, h, model)
 mpc0 = MPC12(model, ref_traj0, m_opts=m_opts)
 @time dummy_mpc(model, core0, cost0, mpc0, n_opts)
