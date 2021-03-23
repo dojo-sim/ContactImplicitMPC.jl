@@ -439,13 +439,12 @@ function newton_solve!(model::ContactDynamicsModel, core::Newton, impl::Implicit
     ref_traj::ContactTraj{T,nq,nu,nc,nb} ; warm_start::Bool=false, initial_offset::Bool=false,
     q0=ref_traj.q[1], q1=ref_traj.q[2]) where {T,nq,nu,nc,nb}
 
-    n_opts = core.n_opts
     cost = core.cost
 
 	reset!(core, ref_traj; warm_start=warm_start, initial_offset=initial_offset, q0=q0, q1=q1)
-    # for i = 1:n_opts.solver_outer_iter
-        # (n_opts.live_plot) && (visualize!(vis, model, traj.q, Δt=h))
-    for l = 1:n_opts.solver_inner_iter
+    # for i = 1:core.n_opts.solver_outer_iter
+        # (core.n_opts.live_plot) && (visualize!(vis, model, traj.q, Δt=h))
+    for l = 1:core.n_opts.solver_inner_iter
 		# Compute implicit dynamics about traj
 		implicit_dynamics!(model, core.traj, impl; κ=core.traj.κ)
 		# plt = plot(legend=false)
@@ -459,7 +458,7 @@ function newton_solve!(model::ContactDynamicsModel, core::Newton, impl::Implicit
         core.Δ.r .= - core.j.j \ core.r.r
 
 		println("res:", scn(norm(core.r.r,1)/length(core.r.r), digits=3))
-        if norm(core.r.r,1)/length(core.r.r) < n_opts.r_tol
+        if norm(core.r.r,1)/length(core.r.r) < core.n_opts.r_tol
             break
         end
 
@@ -494,9 +493,9 @@ function newton_solve!(model::ContactDynamicsModel, core::Newton, impl::Implicit
 
         # update # maybe not useful never activated
         if iter > 6
-            n_opts.β = min(n_opts.β*1.3, 1e2)
+            core.n_opts.β = min(core.n_opts.β*1.3, 1e2)
         else
-            n_opts.β = max(1e1, n_opts.β/1.3)
+            core.n_opts.β = max(1e1, core.n_opts.β/1.3)
         end
         println(" l: ", l ,
             "     r̄: ", scn(norm(core.r̄.r,1)/length(core.r̄.r), digits=0),

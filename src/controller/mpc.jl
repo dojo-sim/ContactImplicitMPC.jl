@@ -378,12 +378,11 @@ end
 
 T = Float64
 κ = 1e-4
-model = get_model("quadruped")
-@load joinpath(pwd(), "src/dynamics/quadruped/gaits/gait1.jld2") z̄ x̄ ū h̄ q u γ b
-
+# model = get_model("quadruped")
+ref_traj0 = get_trajectory("quadruped", "gait1")
 # time
-h = h̄
-H = length(u)
+h = ref_traj0.h
+H = ref_traj0.H
 
 nq = model.dim.q
 nu = model.dim.u
@@ -391,19 +390,18 @@ nc = model.dim.c
 nb = model.dim.b
 
 # initial conditions
-q0 = SVector{model.dim.q}(q[1])
-q1 = SVector{model.dim.q}(q[2])
+q0 = SVector{model.dim.q}(ref_traj0.q[1])
+q1 = SVector{model.dim.q}(ref_traj0.q[2])
 
 
 sim0 = simulator(model, q0, q1, h, H,
-    p = open_loop_policy([SVector{model.dim.u}(h * u[i]) for i=1:H], h),
+    p = open_loop_policy(SVector{model.dim.u}.(ref_traj0.u), h),
     r! = model.res.r,
     rz! = model.res.rz,
     rθ! = model.res.rθ,
     rz = model.spa.rz_sp,
     rθ = model.spa.rθ_sp,
     ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
-    # ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
     sim_opts = SimulatorOptions(warmstart = true)
     )
 
@@ -411,11 +409,12 @@ simulate!(sim0; verbose = false)
 ref_traj0 = deepcopy(sim0.traj)
 traj0 = deepcopy(sim0.traj)
 
-function dummy_mpc(model::ContactDynamicsModel, core::Newton,
-    cost::CostFunction, mpc::MPC12, n_opts::NewtonOptions)
+function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC12)
     impl = mpc.impl
     ref_traj = mpc.ref_traj
     m_opts = mpc.m_opts
+    cost = core.cost
+    n_opts = core.n_opts
 
     q0 = deepcopy(ref_traj.q[1])
     q1 = deepcopy(ref_traj.q[2])
@@ -424,7 +423,7 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton,
         impl = ImplicitTraj(H, model)
         linearization!(model, ref_traj, impl, ref_traj.κ)
         warm_start = l > 1
-        newton_solve!(model, core, impl, cost, ref_traj, n_opts; warm_start=warm_start, q0=q0, q1=q1)
+        newton_solve!(model, core, impl, ref_traj; warm_start=warm_start, q0=q0, q1=q1)
 
         # Apply control and rollout dynamics
         N_sample = mpc.m_opts.N_sample
@@ -442,22 +441,22 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton,
             sim_opts = SimulatorOptions(warmstart = true)
             )
         simulate!(sim; verbose = false)
-        # ########################
-        # plt = plot(legend=false, xlims=(0,15))
-        # plot!(hcat(Vector.(core.traj.q)...)', color=:blue, linewidth=1.0)
-        # plot!(hcat(Vector.(ref_traj.q)...)', linestyle=:dot, color=:red, linewidth=3.0)
-        # scatter!((2-1/N_sample)ones(model.dim.q), q0_sim, markersize=8.0, color=:lightgreen)
-        # scatter!(2*ones(model.dim.q), q1_sim, markersize=8.0, color=:lightgreen)
-        # @show length(sim.traj.q)
-        # scatter!(3*ones(model.dim.q), sim.traj.q[N_sample+2], markersize=8.0, color=:lightgreen)
-        # scatter!(1*ones(model.dim.q), q0, markersize=6.0, color=:blue)
-        # scatter!(2*ones(model.dim.q), q1, markersize=6.0, color=:blue)
-        # scatter!(1*ones(model.dim.q), ref_traj.q[1], markersize=4.0, color=:red)
-        # scatter!(2*ones(model.dim.q), ref_traj.q[2], markersize=4.0, color=:red)
-        # scatter!(3*ones(model.dim.q), ref_traj.q[3], markersize=4.0, color=:red)
-        # display(plt)
-        # @show norm(q1 - ref_traj.q[3])
-        # ########################
+        ########################
+        plt = plot(legend=false, xlims=(0,15))
+        plot!(hcat(Vector.(core.traj.q)...)', color=:blue, linewidth=1.0)
+        plot!(hcat(Vector.(ref_traj.q)...)', linestyle=:dot, color=:red, linewidth=3.0)
+        scatter!((2-1/N_sample)ones(model.dim.q), q0_sim, markersize=8.0, color=:lightgreen)
+        scatter!(2*ones(model.dim.q), q1_sim, markersize=8.0, color=:lightgreen)
+        @show length(sim.traj.q)
+        scatter!(3*ones(model.dim.q), sim.traj.q[N_sample+2], markersize=8.0, color=:lightgreen)
+        scatter!(1*ones(model.dim.q), q0, markersize=6.0, color=:blue)
+        scatter!(2*ones(model.dim.q), q1, markersize=6.0, color=:blue)
+        scatter!(1*ones(model.dim.q), ref_traj.q[1], markersize=4.0, color=:red)
+        scatter!(2*ones(model.dim.q), ref_traj.q[2], markersize=4.0, color=:red)
+        scatter!(3*ones(model.dim.q), ref_traj.q[3], markersize=4.0, color=:red)
+        display(plt)
+        @show norm(q1 - ref_traj.q[3])
+        ########################
         q0 = deepcopy(q1)
         q1 = deepcopy(sim.traj.q[N_sample+2])
         rot_n_stride!(ref_traj, mpc.q_stride)
@@ -471,26 +470,28 @@ cost0 = CostFunction(H, model.dim,
     Qγ=fill(Diagonal(1e-6*ones(SizedVector{nc})), H),
     Qb=fill(Diagonal(1e-6*ones(SizedVector{nb})), H),
     )
-n_opts = NewtonOptions()
 
 ref_traj0 = deepcopy(sim0.traj)
 q_stride = get_stride(model, ref_traj0)
 impl0 = ImplicitTraj(H, model)
 
 
-n_opts.r_tol = 3e-4
-core1 = Newton(m_opts.H_mpc, h, model)
+m_opts = MPC12Options{T}(N_sample=4, M = 10, H_mpc = 15)
+n_opts0 = NewtonOptions()
+n_opts0.r_tol = 3e-4
+core1 = Newton(m_opts.H_mpc, h, model, cost=cost0)
 linearization!(model, ref_traj0, impl0)
-@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, initial_offset=false)
-@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, warm_start=true, initial_offset=true)
+@time newton_solve!(model, core1, impl0, ref_traj0, initial_offset=false)
+@time newton_solve!(model, core1, impl0, ref_traj0, warm_start=true, initial_offset=true)
 
 
 
 m_opts = MPC12Options{T}(N_sample=4, M = 10, H_mpc = 15)
-core0 = Newton(m_opts.H_mpc, h, model)
+n_opts0 = NewtonOptions()
+n_opts0.r_tol = 1e-4
+core0 = Newton(m_opts.H_mpc, h, model, cost=cost0, n_opts=n_opts0)
 mpc0 = MPC12(model, ref_traj0, m_opts=m_opts)
-@time dummy_mpc(model, core0, cost0, mpc0, n_opts)
-n_opts
+@time dummy_mpc(model, core1, mpc0)
 
 # vis = Visualizer()
 # open(vis)
