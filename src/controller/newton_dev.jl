@@ -1,40 +1,39 @@
-
-# model = get_model("quadruped")
-κ = 1e-4
-ref_traj0 = get_trajectory("quadruped", "gait1")
-ref_traj0.κ .= κ
-H = ref_traj0.H
+model = get_model("quadruped")
+κ = 1.0e-4
+ref_traj = get_trajectory("quadruped", "gait1")
+ref_traj.κ .= κ
+H = ref_traj.H
 h = 0.1
 nq = model.dim.q
 nu = model.dim.u
 nc = model.dim.c
 nb = model.dim.b
-nd = nq+nc+nb
-nr = nq+nu+nc+nb+nd
+nd = nq + nc + nb
+nr = nq + nu + nc + nb + nd
 
 # Test Jacobian!
-cost0 = CostFunction(H, model.dim,
-    Qq=fill(Diagonal(1e-2*SizedVector{nq}([0.02,0.02,1,.15,.15,.15,.15,.15,.15,.15,.15,])), H),
-    Qu=fill(Diagonal(3e-2*ones(SizedVector{nu})), H),
-    Qγ=fill(Diagonal(1e-6*ones(SizedVector{nc})), H),
-    Qb=fill(Diagonal(1e-6*ones(SizedVector{nb})), H),
-    )
-n_opts0 = NewtonOptions(r_tol=1e-5, solver_inner_iter=1)
-core0 = Newton(H, h, model, cost=cost0, n_opts=n_opts0)
-impl0 = ImplicitTraj(H, model)
-linearization!(model, ref_traj0, impl0)
+cost = cost_function(H, model.dim,
+    q = [Diagonal(1.0e-2 * ([0.02,0.02,1,.15,.15,.15,.15,.15,.15,.15,.15])) for t = 1:H],
+    u = [Diagonal(3.0e-2 * ones(nu)) for t = 1:H],
+    γ = [Diagonal(1.0e-6 * ones(nc)) for t = 1:H],
+    b = [Diagonal(1.0e-6 * ones(nb)) for t = 1:H])
+model.dim
+opts = NewtonOptions(r_tol = 1.0e-5, solver_inner_iter = 1)
+core = Newton(H, h, model, cost = cost, opts = opts)
+im_traj = implicit_trajectory(H, model)
+linearization!(im_traj, model, ref_traj)
 
-# The solve initialized with the correct tra, is solved in 1 step.
-newton_solve!(model, core0, impl0, ref_traj0)
-implicit_dynamics!(model, core0.traj, impl0; κ=core0.traj.κ)
-residual!(model, core0, core0.r, core0.ν, impl0, core0.traj, ref_traj0)
-@test norm(core0.r.r, 1) / length(core0.r.r) < 1e-5
-
+# The solve initialized with the correct traj, is solved in 1 step.
+newton_solve!(core, model, im_traj, ref_traj)
+implicit_dynamics!(im_traj, model, core.traj, κ = core.traj.κ)
+residual!(core.res, model, core, core.ν, im_traj, core.traj, ref_traj)
+@test norm(core.res.r, 1) / length(core.res.r) < 1.0e-5
 
 # The solver can recover from initial disturbances
-off = [0.02; 0.02; zeros(nq-2)]
-core0.n_opts.solver_inner_iter = 20
-newton_solve!(model, core0, impl0, ref_traj0, q0=ref_traj0.q[1]+off, q1=ref_traj0.q[2]+off)
-implicit_dynamics!(model, core0.traj, impl0; κ=core0.traj.κ)
-residual!(model, core0, core0.r, core0.ν, impl0, core0.traj, ref_traj0)
-@test norm(core0.r.r, 1) / length(core0.r.r) < 1e-5
+off = [0.02; 0.02; zeros(nq - 2)]
+core.opts.solver_inner_iter = 20
+newton_solve!(core, model, im_traj, ref_traj,
+    q0 = ref_traj.q[1] + off, q1 = ref_traj.q[2] + off)
+implicit_dynamics!(im_traj, model, core.traj, κ = core.traj.κ)
+residual!(core.res, model, core, core.ν, im_traj, core.traj, ref_traj)
+@test norm(core.res.r, 1) / length(core.res.r) < 1.0e-5

@@ -65,9 +65,4 @@ export SparseStructure, LinearizedStep, get_bilinear_indices, bil_addition!, r_l
 export ImplicitTraj, linearization!, implicit_dynamics!
 export CostFunction
 
-# CGS
-# include("gram_schmidt/gram_schmidt.jl")
-
-# export triangularize, triu_perm, CGSData13, CGSData13!, cgs!, qr_solve!
-
 end # module

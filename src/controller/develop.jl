@@ -1230,11 +1230,11 @@ include("newton.jl")
 # vis = Visualizer()
 # open(vis)
 
-n_opts.r_tol = 1e-6
+opts.r_tol = 1e-6
 core1 = Newton(H, h, model)
 linearization!(model, ref_traj0, impl0)
-@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, initial_offset=false)
-@time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, warm_start=true, initial_offset=true)
+@time newton_solve!(model, core1, impl0, cost0, ref_traj0, opts, initial_offset=false)
+@time newton_solve!(model, core1, impl0, cost0, ref_traj0, opts, warm_start=true, initial_offset=true)
 
 
 
@@ -1330,7 +1330,7 @@ cost0 = CostFunction(H, model.dim,
     Qγ=fill(Diagonal(1e-6*ones(SizedVector{nc})), H),
     Qb=fill(Diagonal(1e-6*ones(SizedVector{nb})), H),
     )
-n_opts = NewtonOptions()
+opts = NewtonOptions()
 
 core0 = Newton(H, h, model)
 core0.r
@@ -1342,9 +1342,9 @@ for t = 1:H
     traj1.γ[t] .+= ones(nc)
     traj1.b[t] .+= ones(nb)
 end
-@time residual!(model, core0, core0.r, core0.ν, impl0, cost0, traj0, ref_traj0, n_opts)
+@time residual!(model, core0, core0.r, core0.ν, impl0, cost0, traj0, ref_traj0, opts)
 norm(core0.r.r) == 0.0
-@time residual!(model, core0, core0.r, core0.ν, impl0, cost0, traj1, ref_traj0, n_opts)
+@time residual!(model, core0, core0.r, core0.ν, impl0, cost0, traj1, ref_traj0, opts)
 norm(core0.r.r) == 0.0
 #
 # off = 0
@@ -1357,19 +1357,19 @@ norm(core0.r.r) == 0.0
 # core0.r.r[off .+ (1:nb)]
 # off += nb
 # core0.r.r[off:end]
-@time residual!(model, core0, core0.r, core0.ν, impl0, cost0, ref_traj0, ref_traj0, n_opts)
-# @allocated residual!(model, core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
-# @code_warntype residual!(model, core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
-# @benchmark residual!(model, core0, core0.r, impl0, cost0, traj0, ref_traj0, n_opts)
+@time residual!(model, core0, core0.r, core0.ν, impl0, cost0, ref_traj0, ref_traj0, opts)
+# @allocated residual!(model, core0, core0.r, impl0, cost0, traj0, ref_traj0, opts)
+# @code_warntype residual!(model, core0, core0.r, impl0, cost0, traj0, ref_traj0, opts)
+# @benchmark residual!(model, core0, core0.r, impl0, cost0, traj0, ref_traj0, opts)
 
-@time jacobian!(model, core0, core0.j, impl0, cost0, n_opts)
-@time jacobian!(model, core0, core0.j, impl0, cost0, n_opts)
-# @allocated jacobian!(model, core0, core0.j, impl0, cost0, n_opts)
-# @code_warntype jacobian!(model, core0, core0.j, impl0, cost0, n_opts)
-# @benchmark jacobian!(model, core0, core0.j, impl0, cost0, n_opts)
+@time jacobian!(model, core0, core0.j, impl0, cost0, opts)
+@time jacobian!(model, core0, core0.j, impl0, cost0, opts)
+# @allocated jacobian!(model, core0, core0.j, impl0, cost0, opts)
+# @code_warntype jacobian!(model, core0, core0.j, impl0, cost0, opts)
+# @benchmark jacobian!(model, core0, core0.j, impl0, cost0, opts)
 
 # core1 = Newton(H, h, model)
-# @time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts)
+# @time newton_solve!(model, core1, impl0, cost0, ref_traj0, opts)
 visualize!(vis, model, ref_traj0.q, Δt=5*h)
 
 scn(norm(core0.r.r, 1)/length(core0.r.r))

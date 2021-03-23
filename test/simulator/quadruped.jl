@@ -22,7 +22,7 @@
         sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
     # simulate
-    @time status = ContactControl.simulate!(sim, verbose = false)
+    status = ContactControl.simulate!(sim, verbose = false)
     @test status
     @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 1.0e-3
 end

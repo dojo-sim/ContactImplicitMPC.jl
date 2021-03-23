@@ -414,7 +414,7 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC12)
     ref_traj = mpc.ref_traj
     m_opts = mpc.m_opts
     cost = core.cost
-    n_opts = core.n_opts
+    opts = core.opts
 
     q0 = deepcopy(ref_traj.q[1])
     q1 = deepcopy(ref_traj.q[2])
@@ -477,8 +477,8 @@ impl0 = ImplicitTraj(H, model)
 
 
 m_opts = MPC12Options{T}(N_sample=4, M = 10, H_mpc = 15)
-n_opts0 = NewtonOptions()
-n_opts0.r_tol = 3e-4
+opts0 = NewtonOptions()
+opts0.r_tol = 3e-4
 core1 = Newton(m_opts.H_mpc, h, model, cost=cost0)
 linearization!(model, ref_traj0, impl0)
 @time newton_solve!(model, core1, impl0, ref_traj0, initial_offset=false)
@@ -487,9 +487,9 @@ linearization!(model, ref_traj0, impl0)
 
 
 m_opts = MPC12Options{T}(N_sample=4, M = 10, H_mpc = 15)
-n_opts0 = NewtonOptions()
-n_opts0.r_tol = 1e-4
-core0 = Newton(m_opts.H_mpc, h, model, cost=cost0, n_opts=n_opts0)
+opts0 = NewtonOptions()
+opts0.r_tol = 1e-4
+core0 = Newton(m_opts.H_mpc, h, model, cost=cost0, opts=opts0)
 mpc0 = MPC12(model, ref_traj0, m_opts=m_opts)
 @time dummy_mpc(model, core1, mpc0)
 
