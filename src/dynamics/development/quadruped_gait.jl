@@ -1,34 +1,26 @@
 # Reference trajectory
 model = get_model("quadruped", surf = "flat")
-q, u, γ, b, h = ContactControl.get_gait("quadruped", "gait1")
+ref_traj = get_trajectory("quadruped", "gait1")
+T = ref_traj.H
+h = ref_traj.h
 
-# time
-T = length(u)
-
-maximum([norm(dynamics(model,
-	h, q[t], q[t+1], u[t],
-	zeros(model.dim.w), γ[t], b[t], q[t+2]), Inf) for t = 1:T])
+for t = 1:T
+	r = residual(model, ref_traj.z[t], ref_traj.θ[t], 0.0)
+	@show norm(r)#[nq + 2nc + nb .+ (1:nc)])
+end
+maximum([norm(ContactControl.dynamics(model,
+	ref_traj.h, ref_traj.q[t], ref_traj.q[t+1], ref_traj.u[t],
+	zeros(model.dim.w), ref_traj.γ[t], ref_traj.b[t], ref_traj.q[t+2]), Inf) for t = 1:T])
 
 # initial conditions
-q0 = SVector{model.dim.q}(q[1])
-q1 = SVector{model.dim.q}(q[2])
-
-function z_initialize!(z, model::Quadruped, q1)
-	nq = model.dim.q
-    z .= 1.0
-    z[1:nq] = q1
-end
+q0 = SVector{model.dim.q}(ref_traj.q[1])
+q1 = SVector{model.dim.q}(ref_traj.q[2])
 
 # simulator
 sim = ContactControl.simulator(model, q0, q1, h, T,
-	p = open_loop_policy([SVector{model.dim.u}(ut) for ut in u], h),
-    # u = [SVector{model.dim.u}(h * ut) for ut in u],
-    r! = model.res.r, rz! = model.res.rz, rθ! = model.res.rθ,
-    rz = model.spa.rz_sp,
-    rθ = model.spa.rθ_sp,
+    p = open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u], h),
     ip_opts = ContactControl.InteriorPointOptions(
-		r_tol = 1.0e-8, κ_tol = 1.0e-5, κ_init = 1.0e-4,
-		solver = :cgs_solver),
+		r_tol = 1.0e-8, κ_tol = 1.0e-8, κ_init = 1.0e-5, solver = :mgs_solver),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 # simulate
@@ -38,5 +30,5 @@ include(joinpath(pwd(), "src/dynamics/quadruped/visuals.jl"))
 vis = Visualizer()
 # open(vis)
 render(vis)
-# visualize!(vis, model, q, Δt = h)
+# visualize!(vis, model, ref_traj.q, Δt = h)
 visualize!(vis, model, sim.traj.q, Δt = h)

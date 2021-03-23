@@ -72,8 +72,6 @@ visualize!(vis, model, sim.traj.q,
 	Δt = h, r = 0.1)
 plot_surface!(vis, model.env)
 
-open(vis)
-
 using Plots
 N = 100
 t = range(-2.0, stop = 2.0, length = N)

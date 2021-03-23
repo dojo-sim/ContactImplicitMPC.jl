@@ -101,7 +101,7 @@ function generate_base_expressions_analytical(model::ContactDynamicsModel)
 	J = Symbolics.simplify.(J)
 
 	# Coriolis and Centrifugal forces Jacobians
-	C = C_func(model, q)
+	C = C_func(model, q, q̇)
 	C = Symbolics.simplify.(C)[1:nq]
 
 	# Build function

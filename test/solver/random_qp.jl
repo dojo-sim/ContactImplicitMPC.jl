@@ -192,8 +192,8 @@ end
     r_sym = simplify.(r_sym)
     rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
         parallel = parallel)[2])
-    rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
-    rθ_exp = Symbolics.sparsejacobian(r_sym, θ_sym, simplify = true)
+    rz_exp = Symbolics.jacobian(r_sym, z_sym, simplify = true)
+    rθ_exp = Symbolics.jacobian(r_sym, θ_sym, simplify = true)
     rz_sp = similar(rz_exp, Float64)
     rθ_sp = similar(rθ_exp, Float64)
     rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym,
@@ -207,6 +207,9 @@ end
 
     opts_mgs = ContactControl.InteriorPointOptions(
         diff_sol = false, solver = :mgs_solver)
+
+    opts_dmgs = ContactControl.InteriorPointOptions(
+        diff_sol = false, solver = :dmgs_solver)
 
     # solver
     ip_cgs = ContactControl.interior_point(z, θ,
@@ -223,9 +226,17 @@ end
         rθ = rθ_sp,
         opts = opts_mgs)
 
+    ip_dmgs = ContactControl.interior_point(z, θ,
+        idx_ineq = idx_ineq,
+        r! = rf!, rz! = rzf!, rθ! = rθf!,
+        rz = rz_sp,
+        rθ = rθ_sp,
+        opts = opts_dmgs)
+
     # solve
     status_cgs = ContactControl.interior_point!(ip_cgs, z, θ)
     status_mgs = ContactControl.interior_point!(ip_mgs, z, θ)
+    status_dmgs = ContactControl.interior_point!(ip_dmgs, z, θ)
 
     # test
     @test status_cgs
@@ -237,29 +248,93 @@ end
     @test norm(ip_mgs.r, Inf) < opts_mgs.r_tol
     @test !ContactControl.inequality_check(ip_mgs.z, ip_mgs.idx_ineq)
     @test ip_mgs.κ[1] < opts_mgs.κ_tol
+
+    @test status_dmgs
+    @test norm(ip_dmgs.r, Inf) < opts_dmgs.r_tol
+    @test !ContactControl.inequality_check(ip_dmgs.z, ip_dmgs.idx_ineq)
+    @test ip_dmgs.κ[1] < opts_dmgs.κ_tol
 end
 
-n = 10
-m = 5
-
-P = sparse(Diagonal(rand(n)))
-q = randn(n)
-x = randn(n)
-A = sparse(randn(m, n))
-b = A * x
-l = b - rand(m)
-u = b + rand(m)
-
-model = OSQP.Model()
-options = Dict(:verbose => false,
-               :eps_abs => 1e-09,
-               :eps_rel => 1e-09,
-               :check_termination => 1,
-               :polish => false,
-               :max_iter => 4000,
-               :rho => 0.1,
-               :adaptive_rho => false,
-               :warm_start => true)
-OSQP.setup!(model, P = P, q = q, A = A, l = l, u = u)
-
-@time results = OSQP.solve!(model)
+# Compare with OSQP
+# n = 10
+# m = 5
+#
+# P = sparse(Diagonal(rand(n)))
+# q = randn(n)
+# x = randn(n)
+# A = sparse(randn(m, n))
+# b = A * x
+# l = b - rand(m)
+# u = b + rand(m)
+#
+# using OSQP
+# model = OSQP.Model()
+# options = Dict(:verbose => false,
+#                :eps_abs => 1e-09,
+#                :eps_rel => 1e-09,
+#                :check_termination => 1,
+#                :polish => true,
+#                :max_iter => 4000,
+#                :rho => 0.1,
+#                :adaptive_rho => false,
+#                :warm_start => true)
+# OSQP.setup!(model, P = P, q = q, A = A, l = l, u = u)
+#
+# @time results = OSQP.solve!(model)
+# u - A * results.x
+# A * results.x - l
+#
+# # residual
+# function _r!(r, z, θ, κ)
+#     x = z[1:10]
+#     s1 = z[11:15]
+#     s2 = z[16:20]
+#     y1 = z[21:25]
+#     y2 = z[26:30]
+#
+#     r[1:10] = P * x + q + transpose(A) * y1 - transpose(A) * y2
+#     r[11:15] = s1 - u + A * x
+#     r[16:20] = s2 - A * x + l
+#     r[21:25] = Diagonal(s1) * y1 .- κ
+#     r[26:30] = Diagonal(s2) * y2 .- κ
+#     nothing
+# end
+#
+# @variables r_sym[1:30]
+# @variables z_sym[1:30]
+# @variables θ_sym
+# @variables κ_sym
+#
+# parallel = Symbolics.SerialForm()
+# _r!(r_sym, z_sym, θ_sym, κ_sym)
+# r_sym = simplify.(r_sym)
+# rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
+#     parallel = parallel)[2])
+# rz_exp = Symbolics.jacobian(r_sym, z_sym, simplify = true)
+# rθ_exp = x -> nothing #Symbolics.sparsejacobian(r_sym, θ_sym, simplify = true)
+# rz_sp = similar(rz_exp, Float64)
+# rθ_sp = zeros(0, 0) #similar(rθ_exp, Float64)
+# rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym,
+#     parallel = parallel)[2])
+# rθf! = x -> nothing #eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
+#     # parallel = parallel)[2])
+#
+# opts = ContactControl.InteriorPointOptions(
+#     diff_sol = false, solver = :dmgs_solver)
+#
+# idx_ineq = collect(11:30)
+#
+# # solver
+# z = ones(30)
+# θ = zeros(0)
+# ip = ContactControl.interior_point(z, θ,
+#     idx_ineq = idx_ineq,
+#     r! = rf!, rz! = rzf!, rθ! = rθf!,
+#     rz = rz_sp,
+#     rθ = rθ_sp,
+#     opts = opts)
+#
+# linear_solve!(ip.solver, ip.Δ, ip.rz, ip.r)
+# # solve
+# @time status = ContactControl.interior_point!(ip, copy(z), copy(θ))
+# # norm(ip.z[1:10] - results.x)
