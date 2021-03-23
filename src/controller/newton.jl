@@ -326,11 +326,11 @@ end
 
 function set_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
         source::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
-        νtarget::Vector{SizedArray{Tuple{n1},T,1,1}},
-        νsource::Vector{SizedArray{Tuple{n1},T,1,1}},
+        νtarget::Vector{SA},
+        νsource::Vector{SA},
         Δ::Residual{T},
         α::T,
-        ) where {T,nq,nu,nw,nc,nb,nz,nθ,n1}
+        ) where {T,nq,nu,nw,nc,nb,nz,nθ,SA}
     # Check that trajectory propoerties match
     H = target.H
     @assert H == source.H
