@@ -36,7 +36,7 @@
 		# Test rz!: the linear approximaton is exact at the linearization point
 		function rz_approx_FD!(model::ContactDynamicsModel, lin::LinStep, rz::AbstractMatrix{T},
 			z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
-			nz = num_var(model)
+			nz = ContactControl.num_var(model)
 			function f(z)
 				r = zeros(SizedVector{nz,eltype(z)})
 				ContactControl.r_approx!(lin, r, z, θ, κ)

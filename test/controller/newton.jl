@@ -200,3 +200,159 @@ end
 
 	@test traj1.q[1] == 10.0*ones(nq)
 end
+
+
+@testset "Residual and Jacobian" begin
+	model = ContactControl.get_model("quadruped")
+	H = 2
+	h = 0.1
+	nq = model.dim.q
+	nu = model.dim.u
+	nc = model.dim.c
+	nb = model.dim.b
+	nd = nq+nc+nb
+	nr = nq+nu+nc+nb+nd
+
+	# Test Residual
+	r0 = ContactControl.Residual(H, model.dim)
+	@test length(r0.r) == H*nr
+
+	# Test views
+	r0.q2[1] .= 1.0
+	r0.q2[2] .= 2.0
+	@test all(r0.r[1:nq] .== 1.0)
+	@test all(r0.r[nr .+ (1:nq)] .== 2.0)
+
+	# Test views
+	r0.r[1:nr] .= -1.0
+	@test all(r0.q2[1] .== -1.0)
+	@test all(r0.u1[1] .== -1.0)
+	@test all(r0.γ1[1] .== -1.0)
+	@test all(r0.b1[1] .== -1.0)
+
+	# Test Jacobian
+	j0 = ContactControl.Jacobian(H, model.dim)
+	@test size(j0.j) == (H*nr,H*nr)
+
+	# Test views
+	j0.Qq2[1] .= 1.0
+	j0.Qq2[2] .= 2.0
+	@test all(j0.j[1:nq, 1:nq] .== 1.0)
+	@test all(j0.j[nr .+ (1:nq), nr .+ (1:nq)] .== 2.0)
+
+	# Test views
+	j0.j[1:nr, 1:nr] .= -1.0
+	@test all(j0.Qq2[1] .== -1.0)
+	@test all(j0.Qu1[1] .== -1.0)
+	@test all(j0.Qγ1[1] .== -1.0)
+	@test all(j0.Qb1[1] .== -1.0)
+end
+
+@testset "jacobian!" begin
+	model = ContactControl.get_model("quadruped")
+	κ = 1e-4
+	ref_traj0 = ContactControl.get_trajectory("quadruped", "gait1")
+	ref_traj0.κ .= κ
+	H = ref_traj0.H
+	h = 0.1
+	nq = model.dim.q
+	nu = model.dim.u
+	nc = model.dim.c
+	nb = model.dim.b
+	nd = nq+nc+nb
+	nr = nq+nu+nc+nb+nd
+
+	# Test Jacobian!
+	cost0 = CostFunction(H, model.dim,
+	    Qq=fill(Diagonal(1e-0*ones(SizedVector{nq})), H),
+	    Qu=fill(Diagonal(1e-1*ones(SizedVector{nu})), H),
+	    Qγ=fill(Diagonal(1e-2*ones(SizedVector{nc})), H),
+	    Qb=fill(Diagonal(1e-3*ones(SizedVector{nb})), H),
+	    )
+	core0 = ContactControl.Newton(H, h, model, cost=cost0)
+	impl0 = ContactControl.ImplicitTraj(H, model)
+	ContactControl.linearization!(model, ref_traj0, impl0)
+	ContactControl.jacobian!(model, core0, core0.j, impl0)
+	spy(Matrix(core0.j.j[1:150,1:150]))
+
+	# Test symmetry
+	@test core0.j.j - core0.j.j' == spzeros(H*nr,H*nr)
+
+	# Test cost function terms and regularization terms
+	off = 0
+	@test all(abs.(diag(Matrix(core0.j.j[off .+ (1:nq), off .+ (1:nq)] .- 1e-0))) .< 1e-8); off += nq
+	@test all(abs.(diag(Matrix(core0.j.j[off .+ (1:nu), off .+ (1:nu)] .- 1e-1))) .< 1e-8); off += nu
+	@test all(abs.(diag(Matrix(core0.j.j[off .+ (1:nc), off .+ (1:nc)] .- 1e-2))) .< 1e-8); off += nc
+	@test all(abs.(diag(Matrix(core0.j.j[off .+ (1:nb), off .+ (1:nb)] .- 1e-3))) .< 1e-8); off += nb
+	@test all(abs.(diag(Matrix(core0.j.j[off .+ (1:nd), off .+ (1:nd)] .+ core0.n_opts.β*impl0.lin[1].κ0[1]))) .< 1e-8); off += nd
+
+	# Test dynamics terms
+	for t = 1:H
+	    @test all(diag(core0.j.IV[t]) .== -1.0)
+	end
+	for t = 3:H
+	    @test all(core0.j.q0[t-2] .== impl0.δq0[t])
+	end
+	for t = 2:H
+	    @test all(core0.j.q1[t-1] .== impl0.δq1[t])
+	end
+	for t = 1:H
+	    @test all(core0.j.u1[t] .== impl0.δu1[t])
+	end
+end
+
+const ContactControl = Main
+
+
+@testset "residual!" begin
+	model = ContactControl.get_model("quadruped")
+	κ = 1e-4
+	ref_traj0 = ContactControl.get_trajectory("quadruped", "gait1")
+	ref_traj0.κ .= κ
+	H = ref_traj0.H
+	h = 0.1
+	nq = model.dim.q
+	nu = model.dim.u
+	nc = model.dim.c
+	nb = model.dim.b
+	nd = nq+nc+nb
+	nr = nq+nu+nc+nb+nd
+
+	# Test Jacobian!
+	cost0 = ContactControl.CostFunction(H, model.dim,
+	    Qq=fill(Diagonal(1e-0*ones(SizedVector{nq})), H),
+	    Qu=fill(Diagonal(1e-1*ones(SizedVector{nu})), H),
+	    Qγ=fill(Diagonal(1e-2*ones(SizedVector{nc})), H),
+	    Qb=fill(Diagonal(1e-3*ones(SizedVector{nb})), H),
+	    )
+	core0 = ContactControl.Newton(H, h, model, cost=cost0)
+	impl0 = ContactControl.ImplicitTraj(H, model)
+	ContactControl.linearization!(model, ref_traj0, impl0)
+	ContactControl.implicit_dynamics!(model, ref_traj0, impl0)
+	# Offset the trajectory and the dual variables to get a residual
+	traj1 = deepcopy(ref_traj0)
+	for t = 1:H
+	    core0.ν[t] .+= 2.0
+	    traj1.θ[t] .+= 0.1
+	    traj1.z[t] .+= 0.1
+	    traj1.u[t] .+= 0.1
+	    traj1.γ[t] .+= 0.1
+	    traj1.b[t] .+= 0.1
+	end
+	for t = 1:H+2
+	    traj1.q[t] .+= 0.1
+	end
+
+	ContactControl.residual!(model, core0, core0.r, core0.ν, impl0, traj1, ref_traj0)
+	@test norm(core0.Δq[1] .- 0.1, Inf) < 1e-8
+	@test norm(core0.Δu[1] .- 0.1, Inf) < 1e-8
+	@test norm(core0.Δγ[1] .- 0.1, Inf) < 1e-8
+	@test norm(core0.Δb[1] .- 0.1, Inf) < 1e-8
+
+	core0.r.q2[1]
+	core0.cost.Qq[1]*core0.Δq[1]
+	@test norm(core0.r.q2[1] .- core0.cost.Qq[1]*core0.Δq[1] - impl0.δq0[1+2]'*core0.ν[1+2] - impl0.δq1[1+1]'*core0.ν[1+1] .+ core0.ν[1][1], Inf) < 1e-8
+	@test norm(core0.r.u1[1] .- core0.cost.Qu[1]*core0.Δu[1] - impl0.δu1[1]'*core0.ν[1], Inf) < 1e-8
+	@test norm(core0.r.γ1[1] .- core0.cost.Qγ[1]*core0.Δγ[1] .+ core0.ν[1][1], Inf) < 1e-8
+	@test norm(core0.r.b1[1] .- core0.cost.Qb[1]*core0.Δb[1] .+ core0.ν[1][1], Inf) < 1e-8
+end
