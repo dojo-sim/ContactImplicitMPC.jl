@@ -133,24 +133,24 @@ function Jacobian(H::Int, dim::Dimensions)
         )
 end
 
-mutable struct CoreIndex{nq,nu,nc,nb,n1,n2,n3,I<:Int}
-    H::I                                    # horizon
-    nd::I                                   # implicit dynamics constraint
-    nr::I                                   # size of a one-time-step block
-    iq::SizedArray{Tuple{nq},I,1,1}         # configuration indices
-    iu::SizedArray{Tuple{nu},I,1,1}         # control indices
-    iγ::SizedArray{Tuple{nc},I,1,1}         # impact indices
-    ib::SizedArray{Tuple{nb},I,1,1}         # linear friction indices
-    iν::SizedArray{Tuple{n1},I,1,1}         # implicit dynamics lagrange multiplier
-    iz::SizedArray{Tuple{n2},I,1,1}         # IP solver solution [q2, γ1, b1]
-    iθ::SizedArray{Tuple{n3},I,1,1}         # IP solver data [q0, q1, u1]
-    Iq::Vector{SizedArray{Tuple{nq},I,1,1}} # configuration indices
-    Iu::Vector{SizedArray{Tuple{nu},I,1,1}} # control indices
-    Iγ::Vector{SizedArray{Tuple{nc},I,1,1}} # impact indices
-    Ib::Vector{SizedArray{Tuple{nb},I,1,1}} # linear friction indices
-    Iν::Vector{SizedArray{Tuple{n1},I,1,1}} # implicit dynamics lagrange multiplier
-    Iz::Vector{SizedArray{Tuple{n2},I,1,1}} # IP solver solution [q2, γ1, b1]
-    Iθ::Vector{SizedArray{Tuple{n3},I,1,1}} # IP solver data [q0, q1, u1]
+mutable struct CoreIndex{nq,nu,nc,nb,n1,n2,n3}
+    H::Int                                    # horizon
+    nd::Int                                   # implicit dynamics constraint
+    nr::Int                                   # size of a one-time-step block
+    iq::SizedArray{Tuple{nq},Int,1,1}         # configuration indices
+    iu::SizedArray{Tuple{nu},Int,1,1}         # control indices
+    iγ::SizedArray{Tuple{nc},Int,1,1}         # impact indices
+    ib::SizedArray{Tuple{nb},Int,1,1}         # linear friction indices
+    iν::SizedArray{Tuple{n1},Int,1,1}         # implicit dynamics lagrange multiplier
+    iz::SizedArray{Tuple{n2},Int,1,1}         # IP solver solution [q2, γ1, b1]
+    iθ::SizedArray{Tuple{n3},Int,1,1}         # IP solver data [q0, q1, u1]
+    Iq::Vector{SizedArray{Tuple{nq},Int,1,1}} # configuration indices
+    Iu::Vector{SizedArray{Tuple{nu},Int,1,1}} # control indices
+    Iγ::Vector{SizedArray{Tuple{nc},Int,1,1}} # impact indices
+    Ib::Vector{SizedArray{Tuple{nb},Int,1,1}} # linear friction indices
+    Iν::Vector{SizedArray{Tuple{n1},Int,1,1}} # implicit dynamics lagrange multiplier
+    Iz::Vector{SizedArray{Tuple{n2},Int,1,1}} # IP solver solution [q2, γ1, b1]
+    Iθ::Vector{SizedArray{Tuple{n3},Int,1,1}} # IP solver data [q0, q1, u1]
 end
 
 function CoreIndex(H::Int, dim::Dimensions)
@@ -179,7 +179,7 @@ function CoreIndex(H::Int, dim::Dimensions)
     Iz = [(t-1)*nr .+ iz for t=1:H]
     Iθ = [(t-1)*nr .+ iθ for t=1:H]
 
-    return CoreIndex{nq,nu,nc,nb,nd,nd,2nq+nu,Int}(
+    return CoreIndex{nq,nu,nc,nb,nd,nd,2nq+nu}(
         H, nd, nr,
         iq, iu, iγ, ib, iν, iz, iθ,
         Iq, Iu, Iγ, Ib, Iν, Iz, Iθ,
@@ -245,9 +245,6 @@ end
 function jacobian!(model::ContactDynamicsModel, core::Newton, jcb::Jacobian,
     impl::ImplicitTraj{T}) where {T}
 
-    # @show "Recompute implicit dynamics"
-    # implicit_dynamics!(model, core.traj, impl; κ=core.traj.κ)
-
     # unpack
     H = core.H
     cost = core.cost
@@ -285,25 +282,15 @@ function residual!(model::ContactDynamicsModel, core::Newton, res::Residual,
     ) where {T,nq,nu,nc,nb,D}
 
     # unpack
-    n_opts = core.n_opts
     cost = core.cost
     res.r .= 0.0
 
-    # @show "Recompute implicit dynamics"
-    # implicit_dynamics!(model, traj, impl; κ=traj.κ)
-    # plt = plot()
-    # plot!(hcat(Vector.(traj.q)...)', label="q_residual!")
-    # display(plt)
     for t in eachindex(ν)
         # Cost function
         delta!(core.Δq[t], traj.q[t+2], ref_traj.q[t+2])
         delta!(core.Δu[t], traj.u[t], ref_traj.u[t])
         delta!(core.Δγ[t], traj.γ[t], ref_traj.γ[t])
         delta!(core.Δb[t], traj.b[t], ref_traj.b[t])
-        # mul!(res.q2[t], cost.Qq[t], core.Δq[t])
-        # mul!(res.u1[t], cost.Qu[t], core.Δu[t])
-        # mul!(res.γ1[t], cost.Qγ[t], core.Δγ[t])
-        # mul!(res.b1[t], cost.Qb[t], core.Δb[t])
 
         res.q2[t] .+= cost.Qq[t]*core.Δq[t]
         res.u1[t] .+= cost.Qu[t]*core.Δu[t]
@@ -311,16 +298,11 @@ function residual!(model::ContactDynamicsModel, core::Newton, res::Residual,
         res.b1[t] .+= cost.Qb[t]*core.Δb[t]
 
         # Implicit dynamics
-        # set!(res.rd[t], impl.d[t])
         res.rd[t] .+= impl.d[t]
 
         # Minus Identity term #∇qk1, ∇γk, ∇bk
-        # setminus!(res.rI[t], ν[t])
         res.rI[t] .+= - ν[t]
         # Implicit function theorem part #∇qk_1, ∇qk, ∇uk
-        # t >= 3 ? mul!(res.q0[t-2], impl.δq0[t]', ν[t]) : nothing
-        # t >= 2 ? mul!(res.q1[t-1], impl.δq1[t]', ν[t]) : nothing
-        # mul!(res.u1[t], impl.δu1[t]', ν[t])
         t >= 3 ? res.q0[t-2] .+= impl.δq0[t]'*ν[t] : nothing
         t >= 2 ? res.q1[t-1] .+= impl.δq1[t]'*ν[t] : nothing
         res.u1[t] .+= impl.δu1[t]'*ν[t]
@@ -342,16 +324,6 @@ function delta!(Δx::SizedArray{Tuple{nx},T,1,1}, x::AbstractArray{T},
     return nothing
 end
 
-function set!(s::SubArray, x::SizedArray{Tuple{nx},T,1,1}) where {nx,T}
-    s .= x
-    return nothing
-end
-
-function setminus!(s::SubArray, x::SizedArray{Tuple{nx},T,1,1}) where {nx,T}
-    s .= -1.0.*x
-    return nothing
-end
-
 function set_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
         source::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
         νtarget::Vector{SizedArray{Tuple{n1},T,1,1}},
@@ -368,11 +340,8 @@ function set_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
     for t = 1:H
         target.q[t+2] .= source.q[t+2] .+ α.*Δ.q2[t]
         target.u[t] .= source.u[t] .+ α.*Δ.u1[t]
-        # target.w[t] .= source.w[t] + α.*Δ.w1[t]
         target.γ[t] .= source.γ[t] .+ α.*Δ.γ1[t]
         target.b[t] .= source.b[t] .+ α.*Δ.b1[t]
-        # target.z[t] .= source.z[t] + α.*Δ.z[t]
-        # target.θ[t] .= source.θ[t] + α.*Δ.θ[t]
         νtarget[t]  .= νsource[t] .+ α.*Δ.rd[t]
     end
     update_z!(target)
@@ -386,7 +355,6 @@ function copy_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
     Hs = target.H
     @assert Hs >= H
     @assert Ht >= H
-    # target.h = source.h
     target.κ .= source.κ
     for t in eachindex(1:H+2)
         target.q[t] .= source.q[t]
@@ -403,7 +371,7 @@ function copy_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
 end
 
 function reset!(core::Newton, ref_traj::ContactTraj; warm_start::Bool=false,
-	initial_offset::Bool=false, q0=ref_traj.q[1], q1=ref_traj.q[2]) where {T}
+	q0=ref_traj.q[1], q1=ref_traj.q[2]) where {T}
     n_opts = core.n_opts
 	# Reset β value
     n_opts.β = n_opts.β_init
@@ -415,18 +383,7 @@ function reset!(core::Newton, ref_traj::ContactTraj; warm_start::Bool=false,
 		end
 		# Set up trajectory
         copy_traj!(core.traj, ref_traj, core.traj.H)
-		if initial_offset
-		    rd = -0.03*[[1,1]; ones(model.dim.q-2)]
-		    core.traj.q[1] .+= rd
-		    core.traj.q[2] .+= rd
-			update_θ!(core.traj, 1)
-			update_θ!(core.traj, 2)
-		end
 	end
-    # for t = 1:core.H
-    #     core.ν[t] .= 0.0
-    #     core.ν_[t] .= 0.0
-    # end
     core.traj.q[1] .= deepcopy(q0)
     core.traj.q[2] .= deepcopy(q1)
     update_θ!(core.traj, 1)
@@ -437,26 +394,20 @@ function reset!(core::Newton, ref_traj::ContactTraj; warm_start::Bool=false,
 end
 
 function newton_solve!(model::ContactDynamicsModel, core::Newton, impl::ImplicitTraj{T},
-    ref_traj::ContactTraj{T,nq,nu,nc,nb} ; warm_start::Bool=false, initial_offset::Bool=false,
+    ref_traj::ContactTraj{T,nq,nu,nc,nb} ; warm_start::Bool=false,
     q0=ref_traj.q[1], q1=ref_traj.q[2]) where {T,nq,nu,nc,nb}
 
-	reset!(core, ref_traj; warm_start=warm_start, initial_offset=initial_offset, q0=q0, q1=q1)
-    # for i = 1:core.n_opts.solver_outer_iter
-        # (core.n_opts.live_plot) && (visualize!(vis, model, traj.q, Δt=h))
+	reset!(core, ref_traj; warm_start=warm_start, q0=q0, q1=q1)
+
     for l = 1:core.n_opts.solver_inner_iter
 		# Compute implicit dynamics about traj
 		implicit_dynamics!(model, core.traj, impl; κ=core.traj.κ)
-		# plt = plot(legend=false)
-		# 	plot!([log(10, norm(d)) for d in impl.d], ylims=log.(10,(1e-11,1e1)), label="ν")
-		# display(plt)
 
         # Compute residual
         residual!(model, core, core.r, core.ν, impl, core.traj, ref_traj)
         # Compute Jacobian
         jacobian!(model, core, core.j, impl)
         core.Δ.r .= - core.j.j \ core.r.r
-
-		println("res:", scn(norm(core.r.r,1)/length(core.r.r), digits=3))
         if norm(core.r.r,1)/length(core.r.r) < core.n_opts.r_tol
             break
         end
@@ -464,7 +415,6 @@ function newton_solve!(model::ContactDynamicsModel, core::Newton, impl::Implicit
         # line search the step direction
         α = 1.0
         iter = 0
-
         set_traj!(core.trial_traj, core.traj, core.ν_, core.ν, core.Δ, α)
 		# Compute implicit dynamics about trial_traj
 		implicit_dynamics!(model, core.trial_traj, impl; κ=core.trial_traj.κ)
@@ -511,7 +461,5 @@ function newton_solve!(model::ContactDynamicsModel, core::Newton, impl::Implicit
         #####################
 
     end
-    #     κ /= 10.0
-    # end
     return nothing
 end
