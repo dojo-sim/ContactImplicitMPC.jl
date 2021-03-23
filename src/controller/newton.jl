@@ -251,6 +251,7 @@ function jacobian!(model::ContactDynamicsModel, core::Newton, jcb::Jacobian,
     # unpack
     H = core.H
     cost = core.cost
+    n_opts = core.n_opts
     fill!(jcb.j, 0.0)
 
     for t=1:H
@@ -532,8 +533,10 @@ cost0 = CostFunction(H, model.dim,
     Qγ=fill(Diagonal(1e-6*ones(SizedVector{nc})), H),
     Qb=fill(Diagonal(1e-6*ones(SizedVector{nb})), H),
     )
-n_opts0 = NewtonOptions()
+n_opts0 = NewtonOptions(r_tol=3e-4)
 core0 = Newton(H, h, model, cost=cost0, n_opts=n_opts0)
 impl0 = ImplicitTraj(H, model)
 linearization!(model, ref_traj0, impl0)
 implicit_dynamics!(model, ref_traj0, impl0)
+
+newton_solve!(model, core0, impl0, ref_traj0)
