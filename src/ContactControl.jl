@@ -51,10 +51,6 @@ include("dynamics/quadruped/model.jl")
 include("dynamics/biped/model.jl")
 
 # Simulator
-<<<<<<< HEAD
-# include("simulator/trajectory.jl")
-=======
->>>>>>> a5d8bf3e47b8b9108f3fa3b911afec3e49725761
 include("simulator/policy.jl")
 include("simulator/disturbances.jl")
 include("simulator/simulator.jl")
