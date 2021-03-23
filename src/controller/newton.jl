@@ -284,10 +284,6 @@ function residual!(res::NewtonResidual, model::ContactDynamicsModel, core::Newto
         delta!(core.Δu[t], traj.u[t], ref_traj.u[t])
         delta!(core.Δγ[t], traj.γ[t], ref_traj.γ[t])
         delta!(core.Δb[t], traj.b[t], ref_traj.b[t])
-        # mul!(res.q2[t], cost.Qq[t], core.Δq[t])
-        # mul!(res.u1[t], cost.Qu[t], core.Δu[t])
-        # mul!(res.γ1[t], cost.Qγ[t], core.Δγ[t])
-        # mul!(res.b1[t], cost.Qb[t], core.Δb[t])
 
         res.q2[t] .+= cost.q[t] * core.Δq[t]
         res.u1[t] .+= cost.u[t] * core.Δu[t]
@@ -391,10 +387,6 @@ function reset!(core::Newton, ref_traj::ContactTraj;
 			update_θ!(core.traj, 2)
 		end
 	end
-    # for t = 1:core.H
-    #     core.ν[t] .= 0.0
-    #     core.ν_[t] .= 0.0
-    # end
     core.traj.q[1] .= deepcopy(q0)
     core.traj.q[2] .= deepcopy(q1)
 
