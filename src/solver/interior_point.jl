@@ -42,14 +42,14 @@ end
     solver::Symbol = :lu_solver
 end
 
-mutable struct InteriorPointMethods
+mutable struct ResidualMethods
     r!
     rz!
     rθ!
 end
 
 struct InteriorPoint{T}
-    methods::InteriorPointMethods
+    methods::ResidualMethods
     z::Vector{T}               # current point
     z̄::Vector{T}               # candidate point
     r::Vector{T}               # residual
@@ -81,7 +81,7 @@ function interior_point(x, θ;
     rz!(rz, x, θ) # compute Jacobian for pre-factorization
 
     InteriorPoint(
-        InteriorPointMethods(r!, rz!, rθ!),
+        ResidualMethods(r!, rz!, rθ!),
         x,
         zeros(num_var),
         zeros(num_var),

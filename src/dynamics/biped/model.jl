@@ -55,7 +55,7 @@ struct Biped{T} <: ContactDynamicsModel
 	base
 	dyn
 	res
-	approx
+	linearized
 
 	spa::SparseStructure
 
@@ -464,7 +464,7 @@ biped = Biped(Dimensions(nq, nu, nw, nc, nb),
 			  l_calf, d_calf, m_calf, J_calf,
 			  l_foot, d_foot, m_foot, J_foot,
 			  zeros(nc),
-			  BaseMethods(), DynamicsMethods(), ResidualMethods(), ApproximateMethods(),
+			  BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 			  environment_2D_flat())

@@ -49,7 +49,7 @@
 # end
 #
 #
-# function triv_lin_rzθ(model::ContactDynamicsModel, lin::LinStep13, z, θ, κ)
+# function triv_lin_rzθ(model::ContactDynamicsModel, lin::LinearizedStep13, z, θ, κ)
 # 	@assert norm(κ - lin.κ)/κ < 1e-10
 # 	r = lin.r0 + lin.Rz0 * (z-lin.z0) + lin.Rθ0 * (θ-lin.θ0)
 # 	# Bilinearities
@@ -98,7 +98,7 @@
 # rz1!(rz_, z_, θ_, κ_)
 # rθ1!(rθ_, z_, θ_, κ_)
 #
-# LinStep(model, z_, θ_, κ_)
+# LinearizedStep(model, z_, θ_, κ_)
 #
 #
 #
@@ -145,14 +145,14 @@
 #     nothing
 # end
 #
-# struct InteriorPointMethods
+# struct ResidualMethods
 #     r!
 #     rz!
 #     rθ!
 # end
 #
 # struct InteriorPoint{T}
-#     methods::InteriorPointMethods
+#     methods::ResidualMethods
 #     z::Vector{T}               # current point
 #     z̄::Vector{T}               # candidate point
 #     r::Vector{T}               # residual
@@ -177,7 +177,7 @@
 #         rθ = spzeros(num_var, num_data)) where T
 #
 #     InteriorPoint(
-#         InteriorPointMethods(r!, rz!, rθ!),
+#         ResidualMethods(r!, rz!, rθ!),
 #         zeros(num_var),
 #         zeros(num_var),
 #         zeros(num_var),
@@ -364,7 +364,7 @@
 #
 #
 #
-# function easy_lin_step(lin::LinStep, q1_ref, q2_ref,
+# function easy_lin_step(lin::LinearizedStep, q1_ref, q2_ref,
 # 	model::ContactDynamicsModel; u2_ref=zeros(SVector{model.dim.u,Float64}),
 # 	ρ0=1e0, outer_iter=5, inner_iter=100, tol=1e-8, step_print::Bool=false, z_init=3e-2)
 # 	nq = model.dim.q
@@ -635,29 +635,29 @@
 # z0 = deepcopy(ip.z)
 # θ0 = deepcopy(ip.θ)
 # κ0 = deepcopy(ip.κ)
-# lin = LinStep(model, z0, θ0, κ0[1])
+# lin = LinearizedStep(model, z0, θ0, κ0[1])
 #
 # # residual
 # function r!(r, z, θ, κ)
-#     @warn "approx"
-# 	r_approx!(lin, r, z, θ, κ)
+#     @warn "linearized"
+# 	r_linearized!(lin, r, z, θ, κ)
 # end
 #
 # # residual Jacobian wrt z
 # function rz!(rz, z, θ, κ)
-# 	@warn "approx"
-# 	rz_approx!(lin, rz, z, θ, κ)
+# 	@warn "linearized"
+# 	rz_linearized!(lin, rz, z, θ, κ)
 # end
 #
 # # residual Jacobian wrt θ
 # function rθ!(rθ, z, θ, κ)
-# 	@warn "approx"
-# 	rθ_approx!(lin, rθ, z, θ, κ)
+# 	@warn "linearized"
+# 	rθ_linearized!(lin, rθ, z, θ, κ)
 # 	nothing
 # end
 #
 #
-# ip_approx = interior_point(
+# ip_linearized = interior_point(
 # 	num_var(model),
 # 	num_data(model),
 # 	inequality_indices(model),
@@ -665,13 +665,13 @@
 # 	rz = model.spa.rz_sp,
 # 	rθ = model.spa.rθ_sp)
 #
-# θ_initialize!(ip_approx.θ, model, q0, q1, u1, w1, h)
-# z_initialize!(ip_approx.z, model, q1)
+# θ_initialize!(ip_linearized.θ, model, q0, q1, u1, w1, h)
+# z_initialize!(ip_linearized.z, model, q1)
 #
-# status = interior_point!(ip_approx, opts = ip_opts)
-# @test norm(ip_approx.z - z0, Inf) < 1e-8
-# @test norm(ip_approx.θ - θ0, Inf) < 1e-8
-# @test norm(ip_approx.r, Inf) < 1e-5
+# status = interior_point!(ip_linearized, opts = ip_opts)
+# @test norm(ip_linearized.z - z0, Inf) < 1e-8
+# @test norm(ip_linearized.θ - θ0, Inf) < 1e-8
+# @test norm(ip_linearized.r, Inf) < 1e-5
 #
 #
 #
@@ -1207,9 +1207,9 @@
 # r0 = zeros(nz)
 # # z0 = zeros(nz)
 # # θ0 = zeros(nθ)
-# r!(r0, z0, θ0, κ) = model.approx.r(r0, z0, θ0, κ, impl.lin[k].z0, impl.lin[k].θ0, impl.lin[k].r0, impl.lin[k].rz0, impl.lin[k].rθ0)
+# r!(r0, z0, θ0, κ) = model.linearized.r(r0, z0, θ0, κ, impl.lin[k].z0, impl.lin[k].θ0, impl.lin[k].r0, impl.lin[k].rz0, impl.lin[k].rθ0)
 # k = 1
-# model.approx.r(r0, ref_traj0.z[k], ref_traj0.θ[k], κ, impl0.lin[k].z0, impl0.lin[k].θ0, impl0.lin[k].r0, impl0.lin[k].rz0, impl0.lin[k].rθ0)
+# model.linearized.r(r0, ref_traj0.z[k], ref_traj0.θ[k], κ, impl0.lin[k].z0, impl0.lin[k].θ0, impl0.lin[k].r0, impl0.lin[k].rz0, impl0.lin[k].rθ0)
 # @test norm(r0) < 1e-8
 #
 #

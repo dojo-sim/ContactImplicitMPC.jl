@@ -12,7 +12,7 @@ path_base = joinpath(dir, "flat/base.jld2")
 path_dyn = joinpath(dir, "flat/dynamics.jld2")
 path_res = joinpath(dir, "flat/residual.jld2")
 path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
-path_approx = joinpath(dir, "flat/approx.jld2")
+path_linearized = joinpath(dir, "flat/linearized.jld2")
 
 expr_base = generate_base_expressions(model)
 save_expressions(expr_base, path_base, overwrite=true)
@@ -27,9 +27,9 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_approx = generate_approx_expressions(model)
-save_expressions(expr_approx, path_approx, overwrite=true)
-instantiate_approx!(model, path_approx)
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Particle (quadratic)
@@ -41,7 +41,7 @@ path_base = joinpath(dir, "quadratic/base.jld2")
 path_dyn = joinpath(dir, "quadratic/dynamics.jld2")
 path_res = joinpath(dir, "quadratic/residual.jld2")
 path_jac = joinpath(dir, "quadratic/sparse_jacobians.jld2")
-path_approx = joinpath(dir, "quadratic/approx.jld2")
+path_linearized = joinpath(dir, "quadratic/linearized.jld2")
 
 expr_base = generate_base_expressions(model)
 save_expressions(expr_base, path_base, overwrite=true)
@@ -56,9 +56,9 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_approx = generate_approx_expressions(model)
-save_expressions(expr_approx, path_approx, overwrite=true)
-instantiate_approx!(model, path_approx)
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Particle 2D (flat)
@@ -70,7 +70,7 @@ path_base = joinpath(dir, "flat/base.jld2")
 path_dyn = joinpath(dir, "flat/dynamics.jld2")
 path_res = joinpath(dir, "flat/residual.jld2")
 path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
-path_approx = joinpath(dir, "flat/approx.jld2")
+path_linearized = joinpath(dir, "flat/linearized.jld2")
 
 expr_base = generate_base_expressions(model)
 save_expressions(expr_base, path_base, overwrite=true)
@@ -85,9 +85,9 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_approx = generate_approx_expressions(model)
-save_expressions(expr_approx, path_approx, overwrite=true)
-instantiate_approx!(model, path_approx)
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Particle 2D (slope)
@@ -98,7 +98,7 @@ path_base = joinpath(dir, "slope/base.jld2")
 path_dyn = joinpath(dir, "slope/dynamics.jld2")
 path_res = joinpath(dir, "slope/residual.jld2")
 path_jac = joinpath(dir, "slope/sparse_jacobians.jld2")
-path_approx = joinpath(dir, "slope/approx.jld2")
+path_linearized = joinpath(dir, "slope/linearized.jld2")
 
 expr_base = generate_base_expressions(model)
 save_expressions(expr_base, path_base, overwrite=true)
@@ -113,9 +113,9 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_approx = generate_approx_expressions(model)
-save_expressions(expr_approx, path_approx, overwrite=true)
-instantiate_approx!(model, path_approx)
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Hopper (2D)
@@ -127,7 +127,7 @@ path_base = joinpath(dir, "flat/base.jld2")
 path_dyn = joinpath(dir, "flat/dynamics.jld2")
 path_res = joinpath(dir, "flat/residual.jld2")
 path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
-path_approx = joinpath(dir, "flat/approx.jld2")
+path_linearized = joinpath(dir, "flat/linearized.jld2")
 
 expr_base = generate_base_expressions_analytical(model)
 save_expressions(expr_base, path_base, overwrite=true)
@@ -142,9 +142,9 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_approx = generate_approx_expressions(model)
-save_expressions(expr_approx, path_approx, overwrite=true)
-instantiate_approx!(model, path_approx)
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Hopper (3D)
@@ -156,7 +156,7 @@ path_base = joinpath(dir, "flat/base.jld2")
 path_dyn = joinpath(dir, "flat/dynamics.jld2")
 path_res = joinpath(dir, "flat/residual.jld2")
 path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
-path_approx = joinpath(dir, "flat/approx.jld2")
+path_linearized = joinpath(dir, "flat/linearized.jld2")
 
 expr_base = generate_base_expressions_analytical(model)
 save_expressions(expr_base, path_base, overwrite=true)
@@ -171,9 +171,9 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_approx = generate_approx_expressions(model)
-save_expressions(expr_approx, path_approx, overwrite=true)
-instantiate_approx!(model, path_approx)
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Quadruped
@@ -184,7 +184,7 @@ path_base = joinpath(dir, "flat/base.jld2")
 path_dyn = joinpath(dir, "flat/dynamics.jld2")
 path_res = joinpath(dir, "flat/residual.jld2")
 path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
-path_approx = joinpath(dir, "flat/approx.jld2")
+path_linearized = joinpath(dir, "flat/linearized.jld2")
 
 expr_base = generate_base_expressions(model)
 save_expressions(expr_base, path_base, overwrite=true)
@@ -200,9 +200,9 @@ save_expressions(expr_res, path_res, overwrite=true)
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_approx = generate_approx_expressions(model)
-save_expressions(expr_approx, path_approx, overwrite=true)
-instantiate_approx!(model, path_approx)
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Biped
@@ -213,7 +213,7 @@ path_base = joinpath(dir, "flat/base.jld2")
 path_dyn = joinpath(dir, "flat/dynamics.jld2")
 path_res = joinpath(dir, "flat/residual.jld2")
 path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
-path_approx = joinpath(dir, "flat/approx.jld2")
+path_linearized = joinpath(dir, "flat/linearized.jld2")
 
 expr_base = generate_base_expressions(model)
 save_expressions(expr_base, path_base, overwrite=true)
@@ -229,6 +229,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_approx = generate_approx_expressions(model)
-save_expressions(expr_approx, path_approx, overwrite=true)
-instantiate_approx!(model, path_approx)
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)

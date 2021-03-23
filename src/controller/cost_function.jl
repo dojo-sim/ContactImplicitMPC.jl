@@ -1,16 +1,14 @@
-mutable struct CostFunction{T,nq,nu,nc,nb}
-    H::Int
-    Qq::Vector{Diagonal{T,SizedArray{Tuple{nq},T,1,1,Array{T,1}}}}
-    Qu::Vector{Diagonal{T,SizedArray{Tuple{nu},T,1,1,Array{T,1}}}}
-    Qγ::Vector{Diagonal{T,SizedArray{Tuple{nc},T,1,1,Array{T,1}}}}
-    Qb::Vector{Diagonal{T,SizedArray{Tuple{nb},T,1,1,Array{T,1}}}}
+mutable struct CostFunction{Q,U,C,B}
+    q::Vector{Q}
+    u::Vector{U}
+    γ::Vector{C}
+    b::Vector{B}
 end
 
-function CostFunction(H::Int, dim::Dimensions;
-    Qq::Vector{Diagonal{T,SizedArray{Tuple{nq},T,1,1,Array{T,1}}}}=fill(Diagonal(zeros(SizedVector{dim.q})), H),
-    Qu::Vector{Diagonal{T,SizedArray{Tuple{nu},T,1,1,Array{T,1}}}}=fill(Diagonal(zeros(SizedVector{dim.u})), H),
-    Qγ::Vector{Diagonal{T,SizedArray{Tuple{nc},T,1,1,Array{T,1}}}}=fill(Diagonal(zeros(SizedVector{dim.c})), H),
-    Qb::Vector{Diagonal{T,SizedArray{Tuple{nb},T,1,1,Array{T,1}}}}=fill(Diagonal(zeros(SizedVector{dim.b})), H),
-    ) where {T,nq,nu,nc,nb}
-    return CostFunction{T,nq,nu,nc,nb}(H, Qq, Qu, Qγ, Qb)
+function cost_function(H::Int, dim::Dimensions;
+    q = [Diagonal(zeros(SizedVector{dim.q})) for t = 1:H],
+    u = [Diagonal(zeros(SizedVector{dim.u})) for t = 1:H],
+    γ = [Diagonal(zeros(SizedVector{dim.c})) for t = 1:H],
+    b = [Diagonal(zeros(SizedVector{dim.b})) for t = 1:H])
+    return CostFunction(q, u, γ, b)
 end

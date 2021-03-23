@@ -1,16 +1,10 @@
 @testset "Cost Function" begin
     model = ContactControl.get_model("quadruped")
-    nq = model.dim.q
-    nu = model.dim.u
-    nw = model.dim.w
-    nc = model.dim.c
-    nb = model.dim.b
 
-    H = 20
-    cost0 = ContactControl.CostFunction(H, model.dim)
-    @test cost0.H == H
-    @test length(cost0.Qq) == H
-    @test length(cost0.Qu) == H
-    @test length(cost0.Qγ) == H
-    @test length(cost0.Qb) == H
+    H = 10
+    cost = ContactControl.cost_function(H, model.dim)
+    @test length(cost.q) == H
+    @test length(cost.u) == H
+    @test length(cost.γ) == H
+    @test length(cost.b) == H
 end

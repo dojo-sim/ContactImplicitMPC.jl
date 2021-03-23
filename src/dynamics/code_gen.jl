@@ -198,15 +198,15 @@ function generate_residual_expressions(model::ContactDynamicsModel; T = Float64)
 end
 
 """
-	generate_approx_expressions(model::ContactDynamicsModel)
-Generate fast approximate methods using Symbolics symbolic computing tools.
+	generate_linearized_expressions(model::ContactDynamicsModel)
+Generate fast linearizedimate methods using Symbolics symbolic computing tools.
 """
-function generate_approx_expressions(model::ContactDynamicsModel; T = Float64)
+function generate_linearized_expressions(model::ContactDynamicsModel; T = Float64)
     bil_terms, bil_vars = get_bilinear_indices(model)
     nz = num_var(model)
     nθ = num_data(model)
 
-	# r_approx rz_approx, rθ_approx
+	# r_linearized rz_linearized, rθ_linearized
     @variables   z[1:nz]
 	@variables   θ[1:nθ]
 	@variables   κ[1:1]
@@ -228,7 +228,7 @@ function generate_approx_expressions(model::ContactDynamicsModel; T = Float64)
 	end
 	r = simplify.(r)
 
-	# r_approx rz_approx, rθ_approx
+	# r_linearized rz_linearized, rθ_linearized
     @variables   z[1:nz]
     @variables rz0[1:nz,1:nz]
 	rz = zeros(eltype(z), nz, nz)
@@ -244,7 +244,7 @@ function generate_approx_expressions(model::ContactDynamicsModel; T = Float64)
 	end
 	rz = simplify.(rz)
 
-	# r_approx rz_approx, rθ_approx
+	# r_linearized rz_linearized, rθ_linearized
     @variables rθ0[1:nz,1:nθ]
 	rθ = zeros(eltype(rθ0), nz, nθ)
 	rθ .= rθ0
@@ -363,36 +363,23 @@ end
 Evaluates the residual expressions to generate functions, stores them into the model.
 """
 function instantiate_residual!(fct::ResidualMethods, expr::Dict{Symbol,Expr})
-	fct.r  = eval(expr[:r])
-	fct.rz = eval(expr[:rz])
-	fct.rθ = eval(expr[:rθ])
+	fct.r!  = eval(expr[:r])
+	fct.rz! = eval(expr[:rz])
+	fct.rθ! = eval(expr[:rθ])
 	return nothing
 end
 
 """
-	instantiate_approx!(model::QuadrupedModel,
-		path::AbstractString=".expr/quadruped_approx.jld2")
-Loads the approximate expressions from the `path`, evaluates them to generate functions,
+	instantiate_linearized!(model::QuadrupedModel,
+		path::AbstractString=".expr/quadruped_linearized.jld2")
+Loads the linearizedimate expressions from the `path`, evaluates them to generate functions,
 stores them into the model.
 """
-function instantiate_approx!(model::ContactDynamicsModel, path::AbstractString="model/approx.jld2")
+function instantiate_linearized!(model::ContactDynamicsModel, path::AbstractString="model/linearized.jld2")
 	expr = load_expressions(path)
-	instantiate_approx!(model.approx, expr)
+	instantiate_residual!(model.linearized, expr)
 	return nothing
 end
-
-"""
-	instantiate_approx!(model,
-		path::AbstractString="model/approx.jld2")
-Evaluates the approximate expressions to generate functions, stores them into the model.
-"""
-function instantiate_approx!(fct::ApproximateMethods, expr::Dict{Symbol,Expr})
-	fct.r   = eval(expr[:r])
-	fct.rz = eval(expr[:rz])
-	fct.rθ = eval(expr[:rθ])
-	return nothing
-end
-
 
 function fast_expressions!(model::ContactDynamicsModel, dir::String;
 	generate = true, verbose = true)

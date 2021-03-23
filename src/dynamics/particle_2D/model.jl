@@ -20,7 +20,7 @@ struct Particle2D{T} <: ContactDynamicsModel
 	base::BaseMethods
 	dyn::DynamicsMethods
 	res::ResidualMethods
-	approx::ApproximateMethods
+	linearized::ResidualMethods
 
 	spa::SparseStructure
 
@@ -78,7 +78,7 @@ end
 
 # Model (flat surface)
 particle_2D = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 1.0, 0.0,
-	BaseMethods(), DynamicsMethods(), ResidualMethods(), ApproximateMethods(),
+	BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 	SparseStructure(spzeros(0,0),spzeros(0,0)),
 	SVector{2}(zeros(2)),
 	environment_2D_flat())
@@ -93,7 +93,7 @@ function slope_grad(x)
 end
 
 particle_2D_slope = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 0.1, 0.0,
-	BaseMethods(), DynamicsMethods(), ResidualMethods(), ApproximateMethods(),
+	BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 	SparseStructure(spzeros(0,0),spzeros(0,0)),
 	SVector{2}(zeros(2)),
 	Environment{R2}(slope, slope_grad))

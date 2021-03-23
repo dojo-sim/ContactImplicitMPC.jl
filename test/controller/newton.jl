@@ -92,7 +92,7 @@ end
 
 
 	# Check that we can optimize z with the residual function r and rz
-	# Verify that we get the ~same results using r_approx and rz_approx if the linearization was done about the solution.
+	# Verify that we get the ~same results using r_linearized and rz_linearized if the linearization was done about the solution.
 	nq = model.dim.q
 	nz = ContactControl.num_var(model)
 	α = 5e-2
@@ -139,8 +139,8 @@ end
 			r = zeros(nz)
 			rz = spzeros(nz,nz)
 			rz = similar(model.spa.rz_sp)
-			ContactControl.r_approx!(impl.lin[1], r, z, θ, κ[1])
-			ContactControl.rz_approx!(impl.lin[1], rz, z, θ)
+			ContactControl.r_linearized!(impl.lin[1], r, z, θ, κ[1])
+			ContactControl.rz_linearized!(impl.lin[1], rz, z, θ)
 			Δ = - rz \ r
 			z = z + 0.1*Δ
 			# @show norm(r)
@@ -149,12 +149,12 @@ end
 	end
 
 	z3 = dummy_linear_newton(impl0, z1, θ1, κ)
-	ContactControl.r_approx!(impl0.lin[1], r1, z3, θ1, κ[1])
+	ContactControl.r_linearized!(impl0.lin[1], r1, z3, θ1, κ[1])
 	@test norm(r1) < 1e-10
 
 	# We recover the original z using r and rz
 	@test norm(ref_traj0.z[1] - z2) < 1e-6
-	# We recover the original z using r_approx and rz_approx
+	# We recover the original z using r_linearized and rz_linearized
 	@test norm(ref_traj0.z[1] - z3) < 1e-6
 	# We recover the same solution using either methods
 	@test norm(z2 - z3) < 1e-6

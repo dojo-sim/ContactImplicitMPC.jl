@@ -19,7 +19,7 @@ struct Hopper3D{T} <: ContactDynamicsModel where T
 	base::BaseMethods
 	dyn::DynamicsMethods
 	res::ResidualMethods
-	approx::ApproximateMethods
+	linearized::ResidualMethods
 
 	spa::SparseStructure
 
@@ -92,7 +92,7 @@ Jl = 0.025 # leg inertia
 hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
 			mb, ml, Jb, Jl,
 			μ_world, μ_joint, g,
-			BaseMethods(), DynamicsMethods(), ResidualMethods(), ApproximateMethods(),
+			BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 			SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			SVector{7}(zeros(7)),
 			environment_3D_flat())

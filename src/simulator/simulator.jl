@@ -21,9 +21,9 @@ end
 function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     p = no_policy(model),
     d = no_disturbances(model),
-    r! = model.res.r,
-    rz! = model.res.rz,
-    rθ! = model.res.rθ,
+    r! = model.res.r!,
+    rz! = model.res.rz!,
+    rθ! = model.res.rθ!,
     rz = model.spa.rz_sp,
     rθ = model.spa.rθ_sp,
     ip_opts = InteriorPointOptions{S}(),

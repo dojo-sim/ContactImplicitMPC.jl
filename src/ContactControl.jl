@@ -56,12 +56,12 @@ include("simulator/disturbances.jl")
 include("simulator/simulator.jl")
 
 # Controller
-include("controller/bilinear.jl")
+include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/cost_function.jl")
 include("controller/newton.jl")
 
-export SparseStructure, LinStep, get_bilinear_indices, bil_addition!, r_approx!, rz_approx!
+export SparseStructure, LinearizedStep, get_bilinear_indices, bil_addition!, r_linearized!, rz_linearized!
 export ImplicitTraj, linearization!, implicit_dynamics!
 export CostFunction
 
