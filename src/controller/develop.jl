@@ -1231,7 +1231,7 @@ include("newton.jl")
 # open(vis)
 
 n_opts.r_tol = 1e-6
-core1 = Newton23(H, h, model)
+core1 = Newton(H, h, model)
 linearization!(model, ref_traj0, impl0)
 @time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, initial_offset=false)
 @time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, warm_start=true, initial_offset=true)
@@ -1330,9 +1330,9 @@ cost0 = CostFunction(H, model.dim,
     Qγ=fill(Diagonal(1e-6*ones(SizedVector{nc})), H),
     Qb=fill(Diagonal(1e-6*ones(SizedVector{nb})), H),
     )
-n_opts = Newton23Options()
+n_opts = NewtonOptions()
 
-core0 = Newton23(H, h, model)
+core0 = Newton(H, h, model)
 core0.r
 traj1 = deepcopy(traj0)
 for t = 1:H
@@ -1368,7 +1368,7 @@ norm(core0.r.r) == 0.0
 # @code_warntype jacobian!(model, core0, core0.j, impl0, cost0, n_opts)
 # @benchmark jacobian!(model, core0, core0.j, impl0, cost0, n_opts)
 
-# core1 = Newton23(H, h, model)
+# core1 = Newton(H, h, model)
 # @time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts)
 visualize!(vis, model, ref_traj0.q, Δt=5*h)
 

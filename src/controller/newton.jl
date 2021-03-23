@@ -1,17 +1,17 @@
-# Newton23 solver options
-@with_kw mutable struct Newton23Options{T}
+# Newton solver options
+@with_kw mutable struct NewtonOptions{T}
     r_tol::T = 1.0e-5            # primal dual residual tolerance
     solver_outer_iter::Int = 3   # outer iter on the κ parameter
     solver_inner_iter::Int = 10  # primal dual iter
     κ_init::T = 1e-3             # inner solver intialization
     κ_scale::T = 0.1             # inner solver scaling
     κ_tol::T = 2.0e-3            # inner solver tolerance
-    β_init::T = 1e1              # dual regularization
+    β_init::T = 1e1              # initial dual regularization
     β::T = 1e1                   # dual regularization
-    live_plots::Bool = false    # Visulaize the trajectory during the solve
+    live_plots::Bool = false     # visualize the trajectory during the solve
 end
 
-mutable struct Residual11{T,
+mutable struct Residual{T,
     vq2,vu1,vγ1,vb1,
     vd,vI,vq0,vq1,
     }
@@ -28,7 +28,7 @@ mutable struct Residual11{T,
     q1::Vector{vq1}                        # rsd dynamics q1 views
  end
 
-function Residual11(H::Int, dim::Dimensions)
+function Residual(H::Int, dim::Dimensions)
     nq = dim.q # configuration
     nu = dim.u # control
     nc = dim.c # contact
@@ -56,7 +56,7 @@ function Residual11(H::Int, dim::Dimensions)
     q0  = [view(r, (t-3)*nr .+ iq) for t=3:H]
     q1  = [view(r, (t-2)*nr .+ iq) for t=2:H]
 
-    return Residual11{T,
+    return Residual{T,
         eltype.((q2, u1, γ1, b1))...,
         eltype.((rd, rI, q0, q1))...,
         }(
@@ -66,7 +66,7 @@ function Residual11(H::Int, dim::Dimensions)
         )
 end
 
-mutable struct Jacobian12{T,
+mutable struct Jacobian{T,
     Vq,Vu,Vγ,Vb,
     VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vreg,
     }
@@ -88,7 +88,7 @@ mutable struct Jacobian12{T,
     reg::Vector{Vreg}                       # jcb dual regularization views
 end
 
-function Jacobian12(H::Int, dim::Dimensions)
+function Jacobian(H::Int, dim::Dimensions)
     nq = dim.q # configuration
     nu = dim.u # control
     nw = dim.w # disturbance
@@ -123,7 +123,7 @@ function Jacobian12(H::Int, dim::Dimensions)
     u1T = [view(j, (t-1)*nr .+ iu, (t-1)*nr .+ iν) for t=1:H]
     reg = [view(j, (t-1)*nr .+ iν, (t-1)*nr .+ iν) for t=1:H]
 
-    return Jacobian12{eltype(j),
+    return Jacobian{eltype(j),
         eltype.((Qq2, Qu1, Qγ1, Qb1))...,
         eltype.((IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg))...,
         }(
@@ -133,7 +133,7 @@ function Jacobian12(H::Int, dim::Dimensions)
         )
 end
 
-mutable struct CoreIndex14{nq,nu,nc,nb,n1,n2,n3,I<:Int}
+mutable struct CoreIndex{nq,nu,nc,nb,n1,n2,n3,I<:Int}
     H::I                                    # horizon
     nd::I                                   # implicit dynamics constraint
     nr::I                                   # size of a one-time-step block
@@ -153,7 +153,7 @@ mutable struct CoreIndex14{nq,nu,nc,nb,n1,n2,n3,I<:Int}
     Iθ::Vector{SizedArray{Tuple{n3},I,1,1}} # IP solver data [q0, q1, u1]
 end
 
-function CoreIndex14(H::Int, dim::Dimensions)
+function CoreIndex(H::Int, dim::Dimensions)
     nq = dim.q # configuration
     nu = dim.u # control
     nw = dim.w # disturbance
@@ -179,19 +179,19 @@ function CoreIndex14(H::Int, dim::Dimensions)
     Iz = [(t-1)*nr .+ iz for t=1:H]
     Iθ = [(t-1)*nr .+ iθ for t=1:H]
 
-    return CoreIndex14{nq,nu,nc,nb,nd,nd,2nq+nu,Int}(
+    return CoreIndex{nq,nu,nc,nb,nd,nd,2nq+nu,Int}(
         H, nd, nr,
         iq, iu, iγ, ib, iν, iz, iθ,
         Iq, Iu, Iγ, Ib, Iν, Iz, Iθ,
         )
 end
 
-mutable struct Newton23{T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3,
+mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3,
     }
-    j::Jacobian12{T}                                  # Jacobian12
-    r::Residual11{T}                                  # residual
-    r̄::Residual11{T}                                  # candidate residual
-    Δ::Residual11{T}                                  # step direction in the Newton solve, it contains: q2-qH+1, u1-uH, γ1-γH, b1-bH, λd1-λdH
+    j::Jacobian{T}                                  # Jacobian
+    r::Residual{T}                                  # residual
+    r̄::Residual{T}                                  # candidate residual
+    Δ::Residual{T}                                  # step direction in the Newton solve, it contains: q2-qH+1, u1-uH, γ1-γH, b1-bH, λd1-λdH
     ν::Vector{SizedArray{Tuple{n1},T,1,1}}          # implicit dynamics lagrange multiplier
     ν_::Vector{SizedArray{Tuple{n1},T,1,1}}         # candidate implicit dynamics lagrange multiplier
     traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}       # optimized trajectory
@@ -204,10 +204,10 @@ mutable struct Newton23{T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3,
     h::T                                            # time step
     nd::Int                                         # implicit dynamics constraint size
     nr::Int                                         # size of a one-time-step block
-    ind::CoreIndex14{nq,nu,nc,nb,n1,n2,n3}            # indices of a one-time-step block
+    ind::CoreIndex{nq,nu,nc,nb,n1,n2,n3}            # indices of a one-time-step block
 end
 
-function Newton23(H::Int, h::T, model::ContactDynamicsModel) where {T}
+function Newton(H::Int, h::T, model::ContactDynamicsModel) where {T}
     dim = model.dim
     nq = dim.q # configuration
     nu = dim.u # control
@@ -219,10 +219,10 @@ function Newton23(H::Int, h::T, model::ContactDynamicsModel) where {T}
     nd = nq + nc + nb # implicit dynamics constraint
     nr = nq+nu+nc+nb+nd # size of a one-time-step block
 
-    j = Jacobian12(H,dim)
-    r = Residual11(H,dim)
-    r̄ = Residual11(H,dim)
-    Δ = Residual11(H,dim)
+    j = Jacobian(H,dim)
+    r = Residual(H,dim)
+    r̄ = Residual(H,dim)
+    Δ = Residual(H,dim)
     ν = [zeros(SizedVector{nd,T}) for t=1:H]
     ν_ = deepcopy(ν)
     trial_traj = contact_trajectory(H, h, model)
@@ -231,15 +231,15 @@ function Newton23(H::Int, h::T, model::ContactDynamicsModel) where {T}
     Δu  = [zeros(SizedVector{nu,T}) for t=1:H]
     Δγ  = [zeros(SizedVector{nc,T}) for t=1:H]
     Δb  = [zeros(SizedVector{nb,T}) for t=1:H]
-    ind = CoreIndex14(H, dim)
-    return Newton23{T,nq,nu,nw,nc,nb,nz,nθ,nd,nd,2nq+nu,
+    ind = CoreIndex(H, dim)
+    return Newton{T,nq,nu,nw,nc,nb,nz,nθ,nd,nd,2nq+nu,
         }(
         j, r, r̄, Δ, ν, ν_, traj, trial_traj, Δq, Δu, Δγ, Δb, H, h, nd, nr, ind,
         )
 end
 
-function jacobian!(model::ContactDynamicsModel, core::Newton23, jcb::Jacobian12,
-    impl::ImplicitTraj{T}, cost::CostFunction, n_opts::Newton23Options{T}) where {T}
+function jacobian!(model::ContactDynamicsModel, core::Newton, jcb::Jacobian,
+    impl::ImplicitTraj{T}, cost::CostFunction, n_opts::NewtonOptions{T}) where {T}
 
     # @show "Recompute implicit dynamics"
     # implicit_dynamics!(model, core.traj, impl; κ=core.traj.κ)
@@ -273,11 +273,11 @@ function jacobian!(model::ContactDynamicsModel, core::Newton23, jcb::Jacobian12,
     return nothing
 end
 
-function residual!(model::ContactDynamicsModel, core::Newton23, res::Residual11,
+function residual!(model::ContactDynamicsModel, core::Newton, res::Residual,
     ν::Vector{D},#Vector{SizedArray{Tuple{nd},T,1,1,Array{T,1}}},
     impl::ImplicitTraj{T}, cost::CostFunction,
     traj::ContactTraj{T,nq,nu,nc,nb}, ref_traj::ContactTraj{T,nq,nu,nc,nb},
-    n_opts::Newton23Options{T}) where {T,nq,nu,nc,nb,D}#nd}
+    n_opts::NewtonOptions{T}) where {T,nq,nu,nc,nb,D}#nd}
     # unpack
     res.r .= 0.0
 
@@ -319,8 +319,6 @@ function residual!(model::ContactDynamicsModel, core::Newton23, res::Residual11,
     return nothing
 end
 
-
-
 function delta!(Δx::SizedArray{Tuple{nx},T,1,1}, x::SizedArray{Tuple{nx},T,1,1},
     x_ref::SizedArray{Tuple{nx},T,1,1}) where {nx,T}
     Δx .= x
@@ -342,7 +340,7 @@ function set_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
         source::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
         νtarget::Vector{SizedArray{Tuple{n1},T,1,1}},
         νsource::Vector{SizedArray{Tuple{n1},T,1,1}},
-        Δ::Residual11{T},
+        Δ::Residual{T},
         α::T,
         ) where {T,nq,nu,nw,nc,nb,nz,nθ,n1}
     # Check that trajectory propoerties match
@@ -388,7 +386,7 @@ function copy_traj!(target::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
     return nothing
 end
 
-function reset!(core::Newton23, n_opts::Newton23Options, ref_traj::ContactTraj; warm_start::Bool=false,
+function reset!(core::Newton, n_opts::NewtonOptions, ref_traj::ContactTraj; warm_start::Bool=false,
 	initial_offset::Bool=false, q0=ref_traj.q[1], q1=ref_traj.q[2]) where {T}
 	# Reset β value
     n_opts.β = n_opts.β_init
@@ -421,9 +419,9 @@ function reset!(core::Newton23, n_opts::Newton23Options, ref_traj::ContactTraj; 
 	return nothing
 end
 
-function newton_solve!(model::ContactDynamicsModel, core::Newton23, impl::ImplicitTraj{T},
+function newton_solve!(model::ContactDynamicsModel, core::Newton, impl::ImplicitTraj{T},
     cost::CostFunction, ref_traj::ContactTraj{T,nq,nu,nc,nb},
-    n_opts::Newton23Options{T}; warm_start::Bool=false, initial_offset::Bool=false,
+    n_opts::NewtonOptions{T}; warm_start::Bool=false, initial_offset::Bool=false,
     q0=ref_traj.q[1], q1=ref_traj.q[2]) where {T,nq,nu,nc,nb}
 
 	reset!(core, n_opts, ref_traj; warm_start=warm_start, initial_offset=initial_offset, q0=q0, q1=q1)
@@ -438,7 +436,7 @@ function newton_solve!(model::ContactDynamicsModel, core::Newton23, impl::Implic
 
         # Compute residual
         residual!(model, core, core.r, core.ν, impl, cost, core.traj, ref_traj, n_opts)
-        # Compute Jacobian12
+        # Compute Jacobian
         jacobian!(model, core, core.j, impl, cost, n_opts)
         core.Δ.r .= - core.j.j \ core.r.r
 

@@ -112,39 +112,6 @@ function implicit_dynamics!(model::ContactDynamicsModel, traj::ContactTraj,
 		nq = model.dim.q
 		nu = model.dim.u
 
-		# #######################
-		# nc = model.dim.c
-		# nb = model.dim.b
-		# off = 0
-		# q20 = Vector(ip.z[off .+ (1:nq)]); off += nq
-		# γ10 = Vector(ip.z[off .+ (1:nc)]); off += nc
-		# b10 = Vector(ip.z[off .+ (1:nb)]); off += nb
-		# q00, q10, u10, w10 = Vector.(unpack_θ(model, ip.θ))
-		# r0 = zeros(nz)
-		# r1 = zeros(nz)
-		# r2 = zeros(nz)
-		# r3 = zeros(nz)
-		# model.approx.r(r0, ip.z, ip.θ, κ, impl.lin[k].z0, impl.lin[k].θ0, impl.lin[k].r0, impl.lin[k].rz0, impl.lin[k].rθ0)
-		# model.approx.r(r1, traj.z[k], traj.θ[k], κ, impl.lin[k].z0, impl.lin[k].θ0, impl.lin[k].r0, impl.lin[k].rz0, impl.lin[k].rθ0)
-		# model.res.r(r2, ip.z, ip.θ, κ)
-		# model.res.r(r3, traj.z[k], traj.θ[k], κ)
-		# @show norm(ip.θ - traj.θ[k])
-		# @show norm(ip.z - traj.z[k])
-		# @show norm(impl.lin[k].r0[1:nq])
-		# @show norm(r0)
-		# @show norm(r1)
-		# @show norm(r2)
-		# @show norm(r3)
-		# @show norm(r0[1:nq])
-		# @show norm(r1[1:nq])
-		# @show norm(r2[1:nq])
-		# @show norm(r3[1:nq])
-		# dyn0 = dynamics(model, traj.h, q00, q10, u10, w10, γ10, b10, q20)
-		# dyn1 = dynamics(model, traj.h, q00, q10, u10, w10, Vector(γ1), Vector(b1), Vector(q2))
-		# @show norm(dyn0)
-		# @show norm(dyn1)
-		# #######################
-
 		impl.d[k] = ip.z[1:nd] - [q2; γ1; b1]
 		impl.δz[k]  = copy(ip.δz)
 		off = 0

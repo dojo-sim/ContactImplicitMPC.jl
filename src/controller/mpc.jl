@@ -411,8 +411,8 @@ simulate!(sim0; verbose = false)
 ref_traj0 = deepcopy(sim0.traj)
 traj0 = deepcopy(sim0.traj)
 
-function dummy_mpc(model::ContactDynamicsModel, core::Newton23,
-    cost::CostFunction, mpc::MPC12, n_opts::Newton23Options)
+function dummy_mpc(model::ContactDynamicsModel, core::Newton,
+    cost::CostFunction, mpc::MPC12, n_opts::NewtonOptions)
     impl = mpc.impl
     ref_traj = mpc.ref_traj
     m_opts = mpc.m_opts
@@ -471,7 +471,7 @@ cost0 = CostFunction(H, model.dim,
     Qγ=fill(Diagonal(1e-6*ones(SizedVector{nc})), H),
     Qb=fill(Diagonal(1e-6*ones(SizedVector{nb})), H),
     )
-n_opts = Newton23Options()
+n_opts = NewtonOptions()
 
 ref_traj0 = deepcopy(sim0.traj)
 q_stride = get_stride(model, ref_traj0)
@@ -479,7 +479,7 @@ impl0 = ImplicitTraj(H, model)
 
 
 n_opts.r_tol = 3e-4
-core1 = Newton23(m_opts.H_mpc, h, model)
+core1 = Newton(m_opts.H_mpc, h, model)
 linearization!(model, ref_traj0, impl0)
 @time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, initial_offset=false)
 @time newton_solve!(model, core1, impl0, cost0, ref_traj0, n_opts, warm_start=true, initial_offset=true)
@@ -487,7 +487,7 @@ linearization!(model, ref_traj0, impl0)
 
 
 m_opts = MPC12Options{T}(N_sample=4, M = 10, H_mpc = 15)
-core0 = Newton23(m_opts.H_mpc, h, model)
+core0 = Newton(m_opts.H_mpc, h, model)
 mpc0 = MPC12(model, ref_traj0, m_opts=m_opts)
 @time dummy_mpc(model, core0, cost0, mpc0, n_opts)
 n_opts

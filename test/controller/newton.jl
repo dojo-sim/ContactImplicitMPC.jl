@@ -31,7 +31,7 @@
         target.z[t] .= -6.0
         target.θ[t] .= -7.0
     end
-    Δ0 = ContactControl.Residual11(H, model.dim)
+    Δ0 = ContactControl.Residual(H, model.dim)
     Δ0.r .+= 100*ones(nr*H)
     ContactControl.set_traj!(target, source, νtarget, νsource, Δ0, 2.0)
     source.q[1] .+= 1000.0
