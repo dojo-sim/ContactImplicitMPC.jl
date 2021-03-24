@@ -1,12 +1,14 @@
 """
-	ImplicitTraj{T,D}
+	ImplicitTraj{T}
 This structure holds the trajectory of evaluations and Jacobians of the implicit dynamics.
 These evaluations and Jacobians are computed using a linearizedimation computed around `lin`.
 """
-struct ImplicitTraj{T,D}
-	lin::Vector{LinearizedStep{T}}       # linearization point  length=H
-	d::Vector{SizedArray{Tuple{D},T,1,1,Array{T,1}}} # dynamics violation   length=H
-	δz::Vector{SparseMatrixCSC{T,Int}}   # solution gradient    length=H
+struct ImplicitTraj{T}
+	lin::Vector{LinearizedStep{T}}
+	d::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}} # dynamics violation
+	dq2::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
+	dγ1::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
+	db1::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
 	δq0::Vector{SubArray{T,2,SparseArrays.SparseMatrixCSC{T,Int},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # q0 solution gradient length=H
 	δq1::Vector{SubArray{T,2,SparseArrays.SparseMatrixCSC{T,Int},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # q1 solution gradient length=H
 	δu1::Vector{SubArray{T,2,SparseArrays.SparseMatrixCSC{T,Int},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # u1 solution gradient length=H
@@ -32,13 +34,6 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 	nθ = num_data(model)
 
 	lin = [LinearizedStep(model, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
-	d = [zeros(SizedVector{nd}) for t = 1:H]
-	δz  = [spzeros(nz, nθ) for t = 1:H]
-
-	off = 0
-	δq0 = [view(δz[t], 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
-	δq1 = [view(δz[t], 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
-	δu1 = [view(δz[t], 1:nd, off .+ (1:nu)) for t = 1:H]; off += nu
 
 	ip =  [interior_point(zeros(num_var(model)), zeros(num_data(model)),
 			 idx_ineq = inequality_indices(model),
@@ -49,7 +44,18 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 			 rθ = model.spa.rθ_sp,
 			 opts = opts) for t = 1:H]
 
-	return ImplicitTraj(lin, d, δz, δq0, δq1, δu1, ip)
+	# views
+	d = [view(ip[t].z, 1:nd) for t = 1:H]
+	dq2 = [view(ip[t].z, 1:nq) for t = 1:H]
+	dγ1 = [view(ip[t].z, nq .+ (1:nc)) for t = 1:H]
+	db1 = [view(ip[t].z, nq + nc .+ (1:nb)) for t = 1:H]
+
+	off = 0
+	δq0 = [view(ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
+	δq1 = [view(ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
+	δu1 = [view(ip[t].δz, 1:nd, off .+ (1:nu)) for t = 1:H]; off += nu
+
+	return ImplicitTraj(lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip)
 end
 
 """
@@ -58,31 +64,25 @@ end
 Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
 linearizedimated since it relies on a linearization about a reference trajectory.
 """
-function implicit_dynamics!(im_traj::ImplicitTraj{T, D}, model::ContactDynamicsModel,
+function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
 	traj::ContactTraj; κ = traj.κ) where {T, D}
 
-	H = traj.H
-
-	for t = 1:H
-		@assert abs.(im_traj.lin[t].κ - κ[1]) / κ[1] < 1.0e-5 # check that the κ are consistent between the optimized trajectory (traj)
+	for t = 1:traj.H
+		#@assert abs.(im_traj.lin[t].κ - κ[1]) / κ[1] < 1.0e-5 # check that the κ are consistent between the optimized trajectory (traj)
 		# and the linearization (impl.lin).
 
+		# initialized solver
 		z_initialize!(im_traj.ip[t].z, model, traj.q[t+2]) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
 
+		# solve
 		status = interior_point!(im_traj.ip[t])
 		!status && (@warn "implicit dynamics failure (t = $t)")
 
-		nq = model.dim.q
-		nu = model.dim.u
-		nc = model.dim.c
-		nb = model.dim.b
-
-		im_traj.d[t] .= im_traj.ip[t].z[1:D] # TODO pre-allocate views
-		im_traj.d[t][1:nq] .-= traj.q[t+2]
-		im_traj.d[t][nq .+ (1:nc)] .-= traj.γ[t]
-		im_traj.d[t][nq + nc .+ (1:nb)] .-= traj.b[t]
-		im_traj.δz[t] .= im_traj.ip[t].δz
+		# compute dynamics violation
+		im_traj.dq2[t] .-= traj.q[t+2]
+		im_traj.dγ1[t] .-= traj.γ[t]
+		im_traj.db1[t] .-= traj.b[t]
 	end
 
 	return nothing

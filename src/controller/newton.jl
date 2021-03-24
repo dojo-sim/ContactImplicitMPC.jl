@@ -232,7 +232,7 @@ function jacobian!(jac::NewtonJacobian, model::ContactDynamicsModel,
     core::Newton, im_traj::ImplicitTraj)
 
     # unpack
-    H = length(im_traj.δz)
+    H = length(im_traj.ip)
     cost = core.cost
     opts = core.opts
 
