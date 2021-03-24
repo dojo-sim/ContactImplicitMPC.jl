@@ -23,6 +23,9 @@ using Random
 using SparseArrays
 using Test
 
+# Utilities
+include("utils.jl")
+
 # Solver
 include("solver/interior_point.jl")
 include("solver/lu.jl")

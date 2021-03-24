@@ -5,7 +5,7 @@ mutable struct CostFunction{Q,U,C,B}
     b::Vector{B}
 end
 
-function cost_function(H::Int, dim::Dimensions;
+function CostFunction(H::Int, dim::Dimensions;
     q = [Diagonal(zeros(SizedVector{dim.q})) for t = 1:H],
     u = [Diagonal(zeros(SizedVector{dim.u})) for t = 1:H],
     γ = [Diagonal(zeros(SizedVector{dim.c})) for t = 1:H],

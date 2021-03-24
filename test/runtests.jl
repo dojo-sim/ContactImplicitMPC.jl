@@ -26,7 +26,7 @@ include("simulator/quadruped.jl")
 include("simulator/biped.jl")
 
 # Controller
-include("controller/cost_function.jl")
+include("controller/CostFunction.jl")
 include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/newton.jl")
