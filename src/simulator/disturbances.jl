@@ -34,5 +34,5 @@ end
 
 function disturbances(d::OpenLoopDisturbance, x, t)
     k = searchsortedlast(d.t, t)
-    return p.w[k]
+    return d.w[k]
 end
