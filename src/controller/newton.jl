@@ -189,7 +189,7 @@ mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3}
 end
 
 function Newton(H::Int, h::T, model::ContactDynamicsModel;
-    cost::CostFunction = cost_function(H, model.dim),
+    cost::CostFunction = CostFunction(H, model.dim),
     opts::NewtonOptions = NewtonOptions()) where T
 
     dim = model.dim
@@ -312,6 +312,8 @@ function delta!(Δx::SizedArray{Tuple{nx},T,1,1}, x, x_ref) where {nx,T}
     Δx .-= x_ref
     return nothing
 end
+
+#TODO: add minus function
 
 function update_traj!(traj_cand::ContactTraj, traj::ContactTraj,
         ν_cand::Vector, ν::Vector, Δ::NewtonResidual{T}, α::T) where T

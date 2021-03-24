@@ -1,29 +1,3 @@
-# Run tests locally
-using Pkg
-Pkg.activate(@__DIR__)
-# Pkg.activate(joinpath(@__DIR__, "test")
-
-# Pkg.add("BenchmarkTools")
-# Pkg.add("Colors")
-# Pkg.add("FFMPEG")
-# Pkg.add("ForwardDiff")
-# Pkg.add("JLD2")
-# Pkg.add("MeshCat")
-# Pkg.add("Symbolics")
-# Pkg.add("Parameters")
-# Pkg.add("Plots")
-# Pkg.add("Rotations")
-# Pkg.add("StaticArrays")
-# Pkg.add("LinearAlgebra")
-# Pkg.add("Logging")
-# Pkg.add("Random")
-# Pkg.add("SparseArrays")
-# Pkg.add("Test")
-using Pkg
-Pkg.activate(joinpath(@__DIR__, ".."))
-
-#
-
 
 function scn(a::Number; digits::Int=1)
 	typeof(a) <: Float64 ? nothing : return nothing
@@ -54,7 +28,31 @@ function scn(a::Float64; digits::Int=1)
     return "$sgn$(strm)e$sgne$e"
 end
 
-#
+function delta!(Δx::SizedArray{Tuple{nx},T,1,1}, x::SizedArray{Tuple{nx},T,1,1},
+    x_ref::SizedArray{Tuple{nx},T,1,1}) where {nx,T}
+    Δx .= x
+    Δx .-= x_ref
+    return nothing
+end
+
+function delta!(Δx::SizedArray{Tuple{nx},T,1,1}, x::AbstractArray{T},
+    x_ref::AbstractArray{T}) where {nx,T}
+    Δx .= x
+    Δx .-= x_ref
+    return nothing
+end
+
+function set!(s::SubArray, x::SizedArray{Tuple{nx},T,1,1}) where {nx,T}
+    s .= x
+    return nothing
+end
+
+function setminus!(s::SubArray, x::SizedArray{Tuple{nx},T,1,1}) where {nx,T}
+    s .= -1.0 .* x
+    return nothing
+end
+
+
 function convert_video_to_gif(video_file_path::AbstractString, output_path::AbstractString="output.gif";
     framerate::Int=30, start_time=0., duration=1e3, overwrite=false, width::Int=1080, height::Int=-2, hq_colors::Bool=false)
     output_path = abspath(output_path)

@@ -34,11 +34,14 @@ end
     κ_tol::T = 1.0e-5
     κ_init::T = 1.0
     κ_scale::T = 0.1
+    ls_scale::T = 0.5
     max_iter_inner::Int = 100
     max_iter_outer::Int = 10
     max_ls::Int = 50
     max_time::T = 60.0
     diff_sol::Bool = false
+    res_norm::Real = Inf
+    reg::Bool = false
     solver::Symbol = :lu_solver
 end
 
@@ -46,6 +49,12 @@ mutable struct ResidualMethods
     r!
     rz!
     rθ!
+end
+
+# regularize Jacobian / Hessian
+function regularize!(v_pr, v_du, reg_pr, reg_du)
+    v_pr .+= reg_pr
+    v_du .-= reg_du
 end
 
 struct InteriorPoint{T}
@@ -60,12 +69,18 @@ struct InteriorPoint{T}
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
     idx_ineq::Vector{Int}      # indices for inequality constraints
+    idx_pr::Vector{Int}        # indices for primal variables
+    idx_du::Vector{Int}        # indices for dual variables
     δz::SparseMatrixCSC{T,Int} # solution gradients
     θ::Vector{T}               # problem data
     κ::Vector{T}               # barrier parameter
     num_var::Int
     num_data::Int
     solver::LinearSolver
+    v_pr
+    v_du
+    reg_pr
+    reg_du
     opts::InteriorPointOptions
 end
 
@@ -73,9 +88,12 @@ function interior_point(x, θ;
         num_var = length(x),
         num_data = length(θ),
         idx_ineq = collect(1:0),
+        idx_pr = collect(1:num_var),
+        idx_du = collect(1:0),
         r! = r!, rz! = rz!, rθ! = rθ!,
         rz = spzeros(num_var, num_var),
         rθ = spzeros(num_var, num_data),
+        reg_pr = 0.0, reg_du = 0.0,
         opts = InteriorPointOptions()) where T
 
     rz!(rz, x, θ) # compute Jacobian for pre-factorization
@@ -92,12 +110,17 @@ function interior_point(x, θ;
         rθ,
         zeros(num_var),
         idx_ineq,
+        idx_pr,
+        idx_du,
         spzeros(num_var, num_data),
         θ,
         zeros(1),
         num_var,
         num_data,
         eval(opts.solver)(rz),
+        view(rz, CartesianIndex.(idx_pr, idx_pr)),
+        view(rz, CartesianIndex.(idx_du, idx_du)),
+        reg_pr, reg_du,
         opts)
 end
 
@@ -115,11 +138,14 @@ function interior_point!(ip::InteriorPoint{T}) where T
     κ_tol = opts.κ_tol
     κ_init = opts.κ_init
     κ_scale = opts.κ_scale
+    ls_scale = opts.ls_scale
     max_iter_inner = opts.max_iter_inner
     max_iter_outer = opts.max_iter_outer
     max_time = opts.max_time
     max_ls = opts.max_ls
     diff_sol = opts.diff_sol
+    res_norm = opts.res_norm
+    reg = opts.reg
 
     # unpack pre-allocated data
     z = ip.z
@@ -133,6 +159,10 @@ function interior_point!(ip::InteriorPoint{T}) where T
     idx_ineq = ip.idx_ineq
     θ = ip.θ
     κ = ip.κ
+    v_pr = ip.v_pr
+    v_du = ip.v_du
+    reg_pr = ip.reg_pr
+    reg_du = ip.reg_du
     solver = ip.solver
 
     # initialize barrier parameter
@@ -140,7 +170,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
     # compute residual, residual Jacobian
     r!(r, z, θ, κ[1])
-    r_norm = norm(r, Inf)
+    r_norm = norm(r, res_norm)
 
     for i = 1:max_iter_outer
         for j = 1:max_iter_inner
@@ -151,6 +181,9 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
             # compute residual Jacobian
             rz!(rz, z, θ)
+
+            # regularize (fixed, TODO: adaptive)
+            reg && regularize!(v_pr, v_du, reg_pr, reg_du)
 
             # compute step
             linear_solve!(solver, Δ, rz, r)
@@ -164,7 +197,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
             # check inequality constraints
             iter = 0
             while inequality_check(z̄, idx_ineq)
-                α *= 0.5
+                α *= ls_scale
                 z̄ .= z - α * Δ
                 iter += 1
                 if iter > max_ls
@@ -175,11 +208,12 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
             # reduce norm of residual
             r!(r̄, z̄, θ, κ[1])
-            r̄_norm = norm(r̄, Inf)
+            r̄_norm = norm(r̄, res_norm)
 
             while r̄_norm >= (1.0 - 0.001 * α) * r_norm
-                α *= 0.5
+                α *= ls_scale
                 z̄ .= z - α * Δ
+
                 r!(r̄, z̄, θ, κ[1])
                 r̄_norm = norm(r̄, Inf)
 
@@ -206,7 +240,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
             # update residual
             r!(r, z, θ, κ[1])
-            r_norm = norm(r, Inf)
+            r_norm = norm(r, res_norm)
         end
     end
 end

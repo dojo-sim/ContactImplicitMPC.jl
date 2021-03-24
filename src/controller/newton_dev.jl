@@ -12,7 +12,7 @@ nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
 # Test Jacobian!
-cost = cost_function(H, model.dim,
+cost = CostFunction(H, model.dim,
     q = [Diagonal(1.0e-2 * ([0.02,0.02,1,.15,.15,.15,.15,.15,.15,.15,.15])) for t = 1:H],
     u = [Diagonal(3.0e-2 * ones(nu)) for t = 1:H],
     γ = [Diagonal(1.0e-6 * ones(nc)) for t = 1:H],
@@ -20,8 +20,7 @@ cost = cost_function(H, model.dim,
 model.dim
 opts = NewtonOptions(r_tol = 1.0e-5, solver_inner_iter = 1)
 core = Newton(H, h, model, cost = cost, opts = opts)
-im_traj = implicit_trajectory(H, model)
-linearization!(im_traj, model, ref_traj)
+im_traj = ImplicitTraj(ref_traj, model)
 
 # The solve initialized with the correct traj, is solved in 1 step.
 newton_solve!(core, model, im_traj, ref_traj)
@@ -37,3 +36,8 @@ newton_solve!(core, model, im_traj, ref_traj,
 implicit_dynamics!(im_traj, model, core.traj, κ = core.traj.κ)
 residual!(core.res, model, core, core.ν, im_traj, core.traj, ref_traj)
 @test norm(core.res.r, 1) / length(core.res.r) < 1.0e-5
+
+
+A = rand(5, 5)
+v = view(A, 1:2, 1:2)
+p = view(A, CartesianIndex.(1:2, 1:2))
