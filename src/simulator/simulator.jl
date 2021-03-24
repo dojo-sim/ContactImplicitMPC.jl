@@ -112,15 +112,15 @@ function step!(sim::Simulator, t)
             nc = model.dim.c
             nb = model.dim.b
 
-            sim.traj_deriv.dq2dq0[t] = view(ip_data.δz, 1:nq, 1:nq)
-            sim.traj_deriv.dq2dq1[t] = view(ip_data.δz, 1:nq, nq .+ (1:nq))
-            sim.traj_deriv.dq2du[t] = view(ip_data.δz, 1:nq, 2 * nq .+ (1:nu))
-            sim.traj_deriv.dγdq0[t] = view(ip_data.δz, nq .+ (1:nc), 1:nq)
-            sim.traj_deriv.dγdq1[t] = view(ip_data.δz, nq .+ (1:nc), nq .+ (1:nq))
-            sim.traj_deriv.dγdu[t] = view(ip_data.δz, nq .+ (1:nc), 2 * nq .+ (1:nu))
-            sim.traj_deriv.dbdq0[t] = view(ip_data.δz, nq + nc .+ (1:nb), 1:nq)
-            sim.traj_deriv.dbdq1[t] = view(ip_data.δz, nq + nc .+ (1:nb), nq .+ (1:nq))
-            sim.traj_deriv.dbdu[t] = view(ip_data.δz, nq + nc .+ (1:nb), 2 * nq .+ (1:nu))
+            sim.deriv_traj.dq2dq0[t] = view(ip.δz, 1:nq, 1:nq)
+            sim.deriv_traj.dq2dq1[t] = view(ip.δz, 1:nq, nq .+ (1:nq))
+            sim.deriv_traj.dq2du[t] = view(ip.δz, 1:nq, 2 * nq .+ (1:nu))
+            sim.deriv_traj.dγdq0[t] = view(ip.δz, nq .+ (1:nc), 1:nq)
+            sim.deriv_traj.dγdq1[t] = view(ip.δz, nq .+ (1:nc), nq .+ (1:nq))
+            sim.deriv_traj.dγdu[t] = view(ip.δz, nq .+ (1:nc), 2 * nq .+ (1:nu))
+            sim.deriv_traj.dbdq0[t] = view(ip.δz, nq + nc .+ (1:nb), 1:nq)
+            sim.deriv_traj.dbdq1[t] = view(ip.δz, nq + nc .+ (1:nb), nq .+ (1:nq))
+            sim.deriv_traj.dbdu[t] = view(ip.δz, nq + nc .+ (1:nb), 2 * nq .+ (1:nu))
         end
     end
     return status
