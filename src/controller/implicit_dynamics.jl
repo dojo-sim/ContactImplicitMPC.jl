@@ -18,8 +18,8 @@ end
 function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 	κ = ref_traj.κ[1],
 	opts = InteriorPointOptions(
-			κ_init = κ[1],
-			κ_tol = 2.0 * κ[1],
+			κ_init = ref_traj.κ[1],
+			κ_tol = 2.0 * ref_traj.κ[1],
 			r_tol = 1.0e-8,
 			diff_sol = true))
 

@@ -241,7 +241,7 @@ function get_gait(name::String, gait::String)
 	return res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
 end
 
-function get_trajectory(name::String, gait::String, load_type::Symbol=:split_traj)
+function get_trajectory(name::String, gait::String; load_type::Symbol=:split_traj)
 	#TODO: assert model exists
 	path = joinpath(@__DIR__, name)
 	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
