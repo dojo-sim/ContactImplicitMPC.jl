@@ -12,7 +12,7 @@
 end
 
 struct NewtonResidual{T,vq2,vu1,vγ1,vb1,vd,vI,vq0,vq1}
-    r::Vector{T}                           # residual
+    r#::Vector{T}                           # residual
 
     q2::Vector{vq2}                    # rsd objective views
     u1::Vector{vu1}                    # rsd objective views
@@ -60,7 +60,7 @@ function NewtonResidual(H::Int, dim::Dimensions)
 end
 
 struct NewtonJacobian{T,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vreg}
-    R::SparseMatrixCSC{T,Int}                 # jacobian
+    R#::SparseMatrixCSC{T,Int}                 # jacobian
 
     obj_q2::Vector{Vq}                          # obj views
     obj_u1::Vector{Vu}                          # obj views
@@ -221,7 +221,6 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel;
     Δu  = [zeros(SizedVector{nu,T}) for t = 1:H]
     Δγ  = [zeros(SizedVector{nc,T}) for t = 1:H]
     Δb  = [zeros(SizedVector{nb,T}) for t = 1:H]
-
 
     return Newton{T,nq,nu,nw,nc,nb,nz,nθ,nd,nd,2nq+nu}(
         jac, res, res_cand, Δ, ν, ν_cand, traj, traj_cand,

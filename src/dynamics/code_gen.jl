@@ -179,6 +179,7 @@ function generate_residual_expressions(model::ContactDynamicsModel; T = Float64)
 	@variables z[1:nz]
 	@variables θ[1:nθ]
 	@variables κ
+	@variables cache
 
 	# Residual
 	r = residual(model, z, θ, κ)
@@ -191,9 +192,9 @@ function generate_residual_expressions(model::ContactDynamicsModel; T = Float64)
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
-	expr[:r]  = build_function(r, z, θ, κ)[2]
-	expr[:rz] = build_function(rz, z, θ)[2]
-	expr[:rθ] = build_function(rθ, z, θ)[2]
+	expr[:r]  = build_function(r, z, θ, κ, cache)[2]
+	expr[:rz] = build_function(rz, z, θ, cache)[2]
+	expr[:rθ] = build_function(rθ, z, θ, cache)[2]
 	return expr, rz_sp, rθ_sp
 end
 
@@ -215,6 +216,7 @@ function generate_linearized_expressions(model::ContactDynamicsModel; T = Float6
     @variables  r0[1:nz]
     @variables rz0[1:nz,1:nz]
     @variables rθ0[1:nz,1:nθ]
+
 	r = zeros(eltype(z), nz)
 	r .= r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
     # r .= rz0 * (z-z0) + rθ0 * (θ-θ0) # wrong
@@ -231,6 +233,7 @@ function generate_linearized_expressions(model::ContactDynamicsModel; T = Float6
 	# r_linearized rz_linearized, rθ_linearized
     @variables   z[1:nz]
     @variables rz0[1:nz,1:nz]
+
 	rz = zeros(eltype(z), nz, nz)
 	rz .= rz0
 	for i = 1:length(bil_terms)

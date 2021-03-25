@@ -33,3 +33,5 @@ end
 
 @benchmark solve_all!($linsys)
 @benchmark solve_all_threads!($linsys)
+
+@profile solve_all_threads!(linsys)

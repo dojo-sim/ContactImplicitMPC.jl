@@ -21,23 +21,23 @@ function LinearizedStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::A
 	rz0 = zeros(nz, nz)
 	rθ0 = zeros(nz, nθ)
 
-	model.res.r!(r0, z0, θ0, κ0)
-	model.res.rz!(rz0, z0, θ0)
-	model.res.rθ!(rθ0, z0, θ0)
+	model.res.r!(r0, z0, θ0, κ0, nothing)
+	model.res.rz!(rz0, z0, θ0, nothing)
+	model.res.rθ!(rθ0, z0, θ0, nothing)
 
 	terms, vars = get_bilinear_indices(model)
 
-	function r_linearized!(r, z, θ, κ)
+	function r_linearized!(r, z, θ, κ, cache)
 		model.linearized.r!(r, z, θ, κ, z0, θ0, r0, rz0, rθ0)
 		return nothing
 	end
 
-	function rz_linearized!(rz, z, θ)
+	function rz_linearized!(rz, z, θ, cache)
 		model.linearized.rz!(rz, z, rz0)
 		return nothing
 	end
 
-	function rθ_linearized!(rθ, z, θ)
+	function rθ_linearized!(rθ, z, θ, cache)
 		model.linearized.rθ!(rθ, rθ0)
 		return nothing
 	end

@@ -65,7 +65,7 @@ Compute the evaluations and Jacobians of the implicit dynamics on the trajectory
 linearizedimated since it relies on a linearization about a reference trajectory.
 """
 function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
-	traj::ContactTraj; κ = traj.κ) where {T, D}
+	traj; κ = traj.κ) where {T, D}
 
 	for t = 1:traj.H
 		#@assert abs.(im_traj.lin[t].κ - κ[1]) / κ[1] < 1.0e-5 # check that the κ are consistent between the optimized trajectory (traj)

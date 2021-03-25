@@ -29,9 +29,9 @@
 		@test norm(lin.κ - κ) < 1.0e-8
 
 		# Test r!: the linear linearizedimaton is exact at the linearization point
-		model.res.r!(r0, z, θ, κ)
+		model.res.r!(r0, z, θ, κ, nothing)
 		ContactControl.r_linearized!(lin, r1, z, θ, κ)
-		lin.methods.r!(r2, z, θ, κ)
+		lin.methods.r!(r2, z, θ, κ, nothing)
 
 		@test norm(r0 - r1, Inf) < 1.0e-8
 		@test norm(r0 - r2, Inf) < 1.0e-8
@@ -52,7 +52,7 @@
 			return rz = ForwardDiff.jacobian(f, Vector(z))
 		end
 
-		model.res.rz!(rz0, z, θ)
+		model.res.rz!(rz0, z, θ, nothing)
 		ContactControl.rz_linearized!(lin, rz1, z, θ)
 		rz_FD = rz_linearized_FD!(model, lin, rz1, z, θ)
 
@@ -67,10 +67,10 @@
 		r3 = rand(nz)
 		r4 = rand(nz)
 
-		model.res.r!(r1, α * z, β * θ, κ)
+		model.res.r!(r1, α * z, β * θ, κ, nothing)
 		ContactControl.r_linearized!(lin, r2, α * z, β * θ, κ)
 		model.linearized.r!(r3, α * z, β * θ, κ, lin.z, lin.θ, lin.r, lin.rz, lin.rθ)
-		lin.methods.r!(r4, α * z, β * θ, κ)
+		lin.methods.r!(r4, α * z, β * θ, κ, nothing)
 
 		@test norm(r2 - r3, Inf) < 1.0e-8
 		@test norm(r2 - r4, Inf) < 1.0e-8
@@ -81,10 +81,10 @@
 		rz3 = rand(nz,nz)
 		rz4 = rand(nz,nz)
 
-		model.res.rz!(rz1, α * z, β * θ)
+		model.res.rz!(rz1, α * z, β * θ, nothing)
 		ContactControl.rz_linearized!(lin, rz2, α * z, β * θ)
 		model.linearized.rz!(rz3, α * z, lin.rz)
-		lin.methods.rz!(rz4, α * z, β * θ)
+		lin.methods.rz!(rz4, α * z, β * θ, nothing)
 
 		@test norm(rz2 - rz3, Inf) < 1.0e-8
 		@test norm(rz2 - rz4, Inf) < 1.0e-8
@@ -95,10 +95,10 @@
 		rθ3 = rand(nz, nθ)
 		rθ4 = rand(nz, nθ)
 
-		model.res.rθ!(rθ1, α * z, β * θ)
+		model.res.rθ!(rθ1, α * z, β * θ, nothing)
 		ContactControl.rθ_linearized!(lin, rθ2, α * z, β * θ)
 		model.linearized.rθ!(rθ3, lin.rθ)
-		lin.methods.rθ!(rθ4, α * z, β * θ)
+		lin.methods.rθ!(rθ4, α * z, β * θ, nothing)
 
 		@test norm(rθ2 - rθ3, Inf) < 1.0e-8
 		@test norm(rθ2 - rθ4, Inf) < 1.0e-8

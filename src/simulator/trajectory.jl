@@ -131,8 +131,3 @@ function update_θ!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,n
 	end
 	return nothing
 end
-
-z = zeros(10)
-v = [view(z, (i - 1) * 2 .+ (1:2)) for i = 1:5]
-z .= rand(10)
-v[1]

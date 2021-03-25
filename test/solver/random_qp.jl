@@ -19,7 +19,7 @@
     idx_ineq = collect(1:2 * n)
 
     # residual
-    function _r!(r, z, θ, κ)
+    function _r!(r, z, θ, κ, cache)
         x = z[1:100]
         y = z[101:200]
         P = θ[1:100]
@@ -34,19 +34,20 @@
     @variables z_sym[1:200]
     @variables θ_sym[1:200]
     @variables κ_sym
+    @variables cache
 
     parallel = Symbolics.SerialForm()
-    _r!(r_sym, z_sym, θ_sym, κ_sym)
+    _r!(r_sym, z_sym, θ_sym, κ_sym, cache)
     r_sym = simplify.(r_sym)
-    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
+    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym, cache,
         parallel = parallel)[2])
     rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
     rθ_exp = Symbolics.sparsejacobian(r_sym, θ_sym, simplify = true)
     rz_sp = similar(rz_exp, Float64)
     rθ_sp = similar(rθ_exp, Float64)
-    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym,
+    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym, cache,
         parallel = parallel)[2])
-    rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
+    rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym, cache,
         parallel = parallel)[2])
 
     # options
@@ -96,7 +97,7 @@ end
     idx_ineq = collect(1:0)
 
     # residual
-    function _r!(r, z, θ, κ)
+    function _r!(r, z, θ, κ, cache)
         x = z[1:10]
         y = z[11:15]
         P = θ[1:10]
@@ -112,17 +113,18 @@ end
     @variables z_sym[1:15]
     @variables θ_sym[1:70]
     @variables κ_sym
+    @variables cache
 
     parallel = Symbolics.SerialForm()
-    _r!(r_sym, z_sym, θ_sym, κ_sym)
+    _r!(r_sym, z_sym, θ_sym, κ_sym, cache)
     r_sym = simplify.(r_sym)
-    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
+    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym, cache,
         parallel = parallel)[2])
     rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
     # rθ_exp = Symbolics.jacobian(r_sym, θ_sym, simplify = false)
     rz_sp = similar(rz_exp, Float64)
     rθ_sp = zeros(0, 0) #similar(rθ_exp, Float64)
-    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym)[2])
+    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym, cache)[2])
     rθf! = x -> nothing #eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
         # parallel = parallel)[2])
 
@@ -177,7 +179,7 @@ end
     idx_du = collect(n .+ (1:m))
 
     # residual
-    function _r!(r, z, θ, κ)
+    function _r!(r, z, θ, κ, cache)
         x = z[1:10]
         y = z[11:15]
         P = θ[1:10]
@@ -193,17 +195,18 @@ end
     @variables z_sym[1:15]
     @variables θ_sym[1:70]
     @variables κ_sym
+    @variables cache
 
     parallel = Symbolics.SerialForm()
-    _r!(r_sym, z_sym, θ_sym, κ_sym)
+    _r!(r_sym, z_sym, θ_sym, κ_sym, cache)
     r_sym = simplify.(r_sym)
-    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
+    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym, cache,
         parallel = parallel)[2])
     rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
     # rθ_exp = Symbolics.jacobian(r_sym, θ_sym, simplify = false)
     rz_sp = similar(rz_exp, Float64)
     rθ_sp = zeros(0, 0) #similar(rθ_exp, Float64)
-    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym)[2])
+    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym, cache)[2])
     rθf! = x -> nothing #eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
         # parallel = parallel)[2])
 
@@ -272,17 +275,18 @@ end
     @variables z_sym[1:20]
     @variables θ_sym[1:20]
     @variables κ_sym
+    @variables cache
 
     parallel = Symbolics.SerialForm()
     _r!(r_sym, z_sym, θ_sym, κ_sym)
     r_sym = simplify.(r_sym)
-    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
+    rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym, cache,
         parallel = parallel)[2])
     rz_exp = Symbolics.jacobian(r_sym, z_sym, simplify = true)
     rθ_exp = Symbolics.jacobian(r_sym, θ_sym, simplify = true)
     rz_sp = similar(rz_exp, Float64)
     rθ_sp = similar(rθ_exp, Float64)
-    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym,
+    rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym, cache,
         parallel = parallel)[2])
     rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
         parallel = parallel)[2])
