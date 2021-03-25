@@ -3,7 +3,7 @@ function visualize!(vis, model::Hopper2D, q;
 		Δt = 0.1, scenario = :vertical)
 
 	default_background!(vis)
-	
+
     r_foot = 0.05
     r_leg = 0.5 * r_foot
 
