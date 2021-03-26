@@ -231,13 +231,14 @@ function jacobian!(jac::NewtonJacobian, model::ContactDynamicsModel,
     core::Newton, im_traj::ImplicitTraj)
 
     # unpack
-    H = length(im_traj.ip)
+    # H = length(im_traj.ip)
+    H_mpc = core.traj.H
     cost = core.cost
     opts = core.opts
 
     fill!(jac.R, 0.0) # TODO: remove
 
-    for t = 1:H
+    for t = 1:H_mpc
         # Cost function
         jac.obj_q2[t] .+= cost.q[t]
         jac.obj_u1[t] .+= cost.u[t]
@@ -337,7 +338,7 @@ end
 
 function copy_traj!(traj::ContactTraj, traj_cand::ContactTraj, H::Int)
     Ht = traj.H
-    Hs = traj.H
+    Hs = traj_cand.H # MAYBE BREAKING TEST
 
     @assert Hs >= H
     @assert Ht >= H
@@ -364,7 +365,8 @@ function reset!(core::Newton, ref_traj::ContactTraj;
     warm_start::Bool = false, initial_offset::Bool = false,
     q0 = ref_traj.q[1], q1 = ref_traj.q[2])
 
-    H = ref_traj.H
+    # H = ref_traj.H
+    H_mpc = core.traj.H
     opts = core.opts
 
     # Reset β value
@@ -372,7 +374,7 @@ function reset!(core::Newton, ref_traj::ContactTraj;
 
     if !warm_start
 		# Reset duals
-		for t = 1:H
+		for t = 1:H_mpc
 			fill!(core.ν[t], 0.0)
 			fill!(core.ν_cand[t], 0.0)
 		end
