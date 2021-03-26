@@ -12,18 +12,28 @@ nb = model.dim.b
 nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
-H = 45
-h = 0.02
+H = 90
+# h = 0.04
+# h = 0.02
+h = 0.01
 κ = 1.0e-8
 
 # Design open-loop control trajectory
 q0_ref = SVector{nq,T}([0.0, 0.50, 0.0, 0.5])
 q1_ref = SVector{nq,T}([0.0, 0.50, 0.0, 0.5])
-α = 0.01468 # N=46
+# α = 0.02937 # N=45 h=0.04
+# α = 0.01468 # N=45 h=0.02
+α = 0.0077 # N=46 h=0.01
+# u_ref = []
+# push!(u_ref,  [[0.0,  5.0*α*model.g*(model.mb+model.ml)/2] for k=1:6]...);
+# push!(u_ref,  [[0.0, -0.9*α*model.g*(model.mb+model.ml)/2] for k=1:8]...);
+# push!(u_ref,  [[0.0,  0.2*α*model.g*(model.mb+model.ml)/2] for k=1:14]...);
+# push!(u_ref,  [[0.0,  2.1*α*model.g*(model.mb+model.ml)/2] for k=1:H-1-length(u_ref)]...);
+
 u_ref = []
-push!(u_ref,  [[0.0,  5.0*α*model.g*(model.mb+model.ml)/2] for k=1:6]...);
-push!(u_ref,  [[0.0, -0.9*α*model.g*(model.mb+model.ml)/2] for k=1:8]...);
-push!(u_ref,  [[0.0,  0.2*α*model.g*(model.mb+model.ml)/2] for k=1:14]...);
+push!(u_ref,  [[0.0,  5.0*α*model.g*(model.mb+model.ml)/2] for k=1:2*6]...);
+push!(u_ref,  [[0.0, -0.9*α*model.g*(model.mb+model.ml)/2] for k=1:2*9]...);
+push!(u_ref,  [[0.0,  0.2*α*model.g*(model.mb+model.ml)/2] for k=1:2*14]...);
 push!(u_ref,  [[0.0,  2.1*α*model.g*(model.mb+model.ml)/2] for k=1:H-1-length(u_ref)]...);
 
 # Simulate
