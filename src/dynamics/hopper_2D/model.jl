@@ -89,6 +89,12 @@ g = 9.81 # gravity
 μ_world = 0.7 # coefficient of friction
 μ_joint = 0.0
 
+# # TODO: change to Raibert parameters
+# mb = 0.07 # body mass
+# ml = 0.01  # leg mass
+# Jb = 0.25 # body inertia
+# Jl = 0.25 # leg inertia
+
 # TODO: change to Raibert parameters
 mb = 0.07 # body mass
 ml = 0.01  # leg mass

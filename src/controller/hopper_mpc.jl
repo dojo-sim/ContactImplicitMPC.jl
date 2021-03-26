@@ -1,4 +1,5 @@
 include(joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "visuals.jl"))
+include("mpc.jl")
 T = Float64
 vis = Visualizer()
 open(vis)
@@ -42,8 +43,11 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC13)
         # Apply control and rollout dynamics
         # u_zoh  = SVector{nu}.([deepcopy(ref_traj.u[1])/N_sample for j=1:N_sample])
         u_zoh  = SVector{nu}.([deepcopy(core.traj.u[1])/N_sample for j=1:N_sample])
+        w_amp = 0.001
+        w_zoh  = SVector{nw}.([w_amp*[-rand(1); zeros(nw-1)]/N_sample for j=1:N_sample])
         sim = simulator(model, SVector{nq}(deepcopy(mpc.q_sim[end-1])), SVector{nq}(deepcopy(mpc.q_sim[end])), h_sim, N_sample,
             p = open_loop_policy(u_zoh, h_sim), #TODO works better need to investigate
+            d = open_loop_disturbances(w_zoh, h_sim), #TODO works better need to investigate
             r! = model.res.r!,
             rz! = model.res.rz!,
             rθ! = model.res.rθ!,
@@ -104,13 +108,13 @@ plt = plot(layout=(2,1), legend=false)
 plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], m_opts0.N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
 plot!(plt[1,1], hcat(Vector.(mpc0.q_sim)...)', color=:blue, linewidth=1.0)
-plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][2:2], m_opts0.N_sample) for i=1:H]...))...)',
+plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:2], m_opts0.N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
-plot!(plt[2,1], hcat(Vector.([u[2:2] for u in mpc0.u_sim]*m_opts0.N_sample)...)', color=:blue, linewidth=1.0)
+plot!(plt[2,1], hcat(Vector.([u[1:2] for u in mpc0.u_sim]*m_opts0.N_sample)...)', color=:blue, linewidth=1.0)
 
 
 
-# filename = "hopper_forward_mpc"
+# filename = "hopper_forward_wind"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
@@ -118,88 +122,3 @@ plot!(plt[2,1], hcat(Vector.([u[2:2] for u in mpc0.u_sim]*m_opts0.N_sample)...)'
 # convert_video_to_gif(
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
-
-
-
-# ref_traj1 = deepcopy(ref_traj)
-# ref_traj2 = deepcopy(ref_traj)
-# q_stride2 = get_stride(model, ref_traj2)
-#
-# plt = plot(legend=false, layout=(2,1))
-# plot!(plt[1,1], hcat(Vector.(ref_traj1.q)...)', linestyle=:dot, color=:red, linewidth=4.0)
-# plot!(plt[2,1], hcat(Vector.(ref_traj1.u)...)', linestyle=:dot, color=:red, linewidth=4.0)
-# plot!(plt[1,1], hcat(Vector.(ref_traj2.q)...)', color=:blue, linewidth=1.0)
-# plot!(plt[2,1], hcat(Vector.(ref_traj2.u)...)', color=:blue, linewidth=1.0)
-# for i = 1:10*H
-#     rot_n_stride!(ref_traj2, q_stride2)
-#     # rotate!(ref_traj2)
-# end
-# plot!(plt[1,1], hcat(Vector.(ref_traj2.q)...)', color=:blue, linewidth=1.0)
-# plot!(plt[2,1], hcat(Vector.(ref_traj2.u)...)', color=:blue, linewidth=1.0)
-#
-# for N_sample = 1:10
-#     u = SVector{nu}.(vcat([[deepcopy(ref_traj2.u[i])/N_sample for j=1:N_sample] for i=1:H]...))
-#
-#     sim = simulator(model, SVector{nq}(ref_traj.q[2]-(ref_traj.q[1]-ref_traj.q[2])/N_sample), SVector{nq}(ref_traj.q[1]), h/N_sample, H*N_sample,
-#         p = open_loop_policy(u, h/N_sample),
-#         ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2e-8, κ_init = 1e-8),
-#         sim_opts = SimulatorOptions(warmstart = true)
-#         )
-#
-#     simulate!(sim)
-#     plt = plot(ylims=(-0.15,1.1))
-#     plot!(plt, hcat(Vector.(sim.traj.q)...)', label=string(N_sample))
-#
-#     display(plt)
-# end
-# # visualize!(vis, model, sim.traj.q, Δt=sim.traj.h, name=:sim_traj)
-#
-# N_sample = 1
-# q0 = SVector{nq}(ref_traj.q[2]-(ref_traj.q[1]-ref_traj.q[2])/N_sample)
-# q1 = SVector{nq}(ref_traj.q[2])
-# Q = [deepcopy(q0), deepcopy(q1)]
-# for i = 1:H
-#     u = SVector{nu}.([deepcopy(ref_traj2.u[1])/N_sample for j=1:N_sample])
-#     rot_n_stride!(ref_traj2, q_stride2)
-#     sim = simulator(model, q0, q1, h/N_sample, N_sample,
-#         p = open_loop_policy(u, h/N_sample),
-#         ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2e-8, κ_init = 1e-8),
-#         sim_opts = SimulatorOptions(warmstart = true)
-#         )
-#
-#     simulate!(sim)
-#     # plt = plot(ylims=(-0.15,1.1))
-#     # plot!(plt, hcat(Vector.(sim.traj.q)...)', label=string(N_sample))
-#     # display(plt)
-#     q0 = SVector{nq}(deepcopy(sim.traj.q[end-1]))
-#     q1 = SVector{nq}(deepcopy(sim.traj.q[end]))
-#     push!(Q, deepcopy(q1))
-# end
-# plot(hcat(Vector.(Q)...)', label=string(N_sample))
-#
-#
-#
-# # Check ~perfect loop
-# @show round.(ref_traj.q[end-2] - ref_traj.q[1], digits=3)
-# @show round.(ref_traj.q[end-1] - ref_traj.q[2], digits=3)
-#
-# visualize!(vis, model, ref_traj.q, Δt=ref_traj.h, name=:ref_traj)
-#
-# N_sample = 5
-# for N_sample = 1:5
-#     # u = SVector{nu}.(vcat([[deepcopy(ref_traj.u[i]) for j=1:N_sample] for i=1:H]...))
-#     u = SVector{nu}.(vcat([[deepcopy(ref_traj.u[i])/N_sample for j=1:N_sample] for i=1:H]...))
-#
-#     sim = simulator(model, SVector{nq}(ref_traj.q[1]), SVector{nq}(ref_traj.q[2]-(ref_traj.q[1]-ref_traj.q[2])/N_sample), h/N_sample, H*N_sample,
-#         p = open_loop_policy(u, h/N_sample),
-#         ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2e-8, κ_init = 1e-8),
-#         sim_opts = SimulatorOptions(warmstart = true)
-#         )
-#
-#     simulate!(sim)
-#     plt = plot(ylims=(0,1.3))
-#     plot!(plt, hcat(Vector.(sim.traj.q)...)', label=string(N_sample))
-#
-#     display(plt)
-# end
-# visualize!(vis, model, sim.traj.q, Δt=sim.traj.h, name=:sim_traj)
