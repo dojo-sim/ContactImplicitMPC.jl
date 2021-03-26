@@ -403,7 +403,7 @@ end
 function newton_solve!(core::Newton, model::ContactDynamicsModel,
     im_traj::ImplicitTraj, ref_traj::ContactTraj;
     warm_start::Bool = false, initial_offset::Bool = false,
-    q0 = ref_traj.q[1], q1 = ref_traj.q[2])
+    q0 = ref_traj.q[1], q1 = ref_traj.q[2], verbose::Bool=false)
 
 	reset!(core, ref_traj, warm_start = warm_start,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
@@ -463,26 +463,26 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
             core.opts.β = max(1.0e1, core.opts.β / 1.3)
         end
 
-        # println(" l: ", l ,
-        #     "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits = 0),
-        #     "     r: ", scn(norm(core.res.r,1) / length(core.res.r), digits = 0),
-        #     "     Δ: ", scn(norm(core.Δ.r,1) / length(core.Δ.r), digits = 0),
-        #     "     α: ", -Int(round(log(α))),
-        #     "     κ: ", scn(core.traj.κ[1], digits = 0))
+        verbose && println(" l: ", l ,
+                "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits = 0),
+                "     r: ", scn(norm(core.res.r,1) / length(core.res.r), digits = 0),
+                "     Δ: ", scn(norm(core.Δ.r,1) / length(core.Δ.r), digits = 0),
+                "     α: ", -Int(round(log(α))),
+                "     κ: ", scn(core.traj.κ[1], digits = 0))
 
         update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
 
         #####################
         #####################
-        plt = plot(legend = false)
-        # plot!([norm(d) for d in impl.d], label="ν")
-        # plot!(hcat(Vector.(core.ν)...)', label="ν")
-        # plot!(hcat(Vector.(core.ν_)...)', linewidth=3.0, linestyle=:dot, label="ν_")
-        plot!(hcat(Vector.(core.traj.q)...)', label="q")
-        plot!(hcat(Vector.(ref_traj.q)...)', linewidth=3.0, linestyle=:dot, label="q")
-        # plot!(hcat(Vector.(core.traj.u)...)', label="u")
-        # plot!(hcat(Vector.(ref_traj.u)...)', linewidth=3.0, linestyle=:dot, label="u")
-        display(plt)
+        # plt = plot(legend = false)
+        # # plot!([norm(d) for d in impl.d], label="ν")
+        # # plot!(hcat(Vector.(core.ν)...)', label="ν")
+        # # plot!(hcat(Vector.(core.ν_)...)', linewidth=3.0, linestyle=:dot, label="ν_")
+        # plot!(hcat(Vector.(core.traj.q)...)', label="q")
+        # plot!(hcat(Vector.(ref_traj.q)...)', linewidth=3.0, linestyle=:dot, label="q")
+        # # plot!(hcat(Vector.(core.traj.u)...)', label="u")
+        # # plot!(hcat(Vector.(ref_traj.u)...)', linewidth=3.0, linestyle=:dot, label="u")
+        # display(plt)
         #####################
         #####################
     end

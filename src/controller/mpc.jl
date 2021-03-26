@@ -281,13 +281,14 @@ end
 
 
 # MPC options
-@with_kw mutable struct MPC12Options{T}
+@with_kw mutable struct MPC13Options{T}
     N_sample::Int=3 # Hypersampling factor for dynamics simulation
     M::Int=3        # Number of MPC loops
     H_mpc::Int=10   # Horizon of the MPC solver (H_mpc < H)
+    κ::T=1e-3       #
 end
 
-mutable struct MPC12{T,nq,nu,nw,nc,nb}
+mutable struct MPC13{T,nq,nu,nw,nc,nb}
     q0_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
     q1_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
     q_sim::Vector{SizedArray{Tuple{nq},T,1,1,Vector{T}}} # history of simulator configurations
@@ -295,14 +296,14 @@ mutable struct MPC12{T,nq,nu,nw,nc,nb}
     w_sim::Vector{SizedArray{Tuple{nw},T,1,1,Vector{T}}} # history of simulator disturbances
     γ_sim::Vector{SizedArray{Tuple{nc},T,1,1,Vector{T}}} # history of simulator impact forces
     b_sim::Vector{SizedArray{Tuple{nb},T,1,1,Vector{T}}} # history of simulator friction forces
-    m_opts::MPC12Options
+    m_opts::MPC13Options
     ref_traj::ContactTraj
     impl::ImplicitTraj
     q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}} # change in q required to loop the ref trajectories
 end
 
-function MPC12(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ};
-        m_opts::MPC12Options=MPC12Options()) where {T,nq,nu,nw,nc,nb,nz,nθ}
+function MPC13(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ};
+        m_opts::MPC13Options=MPC13Options()) where {T,nq,nu,nw,nc,nb,nz,nθ}
     q0_con = zeros(SizedArray{Tuple{nq},T,1,1,Vector{T}})
     q1_con = zeros(SizedArray{Tuple{nq},T,1,1,Vector{T}})
     q_sim = Vector{SizedArray{Tuple{nq},T,1,1,Vector{T}}}([])
@@ -311,9 +312,9 @@ function MPC12(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,
     γ_sim = Vector{SizedArray{Tuple{nc},T,1,1,Vector{T}}}([])
     b_sim = Vector{SizedArray{Tuple{nb},T,1,1,Vector{T}}}([])
     H = ref_traj.H
-    impl = ImplicitTraj(H, model)
+    impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ)
     q_stride = get_stride(model, ref_traj)
-    return MPC12{T,nq,nu,nw,nc,nb}(q0_con, q1_con, q_sim, u_sim, w_sim, γ_sim, b_sim, m_opts, ref_traj, impl, q_stride)
+    return MPC13{T,nq,nu,nw,nc,nb}(q0_con, q1_con, q_sim, u_sim, w_sim, γ_sim, b_sim, m_opts, ref_traj, impl, q_stride)
 end
 
 function rot_n_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
@@ -373,6 +374,12 @@ function get_stride(model::Quadruped, traj::ContactTraj)
     return q_stride
 end
 
+function get_stride(model::Hopper2D, traj::ContactTraj)
+    q_stride = zeros(SizedVector{nq})
+    q_stride[1] = traj.q[end-1][1] - traj.q[1][1]
+    return q_stride
+end
+
 
 
 
@@ -409,7 +416,7 @@ simulate!(sim0; verbose = false)
 ref_traj0 = deepcopy(sim0.traj)
 traj0 = deepcopy(sim0.traj)
 
-function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC12)
+function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC13)
     impl = mpc.impl
     ref_traj = mpc.ref_traj
     m_opts = mpc.m_opts
@@ -476,7 +483,7 @@ q_stride = get_stride(model, ref_traj0)
 impl0 = ImplicitTraj(H, model)
 
 
-m_opts = MPC12Options{T}(N_sample=4, M = 10, H_mpc = 15)
+m_opts = MPC13Options{T}(N_sample=4, M = 10, H_mpc = 15)
 opts0 = NewtonOptions()
 opts0.r_tol = 3e-4
 core1 = Newton(m_opts.H_mpc, h, model, cost=cost0)
@@ -486,11 +493,11 @@ linearization!(model, ref_traj0, impl0)
 
 
 
-m_opts = MPC12Options{T}(N_sample=4, M = 10, H_mpc = 15)
+m_opts = MPC13Options{T}(N_sample=4, M = 10, H_mpc = 15)
 opts0 = NewtonOptions()
 opts0.r_tol = 1e-4
 core0 = Newton(m_opts.H_mpc, h, model, cost=cost0, opts=opts0)
-mpc0 = MPC12(model, ref_traj0, m_opts=m_opts)
+mpc0 = MPC13(model, ref_traj0, m_opts=m_opts)
 @time dummy_mpc(model, core1, mpc0)
 
 # vis = Visualizer()

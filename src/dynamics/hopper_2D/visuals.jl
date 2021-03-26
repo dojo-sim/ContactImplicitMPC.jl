@@ -1,23 +1,23 @@
 # Visualization
 function visualize!(vis, model::Hopper2D, q;
-		Δt = 0.1, scenario = :vertical)
+		Δt = 0.1, scenario = :vertical, name::Symbol=:hopper_2D)
 
 	default_background!(vis)
 
     r_foot = 0.05
     r_leg = 0.5 * r_foot
 
-    setobject!(vis["body"], Sphere(Point3f0(0),
+    setobject!(vis[name]["body"], Sphere(Point3f0(0),
         convert(Float32, 0.1)),
         MeshPhongMaterial(color = RGBA(0, 1, 0, 1.0)))
 
-    setobject!(vis["foot"], Sphere(Point3f0(0),
+    setobject!(vis[name]["foot"], Sphere(Point3f0(0),
         convert(Float32, r_foot)),
         MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
 
     n_leg = 100
     for i = 1:n_leg
-        setobject!(vis["leg$i"], Sphere(Point3f0(0),
+        setobject!(vis[name]["leg$i"], Sphere(Point3f0(0),
             convert(Float32, r_leg)),
             MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
     end
@@ -41,11 +41,11 @@ function visualize!(vis, model::Hopper2D, q;
         z_shift = [0.0; 0.0; r_foot]
 
         MeshCat.atframe(anim, t) do
-            settransform!(vis["body"], Translation(p_body + z_shift))
-            settransform!(vis["foot"], Translation(p_foot + z_shift))
+            settransform!(vis[name]["body"], Translation(p_body + z_shift))
+            settransform!(vis[name]["foot"], Translation(p_foot + z_shift))
 
             for i = 1:n_leg
-                settransform!(vis["leg$i"], Translation(p_leg[i] + z_shift))
+                settransform!(vis[name]["leg$i"], Translation(p_leg[i] + z_shift))
             end
         end
     end
