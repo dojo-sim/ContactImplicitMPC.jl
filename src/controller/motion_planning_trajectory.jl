@@ -129,6 +129,8 @@ function update_θ!(traj::Trajectory)
 		traj.θu1[t] .= traj.u[t]
 		traj.θw1[t] .= traj.w[t]
 		traj.θ[t][end] = traj.h
+
+		# traj.θ[t] .= [traj.q[t]; traj.q[t+1]; traj.u[t]; traj.w[t]; traj.h]
 	end
 	return nothing
 end
