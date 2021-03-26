@@ -43,7 +43,7 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC13)
         # Apply control and rollout dynamics
         # u_zoh  = SVector{nu}.([deepcopy(ref_traj.u[1])/N_sample for j=1:N_sample])
         u_zoh  = SVector{nu}.([deepcopy(core.traj.u[1])/N_sample for j=1:N_sample])
-        w_amp = 0.001
+        w_amp = 0.05
         w_zoh  = SVector{nw}.([w_amp*[-rand(1); zeros(nw-1)]/N_sample for j=1:N_sample])
         sim = simulator(model, SVector{nq}(deepcopy(mpc.q_sim[end-1])), SVector{nq}(deepcopy(mpc.q_sim[end])), h_sim, N_sample,
             p = open_loop_policy(u_zoh, h_sim), #TODO works better need to investigate
@@ -93,10 +93,10 @@ end
 
 ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
-m_opts0 = MPC13Options{T}(N_sample=2, M=360, H_mpc=8, κ=κ)
+m_opts0 = MPC13Options{T}(N_sample=2, M=270, H_mpc=8, κ=κ)
 cost0 = CostFunction(H, model.dim,
-    q = [Diagonal(1.0e-2 * [1,0.1,1,0.1])   for t = 1:H],
-    u = [Diagonal(1.0e+1 * [1.0, 10]) for t = 1:H],
+    q = [Diagonal(1.0e-2 * [1,1,1,1])   for t = 1:H],
+    u = [Diagonal(1.0e-0 * [1e-3, 1e1]) for t = 1:H],
     γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:H],
     b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H])
 core0 = Newton(H, h, model, cost=cost0, opts=n_opts0)
@@ -114,7 +114,7 @@ plot!(plt[2,1], hcat(Vector.([u[1:2] for u in mpc0.u_sim]*m_opts0.N_sample)...)'
 
 
 
-# filename = "hopper_forward_wind"
+# filename = "hopper_open_loop"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)

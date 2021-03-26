@@ -20,8 +20,8 @@ h = ref_traj.h
 
 # Cost function
 cost = CostFunction(H, model.dim,
-    q = [[Diagonal(1.0e-5 * ones(nq)) for t = 1:H-1]; [Diagonal(1.0e3 * ones(nq))]],
-    u = [Diagonal(3.0e-2 * [0.1, 1.0]) for t = 1:H],
+    q = [[Diagonal(1.0e-5 * ones(nq)) for t = 1:H-1]; [Diagonal(1.0e9 * ones(nq))]],
+    u = [Diagonal(1.0e-5 * [0.1, 1.0]) for t = 1:H],
     γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:H],
     b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H])
 n_opts = NewtonOptions(r_tol=3e-6, κ_init=κ, κ_tol=2κ, solver_inner_iter=100)

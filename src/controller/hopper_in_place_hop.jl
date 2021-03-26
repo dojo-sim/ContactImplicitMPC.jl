@@ -49,6 +49,7 @@ sim = simulator(model, q0_ref, q1_ref, h, H;
     sim_opts = SimulatorOptions())
 simulate!(sim)
 plot(hcat(Vector.(sim.traj.q)...)')
+plot(hcat(Vector.(sim.traj.u)...)')
 visualize!(vis, model, sim.traj.q, Δt = sim.traj.h)
 
 # Check ~perfect loop
