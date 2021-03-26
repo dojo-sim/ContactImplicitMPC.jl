@@ -1,5 +1,5 @@
 abstract type LinearSolver end
-abstract type ResidualCache end
+abstract type Cache end
 
 # check that inequality constraints are satisfied
 function inequality_check(x, idx_ineq)
@@ -29,7 +29,7 @@ function rθ!(rθ, z, θ)
     nothing
 end
 
-struct NoCache <: ResidualCache end
+struct NoCache <: Cache end
 
 # interior-point solver options
 @with_kw mutable struct InteriorPointOptions{T}
@@ -60,7 +60,7 @@ function regularize!(v_pr, v_du, reg_pr, reg_du)
     v_du .= v_du .- reg_du
 end
 
-struct InteriorPoint{T}
+mutable struct InteriorPoint{T}
     methods::ResidualMethods
     z::Vector{T}               # current point
     z̄::Vector{T}               # candidate point
@@ -84,10 +84,10 @@ struct InteriorPoint{T}
     v_du
     reg_pr
     reg_du
-    r_cache::ResidualCache
-    r̄_cache::ResidualCache
-    rz_cache::ResidualCache
-    rθ_cache::ResidualCache
+    r_cache::Cache
+    r̄_cache::Cache
+    rz_cache::Cache
+    rθ_cache::Cache
     opts::InteriorPointOptions
 end
 
