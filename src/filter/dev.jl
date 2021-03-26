@@ -36,18 +36,16 @@ Q = zeros(nx,nx) + (0.05^2)*I(nx)
 R = zeros(nq,nq) + (0.15^2)*I(nq)
 
 P0 = zeros(nx,nx) + (0.01)^2*I(nx)
-# q10 = [0,0,1.]
-# q20 = [0,0,1.]
-γ10 = [0.]
-b10 = [0, 0, 0, 0.]
-x0 = [q0; q1; γ10; b10]
+q0 = SVector{nq}([0,0,0.5])
+q1 = SVector{nq}([0,0,0.5])
+γ0 = [0.]
+b0 = [0, 0, 0, 0.]
+x0 = [q0; q1; γ0; b0]
 u1 = 0.2*ones(nu)
 
 function ekf_step(x, P, u, y, Q, R)
 	# Predict
 	# Q = fct(W, df/dw) #TODO
-	# F = df/dx|x̄,u
-	# H = dh/dx|x̄
 	x̄, F, H = process(x, u) #done
 	P̄ = F*P*F' + Q #done
 	# Update
@@ -58,6 +56,15 @@ function ekf_step(x, P, u, y, Q, R)
 	P̂ = (I - K*H)*P̄ #done
 	return x̂, P̂
 end
+
+# x1, P1 = ekf_step(x0, P0, u1, Q, R)
+# q1_, q2_, γ1_, b1_ = unpack_x(x1)
+# q1_
+# q2_
+# γ1_
+# b1_
+#
+# plot(Gray.(P1/maximum(P1)))
 
 function ekf_rollout(H::Int, x0, P0, u, w, Q, R)
 	Random.seed!(100)
@@ -86,22 +93,15 @@ visualize_uncertainty!(vis, model,
 
 
 
-
-x1, P1 = ekf_step(x0, P0, u1, Q, R)
-q1_, q2_, γ1_, b1_ = unpack_x(x1)
-q1_
-q2_
-γ1_
-b1_
-
-plot(Gray.(P1/maximum(P1)))
+# Constrained EKF
 
 
-filename = "nom_particle"
-MeshCat.convert_frames_to_video(
-    "/home/simon/Downloads/$filename.tar",
-    "/home/simon/Documents/$filename.mp4", overwrite=true)
 
-convert_video_to_gif(
-    "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
+# filename = "nom_particle"
+# MeshCat.convert_frames_to_video(
+#     "/home/simon/Downloads/$filename.tar",
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+#
+# convert_video_to_gif(
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)

@@ -73,16 +73,27 @@ function A_func(::Hopper2D, q)
 	          0.0 1.0 0.0 0.0]
 end
 
+# # Parameters
+# g = 9.81 # gravity
+# μ_world = 1.0  # coefficient of friction
+# μ_joint = 1.0
+#
+# # TODO: change to Raibert parameters
+# mb = 1.0 # body mass
+# ml = 0.1  # leg mass
+# Jb = 0.25 # body inertia
+# Jl = 0.025 # leg inertia
+
 # Parameters
 g = 9.81 # gravity
-μ_world = 1.0  # coefficient of friction
-μ_joint = 1.0
+μ_world = 0.7 # coefficient of friction
+μ_joint = 0.0
 
 # TODO: change to Raibert parameters
-mb = 1.0 # body mass
-ml = 0.1  # leg mass
-Jb = 0.25 # body inertia
-Jl = 0.025 # leg inertia
+mb = 2.8 # body mass
+ml = 0.4  # leg mass
+Jb = 10.0 # body inertia
+Jl = 10.0 # leg inertia
 
 # Dimensions
 nq = 4
@@ -90,6 +101,7 @@ nu = 2
 nw = 2
 nc = 1
 nb = 2
+
 
 hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   mb, ml, Jb, Jl,

@@ -241,7 +241,7 @@ function get_gait(name::String, gait::String)
 	return res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
 end
 
-function get_trajectory(name::String, gait::String)
+function get_trajectory(name::String, gait::String; load_type::Symbol=:split_traj)
 	#TODO: assert model exists
 	path = joinpath(@__DIR__, name)
 	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
@@ -252,24 +252,26 @@ function get_trajectory(name::String, gait::String)
 	nw = model.dim.w
 	nc = model.dim.c
 	nb = model.dim.b
-
 	res = JLD2.jldopen(gait_path)# z̄ x̄ ū h̄ q u γ b
-	# return res["ū"]
-	q, u, γ, b, h = res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
-	ū = res["ū"]
-	ψ = [ut[nu + nc + nb .+ (1:nc)] for ut in ū]
-	η = [ut[nu + nc + nb + nc .+ (1:nb)] for ut in ū]
+	if load_type == :split_traj
+		# return res["ū"]
+		q, u, γ, b, h = res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
+		ū = res["ū"]
+		ψ = [ut[nu + nc + nb .+ (1:nc)] for ut in ū]
+		η = [ut[nu + nc + nb + nc .+ (1:nb)] for ut in ū]
 
-	T = length(u)
+		T = length(u)
 
-	traj = contact_trajectory(T, h, model)
-	traj.q .= deepcopy(q)
-	traj.u .= deepcopy(u)
-	traj.γ .= deepcopy(γ)
-	traj.b .= deepcopy(b)
-	traj.z .= [pack_z(model, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
-	traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), h) for t = 1:T]
-
+		traj = contact_trajectory(T, h, model)
+		traj.q .= deepcopy(q)
+		traj.u .= deepcopy(u)
+		traj.γ .= deepcopy(γ)
+		traj.b .= deepcopy(b)
+		traj.z .= [pack_z(model, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
+		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), h) for t = 1:T]
+	elseif load_type == :joint_traj
+		traj = res["traj"]
+	end
 	return traj
 	# contact_trajectory(H::Int, h::T, model::ContactDynamicsModel)
 end
