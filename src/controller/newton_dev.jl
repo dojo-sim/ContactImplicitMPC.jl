@@ -37,19 +37,3 @@ newton_solve!(core, model, im_traj, ref_traj,
 implicit_dynamics!(im_traj, model, core.traj, κ = core.traj.κ)
 residual!(core.res, model, core, core.ν, im_traj, core.traj, ref_traj)
 @test norm(core.res.r, 1) / length(core.res.r) < 1.0e-5
-#
-# τ = vcat([[ref_traj.q[t+2]; ref_traj.γ[t]; ref_traj.b[t]] for t = 1:H]...)
-# nd = nq + nc + nb
-# vz = [view(τ, (t - 1) * nd .+ (1:nd)) for t = 1:H]
-# q0 = copy(ref_traj.q[1])
-# q1 = copy(ref_traj.q[2])
-# vq = [t == 1 ? view(q0, 1:nq) : (t == 2 ? view(q1, 1:nq) : view(τ, (t - 3) * nd .+ (1:nq))) for t = 1:H+2]
-# vγ = [view(τ, (t - 1) * nd + nq .+ (1:nc)) for t = 1:H]
-# vb = [view(τ, (t - 1) * nd + nq + nc .+ (1:nb)) for t = 1:H]
-#
-# norm(vcat(vz...) - τ)
-# norm(vcat(vq...) - vcat(ref_traj.q...))
-# norm(vcat(vγ...) - vcat(ref_traj.γ...))
-# norm(vcat(vb...) - vcat(ref_traj.b...))
-
-traj = trajectory(model, q0, q1, H, h)
