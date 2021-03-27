@@ -3,9 +3,12 @@
     N_sample::Int=3           # Hypersampling factor for dynamics simulation
     M::Int=3                  # Number of MPC loops
     H_mpc::Int=10             # Horizon of the MPC solver (H_mpc < H)
-    κ::T=1e-3                 # Central path parameter used in the dynamics
+    κ::T=1e-3                 # Central path parameter used in the implicit dynamics
+    κ_sim::T=1e-8             # Central path parameter used in the simulation dynamics
+    r_tol_sim::T=1e-8         # Residual tolerance for the dynamics simulation
     open_loop_mpc::Bool=false # Execute the reference trajectory open-loop instead of doing real MPC (~useful to assert the disturbance impact)
     w_amp::T=0.05             # Amplitude of the disturbance
+    live_plotting::Bool=false # Use the live plotting tool to debug
 end
 
 mutable struct MPC{T,nq,nu,nw,nc,nb}
@@ -100,93 +103,82 @@ function get_stride(model::Hopper2D, traj::ContactTraj)
     return q_stride
 end
 
-
-
-
-# T = Float64
-# κ = 1e-4
-# # model = get_model("quadruped")
-# ref_traj0 = get_trajectory("quadruped", "gait1")
-# # time
-# h = ref_traj0.h
-# H = ref_traj0.H
-#
-# nq = model.dim.q
-# nu = model.dim.u
-# nc = model.dim.c
-# nb = model.dim.b
-#
-# # initial conditions
-# q0 = SVector{model.dim.q}(ref_traj0.q[1])
-# q1 = SVector{model.dim.q}(ref_traj0.q[2])
-#
-#
-# sim0 = simulator(model, q0, q1, h, H,
-#     p = open_loop_policy(SVector{model.dim.u}.(ref_traj0.u), h),
-#     r! = model.res.r,
-#     rz! = model.res.rz,
-#     rθ! = model.res.rθ,
-#     rz = model.spa.rz_sp,
-#     rθ = model.spa.rθ_sp,
-#     ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
-#     sim_opts = SimulatorOptions(warmstart = true)
-#     )
-#
-# simulate!(sim0; verbose = false)
-# ref_traj0 = deepcopy(sim0.traj)
-# traj0 = deepcopy(sim0.traj)
-
-function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC)
+function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC; verbose::Bool=false)
+    elap = 0.0
+    # Unpack
     impl = mpc.impl
     ref_traj = mpc.ref_traj
     m_opts = mpc.m_opts
     cost = core.cost
     opts = core.opts
+    N_sample = mpc.m_opts.N_sample
+    h_sim = mpc.ref_traj.h/N_sample
+    nq = model.dim.q
 
+    # Initialization
     q0 = deepcopy(ref_traj.q[1])
     q1 = deepcopy(ref_traj.q[2])
-    for l = 1:m_opts.M
-        println("mpc:", l)
-        impl = ImplicitTraj(H, model)
-        linearization!(model, ref_traj, impl, ref_traj.κ)
-        warm_start = l > 1
-        newton_solve!(model, core, impl, ref_traj; warm_start=warm_start, q0=q0, q1=q1)
+    q0_sim = SVector{nq}(deepcopy(q1 + (q0 - q1)/N_sample))
+    q1_sim = SVector{nq}(deepcopy(q1))
+    push!(mpc.q_sim, [q0_sim, q1_sim]...)
 
+    for l = 1:m_opts.M
+        elap += @elapsed impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ)
+        # Get control
+        if m_opts.open_loop_mpc
+            u_zoh  = SVector{nu}.([deepcopy(ref_traj.u[1])/N_sample for j=1:N_sample])
+        else
+            warm_start = l > 1
+            elap += @elapsed newton_solve!(core, model, impl, ref_traj; verbose=verbose, warm_start=warm_start, q0=q0, q1=q1)
+            u_zoh  = SVector{nu}.([deepcopy(core.traj.u[1])/N_sample for j=1:N_sample])
+        end
+        # Get disturbances
+        w_zoh  = SVector{nw}.([m_opts.w_amp*[-rand(1); zeros(nw-1)]/N_sample for j=1:N_sample])
         # Apply control and rollout dynamics
-        N_sample = mpc.m_opts.N_sample
-        h_sim = mpc.ref_traj.h/N_sample
-        q0_sim = SVector{model.dim.q}(deepcopy(core.traj.q[2] + (core.traj.q[1] - core.traj.q[2])/N_sample ))
-        q1_sim = SVector{model.dim.q}(deepcopy(core.traj.q[2]))
-        sim = simulator(model, q0_sim, q1_sim, h_sim, N_sample,
-            p = open_loop_policy([SVector{model.dim.u}(deepcopy(core.traj.u[1])) for i=1:N_sample], h_sim),
-            r! = model.res.r,
-            rz! = model.res.rz,
-            rθ! = model.res.rθ,
+        sim = simulator(model, SVector{nq}(deepcopy(mpc.q_sim[end-1])), SVector{nq}(deepcopy(mpc.q_sim[end])), h_sim, N_sample,
+            p = open_loop_policy(u_zoh, h_sim),
+            d = open_loop_disturbances(w_zoh, h_sim),
+            r! = model.res.r!,
+            rz! = model.res.rz!,
+            rθ! = model.res.rθ!,
             rz = model.spa.rz_sp,
             rθ = model.spa.rθ_sp,
-            ip_opts = InteriorPointOptions(r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
+            ip_opts = InteriorPointOptions(r_tol = m_opts.r_tol_sim, κ_tol = 2m_opts.κ_sim, κ_init = m_opts.κ_sim),
             sim_opts = SimulatorOptions(warmstart = true)
             )
-        simulate!(sim; verbose = false)
+        simulate!(sim)
         ########################
-        plt = plot(legend=false, xlims=(0,15))
-        plot!(hcat(Vector.(core.traj.q)...)', color=:blue, linewidth=1.0)
-        plot!(hcat(Vector.(ref_traj.q)...)', linestyle=:dot, color=:red, linewidth=3.0)
-        scatter!((2-1/N_sample)ones(model.dim.q), q0_sim, markersize=8.0, color=:lightgreen)
-        scatter!(2*ones(model.dim.q), q1_sim, markersize=8.0, color=:lightgreen)
-        @show length(sim.traj.q)
-        scatter!(3*ones(model.dim.q), sim.traj.q[N_sample+2], markersize=8.0, color=:lightgreen)
-        scatter!(1*ones(model.dim.q), q0, markersize=6.0, color=:blue)
-        scatter!(2*ones(model.dim.q), q1, markersize=6.0, color=:blue)
-        scatter!(1*ones(model.dim.q), ref_traj.q[1], markersize=4.0, color=:red)
-        scatter!(2*ones(model.dim.q), ref_traj.q[2], markersize=4.0, color=:red)
-        scatter!(3*ones(model.dim.q), ref_traj.q[3], markersize=4.0, color=:red)
-        display(plt)
-        @show norm(q1 - ref_traj.q[3])
+        if m_opts.live_plotting
+            plt = plot(layout=grid(2,1,heights=[0.7, 0.3], figsize=[(1000, 1000),(400,400)]), legend=false, xlims=(0,20))
+            plot!(plt[1,1], hcat(Vector.(core.traj.q)...)', color=:blue, linewidth=1.0)
+            plot!(plt[1,1], hcat(Vector.(ref_traj.q)...)', linestyle=:dot, color=:red, linewidth=3.0)
+
+            scatter!((2-1/N_sample)ones(model.dim.q), sim.traj.q[1], markersize=8.0, color=:lightgreen)
+            scatter!(2*ones(model.dim.q), sim.traj.q[2], markersize=8.0, color=:lightgreen)
+            scatter!(plt[1,1], 3*ones(model.dim.q), sim.traj.q[end], markersize=8.0, color=:lightgreen)
+
+            scatter!(plt[1,1], 1*ones(model.dim.q), q0, markersize=6.0, color=:blue)
+            scatter!(plt[1,1], 2*ones(model.dim.q), q1, markersize=6.0, color=:blue)
+
+            scatter!(plt[1,1], 1*ones(model.dim.q), ref_traj.q[1], markersize=4.0, color=:red)
+            scatter!(plt[1,1], 2*ones(model.dim.q), ref_traj.q[2], markersize=4.0, color=:red)
+            scatter!(plt[1,1], 3*ones(model.dim.q), ref_traj.q[3], markersize=4.0, color=:red)
+
+            plot!(plt[2,1], hcat(Vector.(core.traj.u)...)', color=:blue, linewidth=1.0)
+            plot!(plt[2,1], hcat(Vector.(ref_traj.u)...)', linestyle=:dot, color=:red, linewidth=3.0)
+            display(plt)
+        end
+        ########################
+        push!(mpc.q_sim, deepcopy(sim.traj.q[3:end])...)
+        push!(mpc.u_sim, deepcopy(sim.traj.u)...)
+        push!(mpc.w_sim, deepcopy(sim.traj.w)...)
+        push!(mpc.γ_sim, deepcopy(sim.traj.γ)...)
+        push!(mpc.b_sim, deepcopy(sim.traj.b)...)
         ########################
         q0 = deepcopy(q1)
-        q1 = deepcopy(sim.traj.q[N_sample+2])
+        q1 = deepcopy(sim.traj.q[end])
         rot_n_stride!(ref_traj, mpc.q_stride)
     end
+    # @show elap
     return nothing
 end
