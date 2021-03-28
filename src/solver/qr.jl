@@ -216,6 +216,10 @@ function gs!(cgs_data::CGSData{n,T}, A::SparseMatrixCSC{T,Int}) where {n,T}
     return nothing
 end
 
+
+"""
+    Dense Modified Gram-Schmidt
+"""
 mutable struct DMGSData{n,T} <: GSData{n,T}
     n::Int
     A::Matrix{T}

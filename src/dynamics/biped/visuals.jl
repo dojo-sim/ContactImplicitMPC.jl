@@ -1,68 +1,68 @@
 # visualization
 function visualize!(vis, model::Biped, q;
-      r = 0.040, Δt = 0.1)
+      r = 0.040, Δt = 0.1, name::Symbol=:biped)
 
 	default_background!(vis)
 
 	torso = Cylinder(Point3f0(0.0, 0.0, 0.0), Point3f0(0.0, 0.0, model.l_torso),
 		convert(Float32, 0.035))
-	setobject!(vis["torso"], torso,
+	setobject!(vis[name]["torso"], torso,
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
 	thigh_1 = Cylinder(Point3f0(0.0,0.0,0.0), Point3f0(0.0, 0.0, model.l_thigh1),
 		convert(Float32, 0.035))
-	setobject!(vis["thigh1"], thigh_1,
+	setobject!(vis[name]["thigh1"], thigh_1,
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
 	calf_1 = Cylinder(Point3f0(0.0,0.0,0.0), Point3f0(0.0, 0.0, model.l_calf1),
 		convert(Float32, 0.035))
-	setobject!(vis["calf1"], calf_1,
+	setobject!(vis[name]["calf1"], calf_1,
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
 	foot_1 = Cylinder(Point3f0(0.0,0.0,0.0),
 		Point3f0(0.0, 0.0, model.l_foot1 + model.d_foot1),
 		convert(Float32, 0.035))
-	setobject!(vis["foot1"], foot_1,
+	setobject!(vis[name]["foot1"], foot_1,
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
 	thigh_2 = Cylinder(Point3f0(0.0,0.0,0.0), Point3f0(0.0, 0.0, model.l_thigh2),
 		convert(Float32, 0.035))
-	setobject!(vis["thigh2"], thigh_2,
+	setobject!(vis[name]["thigh2"], thigh_2,
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
 	calf_2 = Cylinder(Point3f0(0.0,0.0,0.0), Point3f0(0.0, 0.0, model.l_calf2),
 		convert(Float32, 0.035))
-	setobject!(vis["calf2"], calf_2,
+	setobject!(vis[name]["calf2"], calf_2,
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
 	foot_2 = Cylinder(Point3f0(0.0,0.0,0.0),
 		Point3f0(0.0, 0.0, model.l_foot2 + model.d_foot2),
 		convert(Float32, 0.035))
-	setobject!(vis["foot2"], foot_2,
+	setobject!(vis[name]["foot2"], foot_2,
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
-	setobject!(vis["heel1"], Sphere(Point3f0(0.0),
+	setobject!(vis[name]["heel1"], Sphere(Point3f0(0.0),
 		convert(Float32, r)),
 		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
-	setobject!(vis["heel2"], Sphere(Point3f0(0.0),
+	setobject!(vis[name]["heel2"], Sphere(Point3f0(0.0),
 		convert(Float32, r)),
 		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
-	setobject!(vis["toe1"], Sphere(Point3f0(0.0),
+	setobject!(vis[name]["toe1"], Sphere(Point3f0(0.0),
 		convert(Float32, r)),
 		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
-	setobject!(vis["toe2"], Sphere(Point3f0(0.0),
+	setobject!(vis[name]["toe2"], Sphere(Point3f0(0.0),
 		convert(Float32, r)),
 		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
-	setobject!(vis["knee1"], Sphere(Point3f0(0.0),
+	setobject!(vis[name]["knee1"], Sphere(Point3f0(0.0),
 		convert(Float32, 0.035)),
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-	setobject!(vis["knee2"], Sphere(Point3f0(0.0),
+	setobject!(vis[name]["knee2"], Sphere(Point3f0(0.0),
 		convert(Float32, 0.035)),
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-	setobject!(vis["hip"], Sphere(Point3f0(0.0),
+	setobject!(vis[name]["hip"], Sphere(Point3f0(0.0),
 		convert(Float32, 0.035)),
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-	setobject!(vis["torso_top"], Sphere(Point3f0(0.0),
+	setobject!(vis[name]["torso_top"], Sphere(Point3f0(0.0),
 		convert(Float32, 0.035)),
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
@@ -101,23 +101,23 @@ function visualize!(vis, model::Biped, q;
 			k_heel_2 = kinematics_3(model, q[t], body = :foot_2, mode = :heel)
 			p_heel_2 = [k_heel_2[1], 0.0, k_heel_2[2]] + p_shift
 
-			settransform!(vis["thigh1"], cable_transform(p, p_thigh_1))
-			settransform!(vis["calf1"], cable_transform(p_thigh_1, p_calf_1))
-			settransform!(vis["foot1"], cable_transform(p_toe_1, p_heel_1))
+			settransform!(vis[name]["thigh1"], cable_transform(p, p_thigh_1))
+			settransform!(vis[name]["calf1"], cable_transform(p_thigh_1, p_calf_1))
+			settransform!(vis[name]["foot1"], cable_transform(p_toe_1, p_heel_1))
 
-			settransform!(vis["thigh2"], cable_transform(p, p_thigh_2))
-			settransform!(vis["calf2"], cable_transform(p_thigh_2, p_calf_2))
-			settransform!(vis["foot2"], cable_transform(p_toe_2, p_heel_2))
+			settransform!(vis[name]["thigh2"], cable_transform(p, p_thigh_2))
+			settransform!(vis[name]["calf2"], cable_transform(p_thigh_2, p_calf_2))
+			settransform!(vis[name]["foot2"], cable_transform(p_toe_2, p_heel_2))
 
-			settransform!(vis["torso"], cable_transform(p_torso,p))
-			settransform!(vis["heel1"], Translation(p_heel_1))
-			settransform!(vis["heel2"], Translation(p_heel_2))
-			settransform!(vis["toe1"], Translation(p_toe_1))
-			settransform!(vis["toe2"], Translation(p_toe_2))
-			settransform!(vis["knee1"], Translation(p_thigh_1))
-			settransform!(vis["knee2"], Translation(p_thigh_2))
-			settransform!(vis["hip"], Translation(p))
-			settransform!(vis["torso_top"], Translation(p_torso))
+			settransform!(vis[name]["torso"], cable_transform(p_torso,p))
+			settransform!(vis[name]["heel1"], Translation(p_heel_1))
+			settransform!(vis[name]["heel2"], Translation(p_heel_2))
+			settransform!(vis[name]["toe1"], Translation(p_toe_1))
+			settransform!(vis[name]["toe2"], Translation(p_toe_2))
+			settransform!(vis[name]["knee1"], Translation(p_thigh_1))
+			settransform!(vis[name]["knee2"], Translation(p_thigh_2))
+			settransform!(vis[name]["hip"], Translation(p))
+			settransform!(vis[name]["torso_top"], Translation(p_torso))
 		end
 	end
 

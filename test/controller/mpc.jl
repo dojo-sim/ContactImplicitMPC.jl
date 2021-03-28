@@ -1,7 +1,7 @@
-@testset "Test MPC" begin
+@testset "Test MPC11" begin
     T = Float64
     # get hopper model
-    model = get_model("hopper_2D")
+    model = ContactControl.get_model("hopper_2D")
     nq = model.dim.q
     nu = model.dim.u
     nc = model.dim.c
@@ -10,13 +10,13 @@
     nr = nq + nu + nc + nb + nd
 
     # get trajectory
-    ref_traj = get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
+    ref_traj = ContactControl.get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
     H = ref_traj.H
     h = ref_traj.h
     κ = 1.0e-4
 
-    n_opts = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
-    m_opts = MPCOptions{T}(
+    n_opts = ContactControl.NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
+    m_opts = ContactControl.MPC11Options11{T}(
                 N_sample=10,
                 M=2*H,
                 H_mpc=10,
@@ -24,16 +24,16 @@
                 κ_sim=1e-8,
                 r_tol_sim=1e-8,
                 open_loop_mpc=false,
-                w_amp=0.05,
+                w_amp=[0.05, 0.00],
                 live_plotting=false)
-    cost = CostFunction(H, model.dim,
+    cost = ContactControl.CostFunction(H, model.dim,
         q = [Diagonal(1.0e-1 * [1,1,1,1])   for t = 1:m_opts.H_mpc],
         u = [Diagonal(1.0e-0 * [1e-3, 1e1]) for t = 1:m_opts.H_mpc],
         γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:m_opts.H_mpc],
         b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:m_opts.H_mpc])
-    core = Newton(m_opts.H_mpc, h, model, cost=cost, opts=n_opts)
-    mpc = MPC(model, ref_traj, m_opts=m_opts)
-    @time dummy_mpc(model, core, mpc)
+    core = ContactControl.Newton(m_opts.H_mpc, h, model, cost=cost, opts=n_opts)
+    mpc = ContactControl.MPC11(model, ref_traj, m_opts=m_opts)
+    ContactControl.dummy_mpc(model, core, mpc)
 
     # Check length
     N_sample = mpc.m_opts.N_sample
@@ -57,7 +57,7 @@
 
     # Check tracking performance
 
-    function tracking_error(ref_traj::ContactTraj, mpc::MPC)
+    function tracking_error(ref_traj::ContactTraj, mpc::MPC11)
         N_sample = mpc.m_opts.N_sample
         M = mpc.m_opts.M
         q_error = []
@@ -90,13 +90,13 @@
 
 
     # get trajectory
-    ref_traj = get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
+    ref_traj = ContactControl.get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
     H = ref_traj.H
     h = ref_traj.h
     κ = 1.0e-4
 
-    n_opts = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
-    m_opts = MPCOptions{T}(
+    n_opts = ContactControl.NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
+    m_opts = ContactControl.MPC11Options11{T}(
                 N_sample=10,
                 M=2*H,
                 H_mpc=10,
@@ -104,16 +104,16 @@
                 κ_sim=1e-8,
                 r_tol_sim=1e-8,
                 open_loop_mpc=false,
-                w_amp=0.00,
+                w_amp=zeros(model.dim.w),
                 live_plotting=false)
-    cost = CostFunction(H, model.dim,
+    cost = ContactControl.CostFunction(H, model.dim,
         q = [Diagonal(1.0e-1 * [1,1,1,1])   for t = 1:m_opts.H_mpc],
         u = [Diagonal(1.0e-0 * [1e-3, 1e1]) for t = 1:m_opts.H_mpc],
         γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:m_opts.H_mpc],
         b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:m_opts.H_mpc])
-    core = Newton(m_opts.H_mpc, h, model, cost=cost, opts=n_opts)
-    mpc = MPC(model, ref_traj, m_opts=m_opts)
-    @time dummy_mpc(model, core, mpc)
+    core = ContactControl.Newton(m_opts.H_mpc, h, model, cost=cost, opts=n_opts)
+    mpc = ContactControl.MPC11(model, ref_traj, m_opts=m_opts)
+    ContactControl.dummy_mpc(model, core, mpc)
 
     # Check the tracking error with no disturbances
     q_error, u_error, γ_error, b_error = tracking_error(ref_traj, mpc)

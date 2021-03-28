@@ -36,3 +36,47 @@ function disturbances(d::OpenLoopDisturbance, x, t)
     k = searchsortedlast(d.t, t)
     return d.w[k]
 end
+
+
+"""
+    random disturbances
+    Sample random disturbance forces uniformly between 0 and -w_amplitude (one-sided).
+    Apply these forces along the x (and y) axes depending on the model considered.
+"""
+struct RandomDisturbance{W, T} <: Disturbances
+    w_amp::Vector{T} # disturbance amplitude
+    w::Vector{W}     # disturbances
+    t::Vector{T}     # time trajectory
+end
+
+function random_disturbances(model::ContactDynamicsModel, w_amp::Vector{T}, H::Int, h::T) where {T}
+    @assert length(w_amp) == model.dim.w
+    w = [-rand(model.dim.w) * w_amp for i=1:H]
+    RandomDisturbance(w_amp, w, [(t - 1) * h for t = 1:H])
+end
+
+function random_disturbances(model::ContactDynamicsModel, w_amp::Vector{T}, H::Int, h::T) where {T}
+    if length(w_amp) == model.dim.w
+        w = [rand(model.dim.w) .* w_amp for i=1:H]
+        # wr = rand(model.dim.w) .* w_amp
+        # w = [wr for i=1:H]
+    elseif length(w_amp) == 1
+        w = [rand(model.dim.w) .* w_amp[1] for i=1:H]
+        # wr = rand(model.dim.w) .* w_amp[1]
+        # w = [wr for i=1:H]
+    else
+        @warn "w_amp is not of the correct size."
+    end
+    RandomDisturbance(w_amp, w, [(t - 1) * h for t = 1:H])
+end
+
+function disturbances(d::RandomDisturbance, x, t)
+    k = searchsortedlast(d.t, t)
+    return d.w[k]
+end
+
+
+
+a = [2.0]
+b = [2, 3]
+a .* b
