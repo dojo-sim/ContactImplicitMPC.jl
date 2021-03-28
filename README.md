@@ -5,5 +5,11 @@
 - Contact simulator
 - Contact-implicit controller
 
-- [ ] Write outer solver for controller using Newton method
 - [ ] Decide on the use of SVector vs SizedVector
+- [ ] design quadruped gait so that the four feet are in contact with the ground for a few times step between each step, instead of having a 'trotting' gait
+
+
+#Timings:
+-  quadruped 20x slower
+-  hopper2D 2x slower
+-  
