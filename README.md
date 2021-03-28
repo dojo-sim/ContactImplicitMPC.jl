@@ -10,6 +10,8 @@
 - [ ] Enforce no slip conditions on nominal gaits
 - [ ] 
 
+/!\ Changed biped friction coefficient to be 0.7
+/!\ Some tests on the fast dynamics are not passing 
 
 #Timings:
 -  quadruped 20x slower
