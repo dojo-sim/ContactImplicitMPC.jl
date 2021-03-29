@@ -307,6 +307,11 @@ function linear_solve!(solver::DMGSSolver, x::Vector{T}, A::Array{T, 2}, b::Vect
     qr_solve!(solver.F, x, b)
 end
 
+function linear_matrix_solve!(solver::QRSolver, X::Matrix{T}, A::AbstractMatrix{T}, B::Matrix{T}) where T
+    gs!(solver.F, A)
+    qr_matrix_solve!(solver.F, X, B)
+end
+
 function mgs_solver(A::SparseMatrixCSC{T,Int}) where T
     MGSSolver(MGSData(A, size(A, 1)))
 end

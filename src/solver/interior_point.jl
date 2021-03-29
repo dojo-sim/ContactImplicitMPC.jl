@@ -286,8 +286,9 @@ function differentiate_solution!(ip::InteriorPoint)
     ip.methods.rθ!(rθ, z, θ, rθ_cache)
 
     # δz .= -1.0 * rz \ Array(rθ) # TODO: fix
-    gs!(ip.solver.F, rz)
-    qr_matrix_solve2!(ip.solver.F, δz, rθ)
+    # gs!(ip.solver.F, rz)
+    # qr_matrix_solve!(ip.solver.F, δz, rθ)
+    linear_matrix_solve!(ip.solver, δz, rz, rθ)
     @inbounds @views @. ip.δz .*= -1.0
     nothing
 end
