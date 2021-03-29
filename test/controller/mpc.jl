@@ -1,4 +1,4 @@
-@testset "Test MPC11" begin
+@testset "Test MPC" begin
     T = Float64
     # get hopper model
     model = ContactControl.get_model("hopper_2D")
@@ -16,7 +16,7 @@
     κ = 1.0e-4
 
     n_opts = ContactControl.NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
-    m_opts = ContactControl.MPC11Options11{T}(
+    m_opts = ContactControl.MPCOptions{T}(
                 N_sample=10,
                 M=2*H,
                 H_mpc=10,
@@ -32,7 +32,7 @@
         γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:m_opts.H_mpc],
         b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:m_opts.H_mpc])
     core = ContactControl.Newton(m_opts.H_mpc, h, model, cost=cost, opts=n_opts)
-    mpc = ContactControl.MPC11(model, ref_traj, m_opts=m_opts)
+    mpc = ContactControl.MPC(model, ref_traj, m_opts=m_opts)
     ContactControl.dummy_mpc(model, core, mpc)
 
     # Check length
@@ -57,7 +57,7 @@
 
     # Check tracking performance
 
-    function tracking_error(ref_traj::ContactTraj, mpc::MPC11)
+    function tracking_error(ref_traj::ContactTraj, mpc::MPC)
         N_sample = mpc.m_opts.N_sample
         M = mpc.m_opts.M
         q_error = []
@@ -96,7 +96,7 @@
     κ = 1.0e-4
 
     n_opts = ContactControl.NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
-    m_opts = ContactControl.MPC11Options11{T}(
+    m_opts = ContactControl.MPCOptions{T}(
                 N_sample=10,
                 M=2*H,
                 H_mpc=10,
@@ -112,7 +112,7 @@
         γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:m_opts.H_mpc],
         b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:m_opts.H_mpc])
     core = ContactControl.Newton(m_opts.H_mpc, h, model, cost=cost, opts=n_opts)
-    mpc = ContactControl.MPC11(model, ref_traj, m_opts=m_opts)
+    mpc = ContactControl.MPC(model, ref_traj, m_opts=m_opts)
     ContactControl.dummy_mpc(model, core, mpc)
 
     # Check the tracking error with no disturbances

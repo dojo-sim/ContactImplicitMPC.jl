@@ -17,11 +17,15 @@ end
 
 function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 	κ = ref_traj.κ[1],
+	max_time = 60.0,
 	opts = InteriorPointOptions(
 			κ_init = κ[1],
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,
-			diff_sol = true))
+			diff_sol = true,
+			solver=:dmgs_solver,
+			max_time=max_time,
+			))
 
 	H = ref_traj.H
 
@@ -40,8 +44,10 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 			 r! = lin[t].methods.r!,
 			 rz! = lin[t].methods.rz!,
 			 rθ! = lin[t].methods.rθ!,
-			 rz = model.spa.rz_sp,
-			 rθ = model.spa.rθ_sp,
+			 # rz = model.spa.rz_sp,
+			 # rθ = model.spa.rθ_sp,
+			 rz = zeros(num_var(model), num_var(model)),
+			 rθ = zeros(num_var(model), num_data(model)),
 			 opts = opts) for t = 1:H]
 
 	# views
@@ -67,14 +73,14 @@ linearizedimated since it relies on a linearization about a reference trajectory
 function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
 	traj; κ = traj.κ) where {T, D}
 
-	for t = 1:traj.H
+	Threads.@threads for t = 1:traj.H
+	# for t = 1:traj.H
 		#@assert abs.(im_traj.lin[t].κ - κ[1]) / κ[1] < 1.0e-5 # check that the κ are consistent between the optimized trajectory (traj)
 		# and the linearization (impl.lin).
 
 		# initialized solver
 		z_initialize!(im_traj.ip[t].z, model, traj.q[t+2]) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
-
 		# solve
 		status = interior_point!(im_traj.ip[t])
 		!status && (@warn "implicit dynamics failure (t = $t)")
@@ -84,6 +90,5 @@ function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
 		im_traj.dγ1[t] .-= traj.γ[t]
 		im_traj.db1[t] .-= traj.b[t]
 	end
-
 	return nothing
 end

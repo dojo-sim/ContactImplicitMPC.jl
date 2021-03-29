@@ -21,7 +21,7 @@ h = ref_traj.h
 
 ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
-m_opts0 = MPC11Options11{T}(
+m_opts0 = MPCOptions{T}(
             N_sample=10,
             M=100,
             H_mpc=10,
@@ -37,7 +37,7 @@ cost0 = CostFunction(H, model.dim,
     γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:m_opts0.H_mpc],
     b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:m_opts0.H_mpc])
 core0 = Newton(m_opts0.H_mpc, h, model, cost=cost0, opts=n_opts0)
-mpc0 = MPC11(model, ref_traj0, m_opts=m_opts0)
+mpc0 = MPC(model, ref_traj0, m_opts=m_opts0)
 @time dummy_mpc(model, core0, mpc0, verbose=true)
 
 plt = plot(layout=(2,1), legend=false)

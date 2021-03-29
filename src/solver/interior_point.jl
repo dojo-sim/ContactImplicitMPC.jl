@@ -187,62 +187,68 @@ function interior_point!(ip::InteriorPoint{T}) where T
     r!(r, z, θ, κ[1], r_cache)
     r_norm = norm(r, res_norm)
 
+    elapsed_time = 0.0
+
     for i = 1:max_iter_outer
+        elapsed_time >= max_time && break
         for j = 1:max_iter_inner
-            # check for converged residual
-            if r_norm < r_tol
-                break
-            end
-
-            # compute residual Jacobian
-            rz!(rz, z, θ, rz_cache)
-
-            # regularize (fixed, TODO: adaptive)
-            reg && regularize!(v_pr, v_du, reg_pr, reg_du)
-
-            # compute step
-            linear_solve!(solver, Δ, rz, r)
-
-            # initialize step length
-            α = 1.0
-
-            # candidate point
-            z̄ .= z - α * Δ
-
-            # check inequality constraints
-            iter = 0
-            while inequality_check(z̄, idx_ineq)
-                α *= ls_scale
-                z̄ .= z - α * Δ
-                iter += 1
-                if iter > max_ls
-                    @error "backtracking line search fail"
-                    return false
+            elapsed_time >= max_time && break
+            elapsed_time += @elapsed begin
+                # check for converged residual
+                if r_norm < r_tol
+                    break
                 end
-            end
 
-            # reduce norm of residual
-            r!(r̄, z̄, θ, κ[1], r̄_cache)
-            r̄_norm = norm(r̄, res_norm)
+                # compute residual Jacobian
+                rz!(rz, z, θ, rz_cache)
 
-            while r̄_norm >= (1.0 - 0.001 * α) * r_norm
-                α *= ls_scale
+                # regularize (fixed, TODO: adaptive)
+                reg && regularize!(v_pr, v_du, reg_pr, reg_du)
+
+                # compute step
+                linear_solve!(solver, Δ, rz, r)
+
+                # initialize step length
+                α = 1.0
+
+                # candidate point
                 z̄ .= z - α * Δ
 
+                # check inequality constraints
+                iter = 0
+                while inequality_check(z̄, idx_ineq)
+                    α *= ls_scale
+                    z̄ .= z - α * Δ
+                    iter += 1
+                    if iter > max_ls
+                        @error "backtracking line search fail"
+                        return false
+                    end
+                end
+
+                # reduce norm of residual
                 r!(r̄, z̄, θ, κ[1], r̄_cache)
-                r̄_norm = norm(r̄, Inf)
+                r̄_norm = norm(r̄, res_norm)
 
-                iter += 1
-                if iter > max_ls
-                    @error "line search fail"
-                    return false
+                while r̄_norm >= (1.0 - 0.001 * α) * r_norm
+                    α *= ls_scale
+                    z̄ .= z - α * Δ
+
+                    r!(r̄, z̄, θ, κ[1], r̄_cache)
+                    r̄_norm = norm(r̄, Inf)
+
+                    iter += 1
+                    if iter > max_ls
+                        @error "line search fail"
+                        return false
+                    end
                 end
-            end
 
-            # update
-            z .= z̄
-            r .= r̄
-            r_norm = r̄_norm
+                # update
+                z .= z̄
+                r .= r̄
+                r_norm = r̄_norm
+            end
         end
 
         if κ[1] <= κ_tol

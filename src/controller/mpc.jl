@@ -1,17 +1,18 @@
-# MPC11 options
-@with_kw mutable struct MPC11Options11{T}
+# MPC options
+@with_kw mutable struct MPCOptions{T}
     N_sample::Int=3           # Hypersampling factor for dynamics simulation
-    M::Int=3                  # Number of MPC11 loops
-    H_mpc::Int=10             # Horizon of the MPC11 solver (H_mpc < H)
+    M::Int=3                  # Number of MPC loops
+    H_mpc::Int=10             # Horizon of the MPC solver (H_mpc < H)
     κ::T=1e-3                 # Central path parameter used in the implicit dynamics
     κ_sim::T=1e-8             # Central path parameter used in the simulation dynamics
     r_tol_sim::T=1e-8         # Residual tolerance for the dynamics simulation
-    open_loop_mpc::Bool=false # Execute the reference trajectory open-loop instead of doing real MPC11 (~useful to assert the disturbance impact)
+    open_loop_mpc::Bool=false # Execute the reference trajectory open-loop instead of doing real MPC (~useful to assert the disturbance impact)
     w_amp::Vector{T}=[0.05]   # Amplitude of the disturbance
+    ip_max_time::T = 60.0     # maximum time allowed for an InteriorPoint solve
     live_plotting::Bool=false # Use the live plotting tool to debug
 end
 
-mutable struct MPC11{T,nq,nu,nw,nc,nb}
+mutable struct MPC{T,nq,nu,nw,nc,nb}
     q0_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
     q1_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
     q_sim::Vector{SizedArray{Tuple{nq},T,1,1,Vector{T}}} # history of simulator configurations
@@ -19,14 +20,14 @@ mutable struct MPC11{T,nq,nu,nw,nc,nb}
     w_sim::Vector{SizedArray{Tuple{nw},T,1,1,Vector{T}}} # history of simulator disturbances
     γ_sim::Vector{SizedArray{Tuple{nc},T,1,1,Vector{T}}} # history of simulator impact forces
     b_sim::Vector{SizedArray{Tuple{nb},T,1,1,Vector{T}}} # history of simulator friction forces
-    m_opts::MPC11Options11
+    m_opts::MPCOptions
     ref_traj::ContactTraj
     impl::ImplicitTraj
     q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}} # change in q required to loop the ref trajectories
 end
 
-function MPC11(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ};
-        m_opts::MPC11Options11=MPC11Options11()) where {T,nq,nu,nw,nc,nb,nz,nθ}
+function MPC(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ};
+        m_opts::MPCOptions=MPCOptions()) where {T,nq,nu,nw,nc,nb,nz,nθ}
     q0_con = zeros(SizedArray{Tuple{nq},T,1,1,Vector{T}})
     q1_con = zeros(SizedArray{Tuple{nq},T,1,1,Vector{T}})
     q_sim = Vector{SizedArray{Tuple{nq},T,1,1,Vector{T}}}([])
@@ -35,9 +36,9 @@ function MPC11(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,
     γ_sim = Vector{SizedArray{Tuple{nc},T,1,1,Vector{T}}}([])
     b_sim = Vector{SizedArray{Tuple{nb},T,1,1,Vector{T}}}([])
     H = ref_traj.H
-    impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ)
+    impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
     q_stride = get_stride(model, ref_traj)
-    return MPC11{T,nq,nu,nw,nc,nb}(q0_con, q1_con, q_sim, u_sim, w_sim, γ_sim, b_sim, m_opts, ref_traj, impl, q_stride)
+    return MPC{T,nq,nu,nw,nc,nb}(q0_con, q1_con, q_sim, u_sim, w_sim, γ_sim, b_sim, m_opts, ref_traj, impl, q_stride)
 end
 
 function rot_n_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
@@ -109,10 +110,10 @@ function get_stride(model::Biped, traj::ContactTraj)
     return q_stride
 end
 
-function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC11; verbose::Bool=false)
+function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC; verbose::Bool=false)
     elap = 0.0
     # Unpack
-    impl = mpc.impl
+    # impl = mpc.impl
     ref_traj = mpc.ref_traj
     m_opts = mpc.m_opts
     cost = core.cost
@@ -129,13 +130,13 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC11; verbos
     push!(mpc.q_sim, [q0_sim, q1_sim]...)
 
     for l = 1:m_opts.M
-        elap += @elapsed impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ)
+        elap += @elapsed mpc.impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
         # Get control
         if m_opts.open_loop_mpc
             u_zoh  = SVector{nu}.([deepcopy(ref_traj.u[1])/N_sample for j=1:N_sample])
         else
             warm_start = l > 1
-            elap += @elapsed newton_solve!(core, model, impl, ref_traj; verbose=verbose, warm_start=warm_start, q0=q0, q1=q1)
+            elap += @elapsed newton_solve!(core, model, mpc.impl, ref_traj; verbose=verbose, warm_start=warm_start, q0=q0, q1=q1)
             u_zoh  = SVector{nu}.([deepcopy(core.traj.u[1])/N_sample for j=1:N_sample])
         end
         # Get disturbances

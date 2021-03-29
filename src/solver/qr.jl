@@ -251,7 +251,6 @@ function gs!(mgs_data::DMGSData{n,T}, A::Array{T, 2}) where {n,T}
             off += 1
         end
         # re
-        # @inbounds @views rs[off] .= norm(qs[j],2)
         @inbounds @views rs[off] .= LinearAlgebra.BLAS.nrm2(qs[j])
         # q
         @inbounds @. @views qs[j] ./= rs[off]
