@@ -14,6 +14,6 @@
 - /!\ Some tests on the fast dynamics are not passing 
 
 #Timings:
--  quadruped 20x slower
+-  quadruped 4x slower
 -  hopper2D 2x slower
 -  
