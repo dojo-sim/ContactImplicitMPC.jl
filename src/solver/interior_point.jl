@@ -74,7 +74,7 @@ mutable struct InteriorPoint{T}
     idx_ineq::Vector{Int}      # indices for inequality constraints
     idx_pr::Vector{Int}        # indices for primal variables
     idx_du::Vector{Int}        # indices for dual variables
-    δz::SparseMatrixCSC{T,Int} # solution gradients
+    δz::Matrix{T}              # solution gradients (this is always dense)
     θ::Vector{T}               # problem data
     κ::Vector{T}               # barrier parameter
     num_var::Int
@@ -123,7 +123,7 @@ function interior_point(x, θ;
         idx_ineq,
         idx_pr,
         idx_du,
-        spzeros(num_var, num_data),
+        zeros(num_var, num_data),
         θ,
         zeros(1),
         num_var,
@@ -285,7 +285,10 @@ function differentiate_solution!(ip::InteriorPoint)
     ip.methods.rz!(rz, z, θ, rz_cache) # maybe not needed
     ip.methods.rθ!(rθ, z, θ, rθ_cache)
 
-    δz .= -1.0 * rz \ Array(rθ) # TODO: fix
+    # δz .= -1.0 * rz \ Array(rθ) # TODO: fix
+    gs!(ip.solver.F, rz)
+    qr_matrix_solve2!(ip.solver.F, δz, rθ)
+    @inbounds @views @. ip.δz .*= -1.0
     nothing
 end
 

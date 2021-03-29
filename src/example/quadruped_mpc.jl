@@ -23,7 +23,7 @@ ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
 m_opts0 = MPCOptions{T}(
             N_sample=2,
-            M=100,
+            M=30,
             H_mpc=10,
             κ=κ,
             κ_sim=1e-8,
@@ -31,7 +31,7 @@ m_opts0 = MPCOptions{T}(
             open_loop_mpc=false,
             w_amp=[-0.10, -0.10],
             ip_max_time=0.1,
-            live_plotting=true)
+            live_plotting=false)
 cost0 = CostFunction(H, model.dim,
     q = [Diagonal(1e-2 * [0.02,0.02,1,.15,.15,.15,.15,.15,.15,.15,.15,]) for t = 1:m_opts0.H_mpc],
     u = [Diagonal(3e-2 * ones(nu)) for t = 1:m_opts0.H_mpc],
@@ -39,7 +39,7 @@ cost0 = CostFunction(H, model.dim,
     b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:m_opts0.H_mpc])
 core0 = Newton(m_opts0.H_mpc, h, model, cost=cost0, opts=n_opts0)
 mpc0 = MPC(model, ref_traj0, m_opts=m_opts0)
-@time dummy_mpc(model, core0, mpc0, verbose=true)
+@profiler dummy_mpc(model, core0, mpc0, verbose=true)
 
 
 plt = plot(layout=(2,1), legend=false)
@@ -60,4 +60,4 @@ visualize!(vis, model, mpc0.q_sim[1:10:end], Δt=10*h/m_opts0.N_sample, name=:mp
 # convert_video_to_gif(
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
-14.5/(100*h)
+4.7/(60*h)

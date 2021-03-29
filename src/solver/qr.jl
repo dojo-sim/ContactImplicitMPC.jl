@@ -38,6 +38,26 @@ function qr_solve!(qs, rs, x, b)
     return nothing
 end
 
+function qr_matrix_solve!(gs_data::GSData, X::Matrix{T}, B::Matrix{T}) where {T}
+    qr_matrix_solve!(gs_data.qs, gs_data.rs, X, B)
+end
+
+function qr_matrix_solve!(qs, rs, X::Matrix{T}, B::Matrix{T}) where {T}
+    n,m = size(B)
+    for j in eachindex((1:n))
+        for k in eachindex((1:m))
+            @inbounds @views X[j,k] = transpose(qs[j]) * B[:,k]
+        end
+    end
+    for j = n:-1:1
+        for k = j+1:n
+            @inbounds @views @. X[j,:] -= rs[triu_perm(j, k)][1] * X[k,:]
+        end
+        @inbounds @views @. X[j,:] /= rs[triu_perm(j, j)][1]
+    end
+    return nothing
+end
+
 """
     Modified Gram Schmidt
 """

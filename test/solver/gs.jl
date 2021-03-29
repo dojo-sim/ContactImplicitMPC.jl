@@ -67,4 +67,14 @@ end
     ContactControl.qr_solve!(gs_data, c, b)
     x = Ad \ b
     @test norm(c - x, Inf) < 1e-10
+
+    n = 43
+    m = 33
+    A = rand(n,n)
+    gs_data = ContactControl.DMGSData(Ad, n)
+    gs!(gs_data, A)
+    X = rand(n,m)
+    B = rand(n,m)
+    qr_matrix_solve!(gs_data, X, B)
+    @test norm(A*X - B) < 1e-10
 end
