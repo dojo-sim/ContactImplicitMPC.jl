@@ -102,10 +102,17 @@ nw = 2
 nc = 1
 nb = 2
 
-
 hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, g,
+			   BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+			   SVector{4}(zeros(4)),
+			   environment_2D_flat())
+
+hopper_2D_vertical = Hopper2D(Dimensions(4, 2, 2, 1, 2),
+			   1.0, 0.1, 0.25, 0.025,
+			   1.0, 0.0, 9.81,
 			   BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			   SVector{4}(zeros(4)),

@@ -78,7 +78,7 @@
             scatter!([t,t], q_sim[t][2:3]*N_sample, color=:blue)
         end
         display(plt)
-        return mean(q_error), mean(u_error), mean(γ_error), mean(b_error)
+        return maximum(q_error), maximum(u_error), maximum(γ_error), maximum(b_error)
     end
 
     # Check the tracking error with disturbances

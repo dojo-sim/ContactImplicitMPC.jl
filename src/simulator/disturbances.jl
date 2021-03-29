@@ -49,11 +49,11 @@ struct RandomDisturbance{W, T} <: Disturbances
     t::Vector{T}     # time trajectory
 end
 
-function random_disturbances(model::ContactDynamicsModel, w_amp::Vector{T}, H::Int, h::T) where {T}
-    @assert length(w_amp) == model.dim.w
-    w = [-rand(model.dim.w) * w_amp for i=1:H]
-    RandomDisturbance(w_amp, w, [(t - 1) * h for t = 1:H])
-end
+# function random_disturbances(model::ContactDynamicsModel, w_amp::Vector{T}, H::Int, h::T) where {T}
+#     @assert length(w_amp) == model.dim.w
+#     w = [-rand(model.dim.w) * w_amp for i=1:H]
+#     RandomDisturbance(w_amp, w, [(t - 1) * h for t = 1:H])
+# end
 
 function random_disturbances(model::ContactDynamicsModel, w_amp::Vector{T}, H::Int, h::T) where {T}
     if length(w_amp) == model.dim.w

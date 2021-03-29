@@ -241,20 +241,20 @@ function get_gait(name::String, gait::String)
 	return res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
 end
 
-function get_trajectory(name::String, gait::String; load_type::Symbol=:split_traj)
+function get_trajectory(name::String, gait::String; model_name = name, load_type::Symbol=:split_traj)
 	#TODO: assert model exists
 	path = joinpath(@__DIR__, name)
 	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
 
-	model = eval(Symbol(name))
+	model = eval(Symbol(model_name))
 	nq = model.dim.q
 	nu = model.dim.u
 	nw = model.dim.w
 	nc = model.dim.c
 	nb = model.dim.b
-	res = JLD2.jldopen(gait_path)# z̄ x̄ ū h̄ q u γ b
+	res = JLD2.jldopen(gait_path)
+	
 	if load_type == :split_traj
-		# return res["ū"]
 		q, u, γ, b, h = res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
 		ū = res["ū"]
 		ψ = [ut[nu + nc + nb .+ (1:nc)] for ut in ū]
@@ -272,6 +272,6 @@ function get_trajectory(name::String, gait::String; load_type::Symbol=:split_tra
 	elseif load_type == :joint_traj
 		traj = res["traj"]
 	end
+
 	return traj
-	# contact_trajectory(H::Int, h::T, model::ContactDynamicsModel)
 end

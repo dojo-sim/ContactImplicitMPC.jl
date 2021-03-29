@@ -36,9 +36,9 @@
 	im_traj1 = ContactControl.ImplicitTraj(ref_traj1, model)
 
 	ContactControl.implicit_dynamics!(im_traj0, model, ref_traj)
-	@test mean(norm.(im_traj0.d, 2)) < 5.0e-3
+	@test maximum(norm.(im_traj0.d, 2)) < 5.0e-3
 	ContactControl.implicit_dynamics!(im_traj1, model, ref_traj1)
-	@test mean(norm.(im_traj1.d, 2)) > 5.0e-1
+	@test maximum(norm.(im_traj1.d, 2)) > 5.0e-1
 	#
 	# Check that we can optimize z with the residual function r and rz
 	# Verify that we get the ~same results using r_approx and rz_approx if the linearization was done about the solution.
@@ -55,9 +55,9 @@
 
 	z1 = ref_traj1.z[1]
 	θ1 = ref_traj1.θ[1]
-	@test norm(θ1 - ref_traj.θ[1], 1) < 1.0e-8
+	@test LinearAlgebra.norm(θ1 - ref_traj.θ[1], 1) < 1.0e-8
 	@test abs(norm(z1 - ref_traj.z[1], 1) - nq * α) < 1.0e-8
-	#
+
 	r1 = zeros(nz)
 	κ = ref_traj1.κ
 	rz1 = spzeros(nz,nz)
@@ -203,7 +203,7 @@ end
 	core = ContactControl.Newton(H, h, model, cost = cost)
 	im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
 	ContactControl.jacobian!(core.jac, model, core, im_traj0)
-	spy(Matrix(core.jac.R[1:150, 1:150]))
+	# spy(Matrix(core.jac.R[1:150, 1:150]))
 
 	# Test symmetry
 	@test core.jac.R - core.jac.R' == spzeros(H * nr, H * nr)

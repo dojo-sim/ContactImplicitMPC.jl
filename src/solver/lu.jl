@@ -14,7 +14,7 @@ function linear_solve!(solver::LUSolver{T}, x::Vector{T}, A::SparseMatrixCSC{T,I
     ldiv!(x, lu!(solver.A, check = false), b) # solve
 end
 
-function linear_matrix_solve!(solver::LUSolver{T}, x::Matrix{T}, A::AbstractMatrix{T}, B::Matrix{T}) where T
+function linear_matrix_solve!(solver::LUSolver{T}, x::Matrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}) where T
     solver.A .= A # sparse -> dense
     ldiv!(x, lu!(solver.A, check = false), B) # solve
 end
