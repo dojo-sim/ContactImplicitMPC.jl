@@ -284,14 +284,57 @@ function StructuredSolver13(model::ContactDynamicsModel, rz::AbstractMatrix{T}) 
 end
 
 
+
+model = get_model("quadruped")
+T = Float64
+κ = 1e-4
+nq = model.dim.q
+nb = model.dim.b
+nc = model.dim.c
+
+ny = nb + 2nc
+nx = nz - 2ny
+nw = nx + ny
+nz = num_var(model)
+nθ = num_data(model)
+
+ref_traj = get_trajectory("quadruped", "gait1", load_type=:split_traj)
+traj = deepcopy(ref_traj)
+impl = ImplicitTraj(ref_traj, model, κ=κ)
+implicit_dynamics!(impl, model, traj; κ=κ)
+
+z_initialize!(impl.ip[1].z, model, traj.q[1+2]) #TODO: try alt. schemes
+impl.ip[1].θ .= traj.θ[1]
+status = interior_point!(impl.ip[1])
+
+ip0 = deepcopy(impl.ip[1])
+z_initialize!(ip0.z, model, traj.q[1+2])
+ip0.θ .= traj.θ[1]
+
+interior_point!(ip0)
+z0  = deepcopy(traj.z[1])
+z0  = rand(nz)
+θ0  = deepcopy(traj.θ[1])
+δz0 = zeros(nz)
+r0  = zeros(nz)
+rz0 = zeros(nz,nz)
+rθ0 = zeros(nz,nθ)
+r_cache0  = deepcopy(ip0.r_cache)
+rz_cache0 = deepcopy(ip0.rz_cache)
+rθ_cache0 = deepcopy(ip0.rθ_cache)
+
+ip0.methods.r!(r0, z0, θ0, κ, r_cache0)
+ip0.methods.rz!(rz0, z0, θ0, rz_cache0)
+ip0.methods.rθ!(rθ0, z0, θ0, rθ_cache0)
+
+r0
+gs_data = DMGSData(rz0, nz)
+gs!(gs_data, rz0)
+qr_solve!(gs_data, δz0, r0)
+@test norm(rz0 \ r0 - δz0, Inf) < 1e-10
+
 solver = StructuredSolver13(model, rz0)
-
-
-
-typeof(view(r0, idyn))
-typeof(view(rz0, idyn, ix))
-
-
+solver.r .+= 1.0
 
 
 
