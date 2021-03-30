@@ -10,6 +10,7 @@
     nr = nq + nu + nc + nb + nd
 
     # get trajectory
+    # ref_traj = ContactControl.get_trajectory("hopper_2D", "gait_in_place", load_type=:joint_traj)
     ref_traj = ContactControl.get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
     H = ref_traj.H
     h = ref_traj.h
@@ -17,12 +18,14 @@
 
     n_opts = ContactControl.NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
     m_opts = ContactControl.MPCOptions{T}(
+                # N_sample=1,
                 N_sample=10,
                 M=2*H,
                 H_mpc=10,
                 κ=κ,
                 κ_sim=1e-8,
                 r_tol_sim=1e-8,
+                # open_loop_mpc=true,
                 open_loop_mpc=false,
                 w_amp=[0.05, 0.00],
                 live_plotting=false)
@@ -75,7 +78,9 @@
             push!(γ_error, norm(ref_traj.γ[1+(t-1)%H] - γ_sim[t]*N_sample))
             push!(b_error, norm(ref_traj.b[1+(t-1)%H] - b_sim[t]*N_sample))
             scatter!([t,t], ref_traj.q[3+(t-1)%H][2:3], color=:red)
-            scatter!([t,t], q_sim[t][2:3]*N_sample, color=:blue)
+            scatter!([t,t], q_sim[t][2:3], color=:blue)
+            # scatter!([t,t], ref_traj.u[1+(t-1)%H][1:2]/N_sample, color=:red)
+            # scatter!([t,t], u_sim[t][1:2], color=:blue)
         end
         display(plt)
         return mean(q_error), mean(u_error), mean(γ_error), mean(b_error)
