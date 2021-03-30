@@ -335,6 +335,10 @@ qr_solve!(gs_data, δz0, r0)
 
 solver = StructuredSolver13(model, rz0)
 solver.r .+= 1.0
+solver.r1 .+= 10
+
+
+
 
 
 
