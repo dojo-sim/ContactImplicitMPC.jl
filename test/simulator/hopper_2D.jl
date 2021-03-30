@@ -1,7 +1,8 @@
 @testset "Simulator: Hopper (2D)" begin
     # Reference trajectory
     model = ContactControl.get_model("hopper_2D", surf = "vertical")
-    ref_traj = ContactControl.get_trajectory("hopper_2D", "vertical", model_name = "hopper_2D_vertical")
+    ref_traj = ContactControl.get_trajectory("hopper_2D", "vertical", 
+        model_name = "hopper_2D_vertical")
     T = ref_traj.H
     h = ref_traj.h
 

@@ -177,8 +177,8 @@ mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3}
     Δ::NewtonResidual{T}                            # step direction in the Newton solve, it contains: q2-qH+1, u1-uH, γ1-γH, b1-bH, λd1-λdH
     ν::Vector{SizedArray{Tuple{n1},T,1,1}}          # implicit dynamics lagrange multiplier
     ν_cand::Vector{SizedArray{Tuple{n1},T,1,1}}         # candidate implicit dynamics lagrange multiplier
-    traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}       # optimized trajectory
-    traj_cand::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ} # trial trajectory used in line search
+    traj::ContactTraj       # optimized trajectory
+    traj_cand::ContactTraj # trial trajectory used in line search
     Δq::Vector{SizedArray{Tuple{nq},T,1,1}}         # difference between the traj and ref_traj
     Δu::Vector{SizedArray{Tuple{nu},T,1,1}}         # difference between the traj and ref_traj
     Δγ::Vector{SizedArray{Tuple{nc},T,1,1}}         # difference between the traj and ref_traj

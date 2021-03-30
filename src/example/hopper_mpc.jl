@@ -29,7 +29,7 @@ m_opts0 = MPCOptions{T}(
             κ_sim=1e-8,
             r_tol_sim=1e-8,
             open_loop_mpc=false,
-            w_amp=[-0.05, 0.00],
+            w_amp=[-0.01, 0.00],
             live_plotting=false)
 cost0 = CostFunction(H, model.dim,
     q = [Diagonal(1.0e-1 * [1,1,1,1])   for t = 1:m_opts0.H_mpc],

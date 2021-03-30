@@ -13,8 +13,8 @@
 end
 
 mutable struct MPC{T,nq,nu,nw,nc,nb}
-    q0_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
-    q1_con::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
+    q0_con#::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
+    q1_con#::SizedArray{Tuple{nq},T,1,1,Vector{T}} # initial state for the controller
     q_sim::Vector{SizedArray{Tuple{nq},T,1,1,Vector{T}}} # history of simulator configurations
     u_sim::Vector{SizedArray{Tuple{nu},T,1,1,Vector{T}}} # history of simulator controls
     w_sim::Vector{SizedArray{Tuple{nw},T,1,1,Vector{T}}} # history of simulator disturbances
@@ -49,6 +49,7 @@ function rot_n_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
 end
 
 function rotate!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,nw,nc,nb,nz,nθ}
+    H = traj.H
     q1 = copy(traj.q[1])
     u1 = copy(traj.u[1])
     w1 = copy(traj.w[1])
@@ -93,19 +94,19 @@ function mpc_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
 end
 
 function get_stride(model::Hopper2D, traj::ContactTraj)
-    q_stride = zeros(SizedVector{nq})
+    q_stride = zeros(SizedVector{model.dim.q})
     q_stride[1] = traj.q[end-1][1] - traj.q[1][1]
     return q_stride
 end
 
 function get_stride(model::Quadruped, traj::ContactTraj)
-    q_stride = zeros(SizedVector{nq})
+    q_stride = zeros(SizedVector{model.dim.q})
     q_stride[1] = traj.q[end-1][1] - traj.q[1][1]
     return q_stride
 end
 
 function get_stride(model::Biped, traj::ContactTraj)
-    q_stride = zeros(SizedVector{nq})
+    q_stride = zeros(SizedVector{model.dim.q})
     q_stride[1] = traj.q[end-1][1] - traj.q[1][1]
     return q_stride
 end
@@ -133,15 +134,15 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC; verbose:
         elap += @elapsed mpc.impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
         # Get control
         if m_opts.open_loop_mpc
-            u_zoh  = SVector{nu}.([deepcopy(ref_traj.u[1])/N_sample for j=1:N_sample])
+            u_zoh  = SVector{model.dim.u}.([deepcopy(ref_traj.u[1])/N_sample for j=1:N_sample])
         else
             warm_start = l > 1
             elap += @elapsed newton_solve!(core, model, mpc.impl, ref_traj; verbose=verbose, warm_start=warm_start, q0=q0, q1=q1)
-            u_zoh  = SVector{nu}.([deepcopy(core.traj.u[1])/N_sample for j=1:N_sample])
+            u_zoh  = SVector{model.dim.u}.([deepcopy(core.traj.u[1])/N_sample for j=1:N_sample])
         end
         # Get disturbances
         # Apply control and rollout dynamics
-        sim = simulator(model, SVector{nq}(deepcopy(mpc.q_sim[end-1])), SVector{nq}(deepcopy(mpc.q_sim[end])), h_sim, N_sample,
+        sim = simulator(model, SVector{model.dim.q}(deepcopy(mpc.q_sim[end-1])), SVector{model.dim.q}(deepcopy(mpc.q_sim[end])), h_sim, N_sample,
             p = open_loop_policy(u_zoh, h_sim),
             d = random_disturbances(model, m_opts.w_amp/N_sample, N_sample, h_sim),
             r! = model.res.r!,

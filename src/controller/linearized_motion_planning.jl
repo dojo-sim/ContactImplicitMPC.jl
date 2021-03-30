@@ -229,7 +229,7 @@ function linear_motion_planning_solver(model, ref_traj, cost;
     # planning sizes
     num_pr = H * (nq + nu + nc + nb)
     num_du = H * nd
-    num_var = num_pr_mp + num_du_mp
+    num_var = num_pr + num_du
     num_data = 0
 
     # implicit dynamics
@@ -248,7 +248,8 @@ function linear_motion_planning_solver(model, ref_traj, cost;
              opts = opts)
 
     # motion-planning trajectory
-    mp_traj = trajectory_x(model, ip.z, ref_traj.q[1], ref_traj.q[2], H, h)
+    mp_traj = trajectory_x(model, ip.z, ref_traj.q[1], ref_traj.q[2],
+        ref_traj.H, ref_traj.h, ref_traj.κ)
 
     # residual
     res = LMPResidual(ip.r, H, model.dim)

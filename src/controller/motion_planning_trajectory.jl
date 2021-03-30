@@ -31,7 +31,7 @@ struct Trajectory
 	κ
 end
 
-function trajectory(model::ContactDynamicsModel, q0, q1, H, h;
+function trajectory(model::ContactDynamicsModel, q0, q1, H, h, κ,
 	w = [@SVector zeros(model.dim.w) for t = 1:H])
 
 	dim = model.dim
@@ -77,7 +77,7 @@ function trajectory(model::ContactDynamicsModel, q0, q1, H, h;
 		θq0, θq1, θu1, θw1,	H, h, κ)
 end
 
-function trajectory_x(model::ContactDynamicsModel, x, q0, q1, H, h;
+function trajectory_x(model::ContactDynamicsModel, x, q0, q1, H, h, κ,
 	w = [@SVector zeros(model.dim.w) for t = 1:H])
 
 	dim = model.dim

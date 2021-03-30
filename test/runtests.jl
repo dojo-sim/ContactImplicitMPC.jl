@@ -8,11 +8,13 @@ using StaticArrays
 using LinearAlgebra
 using Random
 using SparseArrays
+using BenchmarkTools
 
 # Solver
 include("solver/gs.jl")
 include("solver/qdldl.jl")
 include("solver/random_qp.jl")
+include("solver/lu.jl")
 
 # Dynamics
 include("dynamics/particle.jl")
@@ -28,5 +30,9 @@ include("simulator/biped.jl")
 # Controller
 include("controller/cost_function.jl")
 include("controller/linearized_step.jl")
+include("controller/linearized_motion_planning.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/newton.jl")
+include("controller/mpc.jl")
+
+# const ContactControl = Main

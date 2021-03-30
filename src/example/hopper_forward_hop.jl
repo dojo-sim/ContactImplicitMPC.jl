@@ -14,6 +14,7 @@ nr = nq + nu + nc + nb + nd
 
 # get trajectory
 ref_traj = get_trajectory("hopper_2D", "gait_in_place", load_type=:joint_traj)
+
 H = ref_traj.H
 h = ref_traj.h
 κ = 1.0e-8

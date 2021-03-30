@@ -1,8 +1,6 @@
 
 module ContactControl
 
-greet() = print("ContactControl")
-
 using BenchmarkTools
 using Colors
 using FFMPEG

@@ -29,7 +29,7 @@
 
 	# Implicit dynamics contraint violation is ≈ 0
 	for t = 1:H
-		@test norm(im_traj.d[t], Inf) < 1.0e-6
+		@test norm(im_traj.d[t], Inf) < 1.0e-5
 	end
 	#
 	# We can use Newton's method to correct the trajectory and make it dynamically feasible
@@ -41,7 +41,7 @@
 	ContactControl.update_θ!(traj1, 2)
 	ContactControl.implicit_dynamics!(im_traj, model, traj1, κ = κ)
 
-	@test norm(im_traj.d[1]) > 1.0e-6
+	@test norm(im_traj.d[1]) > 1.0e-5
 
 	for k = 1:100
 		ContactControl.implicit_dynamics!(im_traj, model, traj1, κ = κ)
@@ -57,5 +57,5 @@
 	end
 
 	ContactControl.implicit_dynamics!(im_traj, model, traj1, κ = κ)
-	@test norm(im_traj.d[1]) < 1.0e-6
+	@test norm(im_traj.d[1]) < 1.0e-5
 end

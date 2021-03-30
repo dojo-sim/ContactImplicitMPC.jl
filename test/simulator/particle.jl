@@ -73,7 +73,7 @@
     @test all(isapprox.((sim.traj.q[end] - sim.traj.q[end-1]) ./ h, 0.0, atol = 1.0e-6))
 end
 
-@testset "Simulation: Particle (3D), code-gen solver" begin
+@testset "Simulation: Particle (3D), Code-Gen Solver" begin
     model = ContactControl.get_model("particle")
 
     # time
@@ -264,7 +264,7 @@ end
     @test all(isapprox.((sim.traj.q[end] - sim.traj.q[end-1]) ./ h, 0.0, atol = 1.0e-6))
 end
 
-@testset "Simulation: Particle (2D) slope" begin
+@testset "Simulation: Particle (2D) On Slope" begin
     model = get_model("particle_2D", surf = "slope")
 
     # time

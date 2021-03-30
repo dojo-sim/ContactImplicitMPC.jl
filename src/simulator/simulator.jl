@@ -4,18 +4,18 @@
     κ_warmstart::T = 0.001
 end
 
-struct Simulator{S,nq,nu,nc,nb,nw,nz,nθ}
+struct Simulator{T}
     model::ContactDynamicsModel
 
-    traj::ContactTraj{S,nq,nu,nw,nc,nb,nz,nθ}
-    deriv_traj::ContactDerivTraj{S,nq,nu,nc,nb}
+    traj::ContactTraj
+    deriv_traj::ContactDerivTraj
 
     p::Policy
     d::Disturbances
 
-    ip::InteriorPoint{S}
+    ip::InteriorPoint{T}
 
-    opts::SimulatorOptions{S}
+    opts::SimulatorOptions{T}
 end
 
 function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;

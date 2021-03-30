@@ -253,7 +253,7 @@ function get_trajectory(name::String, gait::String; model_name = name, load_type
 	nc = model.dim.c
 	nb = model.dim.b
 	res = JLD2.jldopen(gait_path)
-	
+
 	if load_type == :split_traj
 		q, u, γ, b, h = res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
 		ū = res["ū"]

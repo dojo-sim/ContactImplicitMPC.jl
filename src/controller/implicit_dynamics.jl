@@ -28,8 +28,7 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 			r_tol = 1.0e-8,
 			diff_sol = true,
 			solver=:dmgs_solver,
-			max_time=max_time,
-			))
+			max_time=max_time))
 
 	H = ref_traj.H
 
