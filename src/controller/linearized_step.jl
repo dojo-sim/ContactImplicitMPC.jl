@@ -75,7 +75,7 @@ function get_bilinear_indices(model::ContactDynamicsModel)
 	return terms, vars
 end
 
-function update!(lin::LinearizedStep, z, θ)
+function update!(lin::LinearizedStep, model, z, θ)
 
 	lin.z .= z
 	lin.θ .= θ

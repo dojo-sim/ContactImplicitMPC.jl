@@ -48,7 +48,8 @@ function policy(p::LinearizedMPC, x, traj, t)
     # @show "$(p.t_prev + p.mpc.ref_traj.h)"
     # @show t >= p.t_prev + p.mpc.ref_traj.h
     if p.cnt == p.N_sample
-       p.mpc.impl = ImplicitTraj(p.mpc.ref_traj, p.model, κ=p.mpc.m_opts.κ, max_time=p.mpc.m_opts.ip_max_time)
+       # p.mpc.impl = ImplicitTraj(p.mpc.ref_traj, p.model, κ=p.mpc.m_opts.κ, max_time=p.mpc.m_opts.ip_max_time)
+       update!(p.mpc.impl, p.mpc.ref_traj, p.model, κ=p.mpc.m_opts.κ, max_time=p.mpc.m_opts.ip_max_time)
        newton_solve!(p.core, p.model, p.mpc.impl, p.mpc.ref_traj; verbose=p.verbose, warm_start= t > 0.0, q0=copy(p.q0), q1=copy(x))
        rot_n_stride!(p.mpc.ref_traj, p.mpc.q_stride)
        p.q0 .= copy(x)

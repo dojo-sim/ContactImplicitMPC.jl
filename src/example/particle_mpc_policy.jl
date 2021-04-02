@@ -9,23 +9,23 @@ ref_traj.κ[1] = 1.0e-4
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
-H = rep_traj.H
-h = rep_traj.h
+H = ref_traj.H
+h = ref_traj.h
 
 # initial conditions
-q0 = SVector{model.dim.q}(rep_traj.q[1])
-q1 = SVector{model.dim.q}(rep_traj.q[2])
+q0 = SVector{model.dim.q}(ref_traj.q[1])
+q1 = SVector{model.dim.q}(ref_traj.q[2])
 
 # simulator
 sim = ContactControl.simulator(model, q0, q1, 1.0 * h, H,
-    p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in rep_traj.u], h, N_sample = 1),
+    p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u], h, N_sample = 1),
     ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_init = 1.0e-8, κ_tol = 2.0e-8),
     sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
 # simulate
 @time status = ContactControl.simulate!(sim)
 
-plot(hcat(rep_traj.q...)[1:3, :]',
+plot(hcat(ref_traj.q...)[1:3, :]',
     label = ["x" "y" "z"], color = :black, width = 3.0)
 plot!(hcat(sim.traj.q...)[1:3, :]',
     label = ["x" "y" "z"], color = :red, width = 1.0, legend = :topleft)
@@ -44,8 +44,8 @@ H_mpc = 20
 N_sample = 5
 h_sim = h / N_sample
 H_sim = 500
-q1_ref = copy(rep_traj.q[2])
-q0_ref = copy(copy(rep_traj.q[1]))
+q1_ref = copy(ref_traj.q[2])
+q0_ref = copy(copy(ref_traj.q[1]))
 q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
@@ -64,7 +64,7 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
 @time status = ContactControl.simulate!(sim)
 
 qq = []
-for q in rep_traj_copy.q
+for q in ref_traj_copy.q
     for i = 1:N_sample
         push!(qq, q)
     end
