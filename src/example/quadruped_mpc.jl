@@ -43,14 +43,14 @@ mpc0 = MPC(model, ref_traj0, m_opts=m_opts0)
 
 mpc0.impl.ip[1].solver
 
-mpc0.impl
-lin0 = mpc0.impl.lin[1]
-r  = RLin(model, lin0.z, lin0.θ, lin0.r, lin0.rz, lin0.rθ)
-rz = RZLin(model, lin0.rz)
-rθ = RθLin(model, lin0.rθ)
-
-
-2.9/(100*h)
+# mpc0.impl
+# lin0 = mpc0.impl.lin[1]
+# r  = RLin(model, lin0.z, lin0.θ, lin0.r, lin0.rz, lin0.rθ)
+# rz = RZLin(model, lin0.rz)
+# rθ = RθLin(model, lin0.rθ)
+#
+#
+# 2.9/(100*h)
 
 
 plt = plot(layout=(2,1), legend=false)
