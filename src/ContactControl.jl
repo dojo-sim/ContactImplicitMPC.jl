@@ -26,6 +26,7 @@ include("utils.jl")
 
 # Solver
 include("solver/interior_point.jl")
+include("solver/interior_point2.jl") #to be removed
 include("solver/lu.jl")
 include("solver/ldl.jl")
 include("solver/qr.jl")
