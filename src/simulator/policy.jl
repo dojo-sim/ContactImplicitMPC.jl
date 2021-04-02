@@ -26,13 +26,14 @@ end
 struct OpenLoop{U, T} <: Policy
     u::Vector{U} # nominal controls
     t::Vector{T} # time trajectory
+    N_sample::Int
 end
 
-function open_loop_policy(u, h)
-    OpenLoop(u, [(t - 1) * h for t = 1:length(u)])
+function open_loop_policy(u, h; N_sample = 1)
+    OpenLoop(u, [(t - 1) * h for t = 1:length(u)], N_sample)
 end
 
 function policy(p::OpenLoop, x, traj, t)
     k = searchsortedlast(p.t, t)
-    return p.u[k]
+    return p.u[k] ./ p.N_sample
 end

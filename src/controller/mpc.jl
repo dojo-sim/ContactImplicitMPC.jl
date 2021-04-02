@@ -99,6 +99,12 @@ function get_stride(model::Hopper2D, traj::ContactTraj)
     return q_stride
 end
 
+function get_stride(model::Particle, traj::ContactTraj)
+    q_stride = zeros(SizedVector{model.dim.q})
+    q_stride[1] = traj.q[end-1][1] - traj.q[1][1]
+    return q_stride
+end
+
 function get_stride(model::Quadruped, traj::ContactTraj)
     q_stride = zeros(SizedVector{model.dim.q})
     q_stride[1] = traj.q[end-1][1] - traj.q[1][1]
