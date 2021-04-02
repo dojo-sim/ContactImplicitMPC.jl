@@ -22,7 +22,7 @@ ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
 m_opts0 = MPCOptions{T}(
             N_sample=2,
-            M=100,
+            M=400,
             H_mpc=10,
             κ=κ,
             κ_sim=1e-8,

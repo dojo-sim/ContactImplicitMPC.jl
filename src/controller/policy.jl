@@ -52,7 +52,7 @@ function policy(p::LinearizedMPC, x, traj, t)
        newton_solve!(p.core, p.model, p.mpc.impl, p.mpc.ref_traj; verbose=p.verbose, warm_start= t > 0.0, q0=copy(p.q0), q1=copy(x))
        rot_n_stride!(p.mpc.ref_traj, p.mpc.q_stride)
        p.q0 .= copy(x)
-       p.t_prev = copy(t)
+       # p.t_prev = copy(t)
        p.cnt = 0
     end
     p.cnt += 1
