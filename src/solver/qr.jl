@@ -300,6 +300,14 @@ function SDMGSData(n::Int; T::DataType=Float64)
     return SDMGSData{n,T}(as, qs, rs, xv, xs)
 end
 
+function SDMGSData(A::AbstractMatrix{T}) where T
+    n, m = size(A)
+    @assert n == m
+    gs_data = SDMGSData(n; T=T)
+    gs!(gs_data, A)
+    return gs_data
+end
+
 """
     Gram-Schmidt algorithm perform on A.
 """
@@ -388,6 +396,10 @@ mutable struct DMGSSolver <: QRSolver
     F::DMGSData
 end
 
+mutable struct SDMGSSolver <: QRSolver
+    F::SDMGSData
+end
+
 function linear_solve!(solver::QRSolver, x::Vector{T}, A::SparseMatrixCSC{T,Int}, b::Vector{T}) where T
     gs!(solver.F, A)
     qr_solve!(solver.F, x, b)
@@ -413,6 +425,10 @@ end
 
 function dmgs_solver(A::Array{T, 2}) where T
     DMGSSolver(DMGSData(A, size(A, 1)))
+end
+
+function sdmgs_solver(A::Array{T, 2}) where T
+    SDMGSSolver(SDMGSData(A))
 end
 
 mgs_solver(A::Array{T, 2}) where T = mgs_solver(sparse(A))

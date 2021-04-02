@@ -324,6 +324,10 @@ function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}) where {T,nx,ny,nxx,nx
     return nothing
 end
 
+function rz_!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}, θ::Vector{T}, cache::Cache) where {T,nx,ny,nxx,nxy,nyy}
+	rz!(rz, z)
+    return nothing
+end
 
 """
 	Update the residual r.
@@ -393,4 +397,13 @@ function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
 		@. δz[iy2,i] .= .- y2 .* δz[iy1,i] ./ y1
 	end
     return nothing
+end
+
+import LinearAlgebra.norm
+function norm(r::RLin, t::Real)
+	a = 0.0
+	a += norm(r.rdyn, t)
+	a += norm(r.rrst, t)
+	a += norm(r.rbil, t)
+	return a
 end
