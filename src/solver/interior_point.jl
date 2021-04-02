@@ -48,6 +48,8 @@ end
     diff_sol::Bool = false
     res_norm::Real = Inf
     reg::Bool = false
+    reg_pr_init = 0.0
+    reg_du_init = 0.0
     solver::Symbol = :lu_solver
 end
 
@@ -59,8 +61,8 @@ end
 
 # regularize Jacobian / Hessian
 function regularize!(v_pr, v_du, reg_pr, reg_du)
-    v_pr .= v_pr .+ reg_pr
-    v_du .= v_du .- reg_du
+    v_pr .+= reg_pr
+    v_du .-= reg_du
 end
 
 mutable struct InteriorPoint{T}
@@ -101,12 +103,9 @@ function interior_point(x, θ;
         idx_pr = collect(1:num_var),
         idx_du = collect(1:0),
         r! = r!, rz! = rz!, rθ! = rθ!,
-        # rz = spzeros(num_var, num_var),
-        # rθ = spzeros(num_var, num_data),
-        r  = zeros(num_var),
-        rz = zeros(num_var, num_var),
-        rθ = zeros(num_var, num_data),
-        reg_pr = 0.0, reg_du = 0.0,
+        rz = spzeros(num_var, num_var),
+        rθ = spzeros(num_var, num_data),
+        reg_pr = [0.0], reg_du = [0.0],
         r_cache = NoCache(),
         r̄_cache = NoCache(),
         rz_cache = NoCache(),
@@ -189,6 +188,10 @@ function interior_point!(ip::InteriorPoint{T}) where T
     # initialize barrier parameter
     κ[1] = κ_init
 
+    # initialize regularization
+    reg_pr[1] = opts.reg_pr_init
+    reg_du[1] = opts.reg_du_init
+
     # compute residual, residual Jacobian
     r!(r, z, θ, κ[1], r_cache)
     r_norm = norm(r, res_norm)
@@ -209,7 +212,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 rz!(rz, z, θ, rz_cache)
 
                 # regularize (fixed, TODO: adaptive)
-                reg && regularize!(v_pr, v_du, reg_pr, reg_du)
+                reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
                 # compute step
                 linear_solve!(solver, Δ, rz, r)
@@ -253,6 +256,8 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 # update
                 z .= z̄
                 r .= r̄
+                # v_pr .= 0.0
+                # v_du .= 0.0
                 r_norm = r̄_norm
             end
         end

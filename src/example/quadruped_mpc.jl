@@ -18,7 +18,6 @@ H = ref_traj.H
 h = ref_traj.h
 κ = 1.0e-4
 
-
 ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
 m_opts0 = MPCOptions{T}(

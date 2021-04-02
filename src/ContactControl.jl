@@ -66,9 +66,8 @@ include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/cost_function.jl")
 include("controller/newton.jl")
-include("controller/motion_planning_trajectory.jl")
-include("controller/linearized_motion_planning.jl")
 include("controller/mpc.jl")
+include("controller/policy.jl")
 
 export SparseStructure, LinearizedStep, get_bilinear_indices, bil_addition!, r_linearized!, rz_linearized!
 export ImplicitTraj, linearization!, implicit_dynamics!

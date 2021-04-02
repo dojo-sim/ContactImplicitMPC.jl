@@ -85,7 +85,7 @@ function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
 		# and the linearization (impl.lin).
 
 		# initialized solver
-		z_initialize!(im_traj.ip[t].z, model, traj.q[t+2]) #TODO: try alt. schemes
+		z_initialize!(im_traj.ip[t].z, model, copy(traj.q[t+2])) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
 		# solve
 		status = interior_point2!(im_traj.ip[t])
