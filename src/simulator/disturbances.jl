@@ -67,7 +67,7 @@ function random_disturbances(model::ContactDynamicsModel, w_amp::Vector{T}, H::I
     else
         @warn "w_amp is not of the correct size."
     end
-    RandomDisturbance(w_amp, w, [(t - 1) * h for t = 1:H])
+    RandomDisturbance(w_amp, [rand(model.dim.w) .* w_amp[1] for i=1:H], [(t - 1) * h for t = 1:H])
 end
 
 function disturbances(d::RandomDisturbance, x, t)

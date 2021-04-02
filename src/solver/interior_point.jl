@@ -11,6 +11,11 @@ function inequality_check(x, idx_ineq)
     return false
 end
 
+struct NoCache <: Cache end
+# abstract type rCache <: Cache end
+# abstract type rzCache <: Cache end
+# abstract type rθCache <: Cache end
+
 # residual
 function r!(r, z, θ, κ, cache)
     @warn "residual not defined"
@@ -24,12 +29,10 @@ function rz!(rz, z, θ, cache)
 end
 
 # residual Jacobian wrt θ
-function rθ!(rθ, z, θ)
+function rθ!(rθ, z, θ, cache)
     @warn "residual Jacobian wrt θ not defined"
     nothing
 end
-
-struct NoCache <: Cache end
 
 # interior-point solver options
 @with_kw mutable struct InteriorPointOptions{T}

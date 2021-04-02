@@ -27,7 +27,7 @@ function contact_trajectory(H::Int, h::T, model::ContactDynamicsModel) where {T}
     nb = dim.b
 	nz = num_var(dim)
 	nθ = num_data(dim)
-	#
+
 	# q = [zeros(SizedVector{nq,T}) for k=1:H+2]
 	# u = [zeros(SizedVector{nu,T}) for k=1:H]
 	# w = [zeros(SizedVector{nw,T}) for k=1:H]
@@ -44,7 +44,6 @@ function contact_trajectory(H::Int, h::T, model::ContactDynamicsModel) where {T}
 	z = [zeros(nz) for k=1:H]
 	θ = [zeros(nθ) for k=1:H]
 	κ = [0.0]
-
 	off = 0
 	iq0 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q0
 	iq1 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q1
@@ -130,4 +129,53 @@ function update_θ!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,n
 		update_θ!(traj, t)
 	end
 	return nothing
+end
+
+function repeat_ref_traj(traj::ContactTraj, model::ContactDynamicsModel, N::Int;
+       idx_shift = (1:0))
+
+    shift = (traj.q[end] - traj.q[2])[idx_shift]
+
+    q = [deepcopy(traj.q)...]
+    u = [deepcopy(traj.u)...]
+    w = [deepcopy(traj.w)...]
+    γ = [deepcopy(traj.γ)...]
+    b = [deepcopy(traj.b)...]
+    z = [deepcopy(traj.z)...]
+    θ = [deepcopy(traj.θ)...]
+    κ = deepcopy(traj.κ)
+
+    for i = 1:N-1
+		for t = 1:traj.H
+			qt = copy(traj.q[t + 2])
+			qt[idx_shift] .+= i * shift
+			push!(q, qt)
+			push!(u, copy(traj.u[t]))
+			push!(w, copy(traj.w[t]))
+			push!(γ, copy(traj.γ[t]))
+			push!(b, copy(traj.b[t]))
+			push!(z, copy(traj.z[t]))
+			push!(θ, copy(traj.θ[t]))
+		end
+    end
+
+    return ContactTraj{typeof(traj).parameters...}(traj.H * N, traj.h, traj.κ,
+        q, u, w, γ, b, z, θ,
+		traj.iq0, traj.iq1, traj.iu1, traj.iw1, traj.iq2, traj.iγ1, traj.ib1)
+end
+
+function sub_ref_traj(traj::ContactTraj, model::ContactDynamicsModel, idx)
+
+    q = deepcopy(traj.q[collect([[idx..., idx[1][end] + 1, idx[1][end] + 2]]...)])
+    u = deepcopy(traj.u[idx])
+    w = deepcopy(traj.w[idx])
+    γ = deepcopy(traj.γ[idx])
+    b = deepcopy(traj.b[idx])
+    z = deepcopy(traj.z[idx])
+    θ = deepcopy(traj.θ[idx])
+    κ = deepcopy(traj.κ)
+
+    return ContactTraj{typeof(traj).parameters...}(length(idx), traj.h, traj.κ,
+        q, u, w, γ, b, z, θ,
+		traj.iq0, traj.iq1, traj.iu1, traj.iw1, traj.iq2, traj.iγ1, traj.ib1)
 end

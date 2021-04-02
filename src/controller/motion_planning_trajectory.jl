@@ -13,6 +13,9 @@ struct Trajectory
 	z
 	θ
 
+	q0
+	q1
+
 	zq2
 	zγ1
 	zb1
@@ -73,7 +76,7 @@ function trajectory(model::ContactDynamicsModel, q0, q1, H, h, κ,
 	θu1 = [view(θ[t], 2nq .+ (1:nu)) for t = 1:H]
 	θw1 = [view(θ[t], 2nq + nu .+ (1:nw)) for t = 1:H]
 
-	Trajectory(x, τ, ν,	q, u, w, γ, b, z, θ, zq2, zγ1, zb1, zψ1, zη1, zs1, zs2,
+	Trajectory(x, τ, ν,	q, u, w, γ, b, z, θ, q0, q1, zq2, zγ1, zb1, zψ1, zη1, zs1, zs2,
 		θq0, θq1, θu1, θw1,	H, h, κ)
 end
 
@@ -118,7 +121,7 @@ function trajectory_x(model::ContactDynamicsModel, x, q0, q1, H, h, κ,
 	θu1 = [view(θ[t], 2nq .+ (1:nu)) for t = 1:H]
 	θw1 = [view(θ[t], 2nq + nu .+ (1:nw)) for t = 1:H]
 
-	Trajectory(x, τ, ν,	q, u, w, γ, b, z, θ, zq2, zγ1, zb1, zψ1, zη1, zs1, zs2,
+	Trajectory(x, τ, ν,	q, u, w, γ, b, z, θ, q0, q1, zq2, zγ1, zb1, zψ1, zη1, zs1, zs2,
 		θq0, θq1, θu1, θw1,	H, h, κ)
 end
 

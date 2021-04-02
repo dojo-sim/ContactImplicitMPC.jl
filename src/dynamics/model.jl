@@ -232,11 +232,11 @@ end
 	get_model(name::String, surf::String)
 	Helper function that provides a model where fast functions have been instantiated.
 """
-function get_model(name::String; surf::String = "flat")
+function get_model(name::String; model_name::String = name, surf::String = "flat")
 	#TODO: assert model exists
 	path = joinpath(@__DIR__, name)
 	# include(joinpath(path, "model.jl"))
-	model = eval(Symbol(name * (surf != "flat" ? "_" * surf : "")))
+	model = eval(Symbol(model_name * (surf != "flat" ? "_" * surf : "")))
 	instantiate_base!(model, joinpath(path, surf, "base.jld2"))
 	instantiate_dynamics!(model, joinpath(path, surf, "dynamics.jld2"))
 	instantiate_residual!(model, joinpath(path, surf, "residual.jld2"))
