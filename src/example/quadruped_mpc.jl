@@ -18,7 +18,6 @@ H = ref_traj.H
 h = ref_traj.h
 κ = 1.0e-4
 
-
 ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
 m_opts0 = MPCOptions{T}(
@@ -46,9 +45,6 @@ core0.traj.γ
 mpc0.γ_sim
 mpc0.b_sim
 
-
-
-
 plt = plot(layout=(2,1), legend=false)
 plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], m_opts0.N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
@@ -67,18 +63,18 @@ visualize!(vis, model, mpc0.q_sim[1:10:end], Δt=10*h/m_opts0.N_sample, name=:mp
 # convert_video_to_gif(
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
-11/(100*h)
-
-
-
-nz = 5
-z0 = zeros(nz)
-z1 = ones(nz)
-z_full_initialize!(z0, model, z1)
-
-z0
-z1
-z0[1:1] .= 10
-
-z0
-z1
+# 11/(100*h)
+#
+#
+#
+# nz = 5
+# z0 = zeros(nz)
+# z1 = ones(nz)
+# z_full_initialize!(z0, model, z1)
+#
+# z0
+# z1
+# z0[1:1] .= 10
+#
+# z0
+# z1

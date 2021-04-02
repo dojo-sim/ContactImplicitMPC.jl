@@ -202,7 +202,7 @@ end
     r_sym = simplify.(r_sym)
     rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym, cache,
         parallel = parallel)[2])
-    rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
+    rz_exp = Symbolics.jacobian(r_sym, z_sym, simplify = true)
     # rθ_exp = Symbolics.jacobian(r_sym, θ_sym, simplify = false)
     rz_sp = similar(rz_exp, Float64)
     rθ_sp = zeros(0, 0) #similar(rθ_exp, Float64)
@@ -217,6 +217,8 @@ end
         κ_tol = 1.0,
         max_iter_outer = 1,
         reg = true,
+        reg_pr_init = 1.0e-5,
+        reg_du_init = 0.0e-5,
         solver = :ldl_solver)
 
     # solver
@@ -224,8 +226,6 @@ end
         idx_ineq = idx_ineq,
         idx_pr = idx_pr,
         idx_du = idx_du,
-        reg_pr = 1.0e-3,
-        reg_du = 1.0e-3,
         r! = rf!, rz! = rzf!, rθ! = rθf!,
         rz = rz_sp,
         rθ = rθ_sp,
@@ -235,6 +235,8 @@ end
 
     # test
     @test status
+    @test ip.reg_pr[1] == 1.0e-5
+    # @test ip.reg_du[1] == 1.0e-3
     @test norm(ip.r, Inf) < opts.r_tol
     @test norm(A * ip.z[1:n] - b, Inf) < opts.r_tol
 end
