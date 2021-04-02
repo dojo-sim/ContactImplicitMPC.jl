@@ -137,7 +137,7 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC; verbose:
     push!(mpc.q_sim, [q0_sim, q1_sim]...)
 
     for l = 1:m_opts.M
-        elap += @elapsed mpc.impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
+        elap += 0.0*@elapsed mpc.impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
         # Get control
         if m_opts.open_loop_mpc
             u_zoh  = SVector{model.dim.u}.([deepcopy(ref_traj.u[1])/N_sample for j=1:N_sample])

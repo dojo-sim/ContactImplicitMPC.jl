@@ -69,9 +69,9 @@ mutable struct InteriorPoint{T}
     methods::ResidualMethods
     z::Vector{T}               # current point
     z̄::Vector{T}               # candidate point
-    r::Vector{T}               # residual
+    r#::Vector{T}               # residual
     r_norm::T                  # residual norm
-    r̄::Vector{T}               # candidate residual
+    r̄#::Vector{T}               # candidate residual
     r̄_norm::T                  # candidate residual norm
     rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
@@ -118,9 +118,9 @@ function interior_point(x, θ;
         ResidualMethods(r!, rz!, rθ!),
         x,
         zeros(num_var),
-        zeros(num_var),
+        r,# zeros(num_var),
         0.0,
-        zeros(num_var),
+        deepcopy(r),# zeros(num_var),
         0.0,
         rz,
         rθ,
@@ -277,6 +277,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
     end
 end
 
+
 function interior_point!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
@@ -295,10 +296,8 @@ function differentiate_solution!(ip::InteriorPoint)
 
     ip.methods.rz!(rz, z, θ, rz_cache) # maybe not needed
     ip.methods.rθ!(rθ, z, θ, rθ_cache)
+    rz!(rz, z)
 
-    # δz .= -1.0 * rz \ Array(rθ) # TODO: fix
-    # gs!(ip.solver.F, rz)
-    # qr_matrix_solve!(ip.solver.F, δz, rθ)
     linear_matrix_solve!(ip.solver, δz, rz, rθ)
     @inbounds @views @. ip.δz .*= -1.0
     nothing

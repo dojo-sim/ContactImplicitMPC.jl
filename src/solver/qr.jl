@@ -281,6 +281,105 @@ end
 
 
 """
+    Static Dense Modified Gram-Schmidt
+"""
+mutable struct SDMGSData{n,T} <: GSData{n,T}
+    as::Vector{SVector{n,T}}
+    qs::Vector{SVector{n,T}}
+    rs::Vector{T}
+    xv::Vector{T}
+    xs::SVector{n,T}
+end
+
+function SDMGSData(n::Int; T::DataType=Float64)
+    as = Vector{SVector{n,T}}([zeros(SVector{n,T}) for i=1:n])
+    qs = Vector{SVector{n,T}}([zeros(SVector{n,T}) for i=1:n])
+    rs = zeros(T,Int((n + 1) * n / 2))
+    xv = zeros(T,n)
+    xs = zeros(SVector{n,T})
+    return SDMGSData{n,T}(as, qs, rs, xv, xs)
+end
+
+function SDMGSData(A::AbstractMatrix{T}) where T
+    n, m = size(A)
+    @assert n == m
+    gs_data = SDMGSData(n; T=T)
+    gs!(gs_data, A)
+    return gs_data
+end
+
+"""
+    Gram-Schmidt algorithm perform on A.
+"""
+function gs!(gs_data::SDMGSData{n,T}, A::AbstractMatrix{T}) where {n,T}
+    for j in eachindex(1:n)
+        @inbounds @views gs_data.as[j] = A[:,j]
+    end
+    gs!(gs_data)
+    return nothing
+end
+
+"""
+    Gram-Schmidt algorithm perform on a.
+"""
+function gs!(gs_data::SDMGSData{n,T}, a::Vector{SVector{n,T}}) where {n,T}
+    gs_data.as .= a
+    gs!(gs_data)
+    return nothing
+end
+
+"""
+    Gram-Schmidt algorithm perform on gs_data.a.
+"""
+function gs!(gs_data::SDMGSData{n,T}) where {n,T}
+    # Unpack
+    as = gs_data.as
+    qs = gs_data.qs
+    rs = gs_data.rs
+
+    off = 1
+    for j in eachindex(1:n)
+        # qi
+        qs[j] = as[j]
+        for k in eachindex(1:j-1)
+            # rk
+            @inbounds rs[off] = dot(qs[j], qs[k])
+            # qu
+            @inbounds qs[j] -= qs[k] .* rs[off]
+            off += 1
+        end
+        # re
+        rs[off] = norm(qs[j],2)
+        # q
+        qs[j] /= rs[off]
+        off += 1
+    end
+    return nothing
+end
+
+"""
+    QR Back substitution after Gram-Schmidt.
+"""
+function qr_solve!(gs_data::SDMGSData{n,T}, b) where {n,T}
+    qs = gs_data.qs
+    rs = gs_data.rs
+    xv = gs_data.xv
+
+    for j in eachindex(1:n)
+        xv[j] = transpose(qs[j]) * b
+    end
+    for j = n:-1:1
+        for k = j+1:n
+            xv[j] -= rs[triu_perm(j, k)] * xv[k]
+        end
+        xv[j] /= rs[triu_perm(j, j)]
+    end
+    gs_data.xs = xv
+    return nothing
+end
+
+
+"""
     QR solver
 """
 abstract type QRSolver <: LinearSolver end
@@ -295,6 +394,10 @@ end
 
 mutable struct DMGSSolver <: QRSolver
     F::DMGSData
+end
+
+mutable struct SDMGSSolver <: QRSolver
+    F::SDMGSData
 end
 
 function linear_solve!(solver::QRSolver, x::Vector{T}, A::SparseMatrixCSC{T,Int}, b::Vector{T}) where T
@@ -322,6 +425,10 @@ end
 
 function dmgs_solver(A::Array{T, 2}) where T
     DMGSSolver(DMGSData(A, size(A, 1)))
+end
+
+function sdmgs_solver(A::Array{T, 2}) where T
+    SDMGSSolver(SDMGSData(A))
 end
 
 mgs_solver(A::Array{T, 2}) where T = mgs_solver(sparse(A))

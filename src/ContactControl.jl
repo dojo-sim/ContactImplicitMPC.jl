@@ -26,9 +26,11 @@ include("utils.jl")
 
 # Solver
 include("solver/interior_point.jl")
+include("solver/interior_point2.jl") #to be removed
 include("solver/lu.jl")
 include("solver/ldl.jl")
 include("solver/qr.jl")
+include("solver/schur.jl")
 
 # Dynamics
 include("dynamics/environment.jl")
@@ -36,6 +38,9 @@ include("dynamics/model.jl")
 include("dynamics/code_gen.jl")
 include("dynamics/fast_methods.jl")
 include("dynamics/visuals.jl")
+
+# Solver
+include("solver/linearized_solver.jl")
 
 # Simulator
 include("simulator/trajectory.jl")

@@ -27,7 +27,7 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,
 			diff_sol = true,
-			solver=:dmgs_solver,
+			solver=:sdmgs_solver,
 			max_time=max_time))
 
 	H = ref_traj.H
@@ -42,15 +42,18 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 
 	lin = [LinearizedStep(model, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
 
-	ip =  [interior_point(zeros(num_var(model)), zeros(num_data(model)),
+	ip =  [interior_point2(zeros(num_var(model)), zeros(num_data(model)),
 			 idx_ineq = inequality_indices(model),
 			 r! = lin[t].methods.r!,
 			 rz! = lin[t].methods.rz!,
 			 rθ! = lin[t].methods.rθ!,
 			 # rz = model.spa.rz_sp,
 			 # rθ = model.spa.rθ_sp,
-			 rz = zeros(num_var(model), num_var(model)),
-			 rθ = zeros(num_var(model), num_data(model)),
+			 # rz = zeros(num_var(model), num_var(model)),
+			 # rθ = zeros(num_var(model), num_data(model)),
+			 r  = RLin(model, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
+			 rz = RZLin(model, lin[t].rz),
+			 rθ = RθLin(model, lin[t].rθ),
 			 opts = opts) for t = 1:H]
 
 	# views
@@ -76,8 +79,8 @@ linearizedimated since it relies on a linearization about a reference trajectory
 function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
 	traj; κ = traj.κ) where {T, D}
 
-	Threads.@threads for t = 1:traj.H
-	# for t = 1:traj.H
+	# Threads.@threads for t = 1:traj.H
+	for t = 1:traj.H
 		#@assert abs.(im_traj.lin[t].κ - κ[1]) / κ[1] < 1.0e-5 # check that the κ are consistent between the optimized trajectory (traj)
 		# and the linearization (impl.lin).
 
@@ -85,7 +88,7 @@ function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
 		z_initialize!(im_traj.ip[t].z, model, copy(traj.q[t+2])) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
 		# solve
-		status = interior_point!(im_traj.ip[t])
+		status = interior_point2!(im_traj.ip[t])
 		!status && (@warn "implicit dynamics failure (t = $t)")
 
 		# compute dynamics violation

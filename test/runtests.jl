@@ -15,6 +15,9 @@ include("solver/gs.jl")
 include("solver/qdldl.jl")
 include("solver/random_qp.jl")
 include("solver/lu.jl")
+include("solver/gs.jl")
+include("solver/schur.jl")
+include("solver/linearized_solver.jl")
 
 # Dynamics
 include("dynamics/particle.jl")
