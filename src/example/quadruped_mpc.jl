@@ -23,7 +23,7 @@ ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
 m_opts0 = MPCOptions{T}(
             N_sample=2,
-            M=200,
+            M=30,
             H_mpc=10,
             κ=κ,
             κ_sim=1e-8,
@@ -40,13 +40,13 @@ cost0 = CostFunction(H, model.dim,
 core0 = Newton(m_opts0.H_mpc, h, model, cost=cost0, opts=n_opts0)
 mpc0 = MPC(model, ref_traj0, m_opts=m_opts0)
 @time dummy_mpc(model, core0, mpc0, verbose=true)
+@profiler dummy_mpc(model, core0, mpc0, verbose=true)
 
-core0.traj.γ
-7.0/(60*h)
-mpc0.γ_sim
-mpc0.b_sim
+mpc0.impl.ip[1].solver
 
 
+
+6.5/(100*h)
 
 
 plt = plot(layout=(2,1), legend=false)

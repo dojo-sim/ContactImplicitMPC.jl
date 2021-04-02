@@ -29,6 +29,8 @@ include("solver/interior_point.jl")
 include("solver/lu.jl")
 include("solver/ldl.jl")
 include("solver/qr.jl")
+include("solver/schur.jl")
+include("solver/linearized_solver.jl")
 
 # Dynamics
 include("dynamics/environment.jl")
