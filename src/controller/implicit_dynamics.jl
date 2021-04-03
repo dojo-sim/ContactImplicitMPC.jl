@@ -73,33 +73,26 @@ function update2!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	)
 
 	H = ref_traj.H
-
-	nq = model.dim.q
-	nu = model.dim.u
-	nc = model.dim.c
-	nb = model.dim.b
-	nd = nq + nc + nb
-	nz = num_var(model)
-	nθ = num_data(model)
-
 	for t = 1:H
 		fill!(im_traj.ip[t].κ, κ)
-		update!(im_traj.lin[t], model, ref_traj.z[t], ref_traj.θ[t])
-
-		z0  = im_traj.lin[t].z
-		θ0  = im_traj.lin[t].θ
-		r0  = im_traj.lin[t].r
-		rz0 = im_traj.lin[t].rz
-		rθ0 = im_traj.lin[t].rθ
-		# im_traj.ip[t].r = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ)#TODO coment
-		# im_traj.ip[t].r̄ = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ)#TODO coment
-		# im_traj.ip[t].rz = RZLin(model, im_traj.lin[t].rz)
-		# im_traj.ip[t].rθ = RθLin(model, im_traj.lin[t].rθ)
-		update!(im_traj.ip[t].r, z0, θ0, r0, rz0, rθ0)# TODO uncommment
-		update!(im_traj.ip[t].r̄, z0, θ0, r0, rz0, rθ0)# TODO uncommment
-		update!(im_traj.ip[t].rz, rz0)
-		update!(im_traj.ip[t].rθ, rθ0)
 	end
+	for t = 1:H-1
+		im_traj.lin[t]   = im_traj.lin[t+1]
+		im_traj.ip[t].r  = im_traj.ip[t+1].r
+		im_traj.ip[t].r̄  = im_traj.ip[t+1].r̄
+		im_traj.ip[t].rz = im_traj.ip[t+1].rz
+		im_traj.ip[t].rθ = im_traj.ip[t+1].rθ
+	end
+	update!(im_traj.lin[H], model, ref_traj.z[H], ref_traj.θ[H])
+	z0  = im_traj.lin[H].z
+	θ0  = im_traj.lin[H].θ
+	r0  = im_traj.lin[H].r
+	rz0 = im_traj.lin[H].rz
+	rθ0 = im_traj.lin[H].rθ
+	update!(im_traj.ip[H].r,  z0, θ0, r0, rz0, rθ0)
+	update!(im_traj.ip[H].r̄,  z0, θ0, r0, rz0, rθ0)
+	update!(im_traj.ip[H].rz, rz0)
+	update!(im_traj.ip[H].rθ, rθ0)
 	return nothing
 end
 
