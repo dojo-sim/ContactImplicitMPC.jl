@@ -68,7 +68,7 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 	return ImplicitTraj(lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip)
 end
 
-function update2!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
+function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	model::ContactDynamicsModel; κ = ref_traj.κ[1],
 	)
 

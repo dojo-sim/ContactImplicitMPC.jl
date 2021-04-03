@@ -23,14 +23,13 @@ ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
 m_opts0 = MPCOptions{T}(
             N_sample=5,
-            M=200,
+            M=1000,
             H_mpc=10,
             κ=κ,
             κ_sim=1e-8,
             r_tol_sim=1e-8,
             open_loop_mpc=false,
             w_amp=1.0*[-0.05, -0.01],
-            # w_amp=0.0*[-0.05, -0.01],
             ip_max_time=0.1,
             live_plotting=false)
 cost0 = CostFunction(H, model.dim,
