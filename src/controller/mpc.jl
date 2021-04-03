@@ -137,9 +137,8 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC; verbose:
     push!(mpc.q_sim, [q0_sim, q1_sim]...)
 
     for l = 1:m_opts.M
-        elap += 0.0*@elapsed mpc.impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
-        # elap += 0.0*@elapsed mpc.impl = update!(mpc.impl, ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
-        # elap += 0.0*@elapsed update!(mpc.impl, ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
+        # elap += 0.0*@elapsed mpc.impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
+        elap += 0.0*@elapsed update2!(mpc.impl, ref_traj, model, κ=m_opts.κ)
 
         # Get control
         if m_opts.open_loop_mpc

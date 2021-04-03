@@ -12,9 +12,6 @@ function inequality_check(x, idx_ineq)
 end
 
 struct NoCache <: Cache end
-# abstract type rCache <: Cache end
-# abstract type rzCache <: Cache end
-# abstract type rθCache <: Cache end
 
 # residual
 function r!(r, z, θ, κ, cache)
@@ -96,15 +93,14 @@ mutable struct InteriorPoint{T}
     opts::InteriorPointOptions
 end
 
-function interior_point(x, θ;
-        num_var = length(x),
+function interior_point(z, θ;
+        num_var = length(z),
         num_data = length(θ),
         idx_ineq = collect(1:0),
         idx_pr = collect(1:num_var),
         idx_du = collect(1:0),
-        r! = r!, rz! = rz!, rθ! = rθ!,#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-        # r_! = r!, rz_! = rz!, rθ_! = rθ!,#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-        r  = zeros(num_var), #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        r! = r!, rz! = rz!, rθ! = rθ!,
+        r  = zeros(num_var),
         rz = spzeros(num_var, num_var),
         rθ = spzeros(num_var, num_data),
         reg_pr = [0.0], reg_du = [0.0],
@@ -116,12 +112,11 @@ function interior_point(x, θ;
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
         opts = InteriorPointOptions()) where T
 
-    rz!(rz, x, θ, rz_cache) # compute Jacobian for pre-factorization
+    rz!(rz, z, θ, rz_cache) # compute Jacobian for pre-factorization
 
     InteriorPoint(
         ResidualMethods(r!, rz!, rθ!),
-        # ResidualMethods(r_!, rz_!, rθ_!),#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-        x,
+        z,
         zeros(num_var),
         r,
         0.0,

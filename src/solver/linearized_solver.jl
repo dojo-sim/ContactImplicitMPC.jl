@@ -394,6 +394,7 @@ function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
     return nothing
 end
 
+# Methods for the Interior Point solver
 import LinearAlgebra.norm
 function norm(r::RLin, t::Real)
 	a = 0.0
@@ -426,5 +427,73 @@ end
 function linear_solve!(solver::EmptySolver, Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
         r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
 	linear_solve!(Δ, rz, r)
+	return nothing
+end
+
+
+function update!(r::RLin{T}, z0::AbstractVector{T}, θ0::AbstractVector{T},
+        r0::AbstractVector{T}, rz0::AbstractMatrix{T}, rθ0::AbstractMatrix{T}) where {T}
+	idyn = r.idyn
+	irst = r.irst
+	ibil = r.ibil
+	ix = r.ix
+	iy1 = r.iy1
+	iy2 = r.iy2
+
+	# Reference residual
+    r.rdyn0 = r0[ix]
+    r.rrst0 = r0[iy1]
+    r.rbil0 = r0[iy2]
+
+    # Reference residual jacobian rz0
+	r.Dx  = rz0[idyn, ix]
+	r.Dy1 = rz0[idyn, iy1]
+	r.Rx  = rz0[irst, ix]
+	r.Ry1 = rz0[irst, iy1]
+	r.Ry2 = diag(rz0[irst, iy2])
+
+    # Reference residual jacobian rθ0
+	r.rθdyn = rθ0[idyn,:]
+	r.rθrst = rθ0[irst,:]
+	r.rθbil = rθ0[ibil,:]
+
+    # Reference z0 and θ0
+    r.x0  = z0[ix]
+    r.y10 = z0[iy1]
+    r.y20 = z0[iy2]
+    r.θ0  = θ0
+	return nothing
+end
+
+function update!(rz::RZLin{T}, rz0::AbstractMatrix{T}) where {T}
+	idyn = rz.idyn
+	irst = rz.irst
+	ibil = rz.ibil
+	ix = rz.ix
+	iy1 = rz.iy1
+	iy2 = rz.iy2
+
+    # Fill the matrix blocks rz0s
+	rz.Dx  = rz0[idyn, ix]
+	rz.Dy1 = rz0[idyn, iy1]
+	rz.Rx  = rz0[irst, ix]
+	rz.Ry1 = rz0[irst, iy1]
+	rz.Ry2 = diag(rz0[irst, iy2])
+	rz.y1  = diag(rz0[ibil, iy2])
+	rz.y2  = diag(rz0[ibil, iy1])
+
+	# Schur complement
+	rz.D = rz.Ry1 - Diagonal(rz.Ry2 .* rz.y2 ./ rz.y1)
+	M = [rz.Dx rz.Dy1;
+	     rz.Rx rz.D  ]
+	rz.S = Schur(M; n=nx, m=ny)
+	return nothing
+end
+
+function update!(rθ::RθLin{T}, rθ0::AbstractMatrix{T}) where {T}
+	# Fill the matrix blocks rθ0s
+	rθ.rθdyn0 = rθ0[rθ.idyn,:]
+	rθ.rθrst0 = rθ0[rθ.irst,:]
+	rθ.rθbil0 = rθ0[rθ.ibil,:]
 	return nothing
 end

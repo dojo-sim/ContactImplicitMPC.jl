@@ -68,16 +68,9 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 	return ImplicitTraj(lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip)
 end
 
-function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj, model::ContactDynamicsModel;
-	κ = ref_traj.κ[1],
-	max_time = 60.0,
-	opts = InteriorPointOptions(
-			κ_init = κ[1],
-			κ_tol = 2.0 * κ[1],
-			r_tol = 1.0e-8,
-			diff_sol = true,
-			solver=:empty_solver,
-			max_time=max_time))
+function update2!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
+	model::ContactDynamicsModel; κ = ref_traj.κ[1],
+	)
 
 	H = ref_traj.H
 
@@ -90,41 +83,23 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj, model::ContactDyn
 	nθ = num_data(model)
 
 	for t = 1:H
+		fill!(im_traj.ip[t].κ, κ)
 		update!(im_traj.lin[t], model, ref_traj.z[t], ref_traj.θ[t])
 
-		# TODO: fix r, rz, rθ update
-		im_traj.ip[t] = interior_point(zeros(num_var(model)), zeros(num_data(model)),
-				 idx_ineq = inequality_indices(model),
-				 r! = r!,
-				 rz! = rz!,
-				 rθ! = rθ!,
-				 r  = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ),
-				 rz = RZLin(model, im_traj.lin[t].rz),
-				 rθ = RθLin(model, im_traj.lin[t].rθ),
-				 v_pr = view(zeros(1,1), 1,1),
-				 v_du = view(zeros(1,1), 1,1),
-				 opts = opts)
-
-		 im_traj.ip[t].methods.r! = im_traj.lin[t].methods.r!
-		 im_traj.ip[t].methods.rz! = im_traj.lin[t].methods.rz!
-		 im_traj.ip[t].methods.rθ! = im_traj.lin[t].methods.rθ!
-
-		 # im_traj.ip[t].r = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ)
-		 # im_traj.ip[t].rz = RZLin(model, im_traj.lin[t].rz)
-		 # im_traj.ip[t].rθ = RθLin(model, im_traj.lin[t].rθ)
+		z0  = im_traj.lin[t].z
+		θ0  = im_traj.lin[t].θ
+		r0  = im_traj.lin[t].r
+		rz0 = im_traj.lin[t].rz
+		rθ0 = im_traj.lin[t].rθ
+		im_traj.ip[t].r = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ)#TODO coment
+		im_traj.ip[t].r̄ = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ)#TODO coment
+		# im_traj.ip[t].rz = RZLin(model, im_traj.lin[t].rz)
+		# im_traj.ip[t].rθ = RθLin(model, im_traj.lin[t].rθ)
+		# update!(im_traj.ip[t].r, z0, θ0, r0, rz0, rθ0)# TODO uncommment
+		# update!(im_traj.ip[t].r̄, z0, θ0, r0, rz0, rθ0)# TODO uncommment
+		update!(im_traj.ip[t].rz, rz0)
+		update!(im_traj.ip[t].rθ, rθ0)
 	end
-
-	# views
-	im_traj.d .= [view(im_traj.ip[t].z, 1:nd) for t = 1:H]
-	im_traj.dq2 .= [view(im_traj.ip[t].z, 1:nq) for t = 1:H]
-	im_traj.dγ1 .= [view(im_traj.ip[t].z, nq .+ (1:nc)) for t = 1:H]
-	im_traj.db1 .= [view(im_traj.ip[t].z, nq + nc .+ (1:nb)) for t = 1:H]
-
-	off = 0
-	im_traj.δq0 .= [view(im_traj.ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
-	im_traj.δq1 .= [view(im_traj.ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
-	im_traj.δu1 .= [view(im_traj.ip[t].δz, 1:nd, off .+ (1:nu)) for t = 1:H]; off += nu
-
 	return nothing
 end
 
@@ -156,25 +131,3 @@ function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
 	end
 	return nothing
 end
-
-
-# mutable struct mystruct1
-# 	a
-# end
-#
-# function a1()
-# 	println("hi")
-# end
-#
-# function update_struct!(x)
-# 	function my_func()
-# 		println("updated!")
-# 	end
-# 	x.a = my_func
-# end
-#
-# x = mystruct1(a1)
-# x.a()
-#
-# update_struct!(x)
-# x.a()

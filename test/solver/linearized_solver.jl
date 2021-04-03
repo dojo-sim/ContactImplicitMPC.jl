@@ -80,3 +80,63 @@
 	@test norm(δz1 - (rz0\rθ0), Inf) < 1e-10
 	# @benchmark ContactControl.linear_solve!(δz1, rz1, rθ1)
 end
+
+@testset "Update Linearized Residuals" begin
+	model = get_model("hopper_2D")
+	nz = ContactControl.num_var(model)
+	nθ = ContactControl.num_data(model)
+
+	z0 = rand(nz)
+	z1 = rand(nz)
+	θ0 = rand(nθ)
+	θ1 = rand(nθ)
+	rz0 = zeros(nz,nz)
+	rz1 = zeros(nz,nz)
+	model.res.rz!(rz0, z0, θ0, NoCache())
+	model.res.rz!(rz1, z1, θ1, NoCache())
+	rz = ContactControl.RZLin(model, rz0)
+	ContactControl.update!(rz, rz1)
+	@test norm(rz.Dx  - rz1[rz.idyn, rz.ix])  < 1e-10
+	@test norm(rz.Dy1 - rz1[rz.idyn, rz.iy1]) < 1e-10
+	@test norm(rz.Rx  - rz1[rz.irst, rz.ix])  < 1e-10
+	@test norm(rz.Ry1 - rz1[rz.irst, rz.iy1]) < 1e-10
+	@test norm(rz.Ry2 - diag(rz1[rz.irst, rz.iy2])) < 1e-10
+	@test norm(rz.y1  - diag(rz1[rz.ibil, rz.iy2])) < 1e-10
+	@test norm(rz.y2  - diag(rz1[rz.ibil, rz.iy1])) < 1e-10
+
+	z0 = rand(nz)
+	θ0 = rand(nθ)
+	r0 = rand(nz)
+	rz0 = zeros(nz,nz)
+	rθ0 = zeros(nz,nθ)
+	z1 = rand(nz)
+	θ1 = rand(nθ)
+	r1 = rand(nz)
+	rz1 = zeros(nz,nz)
+	rθ1 = zeros(nz,nθ)
+	model.res.rz!(rz0, z0, θ0, NoCache())
+	model.res.rθ!(rθ0, z0, θ0, NoCache())
+	model.res.rz!(rz1, z1, θ1, NoCache())
+	model.res.rθ!(rθ1, z1, θ1, NoCache())
+	r = ContactControl.RLin(model, z0, θ0, r0, rz0, rθ0)
+	ContactControl.update!(r, z1, θ1, r1, rz1, rθ1)
+
+	@test norm(r.rdyn0 - r1[r.ix])  < 1e-10
+	@test norm(r.rrst0 - r1[r.iy1]) < 1e-10
+	@test norm(r.rbil0 - r1[r.iy2]) < 1e-10
+
+	@test norm(r.Dx  - rz1[rz.idyn, rz.ix])  < 1e-10
+	@test norm(r.Dy1 - rz1[rz.idyn, rz.iy1]) < 1e-10
+	@test norm(r.Rx  - rz1[rz.irst, rz.ix])  < 1e-10
+	@test norm(r.Ry1 - rz1[rz.irst, rz.iy1]) < 1e-10
+	@test norm(r.Ry2 - diag(rz1[rz.irst, rz.iy2])) < 1e-10
+
+	@test norm(r.rθdyn - rθ1[r.idyn,:]) < 1e-10
+	@test norm(r.rθrst - rθ1[r.irst,:]) < 1e-10
+	@test norm(r.rθbil - rθ1[r.ibil,:]) < 1e-10
+
+	@test norm(r.x0  - z1[r.ix])  < 1e-10
+	@test norm(r.y10 - z1[r.iy1]) < 1e-10
+	@test norm(r.y20 - z1[r.iy2]) < 1e-10
+	@test norm(r.θ0 -  θ1) < 1e-10
+end

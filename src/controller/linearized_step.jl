@@ -5,9 +5,6 @@ mutable struct LinearizedStep{T}
 	r::AbstractVector{T}
 	rz::AbstractMatrix{T}
 	rθ::AbstractMatrix{T}
-	terms::Any
-	vars::Any
-	methods::ResidualMethods
 end
 
 function LinearizedStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where T
@@ -24,27 +21,7 @@ function LinearizedStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::A
 	model.res.r!(r0, z0, θ0, κ0, nothing)
 	model.res.rz!(rz0, z0, θ0, nothing)
 	model.res.rθ!(rθ0, z0, θ0, nothing)
-
-	terms, vars = get_bilinear_indices(model)
-
-	function r_linearized!(r, z, θ, κ, cache)
-		model.linearized.r!(r, z, θ, κ, z0, θ0, r0, rz0, rθ0)
-		return nothing
-	end
-
-	function rz_linearized!(rz, z, θ, cache)
-		model.linearized.rz!(rz, z, rz0)
-		return nothing
-	end
-
-	function rθ_linearized!(rθ, z, θ, cache)
-		model.linearized.rθ!(rθ, rθ0)
-		return nothing
-	end
-
-	methods = ResidualMethods(r_linearized!, rz_linearized!, rθ_linearized!)
-
-	return LinearizedStep(z0, θ0, κ0, r0, rz0, rθ0, terms, vars, methods)
+	return LinearizedStep(z0, θ0, κ0, r0, rz0, rθ0)
 end
 
 """
@@ -75,95 +52,11 @@ function get_bilinear_indices(model::ContactDynamicsModel)
 	return terms, vars
 end
 
-function update!(lin::LinearizedStep, model, z, θ)
-
+function update!(lin::LinearizedStep, model::ContactDynamicsModel, z, θ)
 	lin.z .= z
 	lin.θ .= θ
-
-	model.res.r!(lin.r, lin.z, lin.θ, lin.κ, nothing)
-	model.res.rz!(lin.rz, lin.z, lin.θ, nothing)
-	model.res.rθ!(lin.rθ, lin.z, lin.θ, nothing)
-
-	# function r_linearized!(r, z, θ, κ, cache)
-	# 	model.linearized.r!(r, z, θ, κ, lin.z, lin.θ, lin.r, lin.rz, lin.rθ)
-	# 	return nothing
-	# end
-	#
-	# function rz_linearized!(rz, z, θ, cache)
-	# 	model.linearized.rz!(rz, z, lin.rz)
-	# 	return nothing
-	# end
-	#
-	# function rθ_linearized!(rθ, z, θ, cache)
-	# 	model.linearized.rθ!(rθ, lin.rθ)
-	# 	return nothing
-	# end
-
-	# lin.methods.r! = r_linearized!
-	# lin.methods.rz! = rz_linearized!
-	# lin.methods.rθ! = rθ_linearized!
-
+	model.res.r!(lin.r, z, θ, lin.κ, nothing)
+	model.res.rz!(lin.rz, z, θ, nothing)
+	model.res.rθ!(lin.rθ, z, θ, nothing)
 	return nothing
-end
-
-"""
-	r_linearized!(lin::LinearizedStep, r::AbstractVector{T1},
-	z::AbstractVector{T1}, θ::AbstractVector{T}, κ::T) where {T,T1}
-Compute an linearizedimate residual. The linearizedimation results from the linearization of the non-linear
-terms in the residual about a reference point. The bilinear terms (complementarity constraints) are
-not linearized.
-"""
-function r_linearized!(lin::LinearizedStep, r::AbstractVector{T1},
-	z::AbstractVector{T1}, θ::AbstractVector{T}, κ::T) where {T,T1}
-
-	@assert norm(κ - lin.κ) / κ < 1e-10
-
-	r .= lin.r + lin.rz * (z - lin.z) + lin.rθ * (θ - lin.θ)
-
-	for i = 1:length(lin.terms)
-		t = lin.terms[i]
-		v1 = lin.vars[i][1]
-		v2 = lin.vars[i][2]
-		r[t] = z[v1] .* z[v2] .- κ
-	end
-
-    return nothing
-end
-
-"""
-	rz_linearized!(lin::LinearizedStep, rz::AbstractMatrix{T},
-	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
-Compute an linearizedimate residual jacobian with respect to z. The linearizedimation results from the linearization of the non-linear
-terms in the residual about a reference point. The bilinear terms (complementarity constraints) are
-not linearized.
-"""
-function rz_linearized!(lin::LinearizedStep, rz::AbstractMatrix{T},
-	z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
-
-	rz .= lin.rz
-
-	for i = 1:length(lin.terms)
-		t = lin.terms[i]
-		v1 = lin.vars[i][1]
-		v2 = lin.vars[i][2]
-		rz[t,v1] .= Diagonal(z[v2])
-		rz[t,v2] .= Diagonal(z[v1])
-	end
-
-    return nothing
-end
-
-"""
-	rθ_linearized!(lin::LinearizedStep, rz::AbstractMatrix{T},
-	z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
-Compute an linearizedimate residual jacobian with respect to θ The linearizedimation results from the linearization of the non-linear
-terms in the residual about a reference point. The bilinear terms (complementarity constraints) are
-not linearized.
-"""
-function rθ_linearized!(lin::LinearizedStep, rθ::AbstractMatrix{T},
-	z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
-
-	rθ .= lin.rθ
-
-    return nothing
 end
