@@ -91,12 +91,12 @@ function update2!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 		r0  = im_traj.lin[t].r
 		rz0 = im_traj.lin[t].rz
 		rθ0 = im_traj.lin[t].rθ
-		im_traj.ip[t].r = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ)#TODO coment
-		im_traj.ip[t].r̄ = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ)#TODO coment
+		# im_traj.ip[t].r = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ)#TODO coment
+		# im_traj.ip[t].r̄ = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ)#TODO coment
 		# im_traj.ip[t].rz = RZLin(model, im_traj.lin[t].rz)
 		# im_traj.ip[t].rθ = RθLin(model, im_traj.lin[t].rθ)
-		# update!(im_traj.ip[t].r, z0, θ0, r0, rz0, rθ0)# TODO uncommment
-		# update!(im_traj.ip[t].r̄, z0, θ0, r0, rz0, rθ0)# TODO uncommment
+		update!(im_traj.ip[t].r, z0, θ0, r0, rz0, rθ0)# TODO uncommment
+		update!(im_traj.ip[t].r̄, z0, θ0, r0, rz0, rθ0)# TODO uncommment
 		update!(im_traj.ip[t].rz, rz0)
 		update!(im_traj.ip[t].rθ, rθ0)
 	end

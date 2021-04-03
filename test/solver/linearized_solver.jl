@@ -121,9 +121,9 @@ end
 	r = ContactControl.RLin(model, z0, θ0, r0, rz0, rθ0)
 	ContactControl.update!(r, z1, θ1, r1, rz1, rθ1)
 
-	@test norm(r.rdyn0 - r1[r.ix])  < 1e-10
-	@test norm(r.rrst0 - r1[r.iy1]) < 1e-10
-	@test norm(r.rbil0 - r1[r.iy2]) < 1e-10
+	@test norm(r.rdyn0 - r1[r.idyn])  < 1e-10
+	@test norm(r.rrst0 - r1[r.irst]) < 1e-10
+	@test norm(r.rbil0 - r1[r.ibil]) < 1e-10
 
 	@test norm(r.Dx  - rz1[rz.idyn, rz.ix])  < 1e-10
 	@test norm(r.Dy1 - rz1[rz.idyn, rz.iy1]) < 1e-10

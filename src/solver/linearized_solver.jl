@@ -441,9 +441,9 @@ function update!(r::RLin{T}, z0::AbstractVector{T}, θ0::AbstractVector{T},
 	iy2 = r.iy2
 
 	# Reference residual
-    r.rdyn0 = r0[ix]
-    r.rrst0 = r0[iy1]
-    r.rbil0 = r0[iy2]
+    r.rdyn0 = r0[idyn]
+    r.rrst0 = r0[irst]
+    r.rbil0 = r0[ibil]
 
     # Reference residual jacobian rz0
 	r.Dx  = rz0[idyn, ix]
