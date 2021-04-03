@@ -384,6 +384,10 @@ end
 """
 abstract type QRSolver <: LinearSolver end
 
+mutable struct EmptySolver <: LinearSolver
+    F::Any
+end
+
 mutable struct CGSSolver <: QRSolver
     F::CGSData
 end
@@ -410,9 +414,13 @@ function linear_solve!(solver::DMGSSolver, x::Vector{T}, A::Array{T, 2}, b::Vect
     qr_solve!(solver.F, x, b)
 end
 
-function linear_matrix_solve!(solver::QRSolver, X::Matrix{T}, A::AbstractMatrix{T}, B::Matrix{T}) where T
+function linear_solve!(solver::QRSolver, X::Matrix{T}, A::AbstractMatrix{T}, B::Matrix{T}) where T
     gs!(solver.F, A)
     qr_matrix_solve!(solver.F, X, B)
+end
+
+function empty_solver(A::Any)
+    EmptySolver(A)
 end
 
 function mgs_solver(A::SparseMatrixCSC{T,Int}) where T

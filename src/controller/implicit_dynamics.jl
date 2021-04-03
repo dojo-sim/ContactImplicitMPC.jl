@@ -27,7 +27,7 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,
 			diff_sol = true,
-			solver=:sdmgs_solver,
+			solver=:empty_solver,
 			max_time=max_time))
 
 	H = ref_traj.H
@@ -42,18 +42,16 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 
 	lin = [LinearizedStep(model, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
 
-	ip =  [interior_point2(zeros(num_var(model)), zeros(num_data(model)),
+	ip =  [interior_point(zeros(num_var(model)), zeros(num_data(model)),
 			 idx_ineq = inequality_indices(model),
-			 r! = lin[t].methods.r!,
-			 rz! = lin[t].methods.rz!,
-			 rθ! = lin[t].methods.rθ!,
-			 # rz = model.spa.rz_sp,
-			 # rθ = model.spa.rθ_sp,
-			 # rz = zeros(num_var(model), num_var(model)),
-			 # rθ = zeros(num_var(model), num_data(model)),
+			 r! = r!,
+			 rz! = rz!,
+			 rθ! = rθ!,
 			 r  = RLin(model, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
 			 rz = RZLin(model, lin[t].rz),
 			 rθ = RθLin(model, lin[t].rθ),
+			 v_pr = view(zeros(1,1), 1,1),
+			 v_du = view(zeros(1,1), 1,1),
 			 opts = opts) for t = 1:H]
 
 	# views
@@ -78,7 +76,7 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj, model::ContactDyn
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,
 			diff_sol = true,
-			solver=:sdmgs_solver,
+			solver=:empty_solver,
 			max_time=max_time))
 
 	H = ref_traj.H
@@ -95,14 +93,16 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj, model::ContactDyn
 		update!(im_traj.lin[t], model, ref_traj.z[t], ref_traj.θ[t])
 
 		# TODO: fix r, rz, rθ update
-		im_traj.ip[t] = interior_point2(zeros(num_var(model)), zeros(num_data(model)),
+		im_traj.ip[t] = interior_point(zeros(num_var(model)), zeros(num_data(model)),
 				 idx_ineq = inequality_indices(model),
-				 r! = im_traj.ip[t].methods.r!,
-				 rz! = im_traj.ip[t].methods.rz!,
-				 rθ! = im_traj.ip[t].methods.rθ!,
+				 r! = r!,
+				 rz! = rz!,
+				 rθ! = rθ!,
 				 r  = RLin(model, im_traj.lin[t].z, im_traj.lin[t].θ, im_traj.lin[t].r, im_traj.lin[t].rz, im_traj.lin[t].rθ),
 				 rz = RZLin(model, im_traj.lin[t].rz),
 				 rθ = RθLin(model, im_traj.lin[t].rθ),
+				 v_pr = view(zeros(1,1), 1,1),
+				 v_du = view(zeros(1,1), 1,1),
 				 opts = opts)
 
 		 im_traj.ip[t].methods.r! = im_traj.lin[t].methods.r!
@@ -146,7 +146,7 @@ function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
 		z_initialize!(im_traj.ip[t].z, model, copy(traj.q[t+2])) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
 		# solve
-		status = interior_point2!(im_traj.ip[t])
+		status = interior_point!(im_traj.ip[t])
 		!status && (@warn "implicit dynamics failure (t = $t)")
 
 		# compute dynamics violation

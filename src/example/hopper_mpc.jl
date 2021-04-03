@@ -23,17 +23,18 @@ ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)
 m_opts0 = MPCOptions{T}(
             N_sample=5,
-            M=1000,
+            M=200,
             H_mpc=10,
             κ=κ,
             κ_sim=1e-8,
             r_tol_sim=1e-8,
             open_loop_mpc=false,
-            w_amp=1.0*[-0.05, -0.01],
+            # w_amp=1.0*[-0.05, -0.01],
+            w_amp=0.2*[-0.05, -0.01],
             ip_max_time=0.1,
             live_plotting=false)
 cost0 = CostFunction(H, model.dim,
-    q = [Diagonal(1.0e-1 * [1,1,1,1])   for t = 1:m_opts0.H_mpc],
+    q = [Diagonal(1.0e-1 * [1,3,1,3])   for t = 1:m_opts0.H_mpc],
     u = [Diagonal(1.0e-0 * [1e-3, 1e0]) for t = 1:m_opts0.H_mpc],
     γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:m_opts0.H_mpc],
     b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:m_opts0.H_mpc])
@@ -53,7 +54,7 @@ plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in mpc0.u_sim]*m_opts0.N_sample)...)
 
 visualize!(vis, model, mpc0.q_sim[1:10:end], Δt=10*h/m_opts0.N_sample, name=:mpc)
 
-# filename = "quadruped_mpc_downwind"
+# filename = "hopper_wind"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)

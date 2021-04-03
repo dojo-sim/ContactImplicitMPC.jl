@@ -102,7 +102,9 @@ function interior_point(x, θ;
         idx_ineq = collect(1:0),
         idx_pr = collect(1:num_var),
         idx_du = collect(1:0),
-        r! = r!, rz! = rz!, rθ! = rθ!,
+        r! = r!, rz! = rz!, rθ! = rθ!,#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        # r_! = r!, rz_! = rz!, rθ_! = rθ!,#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        r  = zeros(num_var), #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         rz = spzeros(num_var, num_var),
         rθ = spzeros(num_var, num_data),
         reg_pr = [0.0], reg_du = [0.0],
@@ -110,17 +112,20 @@ function interior_point(x, θ;
         r̄_cache = NoCache(),
         rz_cache = NoCache(),
         rθ_cache = NoCache(),
+        v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
+        v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
         opts = InteriorPointOptions()) where T
 
     rz!(rz, x, θ, rz_cache) # compute Jacobian for pre-factorization
 
     InteriorPoint(
         ResidualMethods(r!, rz!, rθ!),
+        # ResidualMethods(r_!, rz_!, rθ_!),#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         x,
         zeros(num_var),
-        zeros(num_var),
+        r,
         0.0,
-        zeros(num_var),
+        deepcopy(r),
         0.0,
         rz,
         rθ,
@@ -134,8 +139,8 @@ function interior_point(x, θ;
         num_var,
         num_data,
         eval(opts.solver)(rz),
-        view(rz, CartesianIndex.(idx_pr, idx_pr)),
-        view(rz, CartesianIndex.(idx_du, idx_du)),
+        v_pr,
+        v_du,
         reg_pr, reg_du,
         r_cache, r̄_cache, rz_cache, rθ_cache,
         opts)
@@ -255,7 +260,8 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
                 # update
                 z .= z̄
-                r .= r̄
+                # r .= r̄ #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+                r!(r, z, θ, κ[1], r_cache)
                 # v_pr .= 0.0
                 # v_du .= 0.0
                 r_norm = r̄_norm
@@ -277,7 +283,6 @@ function interior_point!(ip::InteriorPoint{T}) where T
     end
 end
 
-
 function interior_point!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
@@ -296,9 +301,8 @@ function differentiate_solution!(ip::InteriorPoint)
 
     ip.methods.rz!(rz, z, θ, rz_cache) # maybe not needed
     ip.methods.rθ!(rθ, z, θ, rθ_cache)
-    rz!(rz, z)
 
-    linear_matrix_solve!(ip.solver, δz, rz, rθ)
+    linear_solve!(ip.solver, δz, rz, rθ)
     @inbounds @views @. ip.δz .*= -1.0
     nothing
 end

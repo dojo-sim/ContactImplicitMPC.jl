@@ -1,5 +1,3 @@
-
-
 function interior_point2(x, θ;
         num_var = length(x),
         num_data = length(θ),
@@ -7,8 +5,6 @@ function interior_point2(x, θ;
         idx_pr = collect(1:num_var),
         idx_du = collect(1:0),
         r! = r!, rz! = rz!, rθ! = rθ!,
-        # rz = spzeros(num_var, num_var),
-        # rθ = spzeros(num_var, num_data),
         r  = zeros(num_var), #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         rz = zeros(num_var, num_var), #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         rθ = zeros(num_var, num_data), #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -20,6 +16,7 @@ function interior_point2(x, θ;
         opts = InteriorPointOptions()) where T
 
     # rz_!(rz, x, θ, rz_cache) # compute Jacobian for pre-factorization
+
 
     InteriorPoint(
         ResidualMethods(r!, rz!, rθ!),
@@ -51,10 +48,10 @@ end
 # interior point solver
 function interior_point2!(ip::InteriorPoint{T}) where T
 
-    # # methods
-    # r! = ip.methods.r!#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-    # rz! = ip.methods.rz!#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-    # rθ! = ip.methods.rθ!#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    # methods
+    r! = ip.methods.r!#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    rz! = ip.methods.rz!#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    rθ! = ip.methods.rθ!#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
     # options
     opts = ip.opts

@@ -324,11 +324,6 @@ function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}) where {T,nx,ny,nxx,nx
     return nothing
 end
 
-function rz_!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}, θ::Vector{T}, cache::Cache) where {T,nx,ny,nxx,nxy,nyy}
-	rz!(rz, z)
-    return nothing
-end
-
 """
 	Update the residual r.
 """
@@ -406,4 +401,30 @@ function norm(r::RLin, t::Real)
 	a += norm(r.rrst, t)
 	a += norm(r.rbil, t)
 	return a
+end
+
+function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T, r_cache::Cache) where {T}
+	r!(r, z, θ, κ)
+	return nothing
+end
+
+function rz!(rz::RZLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, rz_cache::Cache) where {T}
+	rz!(rz, z)
+	return nothing
+end
+
+function rθ!(rθ::RθLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, r_cache::Cache) where {T}
+	return nothing
+end
+
+function linear_solve!(solver::EmptySolver, δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
+	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	linear_solve!(δz, rz, rθ)
+	return nothing
+end
+
+function linear_solve!(solver::EmptySolver, Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
+        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	linear_solve!(Δ, rz, r)
+	return nothing
 end

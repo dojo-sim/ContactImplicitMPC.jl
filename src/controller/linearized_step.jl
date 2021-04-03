@@ -84,24 +84,24 @@ function update!(lin::LinearizedStep, model, z, θ)
 	model.res.rz!(lin.rz, lin.z, lin.θ, nothing)
 	model.res.rθ!(lin.rθ, lin.z, lin.θ, nothing)
 
-	function r_linearized!(r, z, θ, κ, cache)
-		model.linearized.r!(r, z, θ, κ, lin.z, lin.θ, lin.r, lin.rz, lin.rθ)
-		return nothing
-	end
+	# function r_linearized!(r, z, θ, κ, cache)
+	# 	model.linearized.r!(r, z, θ, κ, lin.z, lin.θ, lin.r, lin.rz, lin.rθ)
+	# 	return nothing
+	# end
+	#
+	# function rz_linearized!(rz, z, θ, cache)
+	# 	model.linearized.rz!(rz, z, lin.rz)
+	# 	return nothing
+	# end
+	#
+	# function rθ_linearized!(rθ, z, θ, cache)
+	# 	model.linearized.rθ!(rθ, lin.rθ)
+	# 	return nothing
+	# end
 
-	function rz_linearized!(rz, z, θ, cache)
-		model.linearized.rz!(rz, z, lin.rz)
-		return nothing
-	end
-
-	function rθ_linearized!(rθ, z, θ, cache)
-		model.linearized.rθ!(rθ, lin.rθ)
-		return nothing
-	end
-
-	lin.methods.r! = r_linearized!
-	lin.methods.rz! = rz_linearized!
-	lin.methods.rθ! = rθ_linearized!
+	# lin.methods.r! = r_linearized!
+	# lin.methods.rz! = rz_linearized!
+	# lin.methods.rθ! = rθ_linearized!
 
 	return nothing
 end
