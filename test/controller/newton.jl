@@ -64,51 +64,53 @@
 	model.res.r!(r1, z1, θ1, κ[1], nothing)
 	@test norm(r1) > 1.0
 
-	function dummy_newton(z, θ, κ)
-		for k = 1:400
-			r = zeros(nz)
-			rz = spzeros(nz,nz)
-			rz = similar(model.spa.rz_sp)
-			model.res.r!(r, z, θ, κ, nothing)
-			model.res.rz!(rz, z, θ, nothing)
-			Δ = - rz \ r
-			z = z + 0.1 * Δ
-			# @show norm(r)
-		end
-		return z
-	end
+	#TODO: add tests
 
-	z2 = dummy_newton(z1, θ1, κ[1])
-	model.res.r!(r1, z2, θ1, κ[1], nothing)
-	@test norm(r1) < 1.0e-10
-
-	function dummy_linear_newton(im_traj, z, θ, κ)
-		for k = 1:400
-			r = zeros(nz)
-			rz = spzeros(nz, nz)
-			rz = similar(model.spa.rz_sp)
-			ContactControl.r_linearized!(im_traj.lin[1], r, z, θ, κ[1])
-			ContactControl.rz_linearized!(im_traj.lin[1], rz, z, θ)
-			Δ = - rz \ r
-			z = z + 0.1 * Δ
-			# @show norm(r)
-		end
-		return z
-	end
-
-	z3 = dummy_linear_newton(im_traj0, z1, θ1, κ)
-	ContactControl.r_linearized!(im_traj0.lin[1], r1, z3, θ1, κ[1])
-
-	@test norm(r1) < 1.0e-10
-
-	# We recover the original z using r and rz
-	@test norm(ref_traj.z[1] - z2) < 1.0e-6
-
-	# We recover the original z using r_approx and rz_approx
-	@test norm(ref_traj.z[1] - z3) < 1.0e-6
-
-	# We recover the same solution using either methods
-	@test norm(z2 - z3) < 1.0e-6
+	# function dummy_newton(z, θ, κ)
+	# 	for k = 1:400
+	# 		r = zeros(nz)
+	# 		rz = spzeros(nz,nz)
+	# 		rz = similar(model.spa.rz_sp)
+	# 		model.res.r!(r, z, θ, κ, nothing)
+	# 		model.res.rz!(rz, z, θ, nothing)
+	# 		Δ = - rz \ r
+	# 		z = z + 0.1 * Δ
+	# 		# @show norm(r)
+	# 	end
+	# 	return z
+	# end
+	#
+	# z2 = dummy_newton(z1, θ1, κ[1])
+	# model.res.r!(r1, z2, θ1, κ[1], nothing)
+	# @test norm(r1) < 1.0e-10
+	#
+	# function dummy_linear_newton(im_traj, z, θ, κ)
+	# 	for k = 1:400
+	# 		r = zeros(nz)
+	# 		rz = spzeros(nz, nz)
+	# 		rz = similar(model.spa.rz_sp)
+	# 		model.linearized.r!(im_traj.lin[1], r, z, θ, κ[1])
+	# 		model.linearized.rz!(im_traj.lin[1], rz, z, θ)
+	# 		Δ = - rz \ r
+	# 		z = z + 0.1 * Δ
+	# 		# @show norm(r)
+	# 	end
+	# 	return z
+	# end
+	#
+	# z3 = dummy_linear_newton(im_traj0, z1, θ1, κ)
+	# model.linearized.r!(im_traj0.lin[1], r1, z3, θ1, κ[1])
+	#
+	# @test norm(r1) < 1.0e-10
+	#
+	# # We recover the original z using r and rz
+	# @test norm(ref_traj.z[1] - z2) < 1.0e-6
+	#
+	# # We recover the original z using r_approx and rz_approx
+	# @test norm(ref_traj.z[1] - z3) < 1.0e-6
+	#
+	# # We recover the same solution using either methods
+	# @test norm(z2 - z3) < 1.0e-6
 end
 
 @testset "Newton: copy_traj!" begin

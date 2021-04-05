@@ -31,7 +31,7 @@
 	for t = 1:H
 		@test norm(im_traj.d[t], Inf) < 1.0e-5
 	end
-	#
+
 	# We can use Newton's method to correct the trajectory and make it dynamically feasible
 	traj1 = deepcopy(ref_traj)
 	traj1.q[1] .+= 0.3

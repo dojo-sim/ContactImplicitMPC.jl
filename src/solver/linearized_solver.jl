@@ -486,6 +486,8 @@ function update!(rz::RZLin{T}, rz0::AbstractMatrix{T}) where {T}
 	rz.D = rz.Ry1 - Diagonal(rz.Ry2 .* rz.y2 ./ rz.y1)
 	M = [rz.Dx rz.Dy1;
 	     rz.Rx rz.D  ]
+ 	nx = length(ix)
+	ny = length(iy1)
 	rz.S = Schur(M; n=nx, m=ny)
 	return nothing
 end

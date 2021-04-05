@@ -123,6 +123,6 @@ function linear_solve!(solver::LDLSolver{T}, x::Vector{T}, A::SparseMatrixCSC{T,
     QDLDL.solve!(solver.F.F, x) # solve
 end
 
-function linear_matrix_solve!(solver::LDLSolver{T}, X::Matrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}) where T
+function linear_solve!(solver::LDLSolver{T}, X::Matrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}) where T
     x .= A \ B # TODO: fix
 end

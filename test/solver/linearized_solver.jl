@@ -36,7 +36,7 @@
 	r1 = ContactControl.RLin(model, z0, θ0, r0, rz0, rθ0)
 
 	# Test rz!
-	rz!(rz1, z)
+	ContactControl.rz!(rz1, z)
 	rz2 = rand(nz, nz)
 	model.linearized.rz!(rz2, z, rz0)
 
@@ -60,15 +60,15 @@
 	# Test linear_solve!
 	Δ = rand(nz)
 	ContactControl.linear_solve!(Δ, rz1, r1)
-	@test norm(Δ - rz2\r2, Inf) < 1e-10
+	@test norm(Δ - rz2 \ r2, Inf) < 1e-10
 
 	# @benchmark ContactControl.rz!(rz1, z)
 	# @benchmark ContactControl.r!(r1, z, θ, κ)
 	# @benchmark ContactControl.linear_solve!(Δ, rz1, r1)
 
 	# Test linear_solve! for matrices
-	model.res.rθ!(rθ0, z, θ,  NoCache())
-	@test norm(rθ0[ibil,:], Inf) < 1e-10
+	model.res.rθ!(rθ0, z, θ,  ContactControl.NoCache())
+	@test norm(rθ0[ibil, :], Inf) < 1e-10
 	# plot(Gray.(1e10*abs.(rθ_[idyn,:])))
 	# plot(Gray.(1e10*abs.(rθ_[irst,:])))
 	# plot(Gray.(1e10*abs.(rθ_[ibil,:])))
@@ -77,7 +77,7 @@
 	rθ1 = ContactControl.RθLin(model, rθ0)
 	δz1 = rand(nz,nθ)
 	ContactControl.linear_solve!(δz1, rz1, rθ1)
-	@test norm(δz1 - (rz0\rθ0), Inf) < 1e-10
+	@test norm(δz1 - (rz0 \ rθ0), Inf) < 1e-10
 	# @benchmark ContactControl.linear_solve!(δz1, rz1, rθ1)
 end
 
@@ -92,8 +92,8 @@ end
 	θ1 = rand(nθ)
 	rz0 = zeros(nz,nz)
 	rz1 = zeros(nz,nz)
-	model.res.rz!(rz0, z0, θ0, NoCache())
-	model.res.rz!(rz1, z1, θ1, NoCache())
+	model.res.rz!(rz0, z0, θ0, ContactControl.NoCache())
+	model.res.rz!(rz1, z1, θ1, ContactControl.NoCache())
 	rz = ContactControl.RZLin(model, rz0)
 	ContactControl.update!(rz, rz1)
 	@test norm(rz.Dx  - rz1[rz.idyn, rz.ix])  < 1e-10
@@ -114,10 +114,10 @@ end
 	r1 = rand(nz)
 	rz1 = zeros(nz,nz)
 	rθ1 = zeros(nz,nθ)
-	model.res.rz!(rz0, z0, θ0, NoCache())
-	model.res.rθ!(rθ0, z0, θ0, NoCache())
-	model.res.rz!(rz1, z1, θ1, NoCache())
-	model.res.rθ!(rθ1, z1, θ1, NoCache())
+	model.res.rz!(rz0, z0, θ0, ContactControl.NoCache())
+	model.res.rθ!(rθ0, z0, θ0, ContactControl.NoCache())
+	model.res.rz!(rz1, z1, θ1, ContactControl.NoCache())
+	model.res.rθ!(rθ1, z1, θ1, ContactControl.NoCache())
 	r = ContactControl.RLin(model, z0, θ0, r0, rz0, rθ0)
 	ContactControl.update!(r, z1, θ1, r1, rz1, rθ1)
 

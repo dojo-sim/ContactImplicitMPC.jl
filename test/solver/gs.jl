@@ -84,7 +84,7 @@ end
 	n = 16
 	A = rand(n,n)
 	a = Vector{SVector{n,T}}([SVector{n,T}(A[:,i]) for i=1:n])
-	gs_data = SDMGSData(n)
+	gs_data = ContactControl.SDMGSData(n)
 	ContactControl.gs!(gs_data, A)
 	ContactControl.gs!(gs_data, a)
 	ContactControl.gs!(gs_data)

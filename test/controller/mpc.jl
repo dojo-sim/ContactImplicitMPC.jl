@@ -1,4 +1,4 @@
-@testset "Linearized MPC: dummy MPC" begin
+@testset "Linearized MPC: dummy" begin
     T = Float64
     # get model
     model = ContactControl.get_model("quadruped")
@@ -78,7 +78,7 @@
     q_error, u_error, γ_error, b_error = tracking_error(ref_traj, mpc)
 
     @test q_error < 0.10
-    @test u_error < 0.10
+    @test u_error < 0.125
     @test γ_error < 0.19
     @test b_error < 0.15
 
@@ -113,7 +113,7 @@
     q_error, u_error, γ_error, b_error = tracking_error(ref_traj, mpc)
 
     @test q_error < 0.10
-    @test u_error < 0.01
+    @test u_error < 0.0125
     @test γ_error < 0.15
     @test b_error < 0.10
 end
@@ -182,7 +182,6 @@ end
 
     # simulator
     @time status = ContactControl.simulate!(sim)
-
 
     # test lengths
     @test p.core.traj.H == H_mpc
@@ -261,11 +260,6 @@ end
 
     # simulate
     @time status = ContactControl.simulate!(sim)
-
-    # plot(hcat(ref_traj.q...)[1:3, :]',
-    #     label = ["x" "y" "z"], color = :black, width = 3.0)
-    # plot!(hcat(sim.traj.q...)[1:3, :]',
-    #     label = ["x" "y" "z"], color = :red, width = 1.0, legend = :topleft)
 
     # linearized motion planning
     cost = ContactControl.CostFunction(H, model.dim,
