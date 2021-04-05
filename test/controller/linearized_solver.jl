@@ -25,8 +25,8 @@
 	r0 = rand(nz)
 	rz0 = zeros(nz,nz)
 	rθ0 = zeros(nz,nθ)
-	model.res.rz!(rz0, z0, θ0,  ContactControl.NoCache())
-	model.res.rθ!(rθ0, z0, θ0,  ContactControl.NoCache())
+	model.res.rz!(rz0, z0, θ0)
+	model.res.rθ!(rθ0, z0, θ0)
 
 	z = rand(nz)
 	θ = rand(nθ)
@@ -67,7 +67,7 @@
 	# @benchmark ContactControl.linear_solve!(Δ, rz1, r1)
 
 	# Test linear_solve! for matrices
-	model.res.rθ!(rθ0, z, θ,  ContactControl.NoCache())
+	model.res.rθ!(rθ0, z, θ)
 	@test norm(rθ0[ibil, :], Inf) < 1e-10
 	# plot(Gray.(1e10*abs.(rθ_[idyn,:])))
 	# plot(Gray.(1e10*abs.(rθ_[irst,:])))
@@ -92,8 +92,8 @@ end
 	θ1 = rand(nθ)
 	rz0 = zeros(nz,nz)
 	rz1 = zeros(nz,nz)
-	model.res.rz!(rz0, z0, θ0, ContactControl.NoCache())
-	model.res.rz!(rz1, z1, θ1, ContactControl.NoCache())
+	model.res.rz!(rz0, z0, θ0)
+	model.res.rz!(rz1, z1, θ1)
 	rz = ContactControl.RZLin(model, rz0)
 	ContactControl.update!(rz, rz1)
 	@test norm(rz.Dx  - rz1[rz.idyn, rz.ix])  < 1e-10
@@ -114,10 +114,10 @@ end
 	r1 = rand(nz)
 	rz1 = zeros(nz,nz)
 	rθ1 = zeros(nz,nθ)
-	model.res.rz!(rz0, z0, θ0, ContactControl.NoCache())
-	model.res.rθ!(rθ0, z0, θ0, ContactControl.NoCache())
-	model.res.rz!(rz1, z1, θ1, ContactControl.NoCache())
-	model.res.rθ!(rθ1, z1, θ1, ContactControl.NoCache())
+	model.res.rz!(rz0, z0, θ0)
+	model.res.rθ!(rθ0, z0, θ0)
+	model.res.rz!(rz1, z1, θ1)
+	model.res.rθ!(rθ1, z1, θ1)
 	r = ContactControl.RLin(model, z0, θ0, r0, rz0, rθ0)
 	ContactControl.update!(r, z1, θ1, r1, rz1, rθ1)
 

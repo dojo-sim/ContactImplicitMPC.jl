@@ -24,10 +24,10 @@
 		@test norm(lin.κ - κ) < 1.0e-8
 
 		# Test r!: the linear linearization is exact at the linearization point
-		model.res.r!(r0, z, θ, κ, nothing)
+		model.res.r!(r0, z, θ, κ)
 		@test norm(r0 - lin.r, Inf) < 1.0e-8
 
-		model.res.rz!(rz0, z, θ, nothing)
+		model.res.rz!(rz0, z, θ)
 		@test norm(rz0 - lin.rz, Inf) < 1.0e-8
 
 		#TODO: add more tests

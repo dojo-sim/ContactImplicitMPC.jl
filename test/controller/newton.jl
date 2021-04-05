@@ -61,7 +61,7 @@
 	r1 = zeros(nz)
 	κ = ref_traj1.κ
 	rz1 = spzeros(nz,nz)
-	model.res.r!(r1, z1, θ1, κ[1], nothing)
+	model.res.r!(r1, z1, θ1, κ[1])
 	@test norm(r1) > 1.0
 
 	#TODO: add tests

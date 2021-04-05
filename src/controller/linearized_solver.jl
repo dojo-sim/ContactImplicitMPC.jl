@@ -404,20 +404,6 @@ function norm(r::RLin, t::Real)
 	return a
 end
 
-function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T, r_cache::Cache) where {T}
-	r!(r, z, θ, κ)
-	return nothing
-end
-
-function rz!(rz::RZLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, rz_cache::Cache) where {T}
-	rz!(rz, z)
-	return nothing
-end
-
-function rθ!(rθ::RθLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, r_cache::Cache) where {T}
-	return nothing
-end
-
 function linear_solve!(solver::EmptySolver, δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
 	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
 	linear_solve!(δz, rz, rθ)
@@ -497,5 +483,19 @@ function update!(rθ::RθLin{T}, rθ0::AbstractMatrix{T}) where {T}
 	rθ.rθdyn0 = rθ0[rθ.idyn,:]
 	rθ.rθrst0 = rθ0[rθ.irst,:]
 	rθ.rθbil0 = rθ0[rθ.ibil,:]
+	return nothing
+end
+
+function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
+	r!(r, z, θ, κ)
+	return nothing
+end
+
+function rz!(rz::RZLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
+	rz!(rz, z)
+	return nothing
+end
+
+function rθ!(rθ::RθLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
 	return nothing
 end

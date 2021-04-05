@@ -18,9 +18,9 @@ function LinearizedStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::A
 	rz0 = zeros(nz, nz)
 	rθ0 = zeros(nz, nθ)
 
-	model.res.r!(r0, z0, θ0, κ0, nothing)
-	model.res.rz!(rz0, z0, θ0, nothing)
-	model.res.rθ!(rθ0, z0, θ0, nothing)
+	model.res.r!(r0, z0, θ0, κ0)
+	model.res.rz!(rz0, z0, θ0)
+	model.res.rθ!(rθ0, z0, θ0)
 	return LinearizedStep(z0, θ0, κ0, r0, rz0, rθ0)
 end
 
@@ -55,8 +55,8 @@ end
 function update!(lin::LinearizedStep, model::ContactDynamicsModel, z, θ)
 	lin.z .= z
 	lin.θ .= θ
-	model.res.r!(lin.r, z, θ, lin.κ, nothing)
-	model.res.rz!(lin.rz, z, θ, nothing)
-	model.res.rθ!(lin.rθ, z, θ, nothing)
+	model.res.r!(lin.r, z, θ, lin.κ)
+	model.res.rz!(lin.rz, z, θ)
+	model.res.rθ!(lin.rθ, z, θ)
 	return nothing
 end

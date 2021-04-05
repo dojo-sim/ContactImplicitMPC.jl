@@ -1,5 +1,4 @@
 abstract type LinearSolver end
-abstract type Cache end
 
 # check that inequality constraints are satisfied
 function inequality_check(x, idx_ineq)
@@ -11,22 +10,20 @@ function inequality_check(x, idx_ineq)
     return false
 end
 
-struct NoCache <: Cache end
-
 # residual
-function r!(r, z, θ, κ, cache)
+function r!(r, z, θ, κ)
     @warn "residual not defined"
     nothing
 end
 
 # residual Jacobian wrt z
-function rz!(rz, z, θ, cache)
+function rz!(rz, z, θ)
     @warn "residual Jacobian wrt z not defined"
     nothing
 end
 
 # residual Jacobian wrt θ
-function rθ!(rθ, z, θ, cache)
+function rθ!(rθ, z, θ)
     @warn "residual Jacobian wrt θ not defined"
     nothing
 end
@@ -86,10 +83,6 @@ mutable struct InteriorPoint{T}
     v_du
     reg_pr
     reg_du
-    r_cache::Cache
-    r̄_cache::Cache
-    rz_cache::Cache
-    rθ_cache::Cache
     opts::InteriorPointOptions
 end
 
@@ -104,15 +97,11 @@ function interior_point(z, θ;
         rz = spzeros(num_var, num_var),
         rθ = spzeros(num_var, num_data),
         reg_pr = [0.0], reg_du = [0.0],
-        r_cache = NoCache(),
-        r̄_cache = NoCache(),
-        rz_cache = NoCache(),
-        rθ_cache = NoCache(),
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
         opts = InteriorPointOptions()) where T
 
-    rz!(rz, z, θ, rz_cache) # compute Jacobian for pre-factorization
+    rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
     InteriorPoint(
         ResidualMethods(r!, rz!, rθ!),
@@ -137,7 +126,6 @@ function interior_point(z, θ;
         v_pr,
         v_du,
         reg_pr, reg_du,
-        r_cache, r̄_cache, rz_cache, rθ_cache,
         opts)
 end
 
@@ -180,9 +168,6 @@ function interior_point!(ip::InteriorPoint{T}) where T
     v_du = ip.v_du
     reg_pr = ip.reg_pr
     reg_du = ip.reg_du
-    r_cache = ip.r_cache
-    r̄_cache = ip.r̄_cache
-    rz_cache = ip.rz_cache
     solver = ip.solver
 
     # initialize barrier parameter
@@ -193,7 +178,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
     reg_du[1] = opts.reg_du_init
 
     # compute residual, residual Jacobian
-    r!(r, z, θ, κ[1], r_cache)
+    r!(r, z, θ, κ[1])
     r_norm = norm(r, res_norm)
 
     elapsed_time = 0.0
@@ -209,7 +194,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 end
 
                 # compute residual Jacobian
-                rz!(rz, z, θ, rz_cache)
+                rz!(rz, z, θ)
 
                 # regularize (fixed, TODO: adaptive)
                 reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
@@ -236,14 +221,14 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 end
 
                 # reduce norm of residual
-                r!(r̄, z̄, θ, κ[1], r̄_cache)
+                r!(r̄, z̄, θ, κ[1])
                 r̄_norm = norm(r̄, res_norm)
 
                 while r̄_norm >= (1.0 - 0.001 * α) * r_norm
                     α *= ls_scale
                     z̄ .= z - α * Δ
 
-                    r!(r̄, z̄, θ, κ[1], r̄_cache)
+                    r!(r̄, z̄, θ, κ[1])
                     r̄_norm = norm(r̄, Inf)
 
                     iter += 1
@@ -256,7 +241,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 # update
                 z .= z̄
                 # r .= r̄ #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-                r!(r, z, θ, κ[1], r_cache)
+                r!(r, z, θ, κ[1])
                 # v_pr .= 0.0
                 # v_du .= 0.0
                 r_norm = r̄_norm
@@ -272,7 +257,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
             κ[1] *= κ_scale
 
             # update residual
-            r!(r, z, θ, κ[1], r_cache)
+            r!(r, z, θ, κ[1])
             r_norm = norm(r, res_norm)
         end
     end
@@ -290,12 +275,10 @@ function differentiate_solution!(ip::InteriorPoint)
     rz = ip.rz
     rθ = ip.rθ
     δz = ip.δz
-    rz_cache = ip.rz_cache
-    rθ_cache = ip.rθ_cache
     κ = ip.κ
 
-    ip.methods.rz!(rz, z, θ, rz_cache) # maybe not needed
-    ip.methods.rθ!(rθ, z, θ, rθ_cache)
+    ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
+    ip.methods.rθ!(rθ, z, θ)
 
     linear_solve!(ip.solver, δz, rz, rθ)
     @inbounds @views @. ip.δz .*= -1.0

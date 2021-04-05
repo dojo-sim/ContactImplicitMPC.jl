@@ -107,9 +107,6 @@ function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
 
 	# Threads.@threads for t = 1:traj.H
 	for t = 1:traj.H
-		#@assert abs.(im_traj.lin[t].κ - κ[1]) / κ[1] < 1.0e-5 # check that the κ are consistent between the optimized trajectory (traj)
-		# and the linearization (impl.lin).
-
 		# initialized solver
 		z_initialize!(im_traj.ip[t].z, model, copy(traj.q[t+2])) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]

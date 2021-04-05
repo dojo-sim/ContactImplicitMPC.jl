@@ -26,7 +26,6 @@ include("utils.jl")
 
 # Solver
 include("solver/interior_point.jl")
-include("solver/interior_point2.jl") #to be removed
 include("solver/lu.jl")
 include("solver/ldl.jl")
 include("solver/qr.jl")
@@ -38,9 +37,6 @@ include("dynamics/model.jl")
 include("dynamics/code_gen.jl")
 include("dynamics/fast_methods.jl")
 include("dynamics/visuals.jl")
-
-# Solver
-include("solver/linearized_solver.jl")
 
 # Simulator
 include("simulator/trajectory.jl")
@@ -65,6 +61,7 @@ include("simulator/simulator.jl")
 include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/cost_function.jl")
+include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 include("controller/mpc.jl")
 include("controller/policy.jl")

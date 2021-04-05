@@ -179,7 +179,6 @@ function generate_residual_expressions(model::ContactDynamicsModel; T = Float64)
 	@variables z[1:nz]
 	@variables θ[1:nθ]
 	@variables κ
-	@variables cache
 
 	# Residual
 	r = residual(model, z, θ, κ)
@@ -192,9 +191,9 @@ function generate_residual_expressions(model::ContactDynamicsModel; T = Float64)
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
-	expr[:r]  = build_function(r, z, θ, κ, cache)[2]
-	expr[:rz] = build_function(rz, z, θ, cache)[2]
-	expr[:rθ] = build_function(rθ, z, θ, cache)[2]
+	expr[:r]  = build_function(r, z, θ, κ)[2]
+	expr[:rz] = build_function(rz, z, θ)[2]
+	expr[:rθ] = build_function(rθ, z, θ)[2]
 	return expr, rz_sp, rθ_sp
 end
 

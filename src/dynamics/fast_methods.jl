@@ -60,14 +60,14 @@ function dq2_fast!(v, model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q
 end
 
 # Residual methods
-function r_fast!(v, model::ContactDynamicsModel, z, θ, κ, cache)
-    return model.res.r!(v, z, θ, κ, cache)
+function r_fast!(v, model::ContactDynamicsModel, z, θ, κ)
+    return model.res.r!(v, z, θ, κ)
 end
 
-function rz_fast!(v, model::ContactDynamicsModel, z, θ, cache)
-    return model.res.rz!(v, z, θ, cache)
+function rz_fast!(v, model::ContactDynamicsModel, z, θ)
+    return model.res.rz!(v, z, θ)
 end
 
-function rθ_fast!(v, model::ContactDynamicsModel, z, θ, cache)
-    return model.res.rθ!(v, z, θ, cache)
+function rθ_fast!(v, model::ContactDynamicsModel, z, θ)
+    return model.res.rθ!(v, z, θ)
 end

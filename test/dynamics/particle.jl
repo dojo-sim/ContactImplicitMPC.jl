@@ -97,14 +97,14 @@ end
     rs = rand(nz)
 
     # Testing residual methods
-    ContactControl.r_fast!(rs, model, zs, θs, κs, nothing)
+    ContactControl.r_fast!(rs, model, zs, θs, κs)
     @test norm(rs - ContactControl.residual(model, zs, θs, κs), Inf) < 1.0e-8
 
-    ContactControl.rz_fast!(model.spa.rz_sp, model, zs, θs, nothing)
+    ContactControl.rz_fast!(model.spa.rz_sp, model, zs, θs)
 	fz(x) = ContactControl.residual(model, x, θs, κs)
     @test norm(model.spa.rz_sp - ForwardDiff.jacobian(fz, zs), Inf) < 1.0e-8
 
-	ContactControl.rθ_fast!(model.spa.rθ_sp, model, zs, θs, nothing)
+	ContactControl.rθ_fast!(model.spa.rθ_sp, model, zs, θs)
 	fθ(x) = ContactControl.residual(model, zs, x, κs)
     @test norm(model.spa.rθ_sp - ForwardDiff.jacobian(fθ, θs), Inf) < 1.0e-8
 end

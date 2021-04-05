@@ -17,7 +17,6 @@ include("solver/random_qp.jl")
 include("solver/lu.jl")
 include("solver/gs.jl")
 include("solver/schur.jl")
-include("solver/linearized_solver.jl")
 
 # Dynamics
 include("dynamics/particle.jl")
@@ -34,6 +33,7 @@ include("simulator/biped.jl")
 include("controller/cost_function.jl")
 include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
+include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 include("controller/mpc.jl")
 
