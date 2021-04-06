@@ -1,14 +1,11 @@
 # Newton solver options
 @with_kw mutable struct NewtonOptions{T}
     r_tol::T = 1.0e-5            # primal dual residual tolerance
-    solver_outer_iter::Int = 3   # outer iter on the κ parameter
-    solver_inner_iter::Int = 10  # primal dual iter
-    κ_init::T = 1e-3             # inner solver intialization
-    κ_scale::T = 0.1             # inner solver scaling
-    κ_tol::T = 2.0e-3            # inner solver tolerance
+    max_iter::Int = 10  # primal dual iter
     β_init::T = 1e1              # initial dual regularization
     β::T = 1e1                   # dual regularization
-    live_plots::Bool = false     # visualize the trajectory during the solve
+    live_plotting::Bool = false     # visualize the trajectory during the solve
+    verbose::Bool = false
 end
 
 struct NewtonResidual{T,vq2,vu1,vγ1,vb1,vd,vI,vq0,vq1}
@@ -412,7 +409,7 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
 
     # for i = 1:core.opts.solver_outer_iter
         # (core.opts.live_plot) && (visualize!(vis, model, traj.q, Δt=h))
-    for l = 1:core.opts.solver_inner_iter
+    for l = 1:core.opts.max_iter
 		# Compute implicit dynamics about traj
 		implicit_dynamics!(im_traj, model, core.traj, κ = core.traj.κ)
 

@@ -1,10 +1,10 @@
-include(joinpath(@__DIR__, "..", "dynamics", "biped", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)
 
 # get hopper model
-model = get_model("biped")
+model = get_model("hopper_2D")
 nq = model.dim.q
 nu = model.dim.u
 nc = model.dim.c
@@ -13,12 +13,14 @@ nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
 # get trajectory
-ref_traj = get_trajectory("biped", "gait1", load_type=:split_traj)
+# ref_traj = get_trajectory("hopper_2D", "gait_in_place", load_type=:joint_traj)
+ref_traj = get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
+ref_traj_copy = deepcopy(ref_traj)
 
 # time
 H = ref_traj.H
 h = ref_traj.h
-N_sample = 2
+N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
 H_sim = 200
@@ -27,8 +29,8 @@ H_sim = 200
 κ_mpc = 1.0e-4
 
 cost = CostFunction(H_mpc, model.dim,
-    q = [Diagonal(1e-2 * [0.02, 0.02, 1.0, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15]) for t = 1:H_mpc],
-    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
+    q = [Diagonal(1.0e-1 * [1,3,1,3])   for t = 1:H_mpc],
+    u = [Diagonal(1.0e-0 * [1e-3, 1e0]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
@@ -41,6 +43,9 @@ p = linearized_mpc_policy(ref_traj, model, cost,
         max_iter = 5),
     ip_max_time = 100.0,
     live_plotting = false)
+
+# 0.58/(h*200)
+
 
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])
@@ -70,10 +75,19 @@ plot(hcat(qq...)[1:model.dim.q, 1:100]',
 plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
     label = "", color = :cyan, width = 1.0, legend = :topleft)
 
-visualize!(vis, model, mpc0.q_sim[1:10:end], Δt=10*h/m_opts0.N_sample, name=:mpc)
-# visualize!(vis, model, ref_traj.q, Δt=10*h/m_opts0.N_sample, name=:mpc)
 
-# filename = "quadruped_mpc_wind"
+
+# plt = plot(layout=(2,1), legend=false)
+# plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], m_opts0.N_sample) for i=1:H]...))...)',
+#     color=:red, linewidth=3.0)
+# plot!(plt[1,1], hcat(Vector.(sim.q)...)', color=:blue, linewidth=1.0)
+# plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], m_opts0.N_sample) for i=1:H]...))...)',
+#     color=:red, linewidth=3.0)
+# plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.u]*m_opts0.N_sample)...)', color=:blue, linewidth=1.0)
+
+visualize!(vis, model, sim.q[1:10:end], Δt=10*h/m_opts0.N_sample, name=:mpc)
+
+# filename = "hopper_wind"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
@@ -81,4 +95,3 @@ visualize!(vis, model, mpc0.q_sim[1:10:end], Δt=10*h/m_opts0.N_sample, name=:mp
 # convert_video_to_gif(
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
-ref_traj.q[end-1] - ref_traj.q[1]

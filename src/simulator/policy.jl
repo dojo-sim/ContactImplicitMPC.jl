@@ -34,6 +34,6 @@ function open_loop_policy(u, h; N_sample = 1)
 end
 
 function policy(p::OpenLoop, x, traj, t)
-    k = searchsortedlast(p.t, t)
+    k = searchsortedlast(p.t, t) # TODO: switch to discrete time t
     return p.u[k] ./ p.N_sample
 end

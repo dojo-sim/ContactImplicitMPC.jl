@@ -2,56 +2,57 @@
     linearized model-predictive control policy
 """
 mutable struct LinearizedMPC <: Policy
-   mpc
-   core
+   ref_traj
+   im_traj
+   stride
+   altitude
+   κ
+   newton
    model
-   t_prev
    q0
    N_sample
-   verbose
-   warmstart
    cnt
+   live_plotting
 end
 
-function linearized_mpc_policy(ref_traj, model, cost, H_mpc, M, N_sample;
-   verbose = false,
-   warmstart = false,
-   κ = 1.0e-4,
-   n_opts = NewtonOptions(
-      r_tol=3e-4,
-      κ_init=κ,
-      κ_tol=2κ,
-      solver_inner_iter=5),
-   m_opts = MPCOptions{Float64}(
-      N_sample=N_sample,
-      M=M,
-      H_mpc=H_mpc,
-      κ=κ,
-      κ_sim=1e-8,
-      r_tol_sim=1e-8,
-      open_loop_mpc=false,
-      w_amp=[0.0, -0.0],
-      ip_max_time=100.0,
-      live_plotting=false))
-   ref_traj0 = deepcopy(ref_traj)
+function linearized_mpc_policy(traj, model, cost;
+	H_mpc = ref_traj.H,
+	N_sample = 1,
+	κ_mpc = traj.κ[1],
+	n_opts = NewtonOptions(
+		r_tol = 3e-4,
+		max_iter = 5,
+		verbose = false,
+		live_plotting = false),
+	ip_max_time = 100.0,
+	live_plotting = false)
 
-   core0 = Newton(m_opts.H_mpc, ref_traj0.h, model, cost=cost, opts=n_opts)
-   mpc0 = MPC(model, ref_traj0, m_opts=m_opts)
+	ref_traj = deepcopy(traj)
 
-   LinearizedMPC(mpc0, core0, model, -ref_traj0.h, copy(ref_traj0.q[1]), N_sample, verbose, warmstart, N_sample)
+	im_traj = ImplicitTraj(ref_traj, model, κ = κ_mpc, max_time = ip_max_time)
+	stride = get_stride(model, ref_traj)
+	altitude = zeros(model.dim.c)
+	newton = Newton(H_mpc, ref_traj.h, model, cost = cost, opts = n_opts)
+
+	LinearizedMPC(ref_traj, im_traj, stride, altitude, κ_mpc, newton, model, copy(ref_traj.q[1]),
+		N_sample, N_sample, live_plotting)
 end
 
 
 function policy(p::LinearizedMPC, x, traj, t)
     if p.cnt == p.N_sample
-		 p.mpc.m_opts.altitude && update_altitude!(p.mpc.altitude, x)
-       update!(p.mpc.impl, p.mpc.ref_traj, p.model, p.mpc.altitude, κ=p.mpc.m_opts.κ)
-       newton_solve!(p.core, p.model, p.mpc.impl, p.mpc.ref_traj; verbose=p.verbose, warm_start= t > 0.0, q0=copy(p.q0), q1=copy(x))
-       rot_n_stride!(p.mpc.ref_traj, p.mpc.q_stride)
-       p.q0 .= copy(x)
-       # p.t_prev = copy(t)
-       p.cnt = 0
+		update_altitude!(p.altitude, x)
+		update!(p.im_traj, p.ref_traj, p.model, p.altitude, κ = p.κ)
+		newton_solve!(p.newton, p.model, p.im_traj, p.ref_traj,
+			verbose = p.newton.opts.verbose, warm_start = t > 0.0, q0 = copy(p.q0), q1 = copy(x))
+		rot_n_stride!(p.ref_traj, p.stride)
+		p.q0 .= copy(x)
+		p.cnt = 0
+
+		p.live_plotting && live_plotting(p.model, p.traj, traj, p.newton)
     end
+
     p.cnt += 1
-    return p.core.traj.u[1] / p.N_sample # rescale output
+
+    return p.newton.traj.u[1] / p.N_sample # rescale output
 end

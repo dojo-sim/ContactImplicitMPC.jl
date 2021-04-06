@@ -25,7 +25,7 @@ cost = CostFunction(H, model.dim,
     u = [Diagonal(1.0e-5 * [0.1, 1.0]) for t = 1:H],
     γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:H],
     b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H])
-n_opts = NewtonOptions(r_tol=3e-8, κ_init=κ, κ_tol=2κ, solver_inner_iter=100)
+n_opts = NewtonOptions(r_tol=3e-8, max_iter=100)
 core = Newton(H, h, model, cost = cost, opts = n_opts)
 im_traj = ImplicitTraj(ref_traj, model, κ=κ)
 q0_dist = deepcopy(ref_traj.q[1] + [-0.1,0.0,0,0])

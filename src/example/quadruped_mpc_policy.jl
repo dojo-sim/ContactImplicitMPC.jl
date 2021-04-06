@@ -14,7 +14,7 @@ h_sim = h / N_sample
 H_sim = 200
 
 # barrier parameter
-κ = 1.0e-4
+κ_mpc = 1.0e-4
 
 cost = CostFunction(H_mpc, model.dim,
     q = [Diagonal(1e-2 * [0.02, 0.02, 1.0, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15]) for t = 1:H_mpc],
@@ -22,25 +22,18 @@ cost = CostFunction(H_mpc, model.dim,
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
-p = linearized_mpc_policy(ref_traj, model, cost, H_mpc, 0, N_sample,
-    n_opts = NewtonOptions(r_tol = 3e-4,
-        κ_init = κ,
-        κ_tol = 2κ,
-        solver_inner_iter = 5),
-    m_opts = MPCOptions{Float64}(
-                N_sample = N_sample,
-                M = 200,
-                H_mpc = H_mpc,
-                κ = κ,
-                κ_sim = 1e-8,
-                r_tol_sim = 1e-8,
-                open_loop_mpc = false,
-                w_amp = [-0.10, -0.10],
-                ip_max_time = 0.1,
-                live_plotting = false))
+p = linearized_mpc_policy(ref_traj, model, cost,
+    H_mpc = H_mpc,
+    N_sample = N_sample,
+    κ_mpc = κ_mpc,
+    n_opts = NewtonOptions(
+        r_tol = 3e-4,
+        max_iter = 5),
+    ip_max_time = 100.0,
+    live_plotting = false)
 
 q1_ref = copy(ref_traj.q[2])
-q0_ref = copy(copy(ref_traj.q[1]))
+q0_ref = copy(ref_traj.q[1])
 q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8

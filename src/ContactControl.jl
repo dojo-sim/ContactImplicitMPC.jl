@@ -63,7 +63,7 @@ include("controller/implicit_dynamics.jl")
 include("controller/cost_function.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
-include("controller/mpc.jl")
+include("controller/mpc_utils.jl")
 include("controller/policy.jl")
 
 export SparseStructure, LinearizedStep, get_bilinear_indices, bil_addition!, r_linearized!, rz_linearized!
