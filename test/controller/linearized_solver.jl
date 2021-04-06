@@ -1,4 +1,4 @@
-@testset "Linearized Solver" begin
+@testset "Controller: Linearized Solver" begin
 	# model = ContactControl.get_model("quadruped")
 	model = ContactControl.get_model("hopper_2D")
 
@@ -81,7 +81,7 @@
 	# @benchmark ContactControl.linear_solve!(δz1, rz1, rθ1)
 end
 
-@testset "Update Linearized Residuals" begin
+@testset "Controller: Update Linearized Residuals" begin
 	model = get_model("hopper_2D")
 	nz = ContactControl.num_var(model)
 	nθ = ContactControl.num_data(model)

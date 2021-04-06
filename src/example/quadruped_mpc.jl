@@ -52,7 +52,7 @@ mpc0 = MPC(model, ref_traj0, m_opts=m_opts0)
 #
 # 2.9/(100*h)
 
-
+using Plots
 plt = plot(layout=(2,1), legend=false)
 plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], m_opts0.N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)

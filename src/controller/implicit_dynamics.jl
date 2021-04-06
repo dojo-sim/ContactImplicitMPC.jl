@@ -69,7 +69,7 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 end
 
 function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
-	model::ContactDynamicsModel; κ = ref_traj.κ[1],
+	model::ContactDynamicsModel, alt::Vector; κ = ref_traj.κ[1],
 	)
 
 	H = ref_traj.H
@@ -82,6 +82,10 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 		im_traj.ip[t].r̄  = im_traj.ip[t+1].r̄
 		im_traj.ip[t].rz = im_traj.ip[t+1].rz
 		im_traj.ip[t].rθ = im_traj.ip[t+1].rθ
+
+		# altitude
+		im_traj.ip[t].r.alt = alt
+		im_traj.ip[t].r̄.alt = alt
 	end
 	update!(im_traj.lin[H], model, ref_traj.z[H], ref_traj.θ[H])
 	z0  = im_traj.lin[H].z
@@ -93,6 +97,10 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	update!(im_traj.ip[H].r̄,  z0, θ0, r0, rz0, rθ0)
 	update!(im_traj.ip[H].rz, rz0)
 	update!(im_traj.ip[H].rθ, rθ0)
+
+	# altitude
+	im_traj.ip[H].r.alt = alt
+	im_traj.ip[H].r̄.alt = alt
 	return nothing
 end
 

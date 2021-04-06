@@ -43,12 +43,9 @@ end
 
 
 function policy(p::LinearizedMPC, x, traj, t)
-    # @show p.cnt
-    # @show t
-    # @show "$(p.t_prev + p.mpc.ref_traj.h)"
-    # @show t >= p.t_prev + p.mpc.ref_traj.h
     if p.cnt == p.N_sample
-       update!(p.mpc.impl, p.mpc.ref_traj, p.model, κ=p.mpc.m_opts.κ)
+		 p.mpc.m_opts.altitude && update_altitude!(p.mpc.altitude, x)
+       update!(p.mpc.impl, p.mpc.ref_traj, p.model, p.mpc.altitude, κ=p.mpc.m_opts.κ)
        newton_solve!(p.core, p.model, p.mpc.impl, p.mpc.ref_traj; verbose=p.verbose, warm_start= t > 0.0, q0=copy(p.q0), q1=copy(x))
        rot_n_stride!(p.mpc.ref_traj, p.mpc.q_stride)
        p.q0 .= copy(x)

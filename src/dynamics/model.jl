@@ -161,20 +161,20 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	np = dim(model.env)
 
 	q0, q1, u1, w1, h = unpack_θ(model, θ)
-	q2, γ1, b1, ψ, η, s1, s2 = unpack_z(model, z)
+	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
 
 	ϕ = ϕ_fast(model, q2)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
 	vT_stack = vcat([[v[(i-1) * np .+ (1:np-1)]; -v[(i-1) * np .+ (1:np-1)]] for i = 1:nc]...)
-	ψ_stack = transpose(E_func(model)) * ψ
+	ψ_stack = transpose(E_func(model)) * ψ1
 
 	[d_fast(model, h, q0, q1, u1, w1, γ1, b1, q2); # TODO: replace with fast version
 	 s1 - ϕ;
 	 γ1 .* s1 .- κ;
-	 vT_stack + ψ_stack - η;
+	 vT_stack + ψ_stack - η1;
 	 s2 .- (model.μ_world * γ1 .- E_func(model) * b1);
-	 ψ .* s2 .- κ;
-	 b1 .* η .- κ]
+	 ψ1 .* s2 .- κ;
+	 b1 .* η1 .- κ]
 end
 
 mutable struct BaseMethods

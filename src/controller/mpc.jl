@@ -10,6 +10,7 @@
     w_amp::Vector{T}=[0.05]   # Amplitude of the disturbance
     ip_max_time::T = 60.0     # maximum time allowed for an InteriorPoint solve
     live_plotting::Bool=false # Use the live plotting tool to debug
+	altitude::Bool = false
 end
 
 mutable struct MPC{T,nq,nu,nw,nc,nb}
@@ -24,6 +25,7 @@ mutable struct MPC{T,nq,nu,nw,nc,nb}
     ref_traj::ContactTraj
     impl::ImplicitTraj
     q_stride::SizedArray{Tuple{nq},T,1,1,Vector{T}} # change in q required to loop the ref trajectories
+	altitude::Vector{T} # TODO: static arrays
 end
 
 function MPC(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ};
@@ -38,7 +40,8 @@ function MPC(model::ContactDynamicsModel, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb
     H = ref_traj.H
     impl = ImplicitTraj(ref_traj, model, κ=m_opts.κ, max_time=m_opts.ip_max_time)
     q_stride = get_stride(model, ref_traj)
-    return MPC{T,nq,nu,nw,nc,nb}(q0_con, q1_con, q_sim, u_sim, w_sim, γ_sim, b_sim, m_opts, ref_traj, impl, q_stride)
+	altitude = zeros(nc)
+    return MPC{T,nq,nu,nw,nc,nb}(q0_con, q1_con, q_sim, u_sim, w_sim, γ_sim, b_sim, m_opts, ref_traj, impl, q_stride, altitude)
 end
 
 function rot_n_stride!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
@@ -117,6 +120,10 @@ function get_stride(model::Biped, traj::ContactTraj)
     return q_stride
 end
 
+function update_altitude!(alt::Vector{T}, q::Vector{T}) where T
+	return nothing
+end
+
 function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC; verbose::Bool=false)
     elap = 0.0
     # Unpack
@@ -137,13 +144,14 @@ function dummy_mpc(model::ContactDynamicsModel, core::Newton, mpc::MPC; verbose:
     push!(mpc.q_sim, [q0_sim, q1_sim]...)
 
     for l = 1:m_opts.M
-        elap += 0.0*@elapsed update!(mpc.impl, ref_traj, model, κ=m_opts.κ)
 
         # Get control
         if m_opts.open_loop_mpc
             u_zoh  = SVector{model.dim.u}.([deepcopy(ref_traj.u[1])/N_sample for j=1:N_sample])
         else
             warm_start = l > 1
+            m_opts.altitude && update_altitude!(mpc.alt, mpc.q_sim[end])
+            elap += 0.0 * @elapsed update!(mpc.impl, ref_traj, model, mpc.altitude, κ=m_opts.κ)
             elap += @elapsed newton_solve!(core, model, mpc.impl, ref_traj; verbose=verbose, warm_start=warm_start, q0=q0, q1=q1)
             u_zoh  = SVector{model.dim.u}.([deepcopy(core.traj.u[1])/N_sample for j=1:N_sample])
         end
