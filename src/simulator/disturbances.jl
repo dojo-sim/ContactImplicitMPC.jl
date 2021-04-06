@@ -23,18 +23,32 @@ end
 """
     open-loop disturbances
 """
-struct OpenLoopDisturbance{W, T} <: Disturbances
+mutable struct OpenLoopDisturbance{W} <: Disturbances
     w::Vector{W} # nominal disturbances
-    t::Vector{T} # time trajectory
+    idx::Int
+    cnt::Int
+    N_sample::Int
 end
 
-function open_loop_disturbances(w, h)
-    OpenLoopDisturbance(w, [(t - 1) * h for t = 1:length(w)])
+function open_loop_disturbances(w)
+    OpenLoopDisturbance(w, 0, N_sample, N_sample)
 end
 
 function disturbances(d::OpenLoopDisturbance, x, t)
-    k = searchsortedlast(d.t, t)
-    return d.w[k]
+    # reset
+    if t == 1
+        d.idx = 0
+        d.cnt = d.N_sample
+    end
+
+    if d.cnt == d.N_sample
+        d.idx += 1
+        d.cnt = 0
+    end
+
+    d.cnt += 1
+
+    return d.w[d.idx] ./ d.N_sample
 end
 
 

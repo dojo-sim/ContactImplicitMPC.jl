@@ -125,7 +125,7 @@ end
 #         # Get disturbances
 #         # Apply control and rollout dynamics
 #         sim = simulator(model, SVector{model.dim.q}(deepcopy(mpc.q_sim[end-1])), SVector{model.dim.q}(deepcopy(mpc.q_sim[end])), h_sim, N_sample,
-#             p = open_loop_policy(u_zoh, h_sim),
+#             p = open_loop_policy(u_zoh),
 #             d = random_disturbances(model, m_opts.w_amp/N_sample, N_sample, h_sim),
 #             r! = model.res.r!,
 #             rz! = model.res.rz!,

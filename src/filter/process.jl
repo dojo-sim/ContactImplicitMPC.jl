@@ -2,8 +2,8 @@
 function process(x, u; w=zeros(nw))
 	q0, q1, γ0, b0 = unpack_x(x)
 	sim = simulator(model, SVector{nq}(q0), SVector{nq}(q1), h, 1,
-		p=open_loop_policy([u], h),
-		d=open_loop_disturbances([w], h),
+		p=open_loop_policy([u]),
+		d=open_loop_disturbances([w]),
 		ip_opts=InteriorPointOptions(r_tol=1e-8, κ_tol=2e-7, κ_init=1e-3, diff_sol=true),
 		sim_opts=SimulatorOptions())
 	simulate!(sim)

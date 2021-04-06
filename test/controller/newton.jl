@@ -20,7 +20,7 @@
 	end
 
 	sim = ContactControl.simulator(model, q0, q1, h, H,
-		p = ContactControl.open_loop_policy(SVector{model.dim.u}.(ref_traj.u), h),
+		p = ContactControl.open_loop_policy(SVector{model.dim.u}.(ref_traj.u)),
 		ip_opts = ContactControl.InteriorPointOptions(
 			r_tol = 1.0e-8, κ_tol = 2κ, κ_init = κ),
 		sim_opts = ContactControl.SimulatorOptions(warmstart = true))

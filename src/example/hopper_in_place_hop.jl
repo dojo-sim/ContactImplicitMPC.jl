@@ -39,7 +39,7 @@ push!(u_ref,  [[0.0,  2.1*α*model.g*(model.mb+model.ml)/2] for k=1:H-1-length(u
 contact_trajectory(H, h, model)
 # Simulate
 sim = simulator(model, q0_ref, q1_ref, h, H;
-    p = open_loop_policy(u_ref, h),
+    p = open_loop_policy(u_ref),
     d = no_disturbances(model),
     r! = model.res.r!,
     rz! = model.res.rz!,

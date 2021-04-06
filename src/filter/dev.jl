@@ -19,8 +19,8 @@ w = [-0.15rand(nu) for t=1:H]
 q0 = SVector{nq}([0,0,0.5])
 q1 = SVector{nq}([0,0,0.5])
 sim = simulator(model, q0, q1, h, H,
-    p=open_loop_policy(u, h),
-	d=open_loop_disturbances(w, h),
+    p=open_loop_policy(u),
+	d=open_loop_disturbances(w),
     ip_opts=InteriorPointOptions(r_tol=1e-8, κ_tol=2e-7, κ_init=1e-3),
     sim_opts=SimulatorOptions())
 

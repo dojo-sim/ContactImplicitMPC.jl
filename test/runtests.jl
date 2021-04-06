@@ -22,13 +22,13 @@ using BenchmarkTools
 # include("dynamics/particle.jl")
 # include("dynamics/quadruped.jl")
 #
-# # Simulator
-# include("simulator/particle.jl")
-# include("simulator/hopper_2D.jl")
-# include("simulator/hopper_3D.jl")
-# include("simulator/quadruped.jl")
-# include("simulator/biped.jl")
-#
+# Simulator
+include("simulator/particle.jl")
+include("simulator/hopper_2D.jl")
+include("simulator/hopper_3D.jl")
+include("simulator/quadruped.jl")
+include("simulator/biped.jl")
+
 # # Controller
 # include("controller/cost_function.jl")
 # include("controller/linearized_step.jl")

@@ -33,8 +33,8 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     traj = contact_trajectory(H, h, model)
     traj.q[1] = q0
     traj.q[2] = q1
-    traj.u[1] = policy(p, traj.q[2], traj, 0.0)
-    traj.w[1] = disturbances(d, traj.q[2], 0.0)
+    traj.u[1] = policy(p, traj.q[2], traj, 1)
+    traj.w[1] = disturbances(d, traj.q[2], 1)
 
     traj_deriv = contact_derivative_trajectory(H, model)
 
@@ -75,14 +75,11 @@ function step!(sim::Simulator, t)
     z = ip.z
     θ = ip.θ
 
-    # current time
-    tc = (t - 1) * h
-
     # policy
-    u[t] = policy(sim.p, q[t], sim.traj, tc) #TODO: fix time
-
+    u[t] = policy(sim.p, q[t], sim.traj, t)
+    
     # disturbances
-    w[t] = disturbances(sim.d, q[t], tc)
+    w[t] = disturbances(sim.d, q[t], t)
 
     # initialize
     if sim.opts.warmstart

@@ -1,7 +1,7 @@
 @testset "Simulator: Hopper (2D)" begin
     # Reference trajectory
     model = ContactControl.get_model("hopper_2D", surf = "vertical")
-    ref_traj = ContactControl.get_trajectory("hopper_2D", "vertical", 
+    ref_traj = ContactControl.get_trajectory("hopper_2D", "vertical",
         model_name = "hopper_2D_vertical")
     T = ref_traj.H
     h = ref_traj.h
@@ -17,7 +17,7 @@
 
     # simulator
     sim = ContactControl.simulator(model, q0, q1, h, T,
-        p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u], h),
+        p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u]),
         ip_opts = ContactControl.InteriorPointOptions(
     		r_tol = 1.0e-8, κ_tol = 1.0e-8, κ_init = 1.0e-5, solver = :lu_solver),
         sim_opts = ContactControl.SimulatorOptions(warmstart = true))
