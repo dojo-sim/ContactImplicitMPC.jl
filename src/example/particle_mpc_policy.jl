@@ -15,24 +15,24 @@ h = ref_traj.h
 q0 = SVector{model.dim.q}(ref_traj.q[1])
 q1 = SVector{model.dim.q}(ref_traj.q[2])
 
-# simulator
-sim = ContactControl.simulator(model, q0, q1, 1.0 * h, H,
-    p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u], N_sample = 1),
-    ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_init = 1.0e-5, κ_tol = 1.0e-6),
-    sim_opts = ContactControl.SimulatorOptions(warmstart = false))
-
-# simulate
-@time status = ContactControl.simulate!(sim)
-
-plot(hcat(ref_traj.q...)[1:3, :]',
-    label = ["x" "y" "z"], color = :black, width = 3.0)
-plot!(hcat(sim.traj.q...)[1:3, :]',
-    label = ["x" "y" "z"], color = :red, width = 1.0, legend = :topleft)
+# # simulator
+# sim = ContactControl.simulator(model, q0, q1, 1.0 * h, H,
+#     p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u], N_sample = 1),
+#     ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_init = 1.0e-5, κ_tol = 1.0e-6),
+#     sim_opts = ContactControl.SimulatorOptions(warmstart = false))
+#
+# # simulate
+# @time status = ContactControl.simulate!(sim)
+#
+# plot(hcat(ref_traj.q...)[1:3, :]',
+#     label = ["x" "y" "z"], color = :black, width = 3.0)
+# plot!(hcat(sim.traj.q...)[1:3, :]',
+#     label = ["x" "y" "z"], color = :red, width = 1.0, legend = :topleft)
 
 # linearized motion planning
 cost = ContactControl.CostFunction(H, model.dim,
     q = [Diagonal(1.0 * ones(model.dim.q))    for t = 1:H],
-    u = [Diagonal(1.0e-1 * ones(model.dim.u)) for t = 1:H],
+    u = [Diagonal(1.0e-2 * ones(model.dim.u)) for t = 1:H],
     γ = [Diagonal(1.0e-6 * ones(model.dim.c)) for t = 1:H],
     b = [Diagonal(1.0e-6 * ones(model.dim.b)) for t = 1:H])
 

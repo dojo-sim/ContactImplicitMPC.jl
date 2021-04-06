@@ -13,7 +13,7 @@
 
 
 - /!\ Changed biped friction coefficient to be 0.7
-- /!\ Some tests on the fast dynamics are not passing 
+- /!\ Some tests on the fast dynamics are not passing
 
 #Timings:
 -  quadruped 1.5x slower

@@ -29,8 +29,7 @@ p = linearized_mpc_policy(ref_traj, model, cost,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         max_iter = 5),
-    ip_max_time = 100.0,
-    live_plotting = false)
+    mpc_opts = LinearizedMPCOptions())
 
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])

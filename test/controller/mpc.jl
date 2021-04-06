@@ -34,8 +34,7 @@
         n_opts = ContactControl.NewtonOptions(
             r_tol = 3e-4,
             max_iter = 5),
-        ip_max_time = 100.0,
-        live_plotting = false)
+        mpc_opts = ContactControl.LinearizedMPCOptions())
 
     # initial configurations
     q1_ref = copy(ref_traj.q[2])
@@ -160,8 +159,7 @@ end
         n_opts = ContactControl.NewtonOptions(
             r_tol = 3e-4,
             max_iter = 5),
-        ip_max_time = 100.0,
-        live_plotting = false)
+        mpc_opts = ContactControl.LinearizedMPCOptions())
 
     # simulator
     sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,

@@ -40,9 +40,7 @@ p = linearized_mpc_policy(ref_traj, model, cost,
     κ_mpc = κ_mpc,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
-        max_iter = 5),
-    ip_max_time = 100.0,
-    live_plotting = false)
+        max_iter = 5))
 
 # 0.58/(h*200)
 
@@ -85,7 +83,7 @@ plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
 #     color=:red, linewidth=3.0)
 # plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.u]*m_opts0.N_sample)...)', color=:blue, linewidth=1.0)
 
-visualize!(vis, model, sim.q[1:10:end], Δt=10*h/m_opts0.N_sample, name=:mpc)
+# visualize!(vis, model, sim.q[1:10:end], Δt=10*h/m_opts0.N_sample, name=:mpc)
 
 # filename = "hopper_wind"
 # MeshCat.convert_frames_to_video(
