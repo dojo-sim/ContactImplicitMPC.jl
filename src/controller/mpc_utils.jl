@@ -65,11 +65,8 @@ end
 function update_altitude!(alt, model::ContactDynamicsModel, traj, t, N_sample;
 	threshold = 1.0, verbose = false)
 
-	# @show p.N_sample
 	idx1 = max(0, t - p.N_sample) + 1
-	# @show idx1
-	# @show t
-	# @show length(traj.γ)
+
 	for i = 1:model.dim.c
 		γ_max = 0.0
 		idx_max = 0

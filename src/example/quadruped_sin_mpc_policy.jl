@@ -13,23 +13,6 @@ nb = model.dim.b
 nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
-nz = num_var(model)
-nθ = num_data(model)
-r0 = rand(nz)
-z0 = rand(nz)
-θ0 = rand(nθ)
-# ϕ_fast(model, ref_traj.q[1])[1]
-# ϕ_fast(model, [0.0; zeros(nq-1)])[1]
-# ϕ_fast(model, [1.0; zeros(nq-1)])[1]
-#
-# model.base.ϕ(ref_traj.q[1])[1]
-# model.base.ϕ([0.0; zeros(nq-1)])[1]
-# model.base.ϕ([1.0; zeros(nq-1)])[1]
-# model.env.surf([0.0])[1]
-# model.env.surf([1.0])[1]
-# model.env.surf_grad([1.0])[1]
-
-
 # get trajectory
 ref_traj = get_trajectory("quadruped", "gait1", load_type=:split_traj, model=model)
 ref_traj_copy = deepcopy(ref_traj)
@@ -40,13 +23,14 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 5000
+H_sim = 7000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 cost = CostFunction(H_mpc, model.dim,
-    q = [Diagonal(1e-2 * [0.02, 0.02, 1.0, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15]) for t = 1:H_mpc],
+    # q = [Diagonal(1e-2 * [0.02, 0.02, 1.0, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15]) for t = 1:H_mpc],
+    q = [Diagonal(1e-2 * [0.02; 0.02; 1.0; 0.15*ones(nq-3)]) for t = 1:H_mpc],
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
@@ -72,8 +56,11 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
+w_amp = [+0.02, -0.20]
 sim = simulator(model, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
+    # d = random_disturbances(model, w_amp, H, h)
+    d = open_loop_disturbances([rand(model.dim.w) .* w_amp for i=1:H_sim]),
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
         κ_init = 1.0e-8,
@@ -100,7 +87,7 @@ draw_lines!(vis, model, sim.traj.q[1:N_sample:end])
 plot_surface!(vis, model.env)
 
 
-# filename = "hopper_2d_sinusoidal"
+# filename = "quadruped_steep_sine"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
