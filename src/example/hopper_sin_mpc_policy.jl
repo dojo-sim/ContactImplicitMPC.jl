@@ -98,7 +98,7 @@ plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', co
 
 visualize!(vis, model, sim.traj.q[1:50:end], Δt=10*h/N_sample, name=:mpc)
 draw_lines!(vis, model, sim.traj.q[1:10:end])
-
+plot_surface!(vis, model.env)
 
 
 # filename = "hopper_2d_sinusoidal"
@@ -123,5 +123,3 @@ draw_lines!(vis, model, sim.traj.q[1:10:end])
 # plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
 #     label = "", color = :cyan, width = 1.0, legend = :topleft)
 #
-
-plot_surface!(vis, model.env)
