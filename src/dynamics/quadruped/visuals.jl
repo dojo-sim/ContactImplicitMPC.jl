@@ -1,6 +1,6 @@
 # visualization
 function visualize!(vis, model::Quadruped, q;
-	r = 0.025, Δt = 0.1, name::Symbol=:quadruped)
+	r = 0.025, Δt = 0.1, name::Symbol=:quadruped, camera::Bool=false)
 
 	default_background!(vis)
 
@@ -165,9 +165,37 @@ function visualize!(vis, model::Quadruped, q;
 			settransform!(vis[name]["feet4"], MeshCat.Translation(p_calf_4))
 		end
 	end
-
-	# settransform!(vis["/Cameras/default"],
-	#     compose(Translation(0.0, 1.5, -1.), LinearMap(RotZ(-pi / 2.0))))
-
+	if camera
+		settransform!(vis["/Cameras/default"],
+		    compose(Translation(0.0, 1.5, -1.), LinearMap(RotZ(-pi / 2.0))))
+	end
 	MeshCat.setanimation!(vis, anim)
+end
+
+
+function draw_lines!(vis::Visualizer, model::Hopper2D, q::AbstractVector;
+		r_foot=0.05, offset=0.05, size=10, name::Symbol=:hopper_2D, col::Bool=true)
+	p_shift = [0.0, 0.0, r_foot]
+
+	kinematics(model::Hopper2D, q) = [q[1] + q[4] * sin(q[3]), q[2] - q[4] * cos(q[3])]
+
+	# Point Traj
+	top_point = Vector{Point{3,Float64}}()
+	bot_point = Vector{Point{3,Float64}}()
+
+	for qi in q
+		push!(top_point, Point(qi[1], -offset, qi[2])+p_shift)
+		push!(bot_point, Point(kinematics(model, qi)[1], -offset, kinematics(model, qi)[2])+p_shift)
+	end
+
+	# Set lines
+	orange_mat, blue_mat, black_mat = get_line_material(size)
+	if col
+		setobject!(vis[name]["/lines/top"], MeshCat.Line(top_point, orange_mat))
+		setobject!(vis[name]["/lines/bot"], MeshCat.Line(bot_point, blue_mat))
+	else
+		setobject!(vis[name]["/lines/top"], MeshCat.Line(top_point, black_mat))
+		setobject!(vis[name]["/lines/bot"], MeshCat.Line(bot_point, black_mat))
+	end
+	return nothing
 end

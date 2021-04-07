@@ -526,7 +526,8 @@ quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
-				environment_2D(x -> 0.05*sin.(π*x[1:1])),
+				# environment_2D(x -> 0.05*sin.(π*x[1:1])),
+				environment_2D(x -> 0.025*(cos.(pi*x[1:1]) .- 1.0)),
 				)
 
 

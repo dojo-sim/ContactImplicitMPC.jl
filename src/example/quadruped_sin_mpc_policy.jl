@@ -40,7 +40,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 50
+H_sim = 5000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -95,8 +95,8 @@ plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H
 plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
-visualize!(vis, model, sim.traj.q[1:50:end], Δt=10*h/N_sample, name=:mpc)
-draw_lines!(vis, model, sim.traj.q[1:10:end])
+visualize!(vis, model, sim.traj.q[1:N_sample:end], Δt=10*h/N_sample, name=:mpc)
+draw_lines!(vis, model, sim.traj.q[1:N_sample:end])
 plot_surface!(vis, model.env)
 
 
