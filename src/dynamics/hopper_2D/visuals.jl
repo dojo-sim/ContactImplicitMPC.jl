@@ -1,10 +1,9 @@
 # Visualization
 function visualize!(vis, model::Hopper2D, q;
-		Δt = 0.1, scenario = :vertical, name::Symbol=:hopper_2D)
+		Δt = 0.1, scenario = :vertical, name::Symbol=:hopper_2D, r_foot = 0.05, camera::Bool=false)
 
 	default_background!(vis)
 
-    r_foot = 0.05
     r_leg = 0.5 * r_foot
 
     setobject!(vis[name]["body"], Sphere(Point3f0(0),
@@ -49,9 +48,43 @@ function visualize!(vis, model::Hopper2D, q;
             end
         end
     end
-
-	settransform!(vis["/Cameras/default"],
-		compose(Translation(0.0, 0.5, -1.0),LinearMap(RotZ(-pi / 2.0))))
+	if camera
+		settransform!(vis["/Cameras/default"],
+			compose(Translation(0.0, 0.5, -1.0),LinearMap(RotZ(-pi / 2.0))))
+	end
 
     MeshCat.setanimation!(vis, anim)
+end
+
+
+function draw_lines!(vis::Visualizer, model::Hopper2D, q::AbstractVector;
+		r_foot=0.05, offset=0.05, size=10, name::Symbol=:hopper_2D, col::Bool=true)
+	p_shift = [0.0, 0.0, r_foot]
+	orange_col = [1,153/255,51/255]
+	blue_col = [51/255,1,1]
+	black_col = [0,0,0]
+	orange_mat = LineBasicMaterial(color=color=RGBA(orange_col...,1.0), linewidth=size)
+	blue_mat = LineBasicMaterial(color=color=RGBA(blue_col...,1.0), linewidth=size)
+	black_mat = LineBasicMaterial(color=color=RGBA(black_col...,1.0), linewidth=size)
+
+	kinematics(model::Hopper2D, q) = [q[1] + q[4] * sin(q[3]), q[2] - q[4] * cos(q[3])]
+
+	# Point Traj
+	top_point = Vector{Point{3,Float64}}()
+	bot_point = Vector{Point{3,Float64}}()
+
+	for qi in q
+		push!(top_point, Point(qi[1], -offset, qi[2])+p_shift)
+		push!(bot_point, Point(kinematics(model, qi)[1], -offset, kinematics(model, qi)[2])+p_shift)
+	end
+
+	# Set lines
+	if col
+		setobject!(vis[name]["/lines/top"], MeshCat.Line(top_point, orange_mat))
+		setobject!(vis[name]["/lines/bot"], MeshCat.Line(bot_point, blue_mat))
+	else
+		setobject!(vis[name]["/lines/top"], MeshCat.Line(top_point, black_mat))
+		setobject!(vis[name]["/lines/bot"], MeshCat.Line(bot_point, black_mat))
+	end
+	return nothing
 end

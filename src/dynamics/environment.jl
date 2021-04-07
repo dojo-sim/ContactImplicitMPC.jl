@@ -16,7 +16,6 @@ end
 
 function environment_2D(surf)
 	@variables q[1:1]
-	@show "wwww"
 	s = surf(q)
 	s = Symbolics.simplify.(s)
 	ds = Symbolics.gradient(s, q, simplify = true)

@@ -55,7 +55,8 @@ end
 
 # signed distance function
 function ϕ_func(model::Particle, q)
-    q[3:3] .- model.env.surf(q)
+    # q[3:3] .- model.env.surf(q)
+	SVector{model.dim.c}(q[3:3] .- model.env.surf(q[1:2]))
 end
 
 # control Jacobian

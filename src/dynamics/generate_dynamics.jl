@@ -219,6 +219,7 @@ path_linearized = joinpath(dir, "sinusoidal/linearized.jld2")
 expr_base = generate_base_expressions_analytical(model)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
+model.base.ϕ([1.0; zeros(nq-1)])
 
 expr_dyn = generate_dynamics_expressions(model)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
