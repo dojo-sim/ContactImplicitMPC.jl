@@ -72,10 +72,6 @@ end
 
 function rotation(env::Environment{R2}, q)
 	# unit surface normal (3D)
-	@show env.surf_grad(q[1:1])
-	@show typeof(env.surf_grad(q[1:1]))
-	@show q[1:1]
-	@show typeof(q[1:1])
 	n = [-1.0 * env.surf_grad(q[1:1]); 1.0]
 	ns = n ./ sqrt(transpose(n) * n)
 
