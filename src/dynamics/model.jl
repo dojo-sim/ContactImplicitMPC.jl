@@ -252,7 +252,7 @@ function get_gait(name::String, gait::String)
 	path = joinpath(@__DIR__, name)
 	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
 
-	res = JLD2.jldopen(gait_path)# z̄ x̄ ū h̄ q u γ b
+	res = JLD2.jldopen(gait_path) # z̄ x̄ ū h̄ q u γ b
 
 	return res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
 end

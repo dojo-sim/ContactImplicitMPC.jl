@@ -42,7 +42,8 @@ function linearized_mpc_policy(traj, model, cost;
 	im_traj = ImplicitTraj(traj, model, κ = κ_mpc, max_time = mpc_opts.ip_max_time)
 	stride = get_stride(model, traj)
 	altitude = zeros(model.dim.c)
-	newton = Newton(H_mpc, traj.h, model, cost = cost, opts = n_opts)
+	update!(im_traj, traj, model, altitude, κ = κ_mpc)
+	newton = Newton(H_mpc, traj.h, model, traj, im_traj, cost = cost, opts = n_opts)
 
 	LinearizedMPC(traj, ref_traj, im_traj, stride, altitude, κ_mpc, newton, model, copy(ref_traj.q[1]),
 		N_sample, N_sample, mpc_opts)
@@ -58,7 +59,7 @@ function policy(p::LinearizedMPC, x, traj, t)
 
     if p.cnt == p.N_sample
 		(p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.model,
-									p.traj, t, p.N_sample,
+									traj, t, p.N_sample,
 									threshold = p.opts.altitude_impact_threshold,
 									verbose = p.opts.altitude_verbose))
 		update!(p.im_traj, p.traj, p.model, p.altitude, κ = p.κ)

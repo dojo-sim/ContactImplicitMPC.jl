@@ -1,11 +1,11 @@
 # Newton solver options
 @with_kw mutable struct NewtonOptions{T}
     r_tol::T = 1.0e-5            # primal dual residual tolerance
-    max_iter::Int = 10  # primal dual iter
-    β_init::T = 1e1              # initial dual regularization
-    β::T = 1e1                   # dual regularization
-    live_plotting::Bool = false     # visualize the trajectory during the solve
+    max_iter::Int = 10           # primal dual iter
+    β_init::T = 1.0e-5           # initial dual regularization
+    live_plotting::Bool = false  # visualize the trajectory during the solve
     verbose::Bool = false
+    solver::Symbol = :lu_solver
 end
 
 struct NewtonResidual{T,vq2,vu1,vγ1,vb1,vd,vI,vq0,vq1}
@@ -182,10 +182,13 @@ mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3}
     Δb::Vector{SizedArray{Tuple{nb},T,1,1}}         # difference between the traj and ref_traj
     ind::NewtonIndices                                 # indices of a one-time-step block
     cost::CostFunction                              # cost function
-    opts::NewtonOptions{T}                        # Newton solver options
+    solver::LinearSolver
+    β::T
+    opts::NewtonOptions{T}                          # Newton solver options
 end
 
-function Newton(H::Int, h::T, model::ContactDynamicsModel;
+function Newton(H::Int, h::T, model::ContactDynamicsModel,
+    traj::ContactTraj, im_traj::ImplicitTraj;
     cost::CostFunction = CostFunction(H, model.dim),
     opts::NewtonOptions = NewtonOptions()) where T
 
@@ -203,6 +206,12 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel;
 
     jac = NewtonJacobian(H, dim)
 
+    # precompute Jacobian for pre-factorization
+    implicit_dynamics!(im_traj, model, traj, κ = traj.κ)
+    jacobian!(jac, im_traj, cost, H, opts.β_init)
+
+    solver = eval(opts.solver)(jac.R)
+
     res = NewtonResidual(H, dim)
     res_cand = NewtonResidual(H, dim)
 
@@ -219,23 +228,19 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel;
     Δγ  = [zeros(SizedVector{nc,T}) for t = 1:H]
     Δb  = [zeros(SizedVector{nb,T}) for t = 1:H]
 
+    β = copy(opts.β_init)
+
     return Newton{T,nq,nu,nw,nc,nb,nz,nθ,nd,nd,2nq+nu}(
         jac, res, res_cand, Δ, ν, ν_cand, traj, traj_cand,
-        Δq, Δu, Δγ, Δb, ind, cost, opts)
+        Δq, Δu, Δγ, Δb, ind, cost, solver, β, opts)
 end
 
-function jacobian!(jac::NewtonJacobian, model::ContactDynamicsModel,
-    core::Newton, im_traj::ImplicitTraj)
-
-    # unpack
-    # H = length(im_traj.ip)
-    H_mpc = core.traj.H
-    cost = core.cost
-    opts = core.opts
+function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, cost::CostFunction,
+    H::Int, β::T) where T
 
     fill!(jac.R, 0.0) # TODO: remove
 
-    for t = 1:H_mpc
+    for t = 1:H
         # Cost function
         jac.obj_q2[t] .+= cost.q[t]
         jac.obj_u1[t] .+= cost.u[t]
@@ -261,7 +266,7 @@ function jacobian!(jac::NewtonJacobian, model::ContactDynamicsModel,
         jac.u1T[t] .+= im_traj.δu1[t]'
 
         # Dual regularization
-        jac.reg[t][diagind(jac.reg[t])] .-= opts.β * im_traj.lin[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+        jac.reg[t][diagind(jac.reg[t])] .-= β * im_traj.lin[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
     end
 
     return nothing
@@ -367,7 +372,7 @@ function reset!(core::Newton, ref_traj::ContactTraj;
     opts = core.opts
 
     # Reset β value
-    opts.β = opts.β_init
+    core.β = opts.β_init
 
     if !warm_start
 		# Reset duals
@@ -417,12 +422,16 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
         residual!(core.res, model, core, core.ν, im_traj, core.traj, ref_traj)
 
         # Compute NewtonJacobian
-        jacobian!(core.jac, model, core, im_traj)
+        jacobian!(core.jac, im_traj, cost, core.traj.H, core.β)
+
+        solver = eval(core.opts.solver)(core.jac.R)
 
         # Compute Search Direction
-        core.Δ.r .= -1.0 * (core.jac.R \ core.res.r) #TODO: QDLDL
+        # core.Δ.r .= -1.0 * (core.jac.R \ core.res.r) #TODO: QDLDL
+        linear_solve!(solver, core.Δ.r, core.jac.R, core.res.r)
+        core.Δ.r .*= -1.0
 
-		# println("res:", scn(norm(core.res.r, 1) / length(core.res.r), digits=3))
+        # println("res:", scn(norm(core.res.r, 1) / length(core.res.r), digits=3))
         if norm(core.res.r, 1) / length(core.res.r) < core.opts.r_tol
             break
         end
@@ -457,9 +466,9 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
 
         # update # maybe not useful never activated
         if iter > 6
-            core.opts.β = min(core.opts.β * 1.3, 1.0e2)
+            core.β = min(core.β * 1.3, 1.0e2)
         else
-            core.opts.β = max(1.0e1, core.opts.β / 1.3)
+            core.β = max(1.0e1, core.β / 1.3)
         end
 
         verbose && println(" l: ", l ,
@@ -470,20 +479,6 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
                 "     κ: ", scn(core.traj.κ[1], digits = 0))
 
         update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
-
-        #####################
-        #####################
-        # plt = plot(legend = false)
-        # # plot!([norm(d) for d in impl.d], label="ν")
-        # # plot!(hcat(Vector.(core.ν)...)', label="ν")
-        # # plot!(hcat(Vector.(core.ν_)...)', linewidth=3.0, linestyle=:dot, label="ν_")
-        # plot!(hcat(Vector.(core.traj.q)...)', label="q")
-        # plot!(hcat(Vector.(ref_traj.q)...)', linewidth=3.0, linestyle=:dot, label="q")
-        # # plot!(hcat(Vector.(core.traj.u)...)', label="u")
-        # # plot!(hcat(Vector.(ref_traj.u)...)', linewidth=3.0, linestyle=:dot, label="u")
-        # display(plt)
-        #####################
-        #####################
     end
 
     return nothing

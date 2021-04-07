@@ -52,7 +52,14 @@ q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 p = linearized_mpc_policy(ref_traj, model, cost,
     H_mpc = H_mpc,
     N_sample = N_sample,
-    κ_mpc = κ_mpc)
+    κ_mpc = κ_mpc,
+    n_opts = NewtonOptions(
+		r_tol = 3e-4,
+		max_iter = 5,
+		verbose = false,
+		solver = :ldl_solver,
+		live_plotting = false),
+    mpc_opts = LinearizedMPCOptions())
 
 # # simulator
 sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
@@ -77,3 +84,19 @@ plot(hcat(qq...)[1:3, 1:L]',
     label = ["x" "y" "z"], color = :black, width = 3.0)
 plot!(hcat(sim.traj.q...)[1:3, 1:L]',
     label = ["x" "y" "z"], color = :cyan, width = 1.0, legend = :topleft)
+
+
+p.newton.jac.R
+p.newton.solver.F
+
+rank(p.newton.jac.R)
+p.newton.res.r
+
+p.newton.jac.R \ p.newton.res.r
+solver = eval(:ldl_solver)(p.newton.jac.R)
+p.newton.jac.R
+solver.F
+linear_solve!(solver, p.newton.Δ.r, p.newton.jac.R, p.newton.res.r)
+linear_solve!(p.newton.solver, p.newton.Δ.r, p.newton.jac.R, p.newton.res.r)
+
+p.newton.solver

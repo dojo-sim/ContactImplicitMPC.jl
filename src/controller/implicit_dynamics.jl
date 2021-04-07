@@ -69,8 +69,7 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 end
 
 function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
-	model::ContactDynamicsModel, alt::Vector; κ = ref_traj.κ[1],
-	)
+	model::ContactDynamicsModel, alt::Vector; κ = ref_traj.κ[1])
 
 	H = ref_traj.H
 	for t = 1:H

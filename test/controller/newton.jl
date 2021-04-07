@@ -201,10 +201,9 @@ end
 	    u = [Diagonal(1.0e-1 * ones(nu)) for t = 1:H],
 	    γ = [Diagonal(1.0e-2 * ones(nc)) for t = 1:H],
 	    b = [Diagonal(1.0e-3 * ones(nb)) for t = 1:H])
-
-	core = ContactControl.Newton(H, h, model, cost = cost)
 	im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
-	ContactControl.jacobian!(core.jac, model, core, im_traj0)
+	core = ContactControl.Newton(H, h, model, im_traj0, cost = cost)
+	ContactControl.jacobian!(core.jac, im_traj0, cost, ref_traj.H, core.β)
 	# spy(Matrix(core.jac.R[1:150, 1:150]))
 
 	# Test symmetry
@@ -216,7 +215,7 @@ end
 	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nu), off .+ (1:nu)] .- 1e-1))) .< 1e-8); off += nu
 	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nc), off .+ (1:nc)] .- 1e-2))) .< 1e-8); off += nc
 	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nb), off .+ (1:nb)] .- 1e-3))) .< 1e-8); off += nb
-	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nd), off .+ (1:nd)] .+ core.opts.β * im_traj0.lin[1].κ[1]))) .< 1e-8); off += nd
+	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nd), off .+ (1:nd)] .+ core.β * im_traj0.lin[1].κ[1]))) .< 1e-8); off += nd
 
 	# Test dynamics terms
 	for t = 1:H
@@ -257,9 +256,8 @@ end
 	    u = [Diagonal(1.0 * ones(nu)) for t = 1:H],
 	    γ = [Diagonal(1.0e-6 * ones(nc)) for t = 1:H],
 	    b = [Diagonal(1.0e-6 * ones(nb)) for t = 1:H])
-
-	core = ContactControl.Newton(H, h, model, cost = cost)
 	im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
+	core = ContactControl.Newton(H, h, model, im_traj0, cost = cost)
 	ContactControl.implicit_dynamics!(im_traj0, model, ref_traj)
 
 	# Offset the trajectory and the dual variables to get a residual
