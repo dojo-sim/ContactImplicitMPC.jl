@@ -60,12 +60,6 @@ end
 function draw_lines!(vis::Visualizer, model::Hopper2D, q::AbstractVector;
 		r_foot=0.05, offset=0.05, size=10, name::Symbol=:hopper_2D, col::Bool=true)
 	p_shift = [0.0, 0.0, r_foot]
-	orange_col = [1,153/255,51/255]
-	blue_col = [51/255,1,1]
-	black_col = [0,0,0]
-	orange_mat = LineBasicMaterial(color=color=RGBA(orange_col...,1.0), linewidth=size)
-	blue_mat = LineBasicMaterial(color=color=RGBA(blue_col...,1.0), linewidth=size)
-	black_mat = LineBasicMaterial(color=color=RGBA(black_col...,1.0), linewidth=size)
 
 	kinematics(model::Hopper2D, q) = [q[1] + q[4] * sin(q[3]), q[2] - q[4] * cos(q[3])]
 
@@ -79,6 +73,7 @@ function draw_lines!(vis::Visualizer, model::Hopper2D, q::AbstractVector;
 	end
 
 	# Set lines
+	orange_mat, blue_mat, black_mat = get_line_material(size)
 	if col
 		setobject!(vis[name]["/lines/top"], MeshCat.Line(top_point, orange_mat))
 		setobject!(vis[name]["/lines/bot"], MeshCat.Line(bot_point, blue_mat))

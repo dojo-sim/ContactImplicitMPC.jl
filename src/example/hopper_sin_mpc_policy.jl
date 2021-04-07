@@ -123,3 +123,5 @@ draw_lines!(vis, model, sim.traj.q[1:10:end])
 # plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
 #     label = "", color = :cyan, width = 1.0, legend = :topleft)
 #
+
+plot_surface!(vis, model.env)
