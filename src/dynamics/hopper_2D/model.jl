@@ -124,4 +124,5 @@ hopper_2D_sinusoidal = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			   SVector{4}(zeros(4)),
-			   environment_2D(x -> 0.10*sin.(π*x)[1]))
+			   environment_2D(x -> 0.10*sin.(π*x[1:1])),
+			   )

@@ -64,7 +64,7 @@ instantiate_linearized!(model, path_linearized)
 # Particle (sinusoidal)
 ################################################################################
 dir = joinpath(@__DIR__, "particle")
-model = deepcopy(particle_no_gravity)
+model = deepcopy(particle_sinusoidal)
 
 path_base = joinpath(dir, "sinusoidal/base.jld2")
 path_dyn = joinpath(dir, "sinusoidal/dynamics.jld2")

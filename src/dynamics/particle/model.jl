@@ -92,11 +92,11 @@ particle_quadratic = Particle(Dimensions(3, 3, 3, 1, 4), 1.0, 9.81, 0.1, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 	SparseStructure(spzeros(0,0),spzeros(0,0)),
 	SVector{3}(zeros(3)),
-	environment_3D(x -> transpose(x[1:2]) * x[1:2]))
+	environment_3D(x -> [transpose(x[1:2]) * x[1:2]]))
 
 # no gravity
 particle_sinusoidal = Particle(Dimensions(3, 3, 3, 1, 4), 1.0, 0.0 * 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 	SparseStructure(spzeros(0,0),spzeros(0,0)),
 	SVector{3}(zeros(3)),
-	environment_3D(x -> sin(x[1])+sin(x[2])))
+	environment_3D(x -> [sin(x[1])+sin(x[2])]))

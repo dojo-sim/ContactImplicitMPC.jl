@@ -417,12 +417,6 @@ function ϕ_func(model::Quadruped, q)
 	p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
 	p_calf_4 = kinematics_3(model, q, body = :calf_4, mode = :ee)
 	alt = model.alt
-	@show typeof(p_calf_1[2])
-	@show typeof(p_calf_1[1])
-	@show typeof( - alt[1] )
-	@show typeof(model.env.surf(p_calf_1[1:1]))
-	@show typeof(model.env.surf(p_calf_1[1:1])[1])
-	# @show typeof()
 	SVector{model.dim.c}(
 		[p_calf_1[2] - alt[1] - model.env.surf(p_calf_1[1:1])[1],
 		 p_calf_2[2] - alt[2] - model.env.surf(p_calf_2[1:1])[1],
@@ -532,7 +526,8 @@ quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
-				environment_2D(x -> 0.05*sin.(π*x[1:1])))
+				environment_2D(x -> 0.05*sin.(π*x[1:1])),
+				)
 
 
 function initial_configuration(model::Quadruped, θ)

@@ -86,11 +86,11 @@ particle_2D = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 1.0, 0.0,
 
 # Model (slope)
 function slope(x)
-	0.5 * x[1]
+	0.5 * x[1:1]
 end
 
 function slope_grad(x)
-	0.5
+	[0.5]
 end
 
 particle_2D_slope = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 0.1, 0.0,

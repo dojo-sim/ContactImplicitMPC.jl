@@ -395,7 +395,7 @@ function ϕ_func(model::Biped, q)
 		p_toe_1[2]   - model.env.surf(p_toe_1[1:1])[1],
 		p_heel_1[2]  - model.env.surf(p_heel_1[1:1])[1],
 		p_toe_2[2]   - model.env.surf(p_toe_2[1:1])[1],
-		p_heel_2[2]] - model.env.surf(p_heel_2[1:1])[1],
+		p_heel_2[2] - model.env.surf(p_heel_2[1:1])[1]]
 		)
 end
 
