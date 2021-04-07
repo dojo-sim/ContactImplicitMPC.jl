@@ -34,7 +34,7 @@ u_ref = []
 push!(u_ref,  [[0.0,  5.0*α*model.g*(model.mb+model.ml)/2] for k=1:2*6]...);
 push!(u_ref,  [[0.0, -0.9*α*model.g*(model.mb+model.ml)/2] for k=1:2*9]...);
 push!(u_ref,  [[0.0,  0.2*α*model.g*(model.mb+model.ml)/2] for k=1:2*14]...);
-push!(u_ref,  [[0.0,  2.1*α*model.g*(model.mb+model.ml)/2] for k=1:H-1-length(u_ref)]...);
+push!(u_ref,  [[0.0,  2.1*α*model.g*(model.mb+model.ml)/2] for k=1:H-length(u_ref)]...);
 
 contact_trajectory(H, h, model)
 # Simulate

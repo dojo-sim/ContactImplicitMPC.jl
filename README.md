@@ -10,6 +10,8 @@
 - [ ] Enforce no slip conditions on nominal gaits
 - [ ] Improve visualizations: visualize the torques at the revolute joints and the forces at the prismatic joints
 - [ ] Add friction cone visualization and contact force vectors
+- [ ] fix visualization of the trajectories 
+- [ ] add terrain visualization
 
 
 - /!\ Changed biped friction coefficient to be 0.7

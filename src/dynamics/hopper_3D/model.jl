@@ -49,7 +49,9 @@ function C_func(model::Hopper3D, q, q̇)
 end
 
 function ϕ_func(model::Hopper3D, q)
-    @SVector [kinematics(model, q)[3]]
+    # @SVector [kinematics(model, q)[3]]
+	SVector{model.dim.c}(kinematics(model, q)[3:3] .- model.env.surf(q[1:2]))
+
 end
 
 function B_func(::Hopper3D, q)

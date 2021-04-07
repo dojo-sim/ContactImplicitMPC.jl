@@ -54,7 +54,6 @@ function policy(p::LinearizedMPC, x, traj, t)
 	if t == 1
 		p.cnt = p.N_sample
 		p.q0 = copy(p.ref_traj.q[1])
-		# p.traj = deepcopy(p.ref_traj)
 	end
 
     if p.cnt == p.N_sample
