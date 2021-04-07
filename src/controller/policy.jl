@@ -53,12 +53,11 @@ function policy(p::LinearizedMPC, x, traj, t)
 	if t == 1
 		p.cnt = p.N_sample
 		p.q0 = copy(p.ref_traj.q[1])
-		# p.traj = deepcopy(p.ref_traj)
 	end
 
     if p.cnt == p.N_sample
 		(p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.model,
-									p.traj, t, p.N_sample,
+									traj, t, p.N_sample,
 									threshold = p.opts.altitude_impact_threshold,
 									verbose = p.opts.altitude_verbose))
 		update!(p.im_traj, p.traj, p.model, p.altitude, κ = p.κ)

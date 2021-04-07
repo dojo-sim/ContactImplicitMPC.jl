@@ -16,12 +16,12 @@ end
 
 function environment_2D(surf)
 	@variables q[1:1]
-
+	@show "wwww"
 	s = surf(q)
 	s = Symbolics.simplify.(s)
 	ds = Symbolics.gradient(s, q, simplify = true)
 
-	surf_fast = eval(Symbolics.build_function(s, q))
+	surf_fast = eval(Symbolics.build_function(s, q)[1])
 	surf_grad_fast = eval(Symbolics.build_function(ds, q)[1])
 
 	Environment{R2}(surf_fast, surf_grad_fast)
@@ -34,7 +34,7 @@ function environment_3D(surf)
 	s = Symbolics.simplify.(s)
 	ds = Symbolics.gradient(s, q, simplify = true)
 
-	surf_fast = eval(Symbolics.build_function(s, q))
+	surf_fast = eval(Symbolics.build_function(s, q)[1])
 	surf_grad_fast = eval(Symbolics.build_function(ds, q)[1])
 
 	Environment{R3}(surf_fast, surf_grad_fast)

@@ -117,3 +117,11 @@ hopper_2D_vertical = Hopper2D(Dimensions(4, 2, 2, 1, 2),
 			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			   SVector{4}(zeros(4)),
 			   environment_2D_flat())
+
+hopper_2D_sinusoidal = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
+			   mb, ml, Jb, Jl,
+			   μ_world, μ_joint, g,
+			   BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+			   SVector{4}(zeros(4)),
+			   environment_2D(x -> 0.05*sin.(x)))
