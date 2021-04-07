@@ -417,8 +417,6 @@ function ϕ_func(model::Quadruped, q)
 	p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
 	p_calf_4 = kinematics_3(model, q, body = :calf_4, mode = :ee)
 	alt = model.alt
-	SVector{model.dim.c}(q[3:3] .- model.env.surf(q[1:2]))
-
 	SVector{model.dim.c}(
 		[p_calf_1[2] - alt[1] - model.env.surf(p_calf_1[1]),
 		 p_calf_2[2] - alt[2] - model.env.surf(p_calf_2[1]),
