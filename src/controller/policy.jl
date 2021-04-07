@@ -57,7 +57,7 @@ function policy(p::LinearizedMPC, x, traj, t)
 	end
 
     if p.cnt == p.N_sample
-		(p.opts.altitude_update t > 1) && (update_altitude!(p.altitude, p.model,
+		(p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.model,
 									p.traj, t, p.N_sample,
 									threshold = p.opts.altitude_impact_threshold,
 									verbose = p.opts.altitude_verbose))

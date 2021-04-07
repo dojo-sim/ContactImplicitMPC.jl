@@ -420,7 +420,7 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
         jacobian!(core.jac, model, core, im_traj)
 
         # Compute Search Direction
-        core.Δ.r .= -1.0 * (core.jac.R \ core.res.r)
+        core.Δ.r .= -1.0 * (core.jac.R \ core.res.r) #TODO: QDLDL
 
 		# println("res:", scn(norm(core.res.r, 1) / length(core.res.r), digits=3))
         if norm(core.res.r, 1) / length(core.res.r) < core.opts.r_tol
