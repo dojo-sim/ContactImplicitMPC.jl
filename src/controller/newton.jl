@@ -100,15 +100,15 @@ function NewtonJacobian(H::Int, dim::Dimensions)
     obj_γ1  = [view(R, (t - 1) * nr .+ iγ, (t - 1) * nr .+ iγ) for t = 1:H]
     obj_b1  = [view(R, (t - 1) * nr .+ ib, (t - 1) * nr .+ ib) for t = 1:H]
 
-    IV  = [view(R, (t - 1) * nr .+ iz, (t - 1) * nr .+ iν) for t = 1:H]
-    ITV = [view(R, (t - 1) * nr .+ iν, (t - 1) * nr .+ iz) for t = 1:H]
+    IV  = [view(R, CartesianIndex.((t - 1) * nr .+ iz, (t - 1) * nr .+ iν)) for t = 1:H]
+    ITV = [view(R, CartesianIndex.((t - 1) * nr .+ iν, (t - 1) * nr .+ iz)) for t = 1:H]
     q0  = [view(R, (t - 1) * nr .+ iν, (t - 3) * nr .+ iq) for t = 3:H]
     q0T = [view(R, (t - 3) * nr .+ iq, (t - 1) * nr .+ iν) for t = 3:H]
     q1  = [view(R, (t - 1) * nr .+ iν, (t - 2) * nr .+ iq) for t = 2:H]
     q1T = [view(R, (t - 2) * nr .+ iq, (t - 1) * nr .+ iν) for t = 2:H]
     u1  = [view(R, (t - 1) * nr .+ iν, (t - 1) * nr .+ iu) for t = 1:H]
     u1T = [view(R, (t - 1) * nr .+ iu, (t - 1) * nr .+ iν) for t = 1:H]
-    reg = [view(R, (t - 1) * nr .+ iν, (t - 1) * nr .+ iν) for t = 1:H] # TODO: Cartesian indices to only grab diagonals
+    reg = [view(R, CartesianIndex.((t - 1) * nr .+ iν, (t - 1) * nr .+ iν)) for t = 1:H] # TODO: Cartesian indices to only grab diagonals
 
     return NewtonJacobian{eltype(R),
         eltype.((obj_q2, obj_u1, obj_γ1, obj_b1))...,
@@ -210,8 +210,6 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel,
     implicit_dynamics!(im_traj, model, traj, κ = traj.κ)
     jacobian!(jac, im_traj, cost, H, opts.β_init)
 
-    solver = eval(opts.solver)(jac.R)
-
     res = NewtonResidual(H, dim)
     res_cand = NewtonResidual(H, dim)
 
@@ -228,7 +226,11 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel,
     Δγ  = [zeros(SizedVector{nc,T}) for t = 1:H]
     Δb  = [zeros(SizedVector{nb,T}) for t = 1:H]
 
+    # regularization
     β = copy(opts.β_init)
+
+    # linear solver
+    solver = eval(opts.solver)(jac.R)
 
     return Newton{T,nq,nu,nw,nc,nb,nz,nθ,nd,nd,2nq+nu}(
         jac, res, res_cand, Δ, ν, ν_cand, traj, traj_cand,
@@ -248,8 +250,8 @@ function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, cost::CostFunctio
         jac.obj_b1[t] .+= cost.b[t]
 
         # Implicit dynamics
-        jac.IV[t][diagind(jac.IV[t])]   .-= 1.0
-        jac.ITV[t][diagind(jac.ITV[t])] .-= 1.0
+        jac.IV[t] .-= 1.0
+        jac.ITV[t] .-= 1.0
 
         # TODO: ^ perform only once
         if t >= 3
@@ -266,7 +268,7 @@ function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, cost::CostFunctio
         jac.u1T[t] .+= im_traj.δu1[t]'
 
         # Dual regularization
-        jac.reg[t][diagind(jac.reg[t])] .-= β * im_traj.lin[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+        jac.reg[t] .-= β * im_traj.lin[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
     end
 
     return nothing
@@ -323,13 +325,13 @@ function update_traj!(traj_cand::ContactTraj, traj::ContactTraj,
     H = traj_cand.H
 
     for t = 1:H
-        traj_cand.q[t+2] .= traj.q[t+2] .+ α .* Δ.q2[t]
-        traj_cand.u[t] .= traj.u[t] .+ α .* Δ.u1[t]
-        traj_cand.γ[t] .= traj.γ[t] .+ α .* Δ.γ1[t]
-        traj_cand.b[t] .= traj.b[t] .+ α .* Δ.b1[t]
-        # traj.z[t] .= traj_cand.z[t] + α .* Δ.z[t]
-        # traj.θ[t] .= traj_cand.θ[t] + α .* Δ.θ[t]
-        ν_cand[t]  .= ν[t] .+ α .* Δ.rd[t]
+        traj_cand.q[t+2] .= traj.q[t+2] .- α .* Δ.q2[t]
+        traj_cand.u[t] .= traj.u[t] .- α .* Δ.u1[t]
+        traj_cand.γ[t] .= traj.γ[t] .- α .* Δ.γ1[t]
+        traj_cand.b[t] .= traj.b[t] .- α .* Δ.b1[t]
+        # traj.z[t] .= traj_cand.z[t] - α .* Δ.z[t]
+        # traj.θ[t] .= traj_cand.θ[t] - α .* Δ.θ[t]
+        ν_cand[t]  .= ν[t] .- α .* Δ.rd[t]
     end
 
     update_z!(traj_cand)
@@ -412,43 +414,39 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
 	reset!(core, ref_traj, warm_start = warm_start,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
 
-    # for i = 1:core.opts.solver_outer_iter
-        # (core.opts.live_plot) && (visualize!(vis, model, traj.q, Δt=h))
-    for l = 1:core.opts.max_iter
-		# Compute implicit dynamics about traj
-		implicit_dynamics!(im_traj, model, core.traj, κ = core.traj.κ)
+    # Compute implicit dynamics about traj
+	implicit_dynamics!(im_traj, model, core.traj, κ = core.traj.κ)
 
-        # Compute residual
-        residual!(core.res, model, core, core.ν, im_traj, core.traj, ref_traj)
+    # Compute residual
+    residual!(core.res, model, core, core.ν, im_traj, core.traj, ref_traj)
+
+    r_norm = norm(core.res.r, 1)
+
+    for l = 1:core.opts.max_iter
+        # check convergence
+        r_norm / length(core.res.r) < core.opts.r_tol && break
 
         # Compute NewtonJacobian
-        jacobian!(core.jac, im_traj, cost, core.traj.H, core.β)
-
-        solver = eval(core.opts.solver)(core.jac.R)
+        jacobian!(core.jac, im_traj, core.cost, core.traj.H, core.β)
 
         # Compute Search Direction
-        # core.Δ.r .= -1.0 * (core.jac.R \ core.res.r) #TODO: QDLDL
-        linear_solve!(solver, core.Δ.r, core.jac.R, core.res.r)
-        core.Δ.r .*= -1.0
-
-        # println("res:", scn(norm(core.res.r, 1) / length(core.res.r), digits=3))
-        if norm(core.res.r, 1) / length(core.res.r) < core.opts.r_tol
-            break
-        end
+        linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)
 
         # line search the step direction
         α = 1.0
         iter = 0
 
+        # candidate step
         update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
-        # Compute implicit dynamics about trial_traj
+        # Compute implicit dynamics for candidate
 		implicit_dynamics!(im_traj, model, core.traj_cand, κ = core.traj_cand.κ)
 
-        # Compute trial residual
+        # Compute residual for candidate
         residual!(core.res_cand, model, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
+        r_cand_norm = norm(core.res_cand.r)
 
-        while norm(core.res_cand.r)^2.0 >= (1.0 - 0.001 * α) * norm(core.res.r)^2.0
+        while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
             α = 0.5 * α
 
             iter += 1
@@ -462,23 +460,28 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
 			implicit_dynamics!(im_traj, model, core.traj_cand, κ = core.traj_cand.κ)
 
             residual!(core.res_cand, model, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
+            r_cand_norm = norm(core.res_cand.r)
         end
 
-        # update # maybe not useful never activated
+        # update
+        update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
+        core.res.r .= core.res_cand.r
+        r_norm = r_cand_norm
+
+        # regularization update
         if iter > 6
             core.β = min(core.β * 1.3, 1.0e2)
         else
             core.β = max(1.0e1, core.β / 1.3)
         end
 
+        # print status
         verbose && println(" l: ", l ,
                 "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits = 0),
-                "     r: ", scn(norm(core.res.r,1) / length(core.res.r), digits = 0),
-                "     Δ: ", scn(norm(core.Δ.r,1) / length(core.Δ.r), digits = 0),
+                "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits = 0),
+                "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
                 "     α: ", -Int(round(log(α))),
                 "     κ: ", scn(core.traj.κ[1], digits = 0))
-
-        update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
     end
 
     return nothing
