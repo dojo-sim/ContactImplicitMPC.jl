@@ -70,22 +70,6 @@ function z_initialize!(z, model::ContactDynamicsModel, q1)
     z[1:nq] = q1
 end
 
-# function z_full_initialize4!(z::AbstractVector{T}, model::ContactDynamicsModel,
-# 		idx_ineq, z_init::AbstractVector{T}, q2, γ1, b1,; α=0.01) where {T}
-# 	nq = model.dim.q
-# 	nc = model.dim.c
-# 	nb = model.dim.b
-#     # z .= 1.0
-#     # z .= z_init
-# 	# z[idx_ineq] .+= (1.0 .+ rand(length(idx_ineq)))*α
-# 	z .= α*(1.0 .+ rand(length(z)))
-# 	z .+= z_init
-# 	# off = 0
-# 	# z[off .+ (1:nq)] .= q2; off += nq
-# 	# z[off .+ (1:nc)] .= γ1 .+ α; off += nc
-# 	# z[off .+ (1:nb)] .= b1 .+ α; off += nb
-# end
-
 function θ_initialize!(θ, model::ContactDynamicsModel, q0, q1, u, w, h)
 	nq = model.dim.q
 	nu = model.dim.u
@@ -257,12 +241,12 @@ function get_gait(name::String, gait::String)
 	return res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
 end
 
-function get_trajectory(name::String, gait::String; model_name = name, load_type::Symbol=:split_traj)
+function get_trajectory(name::String, gait::String; model_name = name, load_type::Symbol=:split_traj,
+	model::ContactDynamicsModel=eval(Symbol(model_name)))
 	#TODO: assert model exists
 	path = joinpath(@__DIR__, name)
 	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
 
-	model = eval(Symbol(model_name))
 	nq = model.dim.q
 	nu = model.dim.u
 	nw = model.dim.w

@@ -7,33 +7,38 @@ struct Environment{T}
 end
 
 function environment_2D_flat()
-	Environment{R2}(x -> 0.0, x-> zero(x))
+	Environment{R2}(x -> [0.0], x-> zero(x))
 end
 
 function environment_3D_flat()
-	Environment{R3}(x -> 0.0, x-> zero(x))
+	Environment{R3}(x -> [0.0], x-> zero(x))
 end
 
 function environment_2D(surf)
+	# Generate two functions: they both take as input a vector and return a vector.
 	@variables q[1:1]
-	s = surf(q)
+	@variables s[1:1]
+	s .= surf(q)
 	s = Symbolics.simplify.(s)
-	ds = Symbolics.gradient(s, q, simplify = true)
+	ds = Symbolics.jacobian(s, q, simplify = true)
+	ds = reshape(ds, 1)
 
-	surf_fast = eval(Symbolics.build_function(s, q))
+	surf_fast = eval(Symbolics.build_function(s, q)[1])
 	surf_grad_fast = eval(Symbolics.build_function(ds, q)[1])
 
 	Environment{R2}(surf_fast, surf_grad_fast)
 end
 
 function environment_3D(surf)
+	# Generate two functions: they both take as input a vector and return a vector.
 	@variables q[1:2]
-
-	s = surf(q)
+	@variables s[1:1]
+	s .= surf(q)
 	s = Symbolics.simplify.(s)
-	ds = Symbolics.gradient(s, q, simplify = true)
+	ds = Symbolics.jacobian(s, q, simplify = true)
+	ds = reshape(ds, 2)
 
-	surf_fast = eval(Symbolics.build_function(s, q))
+	surf_fast = eval(Symbolics.build_function(s, q)[1])
 	surf_grad_fast = eval(Symbolics.build_function(ds, q)[1])
 
 	Environment{R3}(surf_fast, surf_grad_fast)
@@ -67,6 +72,10 @@ end
 
 function rotation(env::Environment{R2}, q)
 	# unit surface normal (3D)
+	@show env.surf_grad(q[1:1])
+	@show typeof(env.surf_grad(q[1:1]))
+	@show q[1:1]
+	@show typeof(q[1:1])
 	n = [-1.0 * env.surf_grad(q[1:1]); 1.0]
 	ns = n ./ sqrt(transpose(n) * n)
 

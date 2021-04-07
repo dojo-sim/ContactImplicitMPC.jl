@@ -19,6 +19,7 @@ include("solver/gs.jl")
 include("solver/schur.jl")
 
 # Dynamics
+include("dynamics/environment.jl")
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
 
