@@ -473,7 +473,7 @@ nw = 2
 
 # World parameters
 g = 9.81      # gravity
-μ_world = 0.5 # coefficient of friction
+μ_world = 0.9 # coefficient of friction
 μ_joint = 0.1 # coefficient of torque friction at the joints
 
 # ~Unitree A1

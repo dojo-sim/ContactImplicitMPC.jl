@@ -44,10 +44,10 @@ function plot_surface!(vis::Visualizer, env::Environment{R2};  col=zeros(3), α=
 end
 
 function plot_surface!(vis::Visualizer, f::Any; xlims = [-1.0, 5.0],
-        ylims = [-0.1, 0.1], col=zeros(3), α=0.4, n::Int=50)
+        ylims = [-0.1, 0.1], col=zeros(3), α=0.4, n::Int=200)
     mesh = GeometryBasics.Mesh(f,
     	HyperRectangle(Vec(xlims[1], ylims[1], -2.0), Vec(xlims[2]-xlims[1], ylims[2]-ylims[1], 4.0)),
-        Meshing.MarchingCubes(), samples=(n, n, n))
+        Meshing.MarchingCubes(), samples=(n, n, Int(floor(n/8))))
     setobject!(vis["surface"], mesh,
     		   MeshPhongMaterial(color=RGBA{Float32}(col..., α)))
     return nothing
