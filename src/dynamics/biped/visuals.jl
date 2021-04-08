@@ -1,6 +1,6 @@
 # visualization
 function visualize!(vis, model::Biped, q;
-      r = 0.040, Δt = 0.1, name::Symbol=:biped)
+      r = 0.040, Δt = 0.1, name::Symbol=:biped, camera::Bool=false)
 
 	default_background!(vis)
 
@@ -120,9 +120,10 @@ function visualize!(vis, model::Biped, q;
 			settransform!(vis[name]["torso_top"], Translation(p_torso))
 		end
 	end
-
-	settransform!(vis["/Cameras/default"],
-	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
+	if camera
+		settransform!(vis["/Cameras/default"],
+		    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
+	end
 
 	MeshCat.setanimation!(vis, anim)
 end
