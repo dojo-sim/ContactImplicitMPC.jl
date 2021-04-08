@@ -65,11 +65,8 @@ end
 function update_altitude!(alt, model::ContactDynamicsModel, traj, t, N_sample;
 	threshold = 1.0, verbose = false)
 
-	# @show p.N_sample
 	idx1 = max(0, t - p.N_sample) + 1
-	# @show idx1
-	# @show t
-	# @show length(traj.γ)
+
 	for i = 1:model.dim.c
 		γ_max = 0.0
 		idx_max = 0
@@ -82,7 +79,7 @@ function update_altitude!(alt, model::ContactDynamicsModel, traj, t, N_sample;
 		end
 		if γ_max > threshold
 			alt[i] = ϕ_fast(model, traj.q[idx_max])[i]
-			println(" ")
+			verbose && println(" ")
 			verbose && println("point $i in contact")
 			verbose && println("sim_step : $idx_max")
 			verbose && println("alt      : $(ϕ_fast(model, traj.q[idx_max])[i])")
@@ -91,23 +88,28 @@ function update_altitude!(alt, model::ContactDynamicsModel, traj, t, N_sample;
 	end
 end
 
-function live_plotting(model, ref_traj, sim_traj, newton)
+function live_plotting(model::ContactDynamicsModel, ref_traj::ContactTraj,
+		sim_traj::ContactTraj, newton::Newton, q0::AbstractVector{T},
+		q1::AbstractVector{T}, t::Int) where {T}
+	nq = model.dim.q
+	nu = model.dim.u
 	plt = plot(layout=grid(2,1,heights=[0.7, 0.3], figsize=[(1000, 1000),(400,400)]), legend=false, xlims=(0,20))
-	plot!(plt[1,1], hcat(Vector.(neton.traj.q)...)', color=:blue, linewidth=1.0)
+	plot!(plt[1,1], hcat(Vector.(newton.traj.q)...)', color=:blue, linewidth=1.0)
 	plot!(plt[1,1], hcat(Vector.(ref_traj.q)...)', linestyle=:dot, color=:red, linewidth=3.0)
 
-	scatter!((2-1/N_sample)ones(model.dim.q), sim_traj.q[1], markersize=8.0, color=:lightgreen)
-	scatter!(2*ones(model.dim.q), sim_traj.q[2], markersize=8.0, color=:lightgreen)
-	scatter!(plt[1,1], 3*ones(model.dim.q), sim_traj.q[end], markersize=8.0, color=:lightgreen)
+	scatter!((2-1/N_sample)ones(nq), sim_traj.q[t+0], markersize=8.0, color=:lightgreen)
+	scatter!(2*ones(nq), sim_traj.q[t+1], markersize=8.0, color=:lightgreen)
+	# scatter!(plt[1,1], 3*ones(nq), sim_traj.q[t+2], markersize=8.0, color=:lightgreen)
 
-	# scatter!(plt[1,1], 1*ones(model.dim.q), q0, markersize=6.0, color=:blue)
-	# scatter!(plt[1,1], 2*ones(model.dim.q), q1, markersize=6.0, color=:blue)
+	# @show norm(sim_traj.q[t+1] - q1, Inf)
+	scatter!(plt[1,1], 1*ones(nq), q0, markersize=6.0, color=:blue)
+	scatter!(plt[1,1], 2*ones(nq), q1, markersize=6.0, color=:blue)
 
-	scatter!(plt[1,1], 1*ones(model.dim.q), ref_traj.q[1], markersize=4.0, color=:red)
-	scatter!(plt[1,1], 2*ones(model.dim.q), ref_traj.q[2], markersize=4.0, color=:red)
-	scatter!(plt[1,1], 3*ones(model.dim.q), ref_traj.q[3], markersize=4.0, color=:red)
+	scatter!(plt[1,1], 1*ones(nq), ref_traj.q[1], markersize=4.0, color=:red)
+	scatter!(plt[1,1], 2*ones(nq), ref_traj.q[2], markersize=4.0, color=:red)
+	scatter!(plt[1,1], 3*ones(nq), ref_traj.q[3], markersize=4.0, color=:red)
 
 	plot!(plt[2,1], hcat(Vector.(newton.traj.u)...)', color=:blue, linewidth=1.0)
-	plot!(plt[2,1], hcat(Vector.(ref_traj.u)...)', linestyle=:dot, color=:red, linewidth=3.0)
+	plot!(plt[2,1], hcat(Vector.(ref_traj.u[1:end])...)', linestyle=:dot, color=:red, linewidth=3.0)
 	display(plt)
 end

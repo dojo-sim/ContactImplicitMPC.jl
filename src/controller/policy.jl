@@ -64,11 +64,11 @@ function policy(p::LinearizedMPC, x, traj, t)
 		update!(p.im_traj, p.traj, p.model, p.altitude, κ = p.κ)
 		newton_solve!(p.newton, p.model, p.im_traj, p.traj,
 			verbose = p.newton.opts.verbose, warm_start = t > 1, q0 = copy(p.q0), q1 = copy(x))
+		p.opts.live_plotting && live_plotting(p.model, p.traj, traj, p.newton, p.q0, copy(x), t)
+
 		rot_n_stride!(p.traj, p.stride)
 		p.q0 .= copy(x)
 		p.cnt = 0
-
-		p.opts.live_plotting && live_plotting(p.model, p.traj, traj, p.newton)
     end
 
     p.cnt += 1

@@ -4,8 +4,8 @@ vis = Visualizer()
 open(vis)
 
 # get hopper model
-# model = get_model("hopper_2D")
-model = get_model("hopper_2D", surf="sinusoidal")
+model_sim = get_model("hopper_2D", surf="sinusoidal")
+model = get_model("hopper_2D", surf="flat")
 nq = model.dim.q
 nu = model.dim.u
 nc = model.dim.c
@@ -41,7 +41,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 15000
+H_sim = 8000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -60,8 +60,9 @@ p = linearized_mpc_policy(ref_traj, model, cost,
         r_tol = 3e-4,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions(
+        # live_plotting=true,
         altitude_update = true,
-        altitude_impact_threshold = 0.5,
+        altitude_impact_threshold = 0.15,
         altitude_verbose = true,
         )
     )
@@ -73,7 +74,7 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-sim = simulator(model, q0_sim, q1_sim, h_sim, H_sim,
+sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
@@ -98,10 +99,10 @@ plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', co
 
 visualize!(vis, model, sim.traj.q[1:50:end], Δt=10*h/N_sample, name=:mpc)
 draw_lines!(vis, model, sim.traj.q[1:10:end])
+plot_surface!(vis, model_sim.env, n=200)
 
 
-
-# filename = "hopper_2d_sinusoidal"
+# filename = "hopper_2d_steep_sine"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
@@ -123,5 +124,3 @@ draw_lines!(vis, model, sim.traj.q[1:10:end])
 # plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
 #     label = "", color = :cyan, width = 1.0, legend = :topleft)
 #
-
-plot_surface!(vis, model.env)

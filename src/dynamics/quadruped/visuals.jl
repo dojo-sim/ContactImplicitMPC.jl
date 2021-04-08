@@ -1,6 +1,6 @@
 # visualization
 function visualize!(vis, model::Quadruped, q;
-	r = 0.025, Δt = 0.1, name::Symbol=:quadruped)
+	r = 0.025, Δt = 0.1, name::Symbol=:quadruped, camera::Bool=false)
 
 	default_background!(vis)
 
@@ -165,9 +165,62 @@ function visualize!(vis, model::Quadruped, q;
 			settransform!(vis[name]["feet4"], MeshCat.Translation(p_calf_4))
 		end
 	end
-
-	# settransform!(vis["/Cameras/default"],
-	#     compose(Translation(0.0, 1.5, -1.), LinearMap(RotZ(-pi / 2.0))))
-
+	if camera
+		settransform!(vis["/Cameras/default"],
+		    compose(Translation(0.0, 1.5, -1.), LinearMap(RotZ(-pi / 2.0))))
+	end
 	MeshCat.setanimation!(vis, anim)
+end
+
+
+function draw_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
+		r=0.025, offset=0.05, size=10, name::Symbol=:quadruped, col::Bool=true)
+	p_shift = [0.0, 0.0, r]
+	orange_mat, blue_mat, black_mat = get_line_material(size)
+
+	# Point Traj
+	torso_point = Vector{Point{3,Float64}}()
+	f1_point = Vector{Point{3,Float64}}()
+	f2_point = Vector{Point{3,Float64}}()
+	f3_point = Vector{Point{3,Float64}}()
+	f4_point = Vector{Point{3,Float64}}()
+
+	for qi in q
+		k_torso = kinematics_1(model, qi, body = :torso, mode = :com)
+		p_torso = [k_torso[1]+0.1, -offset, k_torso[2]] + p_shift
+
+		k_calf_1 = kinematics_2(model, qi, body = :calf_1, mode = :ee)
+		p_calf_1 = [k_calf_1[1], -offset, k_calf_1[2]] + p_shift
+
+		k_calf_2 = kinematics_2(model, qi, body = :calf_2, mode = :ee)
+		p_calf_2 = [k_calf_2[1], -offset, k_calf_2[2]] + p_shift
+
+		k_calf_3 = kinematics_3(model, qi, body = :calf_3, mode = :ee)
+		p_calf_3 = [k_calf_3[1], -offset, k_calf_3[2]] + p_shift
+
+		k_calf_4 = kinematics_3(model, qi, body = :calf_4, mode = :ee)
+		p_calf_4 = [k_calf_4[1], -offset, k_calf_4[2]] + p_shift
+
+		push!(torso_point, Point(p_torso...))
+		push!(f1_point, Point(p_calf_1...))
+		push!(f2_point, Point(p_calf_2...))
+		push!(f3_point, Point(p_calf_3...))
+		push!(f4_point, Point(p_calf_4...))
+	end
+
+	# Set lines
+	if col
+		setobject!(vis[name]["lines/torso"], MeshCat.Line(torso_point, orange_mat))
+		setobject!(vis[name]["lines/foot1"], MeshCat.Line(f1_point, blue_mat))
+		setobject!(vis[name]["lines/foot2"], MeshCat.Line(f2_point, blue_mat))
+		setobject!(vis[name]["lines/foot3"], MeshCat.Line(f3_point, blue_mat))
+		setobject!(vis[name]["lines/foot4"], MeshCat.Line(f4_point, blue_mat))
+	else
+		setobject!(vis[name]["lines/torso"], MeshCat.Line(torso_point, black_mat))
+		setobject!(vis[name]["lines/foot1"], MeshCat.Line(f1_point, black_mat))
+		setobject!(vis[name]["lines/foot2"], MeshCat.Line(f2_point, black_mat))
+		setobject!(vis[name]["lines/foot3"], MeshCat.Line(f3_point, black_mat))
+		setobject!(vis[name]["lines/foot4"], MeshCat.Line(f4_point, black_mat))
+	end
+	return nothing
 end

@@ -315,6 +315,12 @@ git-tree-sha1 = "c7f81b22b6c255861be4007a16bfdeb60e1c7f9b"
 uuid = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 version = "0.3.11"
 
+[[GeometryTypes]]
+deps = ["ColorTypes", "FixedPointNumbers", "LinearAlgebra", "StaticArrays"]
+git-tree-sha1 = "07194161fe4e181c6bf51ef2e329ec4e7d050fc4"
+uuid = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
+version = "0.8.4"
+
 [[Gettext_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
 git-tree-sha1 = "8c14294a079216000a0bdca5ec5a447f073ddc9d"
@@ -534,6 +540,12 @@ git-tree-sha1 = "ca4a1e45f5d2a2148c599804a6619da7708ede69"
 uuid = "283c5d60-a78f-5afe-a0af-af636b173e11"
 version = "0.13.2"
 
+[[Meshing]]
+deps = ["GeometryBasics", "GeometryTypes", "StaticArrays"]
+git-tree-sha1 = "25d443b45af9c84e4377ad33286b068e41a686ba"
+uuid = "e6723b4c-ebff-59f1-b4b7-d97aa5274f73"
+version = "0.5.6"
+
 [[Missings]]
 deps = ["DataAPI"]
 git-tree-sha1 = "f8c673ccc215eb50fcadb285f522420e29e69e1c"
@@ -675,9 +687,9 @@ version = "0.1.4"
 
 [[Qt_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "xkbcommon_jll"]
-git-tree-sha1 = "588b799506f0b956a7e6e18f767dfa03cf333f26"
+git-tree-sha1 = "32d763e4624ff5df9ad399aa29feeda5a5f5c43f"
 uuid = "ede63266-ebff-546c-83e0-1c6fb6d0efc8"
-version = "5.15.2+2"
+version = "5.15.2+3"
 
 [[QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]

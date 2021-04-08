@@ -9,6 +9,7 @@ using GeometryBasics
 using JLD2
 using QDLDL
 using MeshCat
+using Meshing
 using Symbolics
 using Parameters
 using Plots

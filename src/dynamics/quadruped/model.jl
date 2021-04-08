@@ -418,10 +418,10 @@ function ϕ_func(model::Quadruped, q)
 	p_calf_4 = kinematics_3(model, q, body = :calf_4, mode = :ee)
 	alt = model.alt
 	SVector{model.dim.c}(
-		[p_calf_1[2] - alt[1] - model.env.surf(p_calf_1[1]),
-		 p_calf_2[2] - alt[2] - model.env.surf(p_calf_2[1]),
-		 p_calf_3[2] - alt[3] - model.env.surf(p_calf_3[1]),
-		 p_calf_4[2] - alt[4] - model.env.surf(p_calf_4[1])] .- model.env.surf(q[1:1]))
+		[p_calf_1[2] - alt[1] - model.env.surf(p_calf_1[1:1])[1],
+		 p_calf_2[2] - alt[2] - model.env.surf(p_calf_2[1:1])[1],
+		 p_calf_3[2] - alt[3] - model.env.surf(p_calf_3[1:1])[1],
+		 p_calf_4[2] - alt[4] - model.env.surf(p_calf_4[1:1])[1]])
 end
 
 function B_func(model::Quadruped, q)
@@ -473,7 +473,11 @@ nw = 2
 
 # World parameters
 g = 9.81      # gravity
+<<<<<<< HEAD
 μ_world = 1.0 # coefficient of friction
+=======
+μ_world = 0.9 # coefficient of friction
+>>>>>>> 3bf785d943ab091b30a1ac045a44d23acd832226
 μ_joint = 0.1 # coefficient of torque friction at the joints
 
 # ~Unitree A1
@@ -510,6 +514,27 @@ quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				environment_2D_flat())
+
+quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+				g, μ_world, μ_joint,
+				l_torso, d_torso, m_torso, J_torso,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				zeros(nc),
+				BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
+				# environment_2D(x -> 0.05*sin.(π*x[1:1])),
+				# environment_2D(x -> 0.025*(cos.(pi*x[1:1]) .- 1.0)),
+				environment_2D(x -> 0.05*(cos.(pi*x[1:1]) .- 1.0)),
+				)
+
 
 function initial_configuration(model::Quadruped, θ)
     q1 = zeros(model.dim.q)
