@@ -436,7 +436,8 @@ nw = 2                    # disturbance dimension
 
 # World parameters
 μ_world = 0.9      # coefficient of friction
-μ_joint = 0.1
+# μ_joint = 0.1
+μ_joint = 0.0
 g = 9.81     # gravity
 
 # Model parameters
