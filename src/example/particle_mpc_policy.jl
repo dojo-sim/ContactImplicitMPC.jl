@@ -61,7 +61,7 @@ p = linearized_mpc_policy(ref_traj, model, cost,
 		live_plotting = false),
     mpc_opts = LinearizedMPCOptions())
 
-# # simulator
+# simulator
 sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = ContactControl.InteriorPointOptions(
