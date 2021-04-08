@@ -1,7 +1,7 @@
 include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
 T = Float64
 vis = Visualizer()
-open(vis)
+render(vis)
 
 # get hopper model
 model = get_model("quadruped")
@@ -17,6 +17,31 @@ ref_traj = get_trajectory("quadruped", "gait1", load_type=:split_traj)
 H = ref_traj.H
 h = ref_traj.h
 κ = 1.0e-4
+
+# initial conditions
+q0 = SVector{model.dim.q}(ref_traj.q[1])
+q1 = SVector{model.dim.q}(ref_traj.q[1])
+
+# simulator
+H_sim = 25
+sim = ContactControl.simulator(model, q0, q1, 1.0 * h, H_sim,
+    p = no_policy(model), #ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u], N_sample = 1),
+    ip_opts = ContactControl.InteriorPointOptions(r_tol = 1.0e-8, κ_init = 1.0e-5, κ_tol = 1.0e-6),
+    sim_opts = ContactControl.SimulatorOptions(warmstart = false))
+
+# simulate
+@time status = ContactControl.simulate!(sim)
+
+plot(hcat(ref_traj.q...)[1:model.dim.q, 1:H_sim]',
+    label = ["x" "y" "z"], color = :black, width = 3.0)
+plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:H_sim]',
+    label = ["x" "y" "z"], color = :red, width = 1.0, legend = :topleft)
+
+vis = Visualizer()
+# open(vis)
+render(vis)
+visualize!(vis, model, sim.traj.q, Δt = h) #, name = :mpc)
+
 
 ref_traj0 = deepcopy(ref_traj)
 n_opts0 = NewtonOptions(r_tol=3e-4, κ_init=κ, κ_tol=2κ, solver_inner_iter=5)

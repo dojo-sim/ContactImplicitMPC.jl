@@ -173,8 +173,8 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	 γ1 .* s1 .- κ;
 	 vT_stack + ψ_stack - η1;
 	 s2 .- (model.μ_world * γ1 .- E_func(model) * b1);
-	 ψ1 .* s2 .- κ;
-	 b1 .* η1 .- κ]
+	 b1 .* η1 .- κ;
+	 ψ1 .* s2 .- κ]
 end
 
 mutable struct BaseMethods
