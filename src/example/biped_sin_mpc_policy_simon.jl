@@ -17,7 +17,8 @@ nr = nq + nu + nc + nb + nd
 # get trajectory
 # ref_traj = get_trajectory("biped", "gait5", load_type=:split_traj, model=model)
 # ref_traj = get_trajectory("biped", "biped_gait (1)", load_type=:split_traj, model=model)
-ref_traj = get_trajectory("biped", "biped_gait (2)", load_type=:split_traj, model=model)
+# ref_traj = get_trajectory("biped", "biped_gait (2)", load_type=:split_traj, model=model)
+ref_traj = get_trajectory("biped", "biped_gait (3)", load_type=:split_traj, model=model)
 visualize!(vis, model, ref_traj.q, Δt=20*h/N_sample, name=:mpc)
 visualize!(vis, model, ref_traj.q, Δt=h, name=:mpc)
 
@@ -28,15 +29,16 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1000
+H_sim = 2000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 cost = CostFunction(H_mpc, model.dim,
-    q = [Diagonal(1e-1 * [1.0, 0.01, 0.5, .15, .15, .15, .15, .05, .05]) for t = 1:H_mpc],
-    u = [Diagonal(3e-1 * [10; ones(nu-3); 1; 1]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
+    # q = [Diagonal(1e-1 * [1.0, 0.01, 0.5, .15, .15, .15, .15, .01, .01]) for t = 1:H_mpc],
+    q = [Diagonal(1e-1 * [1.0, 0.01, 0.05, .15, .15, .15, .15, .0005, .0005]) for t = 1:H_mpc],
+    u = [Diagonal(3e-1 * [10; 1; 10; ones(nu-5); 1; 1]) for t = 1:H_mpc],
+    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
 p = linearized_mpc_policy(ref_traj, model, cost,
@@ -76,12 +78,12 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 @time status = simulate!(sim)
 # 4.88*2300/8500/(400*h_sim)
 
-
+l = 9
 
 plt = plot(layout=(3,1), legend=false)
-plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
+plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i][l:l], N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
-plot!(plt[1,1], hcat(Vector.(sim.traj.q)...)', color=:blue, linewidth=1.0)
+plot!(plt[1,1], hcat(Vector.([q[l:l] for q in sim.traj.q])...)', color=:blue, linewidth=1.0)
 plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
 plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
@@ -98,7 +100,7 @@ a = 10
 a = 10
 a = 10
 
-filename = "biped_best_so_far"
+filename = "biped_long"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
     "/home/simon/Documents/$filename.mp4", overwrite=true)
