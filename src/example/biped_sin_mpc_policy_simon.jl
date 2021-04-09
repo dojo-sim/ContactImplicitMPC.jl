@@ -76,7 +76,6 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 # @profiler status = simulate!(sim)
 @time status = simulate!(sim)
-10*3000/8900/(1000*h_sim)
 
 l = 9
 plt = plot(layout=(3,1), legend=false)
@@ -95,7 +94,7 @@ plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
 plot_surface!(vis, model_sim.env)
 
 
-function get_contact_force(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj)
+function plot_contact_force(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj)
 	nc = model.dim.c
 	nu = model.dim.u
 	nf = Int(nb / nc)
@@ -124,17 +123,15 @@ function get_contact_force(vis::Visualizer, model::ContactDynamicsModel, traj::C
 		k_heel_2 = kinematics_3(model, q[t], body = :foot_2, mode = :heel)
 		p_heel_2 = [k_heel_2[1], 0.0, k_heel_2[2]]
 
-		γc[t] = vcat([transpose(rotation(model.env, q[t])) * [friction_mapping(model.env) * 0.0*b[t][(i-1) * nf .+ (1:nf)]; 1.0*γ[t][i]] for i = 1:nc]...) # TODO: make efficient
-		bc[t] = vcat([transpose(rotation(model.env, q[t])) * [friction_mapping(model.env) * 1.0*b[t][(i-1) * nf .+ (1:nf)]; 0.0*γ[t][i]] for i = 1:nc]...) # TODO: make efficient
-		λc[t] = vcat([transpose(rotation(model.env, q[t])) * [friction_mapping(model.env) * 1.0*b[t][(i-1) * nf .+ (1:nf)]; 1.0*γ[t][i]] for i = 1:nc]...) # TODO: make efficient
-
 		pc[t] = [p_toe_1, p_heel_1, p_toe_2, p_heel_2]
+		γc[t] = vcat([transpose(rotation(model.env, pc[t][i])) * [friction_mapping(model.env) * 0.0*b[t][(i-1) * nf .+ (1:nf)]; 1.0*γ[t][i]] for i = 1:nc]...) # TODO: make efficient
+		bc[t] = vcat([transpose(rotation(model.env, pc[t][i])) * [friction_mapping(model.env) * 1.0*b[t][(i-1) * nf .+ (1:nf)]; 0.0*γ[t][i]] for i = 1:nc]...) # TODO: make efficient
+		λc[t] = vcat([transpose(rotation(model.env, pc[t][i])) * [friction_mapping(model.env) * 1.0*b[t][(i-1) * nf .+ (1:nf)]; 1.0*γ[t][i]] for i = 1:nc]...) # TODO: make efficient
+
 	end
 
 	orange_mat, blue_mat, black_mat = get_line_material(10)
 	anim = MeshCat.Animation(convert(Int, 100))
-
-
 
 	point_x = [[Point(0.0,0.0,0.0), Point(1.0, 0.0, 0.0)] for i=1:nc]
 	point_z = [[Point(0.0,0.0,0.0), Point(0.0, 0.0, 1.0)] for i=1:nc]
@@ -149,17 +146,16 @@ function get_contact_force(vis::Visualizer, model::ContactDynamicsModel, traj::C
 			for i = 1:nc
 				γi = γc[t][(i-1)*ng .+ (1:ng)]
 				bi = bc[t][(i-1)*ng .+ (1:ng)]
-				scale_imp = LinearMap(Diagonal([1.0, 1.0, norm(γi)]))
-				# scale_imp = LinearMap(Diagonal([1.0, 1.0, norm(γ[t])]))
-				scale_fri = LinearMap(Diagonal([norm(bi), 1.0, 1.0]))
-				# scale_fri = LinearMap(Diagonal([norm(b[t]), 1.0, 1.0]))
-				trans = Translation(pc[t][i]+p_shift)
 				r =  rotation_3d(model.env, pc[t][i])
-				rot = LinearMap(r')
-				rot = LinearMap(I(3))
-				transform = compose(compose(trans, rot), scale_imp)
+
+				trans = Translation(pc[t][i]+p_shift)
+				scale_imp = LinearMap(r' * Diagonal([1.0, 1.0, norm(γi)]))
+				transform = compose(trans, scale_imp)
 				settransform!(vis[:test][:impact]["$i"], transform)
-				transform = compose(compose(trans, rot), scale_fri)
+
+				trans = Translation(pc[t][i]+p_shift)
+				scale_fri = LinearMap(r' * norm(bi))
+				transform = compose(trans, scale_fri)
 				settransform!(vis[:test][:friction]["$i"], transform)
 			end
 		end
@@ -169,167 +165,159 @@ function get_contact_force(vis::Visualizer, model::ContactDynamicsModel, traj::C
 end
 
 get_contact_force(vis, model_sim, sim.traj)
-get_contact_force(vis, model_sim, ref_traj)
-
-sim.traj.q[200]
-r = rotation(model_sim.env, sim.traj.q[200])
-R = expand(r)
-LinearMap(I(3))
-
-a = 0
-a = 10
-a = 10
-a = 10
-
-
-
-
-
-function plot_impact(vis::Visualizer, model::ContactDynamicsModel, γ::AbstractVector;
-		r=0.035, offset=0.05, size=10, name::Symbol=:biped, col::Bool=true)
-	p_shift = [0.0, 0.0, r]
-
-    env = model.env
-	orange_mat, blue_mat, black_mat = get_line_material(size)
-
-	T = length(q)
-	p_shift = [0.0; 0.0; r]
-	for t = 1:T
-		MeshCat.atframe(anim, t) do
-			p = [q[t][1]; 0.0; q[t][2]] + p_shift
-
-			k_torso = kinematics_1(model, q[t], body = :torso, mode = :ee)
-			p_torso = [k_torso[1], 0.0, k_torso[2]] + p_shift
-
-			k_thigh_1 = kinematics_1(model, q[t], body = :thigh_1, mode = :ee)
-			p_thigh_1 = [k_thigh_1[1], 0.0, k_thigh_1[2]] + p_shift
-
-			k_calf_1 = kinematics_2(model, q[t], body = :calf_1, mode = :ee)
-			p_calf_1 = [k_calf_1[1], 0.0, k_calf_1[2]] + p_shift
-
-			k_thigh_2 = kinematics_1(model, q[t], body = :thigh_2, mode = :ee)
-			p_thigh_2 = [k_thigh_2[1], 0.0, k_thigh_2[2]] + p_shift
-
-			k_calf_2 = kinematics_2(model, q[t], body = :calf_2, mode = :ee)
-			p_calf_2 = [k_calf_2[1], 0.0, k_calf_2[2]] + p_shift
-
-			k_toe_1 = kinematics_3(model, q[t], body = :foot_1, mode = :toe)
-			p_toe_1 = [k_toe_1[1], 0.0, k_toe_1[2]] + p_shift
-
-			k_heel_1 = kinematics_3(model, q[t], body = :foot_1, mode = :heel)
-			p_heel_1 = [k_heel_1[1], 0.0, k_heel_1[2]] + p_shift
-
-			k_toe_2 = kinematics_3(model, q[t], body = :foot_2, mode = :toe)
-			p_toe_2 = [k_toe_2[1], 0.0, k_toe_2[2]] + p_shift
-
-			k_heel_2 = kinematics_3(model, q[t], body = :foot_2, mode = :heel)
-			p_heel_2 = [k_heel_2[1], 0.0, k_heel_2[2]] + p_shift
-
-			settransform!(vis[name]["thigh1"], cable_transform(p, p_thigh_1))
-			settransform!(vis[name]["calf1"], cable_transform(p_thigh_1, p_calf_1))
-			settransform!(vis[name]["foot1"], cable_transform(p_toe_1, p_heel_1))
-
-			settransform!(vis[name]["thigh2"], cable_transform(p, p_thigh_2))
-			settransform!(vis[name]["calf2"], cable_transform(p_thigh_2, p_calf_2))
-			settransform!(vis[name]["foot2"], cable_transform(p_toe_2, p_heel_2))
-
-			settransform!(vis[name]["torso"], cable_transform(p_torso,p))
-			settransform!(vis[name]["heel1"], Translation(p_heel_1))
-			settransform!(vis[name]["heel2"], Translation(p_heel_2))
-			settransform!(vis[name]["toe1"], Translation(p_toe_1))
-			settransform!(vis[name]["toe2"], Translation(p_toe_2))
-			settransform!(vis[name]["knee1"], Translation(p_thigh_1))
-			settransform!(vis[name]["knee2"], Translation(p_thigh_2))
-			settransform!(vis[name]["hip"], Translation(p))
-			settransform!(vis[name]["torso_top"], Translation(p_torso))
-		end
-	end
-    return nothing
-end
-
-
-
-function plot_lines!(vis::Visualizer, model::Biped, q::AbstractVector;
-		r=0.035, offset=0.05, size=10, name::Symbol=:biped, col::Bool=true)
-	p_shift = [0.0, 0.0, r]
-	orange_mat, blue_mat, black_mat = get_line_material(size)
-
-	# Point Traj
-	torso_point = Vector{Point{3,Float64}}()
-	t1_point = Vector{Point{3,Float64}}()
-	t2_point = Vector{Point{3,Float64}}()
-	for qi in q
-		k_torso = kinematics_1(model, qi, body = :torso, mode = :com)
-		p_torso = [k_torso[1], -offset, k_torso[2]] + p_shift
-
-		k_toe_1 = kinematics_3(model, qi, body = :foot_1, mode = :toe)
-		p_toe_1 = [k_toe_1[1], -offset, k_toe_1[2]] + p_shift
-
-		k_toe_2 = kinematics_3(model, qi, body = :foot_2, mode = :toe)
-		p_toe_2 = [k_toe_2[1], -offset, k_toe_2[2]] + p_shift
-
-		push!(torso_point, Point(p_torso...))
-		push!(t1_point, Point(p_toe_1...))
-		push!(t2_point, Point(p_toe_2...))
-	end
-
-	# Set lines
-	if col
-		setobject!(vis[name]["lines/torso"], MeshCat.Line(torso_point, orange_mat))
-		setobject!(vis[name]["lines/toe1"], MeshCat.Line(t1_point, blue_mat))
-		setobject!(vis[name]["lines/toe2"], MeshCat.Line(t2_point, blue_mat))
-	else
-		setobject!(vis[name]["lines/torso"], MeshCat.Line(torso_point, black_mat))
-		setobject!(vis[name]["lines/toe1"], MeshCat.Line(t1_point, black_mat))
-		setobject!(vis[name]["lines/toe2"], MeshCat.Line(t2_point, black_mat))
-	end
-	return nothing
-end
-
-
-
-
-
-function plot_friction()
-    return nothing
-end
-
-function plot_contact_force()
-    return nothing
-end
-
-
-
-
-
 
 a = 10
 a = 10
 a = 10
 
-# filename = "biped_sine"
-# MeshCat.convert_frames_to_video(
-#     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+
 #
-# convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)
-
-# const ContactControl = Main
-
-# qq = []
-# for q in ref_traj_copy.q
-#     for i = 1:N_sample
-#         push!(qq, q)
-#     end
+#
+# function plot_impact(vis::Visualizer, model::ContactDynamicsModel, γ::AbstractVector;
+# 		r=0.035, offset=0.05, size=10, name::Symbol=:biped, col::Bool=true)
+# 	p_shift = [0.0, 0.0, r]
+#
+#     env = model.env
+# 	orange_mat, blue_mat, black_mat = get_line_material(size)
+#
+# 	T = length(q)
+# 	p_shift = [0.0; 0.0; r]
+# 	for t = 1:T
+# 		MeshCat.atframe(anim, t) do
+# 			p = [q[t][1]; 0.0; q[t][2]] + p_shift
+#
+# 			k_torso = kinematics_1(model, q[t], body = :torso, mode = :ee)
+# 			p_torso = [k_torso[1], 0.0, k_torso[2]] + p_shift
+#
+# 			k_thigh_1 = kinematics_1(model, q[t], body = :thigh_1, mode = :ee)
+# 			p_thigh_1 = [k_thigh_1[1], 0.0, k_thigh_1[2]] + p_shift
+#
+# 			k_calf_1 = kinematics_2(model, q[t], body = :calf_1, mode = :ee)
+# 			p_calf_1 = [k_calf_1[1], 0.0, k_calf_1[2]] + p_shift
+#
+# 			k_thigh_2 = kinematics_1(model, q[t], body = :thigh_2, mode = :ee)
+# 			p_thigh_2 = [k_thigh_2[1], 0.0, k_thigh_2[2]] + p_shift
+#
+# 			k_calf_2 = kinematics_2(model, q[t], body = :calf_2, mode = :ee)
+# 			p_calf_2 = [k_calf_2[1], 0.0, k_calf_2[2]] + p_shift
+#
+# 			k_toe_1 = kinematics_3(model, q[t], body = :foot_1, mode = :toe)
+# 			p_toe_1 = [k_toe_1[1], 0.0, k_toe_1[2]] + p_shift
+#
+# 			k_heel_1 = kinematics_3(model, q[t], body = :foot_1, mode = :heel)
+# 			p_heel_1 = [k_heel_1[1], 0.0, k_heel_1[2]] + p_shift
+#
+# 			k_toe_2 = kinematics_3(model, q[t], body = :foot_2, mode = :toe)
+# 			p_toe_2 = [k_toe_2[1], 0.0, k_toe_2[2]] + p_shift
+#
+# 			k_heel_2 = kinematics_3(model, q[t], body = :foot_2, mode = :heel)
+# 			p_heel_2 = [k_heel_2[1], 0.0, k_heel_2[2]] + p_shift
+#
+# 			settransform!(vis[name]["thigh1"], cable_transform(p, p_thigh_1))
+# 			settransform!(vis[name]["calf1"], cable_transform(p_thigh_1, p_calf_1))
+# 			settransform!(vis[name]["foot1"], cable_transform(p_toe_1, p_heel_1))
+#
+# 			settransform!(vis[name]["thigh2"], cable_transform(p, p_thigh_2))
+# 			settransform!(vis[name]["calf2"], cable_transform(p_thigh_2, p_calf_2))
+# 			settransform!(vis[name]["foot2"], cable_transform(p_toe_2, p_heel_2))
+#
+# 			settransform!(vis[name]["torso"], cable_transform(p_torso,p))
+# 			settransform!(vis[name]["heel1"], Translation(p_heel_1))
+# 			settransform!(vis[name]["heel2"], Translation(p_heel_2))
+# 			settransform!(vis[name]["toe1"], Translation(p_toe_1))
+# 			settransform!(vis[name]["toe2"], Translation(p_toe_2))
+# 			settransform!(vis[name]["knee1"], Translation(p_thigh_1))
+# 			settransform!(vis[name]["knee2"], Translation(p_thigh_2))
+# 			settransform!(vis[name]["hip"], Translation(p))
+# 			settransform!(vis[name]["torso_top"], Translation(p_torso))
+# 		end
+# 	end
+#     return nothing
 # end
-# plot(hcat(qq...)[1:model.dim.q, 1:end]',
-#     label = "", color = :black, width = 3.0)
-# plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
-#     label = "", color = :cyan, width = 1.0, legend = :topleft)
 #
-
-
-# q_test = [ref_traj.q[1] + [0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.6, 0.6, ]]
-# visualize!(vis, model, q_test, Δt=10*h/N_sample, name=:mpc)
+#
+#
+# function plot_lines!(vis::Visualizer, model::Biped, q::AbstractVector;
+# 		r=0.035, offset=0.05, size=10, name::Symbol=:biped, col::Bool=true)
+# 	p_shift = [0.0, 0.0, r]
+# 	orange_mat, blue_mat, black_mat = get_line_material(size)
+#
+# 	# Point Traj
+# 	torso_point = Vector{Point{3,Float64}}()
+# 	t1_point = Vector{Point{3,Float64}}()
+# 	t2_point = Vector{Point{3,Float64}}()
+# 	for qi in q
+# 		k_torso = kinematics_1(model, qi, body = :torso, mode = :com)
+# 		p_torso = [k_torso[1], -offset, k_torso[2]] + p_shift
+#
+# 		k_toe_1 = kinematics_3(model, qi, body = :foot_1, mode = :toe)
+# 		p_toe_1 = [k_toe_1[1], -offset, k_toe_1[2]] + p_shift
+#
+# 		k_toe_2 = kinematics_3(model, qi, body = :foot_2, mode = :toe)
+# 		p_toe_2 = [k_toe_2[1], -offset, k_toe_2[2]] + p_shift
+#
+# 		push!(torso_point, Point(p_torso...))
+# 		push!(t1_point, Point(p_toe_1...))
+# 		push!(t2_point, Point(p_toe_2...))
+# 	end
+#
+# 	# Set lines
+# 	if col
+# 		setobject!(vis[name]["lines/torso"], MeshCat.Line(torso_point, orange_mat))
+# 		setobject!(vis[name]["lines/toe1"], MeshCat.Line(t1_point, blue_mat))
+# 		setobject!(vis[name]["lines/toe2"], MeshCat.Line(t2_point, blue_mat))
+# 	else
+# 		setobject!(vis[name]["lines/torso"], MeshCat.Line(torso_point, black_mat))
+# 		setobject!(vis[name]["lines/toe1"], MeshCat.Line(t1_point, black_mat))
+# 		setobject!(vis[name]["lines/toe2"], MeshCat.Line(t2_point, black_mat))
+# 	end
+# 	return nothing
+# end
+#
+#
+#
+#
+#
+# function plot_friction()
+#     return nothing
+# end
+#
+# function plot_contact_force()
+#     return nothing
+# end
+#
+#
+#
+#
+#
+#
+# a = 10
+# a = 10
+# a = 10
+#
+# # filename = "biped_sine"
+# # MeshCat.convert_frames_to_video(
+# #     "/home/simon/Downloads/$filename.tar",
+# #     "/home/simon/Documents/$filename.mp4", overwrite=true)
+# #
+# # convert_video_to_gif(
+# #     "/home/simon/Documents/$filename.mp4",
+# #     "/home/simon/Documents/$filename.gif", overwrite=true)
+#
+# # const ContactControl = Main
+#
+# # qq = []
+# # for q in ref_traj_copy.q
+# #     for i = 1:N_sample
+# #         push!(qq, q)
+# #     end
+# # end
+# # plot(hcat(qq...)[1:model.dim.q, 1:end]',
+# #     label = "", color = :black, width = 3.0)
+# # plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
+# #     label = "", color = :cyan, width = 1.0, legend = :topleft)
+# #
+#
+#
+# # q_test = [ref_traj.q[1] + [0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.6, 0.6, ]]
+# # visualize!(vis, model, q_test, Δt=10*h/N_sample, name=:mpc)
