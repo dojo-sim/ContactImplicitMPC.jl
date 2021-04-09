@@ -92,7 +92,7 @@ plot!(plt[3,1], hcat(Vector.([b[1:nb] for b in sim.traj.b]*N_sample)...)', color
 
 visualize!(vis, model, sim.traj.q[1:N_sample:end], Δt=10*h/N_sample, name=:mpc)
 visualize!(vis, model, sim.traj.q[1:N_sample:end], Δt=h, name=:mpc)
-# draw_lines!(vis, model, sim.traj.q[1:N_sample:end])
+# plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
 plot_surface!(vis, model_sim.env)
 
 
