@@ -36,7 +36,7 @@ H_sim = 4000
 
 cost = CostFunction(H_mpc, model.dim,
     # q = [Diagonal(1e-1 * [1.0, 0.01, 0.5, .15, .15, .15, .15, .01, .01]) for t = 1:H_mpc],
-    q = [Diagonal(1e-1 * [1.0, 0.01, 0.05, .5, .5, .15, .15, .0005, .0005]) for t = 1:H_mpc],
+    q = [Diagonal(1e-1 * [1.0, 0.01, 0.05, 1.5, 1.5, .15, .15, .0005, .0005]) for t = 1:H_mpc],
     u = [Diagonal(3e-1 * [10; 1; 10; ones(nu-5); 10; 10]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
@@ -99,14 +99,14 @@ a = 10
 a = 10
 a = 10
 
-# filename = "biped_long"
-# MeshCat.convert_frames_to_video(
-#     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/$filename.mp4", overwrite=true)
-#
-# convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)
+filename = "biped_sine"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)
 
 # const ContactControl = Main
 
