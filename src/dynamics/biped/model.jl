@@ -461,6 +461,7 @@ J_thigh = 0.00709
 J_calf = 0.00398
 J_foot = 0.4 * J_calf # 1.0 / 12.0 * m_foot * (l_foot + d_foot)^2.0
 
+
 biped = Biped(Dimensions(nq, nu, nw, nc, nb),
 			  g, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
@@ -475,3 +476,19 @@ biped = Biped(Dimensions(nq, nu, nw, nc, nb),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
 			  environment_2D_flat())
+
+biped_sinusoidal = Biped(Dimensions(nq, nu, nw, nc, nb),
+			  g, μ_world, μ_joint,
+			  l_torso, d_torso, m_torso, J_torso,
+			  l_thigh, d_thigh, m_thigh, J_thigh,
+			  l_calf, d_calf, m_calf, J_calf,
+			  l_foot, d_foot, m_foot, J_foot,
+			  l_thigh, d_thigh, m_thigh, J_thigh,
+			  l_calf, d_calf, m_calf, J_calf,
+			  l_foot, d_foot, m_foot, J_foot,
+			  zeros(nc),
+			  BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
+			  environment_2D(x -> 0.05*(cos.(pi*x[1:1]) .- 1.0)),
+			  )
