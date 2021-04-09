@@ -490,5 +490,5 @@ biped_sinusoidal = Biped(Dimensions(nq, nu, nw, nc, nb),
 			  BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
-			  environment_2D(x -> 0.05*(cos.(pi*x[1:1]) .- 1.0)),
+			  environment_2D(x -> 0.025*(cos.(pi*x[1:1]) .- 1.0)),
 			  )

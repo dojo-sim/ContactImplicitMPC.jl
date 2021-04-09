@@ -5,7 +5,7 @@ open(vis)
 
 # get hopper model
 # model = get_model("quadruped")
-model_sim = get_model("biped", surf="flat")
+model_sim = get_model("biped", surf="sinusoidal")
 model = get_model("biped", surf="flat")
 nq = model.dim.q
 nu = model.dim.u
@@ -20,7 +20,6 @@ nr = nq + nu + nc + nb + nd
 # ref_traj = get_trajectory("biped", "biped_gait (2)", load_type=:split_traj, model=model)
 ref_traj = get_trajectory("biped", "biped_gait (3)", load_type=:split_traj, model=model)
 # ref_traj = get_trajectory("biped", "biped_gait (5)", load_type=:split_traj, model=model)
-visualize!(vis, model, ref_traj.q, Δt=20*h/N_sample, name=:mpc)
 visualize!(vis, model, ref_traj.q, Δt=h, name=:mpc)
 
 ref_traj_copy = deepcopy(ref_traj)
@@ -30,15 +29,15 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1000
+H_sim = 4000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 cost = CostFunction(H_mpc, model.dim,
     # q = [Diagonal(1e-1 * [1.0, 0.01, 0.5, .15, .15, .15, .15, .01, .01]) for t = 1:H_mpc],
-    q = [Diagonal(1e-1 * [1.0, 0.01, 0.05, .15, .15, .15, .15, .0005, .0005]) for t = 1:H_mpc],
-    u = [Diagonal(3e-1 * [10; 1; 10; ones(nu-5); 3; 3]) for t = 1:H_mpc],
+    q = [Diagonal(1e-1 * [1.0, 0.01, 0.05, .5, .5, .15, .15, .0005, .0005]) for t = 1:H_mpc],
+    u = [Diagonal(3e-1 * [10; 1; 10; ones(nu-5); 10; 10]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
@@ -52,8 +51,8 @@ p = linearized_mpc_policy(ref_traj, model, cost,
     mpc_opts = LinearizedMPCOptions(
         # live_plotting=true,
         altitude_update = true,
-        altitude_impact_threshold = 0.10,
-        # altitude_verbose = true,
+        altitude_impact_threshold = 0.05,
+        altitude_verbose = true,
         )
     )
 
