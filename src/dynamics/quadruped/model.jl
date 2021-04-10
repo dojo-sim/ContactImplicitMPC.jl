@@ -473,11 +473,7 @@ nw = 2
 
 # World parameters
 g = 9.81      # gravity
-<<<<<<< HEAD
-μ_world = 1.0 # coefficient of friction
-=======
 μ_world = 0.9 # coefficient of friction
->>>>>>> 3bf785d943ab091b30a1ac045a44d23acd832226
 μ_joint = 0.1 # coefficient of torque friction at the joints
 
 # ~Unitree A1
@@ -532,9 +528,25 @@ quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				# environment_2D(x -> 0.05*sin.(π*x[1:1])),
 				# environment_2D(x -> 0.025*(cos.(pi*x[1:1]) .- 1.0)),
-				environment_2D(x -> 0.05*(cos.(pi*x[1:1]) .- 1.0)),
-				)
+				environment_2D(x -> 0.05 * (cos.(pi * x[1:1]) .- 1.0)))
 
+include(joinpath(pwd(), "src/simulator/environment/piecewise.jl"))
+quadruped_piecewise = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+				g, μ_world, μ_joint,
+				l_torso, d_torso, m_torso, J_torso,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				zeros(nc),
+				BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
+				environment_2D(fast_terrain))
 
 function initial_configuration(model::Quadruped, θ)
     q1 = zeros(model.dim.q)

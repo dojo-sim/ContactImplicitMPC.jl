@@ -322,6 +322,36 @@ save_expressions(expr_linearized, path_linearized, overwrite=true)
 instantiate_linearized!(model, path_linearized)
 
 ################################################################################
+# Quadruped Piecewise Terrain
+################################################################################
+dir = joinpath(@__DIR__, "quadruped")
+model = deepcopy(quadruped_piecewise)
+
+path_base = joinpath(dir, "piecewise/base.jld2")
+path_dyn = joinpath(dir, "piecewise/dynamics.jld2")
+path_res = joinpath(dir, "piecewise/residual.jld2")
+path_jac = joinpath(dir, "piecewise/sparse_jacobians.jld2")
+path_linearized = joinpath(dir, "piecewise/linearized.jld2")
+
+expr_base = generate_base_expressions(model)
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+@load path_jac rz_sp rθ_sp
+instantiate_residual!(model, path_res)
+
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
+
+################################################################################
 # Biped
 ################################################################################
 dir = joinpath(@__DIR__, "biped")

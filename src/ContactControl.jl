@@ -32,8 +32,10 @@ include("solver/ldl.jl")
 include("solver/qr.jl")
 include("solver/schur.jl")
 
+# Environment
+include("simulator/environment/environment.jl")
+
 # Dynamics
-include("dynamics/environment.jl")
 include("dynamics/model.jl")
 include("dynamics/code_gen.jl")
 include("dynamics/fast_methods.jl")
