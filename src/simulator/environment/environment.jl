@@ -83,6 +83,17 @@ function rotation(env::Environment{R2}, q)
 	SMatrix{2,2}([cos(ang) -sin(ang); sin(ang) cos(ang)])
 end
 
+function rotation_3d(env::Environment{R3}, q)
+	r = rotation(env, q)
+end
+
+function rotation_3d(env::Environment{R2}, q)
+	r = rotation(env, q)
+	r3d = [r[1,1] 0 r[1,2];
+		     0    1   0   ;
+		   r[2,1] 0 r[2,2]]
+end
+
 function friction_mapping(env::Environment{R2})
     SMatrix{1, 2}([1.0 -1.0])
 end

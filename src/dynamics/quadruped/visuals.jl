@@ -173,7 +173,7 @@ function visualize!(vis, model::Quadruped, q;
 end
 
 
-function draw_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
+function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 		r=0.025, offset=0.05, size=10, name::Symbol=:quadruped, col::Bool=true)
 	p_shift = [0.0, 0.0, r]
 	orange_mat, blue_mat, black_mat = get_line_material(size)
