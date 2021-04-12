@@ -97,9 +97,10 @@ plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H
 plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
-visualize!(vis, model, sim.traj.q[1:50:end], Δt=10*h/N_sample, name=:mpc)
 plot_lines!(vis, model, sim.traj.q[1:10:end])
 plot_surface!(vis, model_sim.env, n=200)
+anim = visualize_robot!(vis, model_sim, sim.traj, sample=50)
+anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=50)
 
 
 # filename = "hopper_2d_steep_sine"
@@ -112,15 +113,3 @@ plot_surface!(vis, model_sim.env, n=200)
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
 
 # const ContactControl = Main
-
-# qq = []
-# for q in ref_traj_copy.q
-#     for i = 1:N_sample
-#         push!(qq, q)
-#     end
-# end
-# plot(hcat(qq...)[1:model.dim.q, 1:end]',
-#     label = "", color = :black, width = 3.0)
-# plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
-#     label = "", color = :cyan, width = 1.0, legend = :topleft)
-#

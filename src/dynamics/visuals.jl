@@ -46,11 +46,11 @@ function visualize_robot!(vis::Visualizer, model::ContactDynamicsModel, q::Abstr
 end
 
 function visualize_robot!(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj;
-		h=traj.h,
+		sample=Int(floor(traj.H/100)), h=traj.h*sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
-	visualize_robot!(vis, model, traj.q[3:end]; anim=anim, name=name, h=h)
+	visualize_robot!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, h=h)
 	return anim
 end
 
@@ -159,11 +159,11 @@ function visualize_force!(vis::Visualizer, model::ContactDynamicsModel,
 end
 
 function visualize_force!(vis::Visualizer, model::ContactDynamicsModel,
-		traj::ContactTraj; h=traj.h,
+		traj::ContactTraj; sample=Int(floor(traj.H/100)), h=traj.h*sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
-	visualize_force!(vis, model, traj.q[3:end], traj.γ, traj.b;
+	visualize_force!(vis, model, traj.q[3:sample:end], traj.γ[1:sample:end], traj.b[1:sample:end];
 			anim=anim, name=name, h=h)
 	return anim
 end
