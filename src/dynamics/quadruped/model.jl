@@ -473,11 +473,7 @@ nw = 2
 
 # World parameters
 g = 9.81      # gravity
-<<<<<<< HEAD
-μ_world = 0.9 # coefficient of friction
-=======
 μ_world = 1.0 # coefficient of friction
->>>>>>> a7b135f6f9ab64a72a46df3cb1cf281bfd008e5c
 μ_joint = 0.1 # coefficient of torque friction at the joints
 
 # ~Unitree A1
@@ -534,7 +530,7 @@ quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				# environment_2D(x -> 0.025*(cos.(pi*x[1:1]) .- 1.0)),
 				environment_2D(x -> 0.05 * (cos.(pi * x[1:1]) .- 1.0)))
 
-include(joinpath(pwd(), "src/simulator/environment/piecewise.jl"))
+include(joinpath(@__DIR__, "../../simulator/environment/piecewise.jl"))
 quadruped_piecewise = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				g, μ_world, μ_joint,
 				l_torso, d_torso, m_torso, J_torso,

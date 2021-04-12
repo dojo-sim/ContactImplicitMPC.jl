@@ -1,32 +1,3 @@
-function cable_transform(y, z)
-    v1 = [0.0, 0.0, 1.0]
-    # if norm(z) > norm(y)
-    #     v2 = y[1:3,1] - z[1:3,1]
-    # else
-    #     v2 = z[1:3,1] - y[1:3,1]
-    # end
-    v2 = y[1:3,1] - z[1:3,1]
-    normalize!(v2)
-    ax = cross(v1, v2)
-    ang = acos(v1'*v2)
-    R = AngleAxis(ang, ax...)
-
-    if any(isnan.(R))
-        R = I
-    else
-        nothing
-    end
-
-    compose(Translation(z), LinearMap(R))
-end
-
-function default_background!(vis)
-    setvisible!(vis["/Background"], true)
-    setprop!(vis["/Background"], "top_color", RGBA(1.0, 1.0, 1.0, 1.0))
-    setprop!(vis["/Background"], "bottom_color", RGBA(1.0, 1.0, 1.0, 1.0))
-    setvisible!(vis["/Axes"], false)
-end
-
 function plot_surface!(vis::Visualizer, env::Environment{R3};  col=zeros(3), α=0.4, n::Int=50)
     f(x) = x[3] - env.surf(x[1:2])
     xlims = [-1.0, 5.0]
@@ -53,12 +24,146 @@ function plot_surface!(vis::Visualizer, f::Any; xlims = [-1.0, 5.0],
     return nothing
 end
 
-function get_line_material(size::Real)
-    orange_col = [1,153/255,51/255]
-    blue_col = [51/255,1,1]
-    black_col = [0,0,0]
-    orange_mat = LineBasicMaterial(color=color=RGBA(orange_col...,1.0), linewidth=size)
-    blue_mat = LineBasicMaterial(color=color=RGBA(blue_col...,1.0), linewidth=size)
-    black_mat = LineBasicMaterial(color=color=RGBA(black_col...,1.0), linewidth=size)
-    return orange_mat, blue_mat, black_mat
+function animate_robot!(vis::Visualizer, anim::MeshCat.Animation, model::ContactDynamicsModel,
+		q::AbstractVector; name::Symbol=model_name(model))
+	for t in 1:length(q)
+		MeshCat.atframe(anim, t) do
+			set_robot!(vis, model, q[t], name=name)
+		end
+	end
+	setanimation!(vis, anim)
+	return nothing
+end
+
+function visualize_robot!(vis::Visualizer, model::ContactDynamicsModel, q::AbstractVector;
+		h=0.01,
+		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=model_name(model))
+
+	build_robot!(vis, model, name=name)
+	animate_robot!(vis, anim, model, q, name=name)
+	return anim
+end
+
+function visualize_robot!(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj;
+		h=traj.h,
+		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=model_name(model))
+
+	visualize_robot!(vis, model, traj.q[3:end]; anim=anim, name=name, h=h)
+	return anim
+end
+
+function build_force!(vis::Visualizer, model::ContactDynamicsModel; name::Symbol=model_name(model))
+	default_background!(vis)
+	orange_mat, blue_mat, black_mat = get_material()
+	nc = model.dim.c
+
+	for i = 1:nc
+		fri_vis = ArrowVisualizer(vis[name][:force][:friction]["$i"])
+		imp_vis = ArrowVisualizer(vis[name][:force][:impact]["$i"])
+		con_vis = ArrowVisualizer(vis[name][:force][:contact]["$i"])
+		setobject!(imp_vis, orange_mat)
+		setobject!(fri_vis, black_mat)
+		setobject!(con_vis, blue_mat)
+	end
+	return nothing
+end
+
+function contact_force(model::ContactDynamicsModel, pc::AbstractVector,
+		γ::AbstractVector, b::AbstractVector;
+		E::AbstractMatrix=Matrix(friction_mapping(model.env)))
+	nc = model.dim.c
+	nb = model.dim.b
+	nf = Int(nb/nc)
+
+	r = [Matrix(rotation(model.env, pc[i])') for i=1:nc]
+	bc = [r[i] * [E*b[(i-1) * nf .+ (1:nf)];  0.0] for i = 1:nc] # TODO: make efficient
+	λc = [r[i] * [E*b[(i-1) * nf .+ (1:nf)]; γ[i]] for i = 1:nc] # TODO: make efficient
+	return bc, λc
+end
+
+function set_force!(vis::Visualizer, model::ContactDynamicsModel, q::AbstractVector,
+		γ::AbstractVector, b::AbstractVector; name::Symbol=model_name(model), shift=-0.04,
+		E::AbstractMatrix=Matrix(friction_mapping(model.env)))
+
+	nc = model.dim.c
+	nb = model.dim.b
+	nf = Int(nb/nc)
+	p_shift = [0, shift, 0]
+
+	pc = contact_point(model, q)
+	bc, λc = contact_force(model, pc, γ, b, E=E)
+
+	imp_vis = [ArrowVisualizer(vis[name][:force][:impact]["$i"]) for i=1:nc]
+	fri_vis = [ArrowVisualizer(vis[name][:force][:friction]["$i"]) for i=1:nc]
+	con_vis = [ArrowVisualizer(vis[name][:force][:contact]["$i"]) for i=1:nc]
+
+	for i = 1:nc
+		bi = cast3d(bc[i])
+		λi = cast3d(λc[i])
+
+		settransform!(imp_vis[i],
+			Point(0.0, 0.0, 0.0),
+			Vec(γ[i], 0.0, 0.0),
+			shaft_radius=0.008,
+			max_head_radius=0.020)
+		settransform!(fri_vis[i],
+			Point(0.0, 0.0, 0.0),
+			Vec(norm(bi), 0.0, 0.0),
+			shaft_radius=0.008,
+			max_head_radius=0.020)
+		settransform!(con_vis[i],
+			Point(0.0, 0.0, 0.0),
+			Vec(norm(λi), 0.0, 0.0),
+			shaft_radius=0.008,
+			max_head_radius=0.020)
+
+		trans = Translation(pc[i] + p_shift)
+		rot = LinearMap(rotation_3d(model.env, pc[i])')
+		transform = compose(trans, rot)
+		settransform!(vis[name][:force][:impact]["$i"], transform)
+
+		rot_fri = LinearMap(bivector_rotation([0.0, 0.0, 1.0], bi))
+		transform_fri = compose(trans, rot_fri)
+		settransform!(vis[name][:force][:friction]["$i"], transform_fri)
+
+		rot_con = LinearMap(bivector_rotation([0.0, 0.0, 1.0], λi))
+		transform_con = compose(trans, rot_con)
+		settransform!(vis[name][:force][:contact]["$i"], transform_con)
+	end
+	return nothing
+end
+
+function animate_force!(vis::Visualizer, anim::MeshCat.Animation, model::ContactDynamicsModel,
+	q::AbstractVector, γ::AbstractVector, b::AbstractVector;
+	name::Symbol=model_name(model))
+	E = Matrix(friction_mapping(model.env))
+	for t in 1:length(q)
+		MeshCat.atframe(anim, t) do
+			set_force!(vis, model, q[t], γ[t], b[t], name=name, E=E)
+		end
+	end
+	setanimation!(vis, anim)
+	return nothing
+end
+
+function visualize_force!(vis::Visualizer, model::ContactDynamicsModel,
+		q::AbstractVector, γ::AbstractVector, b::AbstractVector; h=0.01,
+		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=model_name(model))
+
+	build_force!(vis, model, name=name)
+	animate_force!(vis, anim, model, q, γ, b, name=name)
+	return anim
+end
+
+function visualize_force!(vis::Visualizer, model::ContactDynamicsModel,
+		traj::ContactTraj; h=traj.h,
+		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=model_name(model))
+
+	visualize_force!(vis, model, traj.q[3:end], traj.γ, traj.b;
+			anim=anim, name=name, h=h)
+	return anim
 end

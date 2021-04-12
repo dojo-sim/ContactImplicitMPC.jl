@@ -83,3 +83,8 @@ function convert_video_to_gif(video_file_path::AbstractString, output_path::Abst
     @info("Saved output as $output_path")
     return output_path
 end
+
+function model_name(model::ContactDynamicsModel)
+    name = Symbol(string(typeof(model).name)[10:end-1])
+    return name
+end
