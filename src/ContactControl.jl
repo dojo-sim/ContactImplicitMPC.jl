@@ -39,8 +39,6 @@ include("simulator/environment/environment.jl")
 include("dynamics/model.jl")
 include("dynamics/code_gen.jl")
 include("dynamics/fast_methods.jl")
-include("dynamics/visuals.jl")
-include("dynamics/visual_utils.jl")
 
 # Simulator
 include("simulator/trajectory.jl")
@@ -69,6 +67,10 @@ include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 include("controller/mpc_utils.jl")
 include("controller/policy.jl")
+
+# Visuals
+include("dynamics/visuals.jl")
+include("dynamics/visual_utils.jl")
 
 export SparseStructure, LinearizedStep, get_bilinear_indices, bil_addition!, r_linearized!, rz_linearized!
 export ImplicitTraj, linearization!, implicit_dynamics!

@@ -345,6 +345,15 @@ function _C_func(model::Biped, q, q̇)
 	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
 end
 
+function kinematics(model::Biped, q)
+	p_toe_1 = kinematics_3(model, q, body = :foot_1, mode = :toe)
+	p_heel_1 = kinematics_3(model, q, body = :foot_1, mode = :heel)
+	p_toe_2 = kinematics_3(model, q, body = :foot_2, mode = :toe)
+	p_heel_2 = kinematics_3(model, q, body = :foot_2, mode = :heel)
+
+	SVector{8}([p_toe_1[2]; p_heel_1[2]; p_toe_2[2]; p_heel_2[2]])
+end
+
 # Methods
 function M_func(model::Biped, q)
 	M = Diagonal([0.0, 0.0,

@@ -38,6 +38,10 @@ function lagrangian(model::Particle, q, q̇)
 	return L
 end
 
+function kinematics(::Particle, q)
+	return q
+end
+
 # mass matrix
 function M_func(model::Particle, q)
     m = model.m

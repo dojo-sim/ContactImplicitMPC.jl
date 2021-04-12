@@ -368,6 +368,15 @@ function _dLdq̇(model::Quadruped, q, q̇)
 	ForwardDiff.gradient(Lq̇, q̇)
 end
 
+function kinematics(model::Quadruped, q)
+	p_calf_1 = kinematics_2(model, q, body = :calf_1, mode = :ee)
+	p_calf_2 = kinematics_2(model, q, body = :calf_2, mode = :ee)
+	p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
+	p_calf_4 = kinematics_3(model, q, body = :calf_4, mode = :ee)
+
+	SVector{8}([p_calf_1; p_calf_2; p_calf_3; p_calf_4])
+end
+
 # Methods
 function M_func(model::Quadruped, q)
 	M = Diagonal([0.0, 0.0, model.J_torso, model.J_thigh1, model.J_calf1, model.J_thigh2, model.J_calf2, model.J_thigh3, model.J_calf3, model.J_thigh4, model.J_calf4])
@@ -459,6 +468,8 @@ function C_func(model::Quadruped, q, q̇)
 
 	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
 end
+
+
 
 ################################################################################
 # Instantiation

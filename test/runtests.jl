@@ -27,8 +27,8 @@ include("dynamics/quadruped.jl")
 include("simulator/particle.jl")
 include("simulator/hopper_2D.jl")
 include("simulator/hopper_3D.jl")
-include("simulator/quadruped.jl")
-include("simulator/biped.jl")
+# include("simulator/quadruped.jl")
+# include("simulator/biped.jl")
 
 # Controller
 include("controller/cost_function.jl")
