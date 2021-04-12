@@ -37,3 +37,6 @@ include("controller/implicit_dynamics.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 include("controller/mpc.jl")
+
+
+# const ContactControl = Main

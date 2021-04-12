@@ -42,13 +42,13 @@ function get_bilinear_indices(model::ContactDynamicsModel)
 	nb = model.dim.b
 
 	terms = [SVector{nc,Int}(nq + nc .+ (1:nc)),
-				 SVector{nc,Int}(nq + 3nc + nb .+ (1:nc)),
-				 SVector{nb,Int}(nq + 4nc + nb .+ (1:nb))]
+			 SVector{nb,Int}(nq + 3nc + nb .+ (1:nb)),
+			 SVector{nc,Int}(nq + 3nc + 2nb .+ (1:nc))]
 
-	vars = [[SVector{nc,Int}(nq .+ (1:nc)), SVector{nc}(nq + 2nc + 2nb .+ (1:nc))],  # γ1, s1
-				[SVector{nc,Int}(nq + nc + nb .+ (1:nc)), SVector{nc}(nq + 3nc + 2nb .+ (1:nc))],  # ψ, s2
-				[SVector{nb,Int}(nq + nc .+ (1:nb)), SVector{nb}(nq + 2nc + nb .+ (1:nb))]] # b1, η
-
+	vars = [[SVector{nc,Int}(nq .+ (1:nc)),           SVector{nc}(nq + 2nc + 2nb .+ (1:nc))],  # γ1, s1
+			[SVector{nb,Int}(nq + nc .+ (1:nb)),      SVector{nb}(nq + 2nc +  nb .+ (1:nb))], # b1, η
+			[SVector{nc,Int}(nq + nc + nb .+ (1:nc)), SVector{nc}(nq + 3nc + 2nb .+ (1:nc))],  # ψ, s2
+			]
 	return terms, vars
 end
 

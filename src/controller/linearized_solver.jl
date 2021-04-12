@@ -77,7 +77,8 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
     ibil1 = Vector(nq + nc .+ (1:nc))
     ibil2 = Vector(nq + 3nc + nb .+ (1:nc))
     ibil3 = Vector(nq + 4nc + nb .+ (1:nb))
-    ibil = [ibil1; ibil3; ibil2]
+    # ibil = [ibil1; ibil3; ibil2]
+    ibil = [ibil1; ibil2; ibil3]
     ilin = setdiff(1:nz, ibil)
     idyn = Vector(1:nq)
     irst = setdiff(ilin, idyn)
@@ -169,7 +170,7 @@ end
          [0   Diag(y2)  Diag(y1) ] -> Bilinear complementarity constraints -> size = ny
           |      |         |
 		  |		 |	   -> 1st set of variables associated with the bilinear constraints [γ1, b1, ψ] -> size = ny
-          |      -> 2nd set of variables associated with the bilinear constraints [s1, s2, η] -> size = ny
+          |      -> 2nd set of variables associated with the bilinear constraints [s1, η, s2] -> size = ny
 		  -> Rest of the variables [q2] -> size = nx
     The constant parts are the ones that remains equals to the blocks in rz0:
         Dx, Dy1, Rx, Ry1, Ry2
@@ -212,7 +213,8 @@ function RZLin(model::ContactDynamicsModel, rz0::AbstractMatrix{T}) where {T}
     ibil1 = Vector(nq + nc .+ (1:nc))
     ibil2 = Vector(nq + 3nc + nb .+ (1:nc))
     ibil3 = Vector(nq + 4nc + nb .+ (1:nb))
-    ibil = [ibil1; ibil3; ibil2]
+    # ibil = [ibil1; ibil3; ibil2]
+    ibil = [ibil1; ibil2; ibil3]
     ilin = setdiff(1:nz, ibil)
     idyn = Vector(1:nq)
     irst = setdiff(ilin, idyn)
@@ -290,7 +292,8 @@ function RθLin(model::ContactDynamicsModel, rθ0::AbstractMatrix{T}) where {T}
     ibil1 = Vector(nq + nc .+ (1:nc))
     ibil2 = Vector(nq + 3nc + nb .+ (1:nc))
     ibil3 = Vector(nq + 4nc + nb .+ (1:nb))
-    ibil = [ibil1; ibil3; ibil2]
+    # ibil = [ibil1; ibil3; ibil2]
+    ibil = [ibil1; ibil2; ibil3]
     ilin = setdiff(1:nz, ibil)
     idyn = Vector(1:nq)
     irst = setdiff(ilin, idyn)
@@ -360,6 +363,8 @@ function linear_solve!(Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
     Ry2 = rz.Ry2
     y1 = rz.y1
     y2 = rz.y2
+
+    # @show "WWWW"
 
     u = rdyn
     v = rrst - Ry2 .*rbil ./ y1
