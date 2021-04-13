@@ -30,7 +30,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 8000
+H_sim = 4000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -90,6 +90,8 @@ plot_lines!(vis, model, sim.traj.q[1:10:end])
 plot_surface!(vis, model_sim.env, n=200)
 anim = visualize_robot!(vis, model_sim, sim.traj, sample=20)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=20)
+
+plot(hcat([u[[1,2]] for u in Vector.(sim.traj.u)[1:end]]...)')
 
 
 # filename = "hopper_2d_steep_sine"

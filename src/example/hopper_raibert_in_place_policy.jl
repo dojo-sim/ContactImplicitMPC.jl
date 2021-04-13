@@ -4,7 +4,8 @@ vis = Visualizer()
 open(vis)
 
 # get hopper model
-model_sim = get_model("hopper_2D", surf="sinusoidal")
+# model_sim = get_model("hopper_2D", surf="sinusoidal")
+model_sim = get_model("hopper_2D", surf="flat")
 nq = model_sim.dim.q
 nu = model_sim.dim.u
 nc = model_sim.dim.c
@@ -19,19 +20,26 @@ h_sim = h / N_sample
 H_sim = 3000
 
 # Select the initial speed
-v0 = 0.2
+v0 = 0.0
 Tstance = 0.13 # measure using hop-in-place gait
 Tflight = 0.62 # measure using hop-in-place gait
 p = raibert_policy(q0_sim, q1_sim, v0=v0, Tstance=Tstance, Tflight=Tflight)
 
 off0 = SVector{nq,T}([0.0, 0.5, 0.0, 0.0])
-off1 = SVector{nq,T}([0*v0*h_sim, 0.5, 0.0, 0.0])
+off1 = SVector{nq,T}([v0*h_sim, 0.5, 0.0, 0.0])
 q_ref = SVector{nq,T}([0.0, 0.5, 0.0, 0.5])
 q0_sim = copy(q_ref) + off0
 q1_sim = copy(q_ref) + off1
 
+# Disturbances
+w = [zeros(nw) for t=1:Int(ceil(H_sim/N_sample))]
+w[75] += [5.0, -0.0]
+d = open_loop_disturbances(w)
+
+
 sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
+    d = d,
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
         κ_init = 1.0e-8,
@@ -56,13 +64,13 @@ plot_surface!(vis, model_sim.env, n=200)
 anim = visualize_robot!(vis, model_sim, sim.traj, sample=20)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=20)
 
-plot(hcat([q[[2,4]] for q in Vector.(sim.traj.q)[220:530]]...)')
+plot(hcat([q[[1,2,3,4]] for q in Vector.(sim.traj.q)[1:1200]]...)')
 plot(hcat([q[[3]] for q in Vector.(sim.traj.q)[1:end]]...)')
 plot(hcat([γ[[1]] for γ in Vector.(sim.traj.γ)[1:end]]...)')
 plot(hcat([u[[1,2]] for u in Vector.(sim.traj.u)[1:end]]...)')
 
 
-# filename = "raibert_hopper_sine"
+# filename = "raibert_hopper_push"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
