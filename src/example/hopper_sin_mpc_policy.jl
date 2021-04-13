@@ -18,22 +18,11 @@ nθ = num_data(model)
 r0 = rand(nz)
 z0 = rand(nz)
 θ0 = rand(nθ)
-ϕ_fast(model, ref_traj.q[1])[1]
-ϕ_fast(model, [0.0; zeros(nq-1)])[1]
-ϕ_fast(model, [1.0; zeros(nq-1)])[1]
-
-model.base.ϕ(ref_traj.q[1])[1]
-model.base.ϕ([0.0; zeros(nq-1)])[1]
-model.base.ϕ([1.0; zeros(nq-1)])[1]
-model.env.surf([0.0])[1]
-model.env.surf([1.0])[1]
-model.env.surf_grad([1.0])[1]
 
 
 # get trajectory
 # ref_traj = get_trajectory("hopper_2D", "gait_in_place", load_type=:joint_traj)
 ref_traj = get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
-ref_traj_copy = deepcopy(ref_traj)
 
 # time
 H = ref_traj.H
