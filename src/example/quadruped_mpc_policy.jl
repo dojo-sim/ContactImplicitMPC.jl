@@ -2,7 +2,7 @@
 model = get_model("quadruped")
 
 # get trajectory
-ref_traj = get_trajectory("quadruped", "gait1")
+ref_traj = get_trajectory("quadruped", "gait2")
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
@@ -59,3 +59,7 @@ plot(hcat(qq...)[1:model.dim.q, 1:100]',
     label = "", color = :black, width = 3.0)
 plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
     label = "", color = :cyan, width = 1.0, legend = :topleft)
+
+include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
+vis = Visualizer()
+render(vis)
