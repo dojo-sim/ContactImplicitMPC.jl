@@ -10,7 +10,7 @@
     Discrete Mechanics and Variational Integrators
         pg. 363
 """
-struct Particle{T} <: ContactDynamicsModel
+mutable struct Particle{T} <: ContactDynamicsModel
     dim::Dimensions
     m::T # mass
     g::T # gravity

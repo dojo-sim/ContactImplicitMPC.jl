@@ -1,4 +1,4 @@
-struct Biped{T} <: ContactDynamicsModel
+mutable struct Biped{T} <: ContactDynamicsModel
     dim::Dimensions
 
     g::T

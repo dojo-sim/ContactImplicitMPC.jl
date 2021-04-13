@@ -179,3 +179,13 @@ function sub_ref_traj(traj::ContactTraj, model::ContactDynamicsModel, idx)
         q, u, w, γ, b, z, θ,
 		traj.iq0, traj.iq1, traj.iu1, traj.iw1, traj.iq2, traj.iγ1, traj.ib1)
 end
+
+function update_friction_coefficient!(traj::ContactTraj, model::ContactDynamicsModel)
+	for t = 1:traj.H
+		q2, γ1, b1, ψ1, η1, __ = unpack_z(model, traj.z[t])
+		q0, q1, u1, w1, _, h = unpack_θ(model, traj.θ[t])
+		traj.z[t] .= pack_z(model, q2, γ1, b1, ψ1, η1)
+		traj.θ[t] .= pack_θ(model, q0, q1, u1, w1, copy(model.μ_world), h)
+	end
+	nothing
+end
