@@ -25,12 +25,14 @@ function unpack_θ(model::ContactDynamicsModel, θ)
 	off += nu
 	w1 =  θ[off .+ (1:nw)]
 	off += nw
+	μ =   θ[off .+ (1:1)]
+	off += 1
 	h =   θ[off .+ (1:1)]
-	return q0, q1, u1, w1, h
+	return q0, q1, u1, w1, μ, h
 end
 
-function pack_θ(model::ContactDynamicsModel, q0, q1, u1, w1, h)
-	return [q0; q1; u1; w1; h]
+function pack_θ(model::ContactDynamicsModel, q0, q1, u1, w1, μ, h)
+	return [q0; q1; u1; w1; μ; h]
 end
 
 function unpack_z(model::ContactDynamicsModel, z)
@@ -70,7 +72,7 @@ function z_initialize!(z, model::ContactDynamicsModel, q1)
     z[1:nq] = q1
 end
 
-function θ_initialize!(θ, model::ContactDynamicsModel, q0, q1, u, w, h)
+function θ_initialize!(θ, model::ContactDynamicsModel, q0, q1, u, w, μ, h)
 	nq = model.dim.q
 	nu = model.dim.u
 	nw = model.dim.w
@@ -83,6 +85,8 @@ function θ_initialize!(θ, model::ContactDynamicsModel, q0, q1, u, w, h)
 	off += nu
     θ[off .+ (1:nw)] = w
 	off += nw
+	θ[off .+ (1:1)] .= μ
+	off += 1
     θ[off .+ (1:1)] .= h
 end
 
@@ -99,7 +103,7 @@ function num_var(dim::Dimensions)
 end
 
 function num_data(dim::Dimensions)
-    dim.q + dim.q + dim.u + dim.w + 1
+    dim.q + dim.q + dim.u + dim.w + 1 + 1
 end
 
 inequality_indices(model::ContactDynamicsModel) = collect(model.dim.q .+ (1:(num_var(model) - model.dim.q)))
@@ -147,7 +151,7 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	nf = Int(nb / nc)
 	np = dim(model.env)
 
-	q0, q1, u1, w1, h = unpack_θ(model, θ)
+	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
 
 	ϕ = ϕ_fast(model, q2)
@@ -159,7 +163,7 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	 s1 - ϕ;
 	 γ1 .* s1 .- κ;
 	 vT_stack + ψ_stack - η1;
-	 s2 .- (model.μ_world * γ1 .- E_func(model) * b1);
+	 s2 .- (μ .* γ1 .- E_func(model) * b1);
 	 b1 .* η1 .- κ;
 	 ψ1 .* s2 .- κ]
 end
@@ -271,7 +275,7 @@ function get_trajectory(name::String, gait::String; model_name = name, load_type
 		traj.γ .= deepcopy(γ)
 		traj.b .= deepcopy(b)
 		traj.z .= [pack_z(model, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
-		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), h) for t = 1:T]
+		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), model.μ_world, h) for t = 1:T]
 	elseif load_type == :joint_traj
 		traj = res["traj"]
 	end

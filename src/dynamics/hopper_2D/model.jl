@@ -7,7 +7,7 @@
 			t - body orientation
 			r - leg length
 """
-struct Hopper2D{T} <: ContactDynamicsModel
+mutable struct Hopper2D{T} <: ContactDynamicsModel
     dim::Dimensions
 
     mb::T # mass of body

@@ -1,4 +1,4 @@
-struct Quadruped{T} <: ContactDynamicsModel
+mutable struct Quadruped{T} <: ContactDynamicsModel
 	dim::Dimensions
 
 	g::T

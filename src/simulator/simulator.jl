@@ -42,7 +42,7 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     z = zeros(num_var(model))
     θ = zeros(num_data(model))
     z_initialize!(z, model, traj.q[2])
-    θ_initialize!(θ, model, traj.q[1], traj.q[2], traj.u[1], traj.w[1], h)
+    θ_initialize!(θ, model, traj.q[1], traj.q[2], traj.u[1], traj.w[1], model.μ_world, h)
 
     ip = interior_point(z, θ,
         idx_ineq = inequality_indices(model),
@@ -77,7 +77,7 @@ function step!(sim::Simulator, t)
 
     # policy
     u[t] = policy(sim.p, q[t], sim.traj, t)
-    
+
     # disturbances
     w[t] = disturbances(sim.d, q[t], t)
 
@@ -88,7 +88,7 @@ function step!(sim::Simulator, t)
     else
         z_initialize!(z, model, q[t+1])
     end
-    θ_initialize!(θ, model, q[t], q[t+1], u[t], w[t], h)
+    θ_initialize!(θ, model, q[t], q[t+1], u[t], w[t], model.μ_world, h)
 
     # solve
     status = interior_point!(ip)

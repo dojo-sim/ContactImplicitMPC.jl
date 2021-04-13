@@ -1,7 +1,11 @@
 @testset "Simulator: Quadruped" begin
     # Reference trajectory
-    model = ContactControl.get_model("quadruped", surf = "flat")
-    ref_traj = ContactControl.get_trajectory("quadruped", "gait1")
+    model = deepcopy(ContactControl.get_model("quadruped", surf = "flat"))
+    model.μ_world = 0.5
+
+    ref_traj = deepcopy(ContactControl.get_trajectory("quadruped", "gait1"))
+    ContactControl.update_friction_coefficient!(ref_traj, model)
+
     T = ref_traj.H
     h = ref_traj.h
 
