@@ -88,8 +88,8 @@ plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', co
 
 plot_lines!(vis, model, sim.traj.q[1:10:end])
 plot_surface!(vis, model_sim.env, n=200)
-anim = visualize_robot!(vis, model_sim, sim.traj, sample=50)
-anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=50)
+anim = visualize_robot!(vis, model_sim, sim.traj, sample=20)
+anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=20)
 
 
 # filename = "hopper_2d_steep_sine"

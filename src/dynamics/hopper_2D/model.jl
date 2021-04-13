@@ -97,14 +97,14 @@ end
 
 # Working Parameters
 g = 9.81 # gravity
-μ_world = 0.7 # coefficient of friction
+μ_world = 1.0 # coefficient of friction
 μ_joint = 0.0
 
 # TODO: change to Raibert parameters
-mb = 2.8 # body mass
-ml = 0.4  # leg mass
-Jb = 1.0 # body inertia
-Jl = 1.0 # leg inertia
+mb = 3.0 # body mass
+ml = 0.3  # leg mass
+Jb = 0.75 # body inertia
+Jl = 0.075 # leg inertia
 
 # Dimensions
 nq = 4

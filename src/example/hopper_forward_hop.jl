@@ -26,13 +26,13 @@ cost = CostFunction(H, model.dim,
     γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:H],
     b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H])
 n_opts = NewtonOptions(r_tol=3e-8, max_iter=100)
-core = Newton(H, h, model, cost = cost, opts = n_opts)
 im_traj = ImplicitTraj(ref_traj, model, κ=κ)
+core = Newton(H, h, model, ref_traj, im_traj, cost = cost, opts = n_opts)
 q0_dist = deepcopy(ref_traj.q[1] + [-0.1,0.0,0,0])
 q1_dist = deepcopy(ref_traj.q[2] + [-0.1,0.0,0,0])
 newton_solve!(core, model, im_traj, ref_traj, q0=q0_dist, q1=q1_dist, verbose=true)
 
-visualize!(vis, model, core.traj.q, Δt=core.traj.h)
+visualize_robot!(vis, model, core.traj.q)
 
 plot(hcat(Vector.(ref_traj.u)...)')
 plot(hcat(Vector.(core.traj.u)...)')

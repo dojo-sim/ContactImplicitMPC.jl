@@ -12,7 +12,7 @@ nb = model.dim.b
 nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
-H = 90
+H = 92
 # h = 0.04
 # h = 0.02
 h = 0.01
@@ -32,9 +32,9 @@ q1_ref = SVector{nq,T}([0.0, 0.50, 0.0, 0.5])
 
 u_ref = []
 push!(u_ref,  [[0.0,  5.0*α*model.g*(model.mb+model.ml)/2] for k=1:2*6]...);
-push!(u_ref,  [[0.0, -0.9*α*model.g*(model.mb+model.ml)/2] for k=1:2*9]...);
-push!(u_ref,  [[0.0,  0.2*α*model.g*(model.mb+model.ml)/2] for k=1:2*14]...);
-push!(u_ref,  [[0.0,  2.1*α*model.g*(model.mb+model.ml)/2] for k=1:H-length(u_ref)]...);
+push!(u_ref,  [[0.0, -0.60*α*model.g*(model.mb+model.ml)/2] for k=1:2*10]...);
+push!(u_ref,  [[0.0,  0.14*α*model.g*(model.mb+model.ml)/2] for k=1:2*15]...);
+push!(u_ref,  [[0.0,  2.19*α*model.g*(model.mb+model.ml)/2] for k=1:H-length(u_ref)]...);
 
 contact_trajectory(H, h, model)
 # Simulate
@@ -49,9 +49,9 @@ sim = simulator(model, q0_ref, q1_ref, h, H;
     ip_opts = InteriorPointOptions(r_tol=1e-9, κ_tol=2κ),
     sim_opts = SimulatorOptions())
 simulate!(sim)
-plot(hcat(Vector.(sim.traj.q)...)')
 plot(hcat(Vector.(sim.traj.u)...)')
-visualize!(vis, model, sim.traj.q, Δt = sim.traj.h)
+plot(hcat(Vector.(sim.traj.q)...)')
+visualize_robot!(vis, model, sim.traj.q)
 
 # Check ~perfect loop
 @show round.(sim.traj.q[end-2] - q0_ref, digits=3)
