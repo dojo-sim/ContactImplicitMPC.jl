@@ -37,28 +37,6 @@ mutable struct Biped5{T} <: ContactDynamicsModel
     m_calf2
     J_calf2
 
-    # joint limits
-    qL
-    qU
-
-    # torque limits
-    uL
-    uU
-
-    nq
-    nu
-    nc
-    nf
-    nb
-    ns
-
-    idx_u
-    idx_λ
-    idx_b
-    idx_ψ
-    idx_η
-    idx_s
-
 	alt
 
 	# fast methods
@@ -358,52 +336,15 @@ d_torso = 0.0342
 d_thigh = 0.2176
 d_calf = 0.1445
 
-model = Biped5{Dimensions(nq, nu, nw, nc, nb),
+biped5 = Biped5(Dimensions(nq, nu, nw, nc, nb),
 			  g, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
 			  l_calf, d_calf, m_calf, J_calf,
-			  l_foot, d_foot, m_foot, J_foot,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
 			  l_calf, d_calf, m_calf, J_calf,
-			  l_foot, d_foot, m_foot, J_foot,
 			  zeros(nc),
 			  BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
 			  environment_2D_flat())
-
-function initial_configuration(model, θ_torso, θ_thigh_1, θ_leg_1, θ_thigh_2)
-    q1 = zeros(model.dim.q)
-    q1[3] = θ_torso
-    q1[4] = θ_thigh_1
-    q1[5] = θ_leg_1
-    z1 = model.l_thigh1 * cos(q1[4]) + model.l_calf1 * cos(q1[5])
-    q1[6] = θ_thigh_2
-    q1[7] = -1.0 * acos((z1 - model.l_thigh2 * cos(q1[6])) / model.l_calf2)
-    q1[2] = z1
-
-    p1 = kinematics_2(model, q1, body = :calf_1, mode = :ee)
-    p2 = kinematics_2(model, q1, body = :calf_2, mode = :ee)
-    @show stride = abs(p1[1] - p2[1])
-
-    q1[1] = -1.0 * p1[1]
-
-    qM = copy(q1)
-    qM[4] = q1[6]
-    qM[5] = q1[7]
-    qM[6] = q1[4]
-    qM[7] = q1[5]
-    qM[1] = abs(p2[1])
-
-    pM_1 = kinematics_2(model, qM, body = :calf_1, mode = :ee)
-    pM_2 = kinematics_2(model, qM, body = :calf_2, mode = :ee)
-
-    qT = copy(q1)
-    qT[1] = 2 * stride
-
-    pT_1 = kinematics_2(model, qT, body = :calf_1, mode = :ee)
-    pT_2 = kinematics_2(model, qT, body = :calf_2, mode = :ee)
-
-    return q1, qM, qT
-end
