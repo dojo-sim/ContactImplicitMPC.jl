@@ -2,7 +2,7 @@
 model = deepcopy(ContactControl.get_model("quadruped", surf = "flat"))
 model.μ_world = 0.5
 
-ref_traj = deepcopy(ContactControl.get_trajectory("quadruped", "gait2"))
+ref_traj = deepcopy(ContactControl.get_trajectory("quadruped", "gait0"))
 ContactControl.update_friction_coefficient!(ref_traj, model)
 
 T = ref_traj.H
