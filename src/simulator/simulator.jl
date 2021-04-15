@@ -76,8 +76,8 @@ function step!(sim::Simulator, t)
     θ = ip.θ
 
     # policy
-    u[t] .= policy(sim.p, q[t], sim.traj, t)
-    # u[t] .= policy(sim.p, q[t+1], sim.traj, t)
+    # u[t] .= policy(sim.p, q[t], sim.traj, t)
+    u[t] .= policy(sim.p, q[t+1], sim.traj, t)
 
     # disturbances
     w[t] = disturbances(sim.d, q[t], t)

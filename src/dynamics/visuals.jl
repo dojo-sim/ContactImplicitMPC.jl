@@ -1,5 +1,5 @@
 function plot_surface!(vis::Visualizer, env::Environment{R3};  col=zeros(3), α=0.4, n::Int=50)
-    f(x) = x[3] - env.surf(x[1:2])
+    f(x) = x[3] - env.surf(x[1:2])[1]
     xlims = [-1.0, 5.0]
     ylims = [-2.0, 2.0]
     plot_surface!(vis, f, xlims=xlims, ylims=ylims, col=col, α=α, n=n)
@@ -46,7 +46,7 @@ function visualize_robot!(vis::Visualizer, model::ContactDynamicsModel, q::Abstr
 end
 
 function visualize_robot!(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj;
-		sample=Int(floor(traj.H/100)), h=traj.h*sample,
+		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
@@ -159,7 +159,7 @@ function visualize_force!(vis::Visualizer, model::ContactDynamicsModel,
 end
 
 function visualize_force!(vis::Visualizer, model::ContactDynamicsModel,
-		traj::ContactTraj; sample=Int(floor(traj.H/100)), h=traj.h*sample,
+		traj::ContactTraj; sample=max(1,Int(floor(traj.H/100))), h=traj.h*sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 

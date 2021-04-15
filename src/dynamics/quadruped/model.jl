@@ -426,11 +426,12 @@ function ϕ_func(model::Quadruped, q)
 	p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
 	p_calf_4 = kinematics_3(model, q, body = :calf_4, mode = :ee)
 	alt = model.alt
+
 	SVector{model.dim.c}(
-		[p_calf_1[2] - alt[1] - model.env.surf(p_calf_1[1:1])[1],
-		 p_calf_2[2] - alt[2] - model.env.surf(p_calf_2[1:1])[1],
-		 p_calf_3[2] - alt[3] - model.env.surf(p_calf_3[1:1])[1],
-		 p_calf_4[2] - alt[4] - model.env.surf(p_calf_4[1:1])[1]])
+		[p_calf_1[2] - alt[1] .- model.env.surf(p_calf_1[1:1])[1],
+		 p_calf_2[2] - alt[2] .- model.env.surf(p_calf_2[1:1])[1],
+		 p_calf_3[2] - alt[3] .- model.env.surf(p_calf_3[1:1])[1],
+		 p_calf_4[2] - alt[4] .- model.env.surf(p_calf_4[1:1])[1]])
 end
 
 function B_func(model::Quadruped, q)
@@ -469,6 +470,30 @@ function C_func(model::Quadruped, q, q̇)
 	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
 end
 
+function contact_forces(model::Quadruped, γ1, b1, q2)
+	k = kinematics(model, q2)
+	m = friction_mapping(model.env)
+
+	SVector{8}([transpose(rotation(model.env, k[1:2])) * [m * b1[1:2]; γ1[1]];
+				transpose(rotation(model.env, k[3:4])) * [m * b1[3:4]; γ1[2]];
+				transpose(rotation(model.env, k[5:6])) * [m * b1[5:6]; γ1[3]];
+				transpose(rotation(model.env, k[7:8])) * [m * b1[7:8]; γ1[4]]])
+end
+
+function velocity_stack(model::Quadruped, q1, q2, h)
+	k = kinematics(model, q2)
+	v = J_func(model, q2) * (q2 - q1) / h[1]
+
+	v1_surf = rotation(model.env, k[1:2]) * v[1:2]
+	v2_surf = rotation(model.env, k[3:4]) * v[3:4]
+	v3_surf = rotation(model.env, k[5:6]) * v[5:6]
+	v4_surf = rotation(model.env, k[7:8]) * v[7:8]
+
+	SVector{8}([v1_surf[1]; -v1_surf[1];
+				v2_surf[1]; -v2_surf[1];
+				v3_surf[1]; -v3_surf[1];
+				v4_surf[1]; -v4_surf[1]])
+end
 
 
 ################################################################################
@@ -541,35 +566,20 @@ quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				# environment_2D(x -> 0.025*(cos.(pi*x[1:1]) .- 1.0)),
 				environment_2D(x -> 0.05 * (cos.(pi * x[1:1]) .- 1.0)))
 
-include(joinpath(@__DIR__, "../../simulator/environment/piecewise.jl"))
-quadruped_piecewise = Quadruped(Dimensions(nq, nu, nw, nc, nb),
-				g, μ_world, μ_joint,
-				l_torso, d_torso, m_torso, J_torso,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				zeros(nc),
-				BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
-				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
-				environment_2D(fast_terrain))
-
-function initial_configuration(model::Quadruped, θ)
-    q1 = zeros(model.dim.q)
-    q1[3] = pi / 2.0
-    q1[4] = -θ
-    q1[5] = θ
-    q1[6] = -θ
-    q1[7] = θ
-    q1[8] = -θ
-    q1[9] = θ
-    q1[10] = -θ
-    q1[11] = θ
-    q1[2] = model.l_thigh1 * cos(q1[4]) + model.l_calf1 * cos(q1[5])
-    return q1
-end
+# include(joinpath(@__DIR__, "../../simulator/environment/piecewise.jl"))
+# quadruped_piecewise = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+# 				g, μ_world, μ_joint,
+# 				l_torso, d_torso, m_torso, J_torso,
+# 				l_thigh, d_thigh, m_thigh, J_thigh,
+# 				l_leg, d_leg, m_leg, J_leg,
+# 				l_thigh, d_thigh, m_thigh, J_thigh,
+# 				l_leg, d_leg, m_leg, J_leg,
+# 				l_thigh, d_thigh, m_thigh, J_thigh,
+# 				l_leg, d_leg, m_leg, J_leg,
+# 				l_thigh, d_thigh, m_thigh, J_thigh,
+# 				l_leg, d_leg, m_leg, J_leg,
+# 				zeros(nc),
+# 				BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+# 				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+# 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
+# 				environment_2D(fast_terrain))

@@ -1,4 +1,4 @@
-@testset "Envirooment" begin
+@testset "Environment" begin
 	# 2D
 	surf = x -> 0.05*sin.(π*x[1:1])
 	surf_grad = x -> 0.05*π*cos.(π*x[1:1])

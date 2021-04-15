@@ -272,13 +272,6 @@ function M_func(model::Biped5, q)
 	return M
 end
 
-function _C_func(model::Biped5, q, q̇)
-	tmp_q(z) = _dLdq̇(model, z, q̇)
-	tmp_q̇(z) = _dLdq̇(model, q, z)
-
-	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
-end
-
 function ϕ_func(model::Biped5, q)
 	p_calf_1 = kinematics_2(model, q, body = :calf_1, mode = :ee)
 	p_calf_2 = kinematics_2(model, q, body = :calf_2, mode = :ee)
@@ -304,6 +297,25 @@ function J_func(model::Biped5, q)
 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
 
 	return [J_calf_1; J_calf_2]
+end
+
+function contact_forces(model::Biped5, γ1, b1, q2)
+	k = kinematics(model, q2)
+	m = friction_mapping(model.env)
+
+	SVector{4}([transpose(rotation(model.env, k[1:2])) * [m * b1[1:2]; γ1[1]];
+				transpose(rotation(model.env, k[3:4])) * [m * b1[3:4]; γ1[2]]])
+end
+
+function velocity_stack(model::Biped5, q1, q2, h)
+	k = kinematics(model, q2)
+	v = J_func(model, q2) * (q2 - q1) / h[1]
+
+	v1_surf = rotation(model.env, k[1:2]) * v[1:2]
+	v2_surf = rotation(model.env, k[3:4]) * v[3:4]
+
+	SVector{4}([v1_surf[1]; -v1_surf[1];
+				v2_surf[1]; -v2_surf[1]])
 end
 
 # Dimensions

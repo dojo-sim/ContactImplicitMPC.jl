@@ -72,7 +72,8 @@ end
 
 function rotation(env::Environment{R2}, q)
 	# unit surface normal (3D)
-	n = [-1.0 * env.surf_grad(q[1:1]); 1.0]
+	sg = env.surf_grad(q[1:1])[1]
+	n = [-1.0 * sg; 1.0]
 	ns = n ./ sqrt(transpose(n) * n)
 
 	# world-frame normal

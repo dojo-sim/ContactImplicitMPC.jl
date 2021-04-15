@@ -135,7 +135,6 @@ function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
 	nf = Int(nb / nc)
 	ne = dim(model.env)
 	k = kinematics(model, q2)
-	# λ1 = vcat([transpose(rotation(model.env, q2)) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
 	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * ne .+ (1:ne)])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
 
 	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
@@ -143,6 +142,42 @@ function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
 		+ transpose(A_fast(model, qm2)) * w1
 		+ transpose(J_fast(model, q2)) * λ1
 		- h[1] * model.joint_friction .* vm2)
+end
+
+function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, λ1, q2)
+
+	# evalutate at midpoint
+	qm1 = 0.5 * (q0 + q1)
+    vm1 = (q1 - q0) / h[1]
+    qm2 = 0.5 * (q1 + q2)
+    vm2 = (q2 - q1) / h[1]
+
+	D1L1, D2L1 = lagrangian_derivatives(model, qm1, vm1)
+	D1L2, D2L2 = lagrangian_derivatives(model, qm2, vm2)
+
+	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
+		+ transpose(B_fast(model, qm2)) * u1
+		+ transpose(A_fast(model, qm2)) * w1
+		+ transpose(J_fast(model, q2)) * λ1
+		- h[1] * model.joint_friction .* vm2)
+end
+
+function contact_forces(model::ContactDynamicsModel, γ1, b1, q2)
+	nc = model.dim.c
+	nb = model.dim.b
+	nf = Int(nb / nc)
+	ne = dim(model.env)
+	k = kinematics(model, q2)
+	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * ne .+ (1:ne)])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
+end
+
+function velocity_stack(model::ContactDynamicsModel, q1, q2, h)
+	nc = model.dim.c
+	np = dim(model.env)
+	k = kinematics(model, q2)
+	v = J_fast(model, q2) * (q2 - q1) / h[1]
+	v_surf = [rotation(model.env, k[(i-1) * np .+ (1:np)]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
+	vT_stack = vcat([[v_surf[i][1]; -v_surf[i][1]] for i = 1:nc]...)
 end
 
 function residual(model::ContactDynamicsModel, z, θ, κ)
@@ -154,19 +189,43 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
 
-	ϕ = ϕ_fast(model, q2)
-	v = J_fast(model, q2) * (q2 - q1) / h[1]
-	vT_stack = vcat([[v[(i-1) * np .+ (1:np-1)]; -v[(i-1) * np .+ (1:np-1)]] for i = 1:nc]...)
+	ϕ = ϕ_func(model, q2)
+
+	λ1 = contact_forces(model, γ1, b1, q2)
+	vT_stack = velocity_stack(model, q1, q2, h)
 	ψ_stack = transpose(E_func(model)) * ψ1
 
-	[d_fast(model, h, q0, q1, u1, w1, γ1, b1, q2); # TODO: replace with fast version
+	[model.dyn.d(h, q0, q1, u1, w1, λ1, q2);
 	 s1 - ϕ;
 	 γ1 .* s1 .- κ;
 	 vT_stack + ψ_stack - η1;
-	 s2 .- (μ .* γ1 .- E_func(model) * b1);
+	 s2 .- (μ[1] * γ1 .- E_func(model) * b1);
 	 b1 .* η1 .- κ;
 	 ψ1 .* s2 .- κ]
 end
+
+# function residual(model::ContactDynamicsModel, z, θ, κ)
+# 	nc = model.dim.c
+# 	nb = model.dim.b
+# 	nf = Int(nb / nc)
+# 	np = dim(model.env)
+#
+# 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
+# 	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
+#
+# 	ϕ = ϕ_func(model, q2)
+# 	v = J_fast(model, q2) * (q2 - q1) / h[1]
+# 	vT_stack = vcat([[v[(i-1) * np .+ (1:np-1)]; -v[(i-1) * np .+ (1:np-1)]] for i = 1:nc]...)
+# 	ψ_stack = transpose(E_func(model)) * ψ1
+#
+# 	[dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2);
+# 	 s1 - ϕ;
+# 	 γ1 .* s1 .- κ;
+# 	 vT_stack + ψ_stack - η1;
+# 	 s2 .- (μ[1] * γ1 .- E_func(model) * b1);
+# 	 b1 .* η1 .- κ;
+# 	 ψ1 .* s2 .- κ]
+# end
 
 mutable struct BaseMethods
 	L::Any
@@ -228,8 +287,8 @@ function get_model(name::String; model_name::String = name, surf::String = "flat
 	path = joinpath(@__DIR__, name)
 	# include(joinpath(path, "model.jl"))
 	model = eval(Symbol(model_name * (surf != "flat" ? "_" * surf : "")))
-	instantiate_base!(model, joinpath(path, surf, "base.jld2"))
-	instantiate_dynamics!(model, joinpath(path, surf, "dynamics.jld2"))
+	instantiate_base!(model, joinpath(path, "dynamics", "base.jld2"))
+	instantiate_dynamics!(model, joinpath(path, "dynamics", "dynamics.jld2"))
 	instantiate_residual!(model, joinpath(path, surf, "residual.jld2"))
 	instantiate_linearized!(model, joinpath(path, surf, "linearized.jld2"))
 	@load joinpath(path, surf, "sparse_jacobians.jld2") rz_sp rθ_sp

@@ -25,7 +25,7 @@ include("dynamics/quadruped.jl")
 
 # Simulator
 include("simulator/particle.jl")
-include("simulator/hopper_2D.jl")
+# include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
 include("simulator/hopper_3D.jl")
 include("simulator/quadruped.jl")
 # include("simulator/biped.jl") #TODO: improve this test
@@ -37,6 +37,3 @@ include("controller/implicit_dynamics.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 include("controller/mpc.jl")
-
-
-# const ContactControl = Main

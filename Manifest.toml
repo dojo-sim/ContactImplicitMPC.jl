@@ -93,9 +93,9 @@ version = "0.7.0"
 
 [[ColorSchemes]]
 deps = ["ColorTypes", "Colors", "FixedPointNumbers", "Random", "StaticArrays"]
-git-tree-sha1 = "d3cf83862f70d430d4b34e43ed65e74bd50ae0e0"
+git-tree-sha1 = "9d7dfad1326b1ad29afa1366587806a14d727745"
 uuid = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
-version = "3.11.0"
+version = "3.12.0"
 
 [[ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
@@ -237,6 +237,12 @@ deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers",
 git-tree-sha1 = "3cc57ad0a213808473eafef4845a74766242e05f"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
 version = "4.3.1+4"
+
+[[FileIO]]
+deps = ["Pkg", "Requires", "UUIDs"]
+git-tree-sha1 = "b4fdad5fe06e0226348301b5163925ac1ae8b64b"
+uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+version = "1.6.5"
 
 [[FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -552,6 +558,12 @@ git-tree-sha1 = "ca4a1e45f5d2a2148c599804a6619da7708ede69"
 uuid = "283c5d60-a78f-5afe-a0af-af636b173e11"
 version = "0.13.2"
 
+[[MeshIO]]
+deps = ["ColorTypes", "FileIO", "GeometryBasics", "Printf"]
+git-tree-sha1 = "0b7334b0869d9bb9f255991032d1a36a01a60da7"
+uuid = "7269a6da-0436-5bbc-96c2-40638cbb6118"
+version = "0.4.6"
+
 [[Meshing]]
 deps = ["GeometryBasics", "GeometryTypes", "StaticArrays"]
 git-tree-sha1 = "25d443b45af9c84e4377ad33286b068e41a686ba"
@@ -781,9 +793,9 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
 [[SciMLBase]]
 deps = ["ArrayInterface", "CommonSolve", "Distributed", "DocStringExtensions", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "RecipesBase", "RecursiveArrayTools", "StaticArrays", "Statistics", "Tables", "TreeViews"]
-git-tree-sha1 = "2208f13e3f19aaf182357082fb48a0a94c279990"
+git-tree-sha1 = "5b2d6abf15ca437d55f5e84c1c3fff2d2d6e4930"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "1.11.1"
+version = "1.11.3"
 
 [[Scratch]]
 deps = ["Dates"]
@@ -875,9 +887,9 @@ version = "0.11.0"
 
 [[Symbolics]]
 deps = ["AbstractAlgebra", "DiffRules", "Distributions", "DocStringExtensions", "IfElse", "Latexify", "Libdl", "LinearAlgebra", "MacroTools", "NaNMath", "RecipesBase", "Reexport", "RuntimeGeneratedFunctions", "SciMLBase", "Setfield", "SparseArrays", "SpecialFunctions", "SymbolicUtils", "TreeViews"]
-git-tree-sha1 = "caa17bf8763d29ec6d14020eab96124e17ca2729"
+git-tree-sha1 = "90571000ee60cb447d88f617f9946e222c253996"
 uuid = "0c5d862f-8b57-4792-8d23-62f2024744c7"
-version = "0.1.18"
+version = "0.1.20"
 
 [[TOML]]
 deps = ["Dates"]
@@ -891,9 +903,9 @@ version = "1.0.1"
 
 [[Tables]]
 deps = ["DataAPI", "DataValueInterfaces", "IteratorInterfaceExtensions", "LinearAlgebra", "TableTraits", "Test"]
-git-tree-sha1 = "a9ff3dfec713c6677af435d6a6d65f9744feef67"
+git-tree-sha1 = "c9d2d262e9a327be1f35844df25fe4561d258dc9"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "1.4.1"
+version = "1.4.2"
 
 [[Tar]]
 deps = ["ArgTools", "SHA"]

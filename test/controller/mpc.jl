@@ -5,7 +5,7 @@
     model = ContactControl.get_model("quadruped")
 
     # get trajectory
-    ref_traj = ContactControl.get_trajectory("quadruped", "gait1")
+    ref_traj = ContactControl.get_trajectory("quadruped", "gait0")
     ref_traj_copy = deepcopy(ref_traj)
 
     # time

@@ -1,4 +1,0 @@
-https://github.com/thowell/motion_planning/blob/main/examples/contact_implicit/quadruped_gait.jl
-https://github.com/thowell/motion_planning/blob/main/examples/contact_implicit/walker_gait.jl
-https://github.com/thowell/motion_planning/blob/main/examples/contact_implicit/hopper3D_vertical.jl
-https://github.com/thowell/motion_planning/blob/main/examples/contact_implicit/hopper_vertical.jl

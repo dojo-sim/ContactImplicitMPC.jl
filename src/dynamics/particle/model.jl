@@ -84,6 +84,22 @@ function J_func(model::Particle, q)
 				   0.0 0.0 1.0])
 end
 
+function contact_forces(model::Particle, γ1, b1, q2)
+	k = kinematics(model, q2)
+	m = friction_mapping(model.env)
+
+	SVector{3}(transpose(rotation(model.env, k)) * [m * b1; γ1])
+end
+
+function velocity_stack(model::Particle, q1, q2, h)
+	k = kinematics(model, q2)
+	v = J_func(model, q2) * (q2 - q1) / h[1]
+
+	v1_surf = rotation(model.env, k) * v
+
+	SVector{4}([v1_surf[1:2]; -v1_surf[1:2]])
+end
+
 # Model (flat surface)
 particle = Particle(Dimensions(3, 3, 3, 1, 4), 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),

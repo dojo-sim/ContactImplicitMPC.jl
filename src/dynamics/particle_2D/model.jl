@@ -81,6 +81,22 @@ function J_func(model::Particle2D, q)
                    0.0 1.0])
 end
 
+function contact_forces(model::Particle2D, γ1, b1, q2)
+	k = kinematics(model, q2)
+	m = friction_mapping(model.env)
+
+	SVector{2}(transpose(rotation(model.env, k)) * [m * b1; γ1])
+end
+
+function velocity_stack(model::Particle2D, q1, q2, h)
+	k = kinematics(model, q2)
+	v = J_func(model, q2) * (q2 - q1) / h[1]
+
+	v1_surf = rotation(model.env, k) * v
+
+	SVector{2}([v1_surf[1]; -v1_surf[1]])
+end
+
 # Model (flat surface)
 particle_2D = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
@@ -89,16 +105,8 @@ particle_2D = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 1.0, 0.0,
 	environment_2D_flat())
 
 # Model (slope)
-function slope(x)
-	0.5 * x[1:1]
-end
-
-function slope_grad(x)
-	[0.5]
-end
-
 particle_2D_slope = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 0.1, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 	SparseStructure(spzeros(0,0),spzeros(0,0)),
 	SVector{2}(zeros(2)),
-	Environment{R2}(slope, slope_grad))
+	environment_2D(x -> 0.5 * x[1:1]))

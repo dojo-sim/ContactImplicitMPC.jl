@@ -11,6 +11,7 @@ using QDLDL
 using MeshCat
 using Meshing
 using Symbolics
+using IfElse
 using Parameters
 using Plots
 using Rotations
@@ -21,6 +22,8 @@ using Logging
 using Random
 using SparseArrays
 using Test
+using FileIO
+using MeshIO
 
 # Utilities
 include("utils.jl")
@@ -53,6 +56,7 @@ include("dynamics/hopper_2D/model.jl")
 include("dynamics/hopper_3D/model.jl")
 include("dynamics/quadruped/model.jl")
 include("dynamics/biped/model.jl")
+include("dynamics/biped5/model.jl")
 
 # Simulator
 include("simulator/policy.jl")

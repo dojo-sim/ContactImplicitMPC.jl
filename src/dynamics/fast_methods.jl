@@ -23,9 +23,12 @@ function C_fast(model::ContactDynamicsModel, q, q̇)
 end
 
 # Dynamics functions
-function d_fast(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
-    return model.dyn.d(h, q0, q1, u1, w1, γ1, b1, q2)
+function d_fast(model::ContactDynamicsModel, h, q0, q1, u1, w1, λ1, q2)
+    return model.dyn.d(h, q0, q1, u1, w1, λ1, q2)
 end
+# function d_fast(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
+#     return model.dyn.d(h, q0, q1, u1, w1, γ1, b1, q2)
+# end
 
 function dy_fast!(v, model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
     return model.dyn.dy(v, h, q0, q1, u1, w1, γ1, b1, q2)

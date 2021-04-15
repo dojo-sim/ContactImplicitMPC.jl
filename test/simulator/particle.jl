@@ -136,7 +136,9 @@ end
     # simulate
     status = ContactControl.simulate!(sim)
     @test status
-    @test all(isapprox.(sim.traj.q[end], 0.0, atol = 1.0e-2))
+    @test abs(sim.traj.q[end][1]) < 0.05
+    @test abs(sim.traj.q[end][2]) < 0.05
+    @test abs(sim.traj.q[end][3]) < 0.001
 
     ## Forward Velocity (warmstart)
     # simulator
@@ -152,7 +154,9 @@ end
     # simulate
     status = ContactControl.simulate!(sim)
     @test status
-    @test all(isapprox.(sim.traj.q[end], 0.0, atol = 1.0e-2))
+    @test abs(sim.traj.q[end][1]) < 0.05
+    @test abs(sim.traj.q[end][2]) < 0.05
+    @test abs(sim.traj.q[end][3]) < 0.001
 
     ## Drop
     # initial conditions
@@ -168,8 +172,9 @@ end
     # simulate
     status = ContactControl.simulate!(sim)
     @test status
-    @test all(isapprox.(sim.traj.q[end][3], 0.0, atol = 1.0e-3))
-    @test all(isapprox.((sim.traj.q[end] - sim.traj.q[end-1]) ./ h, 0.0, atol = 1.0e-3))
+    @test abs(sim.traj.q[end][1]) < 0.05
+    @test abs(sim.traj.q[end][2]) < 0.05
+    @test abs(sim.traj.q[end][3]) < 0.001
 
     ## DROP (warmstart)
     # simulator
@@ -185,8 +190,9 @@ end
     # simulate
     status = ContactControl.simulate!(sim)
     @test status
-    @test all(isapprox.(sim.traj.q[end][3], 0.0, atol = 1.0e-3))
-    @test all(isapprox.((sim.traj.q[end] - sim.traj.q[end-1]) ./ h, 0.0, atol = 1.0e-3))
+    @test abs(sim.traj.q[end][1]) < 0.05
+    @test abs(sim.traj.q[end][2]) < 0.05
+    @test abs(sim.traj.q[end][3]) < 0.001
 end
 
 @testset "Simulation: Particle (2D)" begin

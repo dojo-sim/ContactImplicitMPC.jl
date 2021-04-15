@@ -21,7 +21,6 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	dLq = Symbolics.gradient(L, q, simplify=true)
 	dLq̇ = Symbolics.gradient(L, q̇, simplify=true)
 	ddL = Symbolics.sparsehessian(L, [q; q̇], simplify=true)
-	# ddL = SparseMatrixCSC{Expression,Int64}(ddL)
 	ddLq̇q = ddL[nq .+ (1:nq), 1:nq]
 
 	# Signed distance
@@ -126,6 +125,7 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 	nw = model.dim.w
 	nc = model.dim.c
 	nb = model.dim.b
+	ncf = nc * dim(model.env)
 
 	# Declare variables
 	@variables q0[1:nq]
@@ -133,33 +133,36 @@ function generate_dynamics_expressions(model::ContactDynamicsModel)
 	@variables u1[1:nu]
 	@variables w1[1:nw]
 	@variables γ1[1:nc]
+	@variables λ1[1:ncf]
 	@variables b1[1:nb]
 	@variables q2[1:nq]
 	@variables h
 
 	# Dynamics
-	d = dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2)
+	# d = dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2)
+	d = dynamics(model, h, q0, q1, u1, w1, λ1, q2)
 	d = Symbolics.simplify.(d)
-	dy  = Symbolics.jacobian(d, [q0; q1; u1; w1; γ1; b1; q2], simplify=true)
-	dq0 = Symbolics.jacobian(d, q0, simplify=true)
-	dq1 = Symbolics.jacobian(d, q1,  simplify=true)
-	du1 = Symbolics.jacobian(d, u1,  simplify=true)
-	dw1 = Symbolics.jacobian(d, w1,  simplify=true)
-	dγ1 = Symbolics.jacobian(d, γ1,  simplify=true)
-	db1 = Symbolics.jacobian(d, b1,  simplify=true)
-	dq2 = Symbolics.jacobian(d, q2,  simplify=true)
+	# dy  = Symbolics.jacobian(d, [q0; q1; u1; w1; γ1; b1; q2], simplify=true)
+	# dq0 = Symbolics.jacobian(d, q0, simplify=true)
+	# dq1 = Symbolics.jacobian(d, q1,  simplify=true)
+	# du1 = Symbolics.jacobian(d, u1,  simplify=true)
+	# dw1 = Symbolics.jacobian(d, w1,  simplify=true)
+	# dγ1 = Symbolics.jacobian(d, γ1,  simplify=true)
+	# db1 = Symbolics.jacobian(d, b1,  simplify=true)
+	# dq2 = Symbolics.jacobian(d, q2,  simplify=true)
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
-	expr[:d]   = build_function(d,   h, q0, q1, u1, w1, γ1, b1, q2)[1]
-	expr[:dy]  = build_function(dy,  h, q0, q1, u1, w1, γ1, b1, q2)[2]
-	expr[:dq0] = build_function(dq0, h, q0, q1, u1, w1, γ1, b1, q2)[2]
-	expr[:dq1] = build_function(dq1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
-	expr[:du1] = build_function(du1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
-	expr[:dw1] = build_function(dw1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
-	expr[:dγ1] = build_function(dγ1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
-	expr[:db1] = build_function(db1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
-	expr[:dq2] = build_function(dq2, h, q0, q1, u1, w1, γ1, b1, q2)[2]
+	# expr[:d]   = build_function(d,   h, q0, q1, u1, w1, γ1, b1, q2)[1]
+	expr[:d]   = build_function(d,   h, q0, q1, u1, w1, λ1, q2)[1]
+	# expr[:dy]  = build_function(dy,  h, q0, q1, u1, w1, γ1, b1, q2)[2]
+	# expr[:dq0] = build_function(dq0, h, q0, q1, u1, w1, γ1, b1, q2)[2]
+	# expr[:dq1] = build_function(dq1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
+	# expr[:du1] = build_function(du1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
+	# expr[:dw1] = build_function(dw1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
+	# expr[:dγ1] = build_function(dγ1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
+	# expr[:db1] = build_function(db1, h, q0, q1, u1, w1, γ1, b1, q2)[2]
+	# expr[:dq2] = build_function(dq2, h, q0, q1, u1, w1, γ1, b1, q2)[2]
 	return expr
 end
 
@@ -336,14 +339,14 @@ Evaluates the dynamics expressions to generate functions, stores them into the d
 """
 function instantiate_dynamics!(fct::DynamicsMethods, expr::Dict{Symbol,Expr})
 	fct.d   = eval(expr[:d])
-	fct.dy  = eval(expr[:dy])
-	fct.dq0 = eval(expr[:dq0])
-	fct.dq1 = eval(expr[:dq1])
-	fct.du1 = eval(expr[:du1])
-	fct.dw1 = eval(expr[:dw1])
-	fct.dγ1 = eval(expr[:dγ1])
-	fct.db1 = eval(expr[:db1])
-	fct.dq2 = eval(expr[:dq2])
+	# fct.dy  = eval(expr[:dy])
+	# fct.dq0 = eval(expr[:dq0])
+	# fct.dq1 = eval(expr[:dq1])
+	# fct.du1 = eval(expr[:du1])
+	# fct.dw1 = eval(expr[:dw1])
+	# fct.dγ1 = eval(expr[:dγ1])
+	# fct.db1 = eval(expr[:db1])
+	# fct.dq2 = eval(expr[:dq2])
 	return nothing
 end
 

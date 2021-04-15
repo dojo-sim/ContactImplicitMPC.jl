@@ -351,7 +351,7 @@ function kinematics(model::Biped, q)
 	p_toe_2 = kinematics_3(model, q, body = :foot_2, mode = :toe)
 	p_heel_2 = kinematics_3(model, q, body = :foot_2, mode = :heel)
 
-	SVector{8}([p_toe_1[2]; p_heel_1[2]; p_toe_2[2]; p_heel_2[2]])
+	SVector{8}([p_toe_1; p_heel_1; p_toe_2; p_heel_2])
 end
 
 # Methods
@@ -433,6 +433,31 @@ function J_func(model::Biped, q)
 			J_heel_1;
 			J_toe_2;
 			J_heel_2]
+end
+
+function contact_forces(model::Biped, γ1, b1, q2)
+	k = kinematics(model, q2)
+	m = friction_mapping(model.env)
+
+	SVector{8}([transpose(rotation(model.env, k[1:2])) * [m * b1[1:2]; γ1[1]];
+				transpose(rotation(model.env, k[3:4])) * [m * b1[3:4]; γ1[2]];
+				transpose(rotation(model.env, k[5:6])) * [m * b1[5:6]; γ1[3]];
+				transpose(rotation(model.env, k[7:8])) * [m * b1[7:8]; γ1[4]]])
+end
+
+function velocity_stack(model::Biped, q1, q2, h)
+	k = kinematics(model, q2)
+	v = J_func(model, q2) * (q2 - q1) / h[1]
+
+	v1_surf = rotation(model.env, k[1:2]) * v[1:2]
+	v2_surf = rotation(model.env, k[3:4]) * v[3:4]
+	v3_surf = rotation(model.env, k[5:6]) * v[5:6]
+	v4_surf = rotation(model.env, k[7:8]) * v[7:8]
+
+	SVector{8}([v1_surf[1]; -v1_surf[1];
+				v2_surf[1]; -v2_surf[1];
+				v3_surf[1]; -v3_surf[1];
+				v4_surf[1]; -v4_surf[1]])
 end
 
 # Dimensions

@@ -3,7 +3,7 @@
 	T = Float64
 	κ = 1.0e-4
 	model = ContactControl.get_model("quadruped")
-	ref_traj = ContactControl.get_trajectory("quadruped", "gait1")
+	ref_traj = ContactControl.get_trajectory("quadruped", "gait0")
 
 	# time
 	h = ref_traj.h
@@ -183,7 +183,7 @@ end
 	model = ContactControl.get_model("quadruped")
 	κ = 1.0e-4
 
-	ref_traj = ContactControl.get_trajectory("quadruped", "gait1")
+	ref_traj = ContactControl.get_trajectory("quadruped", "gait0")
 	ref_traj.κ .= κ
 	H = ref_traj.H
 	h = 0.1
@@ -237,7 +237,7 @@ end
 @testset "Newton: residual!" begin
 	model = ContactControl.get_model("quadruped")
 	κ = 1.0e-4
-	ref_traj = ContactControl.get_trajectory("quadruped", "gait1")
+	ref_traj = ContactControl.get_trajectory("quadruped", "gait0")
 	ref_traj.κ .= κ
 	H = ref_traj.H
 	h = 0.1
