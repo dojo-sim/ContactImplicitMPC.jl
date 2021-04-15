@@ -1,4 +1,5 @@
-src/dynamics/biped/sinusoidal/
-src/dynamics/hopper_2D/piecewise/
-src/dynamics/hopper_2D/sinusoidal/
-src/dynamics/quadruped/sinusoidal/
+/src/dynamics/hopper_2D/piecewise/
+/src/dynamics/hopper_2D/sinusoidal/
+/src/dynamics/biped/sinusoidal/
+/src/dynamics/quadruped/sinusoidal/
+/src/dynamics/quadruped/piecewise
