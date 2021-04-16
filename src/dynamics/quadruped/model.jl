@@ -425,13 +425,11 @@ function ϕ_func(model::Quadruped, q)
 	p_calf_2 = kinematics_2(model, q, body = :calf_2, mode = :ee)
 	p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
 	p_calf_4 = kinematics_3(model, q, body = :calf_4, mode = :ee)
-	alt = model.alt
 
-	SVector{model.dim.c}(
-		[p_calf_1[2] - alt[1] .- model.env.surf(p_calf_1[1:1])[1],
-		 p_calf_2[2] - alt[2] .- model.env.surf(p_calf_2[1:1])[1],
-		 p_calf_3[2] - alt[3] .- model.env.surf(p_calf_3[1:1])[1],
-		 p_calf_4[2] - alt[4] .- model.env.surf(p_calf_4[1:1])[1]])
+	SVector{4}([p_calf_1[2] - model.env.surf(p_calf_1[1:1]);
+				p_calf_2[2] - model.env.surf(p_calf_2[1:1]);
+				p_calf_3[2] - model.env.surf(p_calf_3[1:1]);
+				p_calf_4[2] - model.env.surf(p_calf_4[1:1])])
 end
 
 function B_func(model::Quadruped, q)
@@ -564,7 +562,7 @@ quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				# environment_2D(x -> 0.05*sin.(π*x[1:1])),
 				# environment_2D(x -> 0.025*(cos.(pi*x[1:1]) .- 1.0)),
-				environment_2D(x -> 0.05 * (cos.(pi * x[1:1]) .- 1.0)))
+				environment_2D(x -> 0.05 * (cos(pi * x[1]) - 1.0)))
 
 # include(joinpath(@__DIR__, "../../simulator/environment/piecewise.jl"))
 # quadruped_piecewise = Quadruped(Dimensions(nq, nu, nw, nc, nb),

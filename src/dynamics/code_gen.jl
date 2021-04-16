@@ -448,9 +448,10 @@ end
 Loads the residual expressions from the `path`, evaluates them to generate functions,
 stores them into the model.
 """
-function instantiate_residual!(model::ContactDynamicsModel, path::AbstractString="model/residual.jld2")
+function instantiate_residual!(model::ContactDynamicsModel, path::AbstractString="model/residual.jld2";
+	jacobians = true)
 	expr = load_expressions(path)
-	instantiate_residual!(model.res, expr)
+	instantiate_residual!(model.res, expr, jacobians = jacobians)
 	return nothing
 end
 
@@ -459,10 +460,16 @@ end
 		path::AbstractString="model/residual.jld2")
 Evaluates the residual expressions to generate functions, stores them into the model.
 """
-function instantiate_residual!(fct::ResidualMethods, expr::Dict{Symbol,Expr})
+function instantiate_residual!(fct::ResidualMethods, expr::Dict{Symbol,Expr};
+	jacobians = true)
+
 	fct.r!  = eval(expr[:r])
-	fct.rz! = eval(expr[:rz])
-	fct.rθ! = eval(expr[:rθ])
+
+	if jacobians
+		fct.rz! = eval(expr[:rz])
+		fct.rθ! = eval(expr[:rθ])
+	end
+
 	return nothing
 end
 

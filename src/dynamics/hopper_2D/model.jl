@@ -55,7 +55,7 @@ function C_func(model::Hopper2D, q, q̇)
 end
 
 function ϕ_func(model::Hopper2D, q)
-    SVector{model.dim.c}([q[2] - q[4] * cos(q[3])] .- model.env.surf([q[1] + q[4] * sin(q[3])])[1])
+    SVector{1}(q[2] - q[4] * cos(q[3]) - model.env.surf(q[1] + q[4] * sin(q[3])))
 end
 
 function J_func(::Hopper2D, q)
@@ -125,5 +125,5 @@ hopper_2D_sinusoidal = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			   SVector{4}(zeros(4)),
-			   environment_2D(x -> 0.10*sin.(2π*x[1:1])),
+			   environment_2D(x -> 0.10 * sin(2π * x[1])),
 			   )

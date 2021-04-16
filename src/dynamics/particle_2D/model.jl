@@ -59,8 +59,7 @@ end
 
 # signed distance function
 function ϕ_func(model::Particle2D, q)
-    # q[2:2] .- model.env.surf(q)
-	SVector{model.dim.c}(q[2:2] - model.env.surf(q[1:1]))
+	SVector{1}(q[2] - model.env.surf(q[1:1]))
 end
 
 # control Jacobian
@@ -109,4 +108,4 @@ particle_2D_slope = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 0.1, 0.0,
 	BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 	SparseStructure(spzeros(0,0),spzeros(0,0)),
 	SVector{2}(zeros(2)),
-	environment_2D(x -> 0.5 * x[1:1]))
+	environment_2D(x -> 0.5 * x[1]))

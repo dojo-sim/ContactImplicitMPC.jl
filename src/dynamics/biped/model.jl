@@ -399,13 +399,10 @@ function ϕ_func(model::Biped, q)
 	p_toe_2 = kinematics_3(model, q, body = :foot_2, mode = :toe)
 	p_heel_2 = kinematics_3(model, q, body = :foot_2, mode = :heel)
 
-	# @SVector [p_toe_1[2], p_heel_1[2], p_toe_2[2], p_heel_2[2]]
-	SVector{model.dim.c}([
-		p_toe_1[2]   - model.env.surf(p_toe_1[1:1])[1],
-		p_heel_1[2]  - model.env.surf(p_heel_1[1:1])[1],
-		p_toe_2[2]   - model.env.surf(p_toe_2[1:1])[1],
-		p_heel_2[2] - model.env.surf(p_heel_2[1:1])[1]]
-		)
+	SVector{4}([p_toe_1[2] - model.env.surf(p_toe_1[1:1]),
+				p_heel_1[2] - model.env.surf(p_heel_1[1:1]),
+				p_toe_2[2] - model.env.surf(p_toe_2[1:1]),
+				p_heel_2[2] - model.env.surf(p_heel_2[1:1])])
 end
 
 function B_func(model::Biped, q)
@@ -524,5 +521,5 @@ biped_sinusoidal = Biped(Dimensions(nq, nu, nw, nc, nb),
 			  BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
-			  environment_2D(x -> 0.05*(cos.(pi*x[1:1]) .- 1.0)),
+			  environment_2D(x -> 0.05 * (cos(pi * x[1]) - 1.0)),
 			  )

@@ -34,8 +34,6 @@ _z = rand(num_var(model))
 _θ = rand(num_data(model))
 _q0, _q1, _u1, _w1, _μ, _h = unpack_θ(model, _θ)
 _q2, _γ1, _b1, _ψ1, _η1, _s1, _s2 = unpack_z(model, _z)
-# _λ1 = contact_forces(model, _γ1, _b1, _q2)
-# _vT = velocity_stack(model, _q1, _q2, _h)
 _λ1 = cf_methods.cf(_γ1, _b1, _q2)
 _vT = cf_methods.vs(_q1, _q2, _h)
 model.res.rz!(model.spa.rz_sp, _z, _θ)
@@ -97,7 +95,7 @@ ncf = nc * dim(model.env)
 rd = zeros(model.dim.q, num_var(model))
 rd[:, 1:model.dim.q] = model.dyn.dq2(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
 rd[:, 1:(model.dim.q + model.dim.c + model.dim.b)] += model.dyn.dλ1(_h, _q0, _q1, _u1, _w1, _λ1, _q2) * cf_methods.dcf(_γ1, _b1,_q2)
-norm(model.spa.rz_sp[1:model.dim.q, :] - rd)
+@test norm(model.spa.rz_sp[1:model.dim.q, :] - rd) < 1.0e-8
 
 # md = vs + transpose(E_func(model)) * ψ1 - η1
 # mdvs = Symbolics.jacobian(md, vs, simplify = true)
@@ -109,19 +107,20 @@ rmd = zeros(model.dim.b, num_var(model))
 rmd[:, model.dim.q + model.dim.c + model.dim.b .+ (1:model.dim.c + model.dim.b)] = cf_methods.mdψη(_vT, _ψ1, _η1)# copy(mdψη_func(_vT, _ψ1, _η1))
 rmd[:, 1:model.dim.q] += cf_methods.mdvs(_vT, _ψ1, _η1) * cf_methods.vsq2(_q1, _q2, _h)
 
-norm(model.spa.rz_sp[model.dim.q .+ (1:model.dim.b), :] - rmd)
+@test norm(model.spa.rz_sp[model.dim.q .+ (1:model.dim.b), :] - rmd) < 1.0e-8
 
 rθd = zeros(model.dim.q, num_data(model))
 idx = collect([(1:2model.dim.q + model.dim.u + model.dim.w)..., num_data(model)])
 rθd[:, idx] = model.dyn.dθ(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
-norm(model.spa.rθ_sp[1:model.dim.q, :] - rθd[:, :])
+
+@test norm(model.spa.rθ_sp[1:model.dim.q, :] - rθd[:, :]) < 1.0e-8
 
 rθmd = zeros(model.dim.b, num_data(model))
 # vsq1h_func(_q1, _q2, _h)
 idx = collect([(model.dim.q .+ (1:model.dim.q))..., (2model.dim.q + model.dim.u + model.dim.w + 1 .+ (1:1))...])
 rθmd[:, idx] = cf_methods.vsq1h(_q1, _q2, _h)
 
-norm(model.spa.rθ_sp[model.dim.q .+ (1:model.dim.b), :] - rθmd)
+@test norm(model.spa.rθ_sp[model.dim.q .+ (1:model.dim.b), :] - rθmd) < 1.0e-8
 
 # function res_con(model::ContactDynamicsModel, z, θ, κ)
 # 	nc = model.dim.c
@@ -166,11 +165,11 @@ nθ = num_data(model)
 rcz_sp = zeros(nz - model.dim.q - model.dim.b, nz)
 rcθ_sp = zeros(nz - model.dim.q - model.dim.b, nθ)
 
-eval(cf_expr[:rcz])(rcz_sp, _z, _θ)
-eval(cf_expr[:rcθ])(rcθ_sp, _z, _θ)
+cf_methods.rcz(rcz_sp, _z, _θ)
+cf_methods.rcθ(rcθ_sp, _z, _θ)
 
-norm(model.spa.rz_sp[(model.dim.q + model.dim.b + 1):end, :] - rcz_sp)
-norm(model.spa.rθ_sp[(model.dim.q + model.dim.b + 1):end, :] - rcθ_sp)
+@test norm(model.spa.rz_sp[(model.dim.q + model.dim.b + 1):end, :] - rcz_sp) < 1.0e-8
+@test norm(model.spa.rθ_sp[(model.dim.q + model.dim.b + 1):end, :] - rcθ_sp) < 1.0e-8
 
 function rz_split!(rz, z, θ)
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
@@ -215,5 +214,5 @@ rθ_test = similar(model.spa.rθ_sp, Float64)
 rz_split!(rz_test, _z, _θ)
 rθ_split!(rθ_test, _z, _θ)
 
-norm(model.spa.rz_sp - rz_test)
-norm(model.spa.rθ_sp - rθ_test)
+@test norm(model.spa.rz_sp - rz_test) < 1.0e-8
+@test norm(model.spa.rθ_sp - rθ_test) < 1.0e-8
