@@ -74,10 +74,9 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
 
     # Terms
     off = 0
-    ibil1 = Vector(nq + nc .+ (1:nc))
-    ibil2 = Vector(nq + 3nc + nb .+ (1:nc))
-    ibil3 = Vector(nq + 4nc + nb .+ (1:nb))
-    # ibil = [ibil1; ibil3; ibil2]
+    ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
+    ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
+    ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
     ibil = [ibil1; ibil2; ibil3]
     ilin = setdiff(1:nz, ibil)
     idyn = Vector(1:nq)
@@ -210,10 +209,9 @@ function RZLin(model::ContactDynamicsModel, rz0::AbstractMatrix{T}) where {T}
 
     # Terms
     off = 0
-    ibil1 = Vector(nq + nc .+ (1:nc))
-    ibil2 = Vector(nq + 3nc + nb .+ (1:nc))
-    ibil3 = Vector(nq + 4nc + nb .+ (1:nb))
-    # ibil = [ibil1; ibil3; ibil2]
+    ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
+    ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
+    ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
     ibil = [ibil1; ibil2; ibil3]
     ilin = setdiff(1:nz, ibil)
     idyn = Vector(1:nq)
@@ -289,10 +287,9 @@ function RθLin(model::ContactDynamicsModel, rθ0::AbstractMatrix{T}) where {T}
 
     # Terms
     off = 0
-    ibil1 = Vector(nq + nc .+ (1:nc))
-    ibil2 = Vector(nq + 3nc + nb .+ (1:nc))
-    ibil3 = Vector(nq + 4nc + nb .+ (1:nb))
-    # ibil = [ibil1; ibil3; ibil2]
+    ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
+    ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
+    ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
     ibil = [ibil1; ibil2; ibil3]
     ilin = setdiff(1:nz, ibil)
     idyn = Vector(1:nq)

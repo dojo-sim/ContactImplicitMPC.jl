@@ -196,10 +196,10 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	ψ_stack = transpose(E_func(model)) * ψ1
 
 	[model.dyn.d(h, q0, q1, u1, w1, λ1, q2);
-	 s1 - ϕ;
-	 γ1 .* s1 .- κ;
 	 vT_stack + ψ_stack - η1;
+	 s1 - ϕ;
 	 s2 .- (μ[1] * γ1 .- E_func(model) * b1);
+	 γ1 .* s1 .- κ;
 	 b1 .* η1 .- κ;
 	 ψ1 .* s2 .- κ]
 end
