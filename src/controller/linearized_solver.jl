@@ -78,10 +78,12 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
     ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
     ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
     ibil = [ibil1; ibil2; ibil3]
-    ilin = setdiff(1:nz, ibil)
     idyn = Vector(1:nq)
-    irst = setdiff(ilin, idyn)
-    ialt = Vector((nq .+ (1:nc)))
+    irst2 = Vector(nq .+ (1:nb))
+    irst1 = Vector(nq + nb .+ (1:nc))
+    irst3 = Vector(nq + nb + nc .+ (1:nc))
+    irst = [irst1; irst2; irst3]
+    ialt = irst1
 
     # Vars
     off = 0
@@ -213,9 +215,11 @@ function RZLin(model::ContactDynamicsModel, rz0::AbstractMatrix{T}) where {T}
     ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
     ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
     ibil = [ibil1; ibil2; ibil3]
-    ilin = setdiff(1:nz, ibil)
     idyn = Vector(1:nq)
-    irst = setdiff(ilin, idyn)
+    irst2 = Vector(nq .+ (1:nb))
+    irst1 = Vector(nq + nb .+ (1:nc))
+    irst3 = Vector(nq + nb + nc .+ (1:nc))
+    irst = [irst1; irst2; irst3]
 
     # Vars
     off = 0
@@ -291,9 +295,12 @@ function RθLin(model::ContactDynamicsModel, rθ0::AbstractMatrix{T}) where {T}
     ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
     ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
     ibil = [ibil1; ibil2; ibil3]
-    ilin = setdiff(1:nz, ibil)
     idyn = Vector(1:nq)
-    irst = setdiff(ilin, idyn)
+    irst2 = Vector(nq .+ (1:nb))
+    irst1 = Vector(nq + nb .+ (1:nc))
+    irst3 = Vector(nq + nb + nc .+ (1:nc))
+    irst = [irst1; irst2; irst3]
+
 
     # Fill the matrix blocks rθ0s
 	rθdyn0 = SMatrix{nx,nθ,T,nx*nθ}(rθ0[idyn,:])
@@ -398,8 +405,8 @@ function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
 		schur_solve!(rz.S, u, v)
 		@. δz[ix,i]  .= rz.S.x
 		@. δz[iy1,i] .= rz.S.y
-		# δz[iy2,i] .= (rθbil[:,i] .- y2 .* δz[iy1,i]) ./ y1
-		@. δz[iy2,i] .= .- y2 .* δz[iy1,i] ./ y1
+		δz[iy2,i] .= (rθbil[:,i] .- y2 .* δz[iy1,i]) ./ y1
+		# @. δz[iy2,i] .= .- y2 .* δz[iy1,i] ./ y1
 	end
     return nothing
 end
