@@ -36,22 +36,6 @@ function LinearizedStep(model::ContactDynamicsModel)
 	return LinearizedStep(model, z0, θ0, κ0)
 end
 
-function get_bilinear_indices(model::ContactDynamicsModel)
-	nq = model.dim.q
-	nc = model.dim.c
-	nb = model.dim.b
-
-	terms = [SVector{nc,Int}(nq + nb + 2nc .+ (1:nc)),
-			 SVector{nb,Int}(nq + nb + 3nc .+ (1:nb)),
-			 SVector{nc,Int}(nq + nb + 3nc + nb .+ (1:nc))]
-
-	vars = [[SVector{nc,Int}(nq .+ (1:nc)),           SVector{nc}(nq + 2nc + 2nb .+ (1:nc))],  # γ1, s1
-			[SVector{nb,Int}(nq + nc .+ (1:nb)),      SVector{nb}(nq + 2nc +  nb .+ (1:nb))], # b1, η
-			[SVector{nc,Int}(nq + nc + nb .+ (1:nc)), SVector{nc}(nq + 3nc + 2nb .+ (1:nc))],  # ψ, s2
-			]
-	return terms, vars
-end
-
 function update!(lin::LinearizedStep, model::ContactDynamicsModel, z, θ)
 	lin.z .= z
 	lin.θ .= θ

@@ -220,6 +220,62 @@ function res_con(model::ContactDynamicsModel, z, θ, κ)
 	 ψ1 .* s2 .- κ]
 end
 
+function linearization_var_index(model::ContactDynamicsModel)
+	nq = model.dim.q
+	nb = model.dim.b
+	nc = model.dim.c
+	ny = 2nc + nb
+	# x = [q2]
+	# y1 = [γ1, b1, ψ1]
+	# y2 = [s1, η1, s2]
+	off = 0
+	ix  = off .+ Vector(1:nq); off += nq
+	iy1 = off .+ Vector(1:ny); off += ny
+	iy2 = off .+ [Vector(nb .+ (1:nc)); Vector(1:nb); Vector(nb+nc .+ (1:nc))]; off += ny
+	return ix, iy1, iy2
+end
+
+function linearization_term_index(model::ContactDynamicsModel)
+	nq = model.dim.q
+	nb = model.dim.b
+	nc = model.dim.c
+	ny = 2nc + nb
+	# dyn = [dyn]
+	# rst = [s1  - ..., ≡ ialt
+	#        ... - η1 ,
+	#        s2  - ...,]
+	# bil = [γ1 .* s1 .- κ;
+	#        b1 .* η1 .- κ;
+	#        ψ1 .* s2 .- κ]
+	idyn  = Vector(1:nq)
+	irst2 = Vector(nq .+ (1:nb))
+	irst1 = Vector(nq + nb .+ (1:nc))
+	irst3 = Vector(nq + nb + nc .+ (1:nc))
+	irst  = [irst1; irst2; irst3]
+	ialt  = irst1
+	ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
+	ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
+	ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
+	ibil  = [ibil1; ibil2; ibil3]
+	return idyn, irst, ibil, ialt
+end
+
+function get_bilinear_indices(model::ContactDynamicsModel)
+	nq = model.dim.q
+	nc = model.dim.c
+	nb = model.dim.b
+
+	terms = [SVector{nc,Int}(nq + nb + 2nc .+ (1:nc)),
+			 SVector{nb,Int}(nq + nb + 3nc .+ (1:nb)),
+			 SVector{nc,Int}(nq + nb + 3nc + nb .+ (1:nc))]
+
+	vars = [[SVector{nc,Int}(nq .+ (1:nc)),           SVector{nc}(nq + 2nc + 2nb .+ (1:nc))], # γ1, s1
+			[SVector{nb,Int}(nq + nc .+ (1:nb)),      SVector{nb}(nq + 2nc +  nb .+ (1:nb))], # b1, η
+			[SVector{nc,Int}(nq + nc + nb .+ (1:nc)), SVector{nc}(nq + 3nc + 2nb .+ (1:nc))], # ψ, s2
+			]
+	return terms, vars
+end
+
 mutable struct BaseMethods
 	L::Any
 	ϕ::Any
