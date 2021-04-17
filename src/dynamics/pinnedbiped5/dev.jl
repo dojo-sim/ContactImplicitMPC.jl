@@ -56,41 +56,29 @@ set_robot!(vis, pinnedmodel, qendp, r=0.004)
 θcom_mid = θcom_func(pinnedmodel, qmidp)
 θcom_end = θcom_func(pinnedmodel, qendp)
 
-function feedback_linearized_policy(model::PinnedBiped513, x)
-	nq = model.dim.q
-	nh = 4
-	q  = x[1:nq]
-	qd = x[nq .+ (1:nq)]
-
-	∇fu = ∇fu_func(model, x)
-	Afu = Afu_func(model, x, ∇fu=∇fu)
-	bfu = bfu_func(model, x, ∇fu=∇fu)
-	h = h_func(model, q)
-	hd = hd_func(model, q, qd)
-
-	kp = ones(nh)
-	kd = ones(nh)
-	s = s_func(model, q)
-	sd = sd_func(model, q, qd)
-	@show s
-	@show h
-
-	p = p_func(model, s)
-	pd = pd_func(model, s)
-	pdd = pdd_func(model, s)
-	@show p
-
-	hdd = zeros(nh)
-	for i = 1:nh-1
-		hdd[i] = kp[i] * (p[i] - h[i]) + kd[i]*(pd[i]*sd - hd[i]) + pdd[i]*sd^2
-	end
-	# #TODO need to implement the torso control
-	# i = nh
-	# hdd[i] = kp[i] * (p[i](s) - h[i]) + kd[i]*(pd[i](s)*sd - hd[i]) + pdd*sd^2
-
-	up = Afu\(-bfu + hdd)
-	return up
-end
-
 xinip = [qinip; zeros(nqp)]
 up = feedback_linearized_policy(pinnedmodel, xinip)
+
+
+
+
+
+# ref_traj.H
+# ref_traj.q[1] - ref_traj.q[end-1]
+#
+# function inverted_pendulum_traj(model::PinnedBiped513, traj::ContactTraj)
+#     H = traj.H
+#     q = ref_traj.q[1:H+1]
+#     θcom_traj = zeros(H+1)
+#     s_traj = zeros(H+1)
+#
+#     for t = 1:H+1
+#         θcom_traj[t] = θcom_func(model, pin_state(q[t]))
+#     end
+#     θcom_ini = θcom_traj[1]
+#     θcom_end = θcom_traj[end]
+#     for t = 1:H+1
+#         s_traj[t] = (θcom_traj[t] - θcom_ini)/(θcom_end - θcom_ini)
+#     end
+#     return θcom_traj, s_traj
+# end

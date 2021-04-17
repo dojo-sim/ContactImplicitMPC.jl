@@ -91,10 +91,6 @@ function θcom_func(model::PinnedBiped513, q)
 	return θcom_func(p_com, p_stance)
 end
 
-
-
-
-
 function f_func(model::PinnedBiped513, x)
 	# M(q)*qdd + C(q, qd) = B'*u + A*w + J*λ
 	# M(q)*qdd + C(q, qd) = B'*u
@@ -178,179 +174,93 @@ function bfu_func(model::PinnedBiped513, x; ∇fu=∇fu_func(model, x))
 end
 
 
-
-
-function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
-
-	# evalutate at midpoint
-	qm1 = 0.5 * (q0 + q1)
-    vm1 = (q1 - q0) / h[1]
-    qm2 = 0.5 * (q1 + q2)
-    vm2 = (q2 - q1) / h[1]
-
-	D1L1, D2L1 = lagrangian_derivatives(model, qm1, vm1)
-	D1L2, D2L2 = lagrangian_derivatives(model, qm2, vm2)
-
-	nc = model.dim.c
-	nb = model.dim.b
-	nf = Int(nb / nc)
-	ne = dim(model.env)
-	k = kinematics(model, q2)
-	# λ1 = vcat([transpose(rotation(model.env, q2)) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
-	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * ne .+ (1:ne)])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
-
-	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
-		+ transpose(B_fast(model, qm2)) * u1
-		+ transpose(A_fast(model, qm2)) * w1
-		+ transpose(J_fast(model, q2)) * λ1
-		- h[1] * model.joint_friction .* vm2)
-end
-
-
-function pin_state(q)
-	qp = zeros(5)
-	qp[1] = q[5]
-	qp[2] = q[4]
-	qp[3] = q[3]
-	qp[4] = q[6]
-	qp[5] = q[7]
-	return qp
-end
-
-function unpin_state(qp)
+function unpin_state(model::Biped5, qp; body=:toe_1)
+	# qp = [q_calf_front, q_thigh_front, q_torso, q_thigh_rear, q_calf_rear]
+	# q  = [x, y, q_torso, q_thigh_1, q_calf_1, q_thigh_2, q_calf_2]
 	q = zeros(7)
-	q[1] = 0.0
-	q[2] = 0.0
-	q[3] = qp[3]
-	q[4] = qp[2]
-	q[5] = qp[1]
-	q[6] = qp[4]
-	q[7] = qp[5]
+	if body == :toe_1
+		q[1] = 0.0
+		q[2] = 0.0
+		q[3] = qp[3]
+		q[4] = qp[2]
+		q[5] = qp[1]
+		q[6] = qp[4]
+		q[7] = qp[5]
+		q[1:2] = -kinematics_2(model, q, body=:calf_1, mode=:ee)
+	elseif body == :toe_2
+		q[1] = 0.0
+		q[2] = 0.0
+		q[3] = qp[3]
+		q[4] = qp[4]
+		q[5] = qp[5]
+		q[6] = qp[2]
+		q[7] = qp[1]
+		q[1:2] = -kinematics_2(model, q, body=:calf_2, mode=:ee)
+	else
+		@error "incorrect body specification"
+	end
 	return q
 end
 
-
-
-function s_func(model::PinnedBiped513, q;
-		q_ini=[-0.228, 0.228, -0.1, -0.1, -0.3],
-		q_mid=[-0.35,  0.2,   -0.1,  0.3, -0.4],
-		q_end=[-0.3, -0.1, -0.1, 0.228, -0.228],
-		)
-	θcom_ini = θcom_func(model, q_ini)
-	θcom_end = θcom_func(model, q_end)
-
-	θcom = θcom_func(model, q)
-	s = (θcom - θcom_ini)/(θcom_end - θcom_ini)
-	# s = clamp(s, 0.0, 1.0)
-	return s
-end
-
-function sd_func(model::PinnedBiped513, q, qd;
-		q_ini=[-0.228, 0.228, -0.1, -0.1, -0.3],
-		q_mid=[-0.35,  0.2,   -0.1,  0.3, -0.4],
-		q_end=[-0.3, -0.1, -0.1, 0.228, -0.228],
-		)
-
-	θcom_(q) = θcom_func(model, q)
-	∇qθcom = ForwardDiff.gradient(θcom_, q)
-	θcomd = ∇qθcom'*qd
-
-	θcom_ini = θcom_func(model, q_ini)
-	θcom_end = θcom_func(model, q_end)
-	sd = θcomd/(θcom_end - θcom_ini)
-
-	return sd
-end
-
-function p_func(model::PinnedBiped513, s;
-		q_ini=[-0.228, 0.228, -0.1, -0.1, -0.3],
-		q_mid=[-0.35,  0.2,   -0.1,  0.3, -0.4],
-		q_end=[-0.3, -0.1, -0.1, 0.228, -0.228],
-		)
-	nh = 4
-	θcom_ini = θcom_func(model, q_ini)
-	θcom_mid = θcom_func(model, q_mid)
-	θcom_end = θcom_func(model, q_end)
-
-	h_ini = h_func(model, q_ini)
-	h_mid = h_func(model, q_mid)
-	h_end = h_func(model, q_end)
-
-	s_ini = 0.0
-	s_mid = (θcom_mid - θcom_ini)/(θcom_end - θcom_ini)
-	s_end = 1.0
-
-	p = zeros(nh)
-	if s < s_mid
-		α = (s - s_ini)/(s_mid - s_ini)
-		p = h_mid*α + (1-α)*h_ini
-	elseif s >= 0*s+s_mid
-		α = (s - s_mid)/(s_end - s_mid)
-		p = h_end*α + (1-α)*h_mid
-	end
-	return p
-end
-
-function pd_func(model::PinnedBiped513, s;
-		q_ini=[-0.228, 0.228, -0.1, -0.1, -0.3],
-		q_mid=[-0.35,  0.2,   -0.1,  0.3, -0.4],
-		q_end=[-0.3, -0.1, -0.1, 0.228, -0.228],
-		)
-	nh = 4
-	θcom_ini = θcom_func(model, q_ini)
-	θcom_mid = θcom_func(model, q_mid)
-	θcom_end = θcom_func(model, q_end)
-
-	h_ini = h_func(model, q_ini)
-	h_mid = h_func(model, q_mid)
-	h_end = h_func(model, q_end)
-
-	s_ini = 0.0
-	s_mid = (θcom_mid - θcom_ini)/(θcom_end - θcom_ini)
-	s_end = 1.0
-
-	pd = zeros(nh)
-	if s < s_mid
-		pd = (h_mid - h_ini)/(s_mid - s_ini)
-	elseif s >= s_mid
-		pd = (h_end - h_mid)/(s_end - s_mid)
-	end
-	return pd
-end
-
-function pdd_func(model::PinnedBiped513, s;
-		q_ini=[-0.228, 0.228, -0.1, -0.1, -0.3],
-		q_mid=[-0.35,  0.2,   -0.1,  0.3, -0.4],
-		q_end=[-0.3, -0.1, -0.1, 0.228, -0.228],
-		)
-	nh = 4
-	pdd = zeros(nh)
-	return pdd
-end
-
-
-function pin_state(q)
+function pin_state(q; body=:toe_1)
 	qp = zeros(5)
-	qp[1] = q[5]
-	qp[2] = q[4]
-	qp[3] = q[3]
-	qp[4] = q[6]
-	qp[5] = q[7]
+	if body == :toe_1
+		qp[1] = q[5]
+		qp[2] = q[4]
+		qp[3] = q[3]
+		qp[4] = q[6]
+		qp[5] = q[7]
+	elseif body == :toe_2
+		qp[1] = q[7]
+		qp[2] = q[6]
+		qp[3] = q[3]
+		qp[4] = q[4]
+		qp[5] = q[5]
+	else
+		@error "incorrect body specification"
+	end
 	return qp
 end
 
-function unpin_state(qp)
-	q = zeros(7)
-	q[1] = 0.0
-	q[2] = 0.0
-	q[3] = qp[3]
-	q[4] = qp[2]
-	q[5] = qp[1]
-	q[6] = qp[4]
-	q[7] = qp[5]
-	return q
+function unpin_control(up; body=:toe_1)
+	u = zeros(5)
+	if body == :toe_1
+		u[1] = 0.0   # u_torso
+		u[2] = up[2] # u_thigh_1
+		u[3] = up[1] # u_calf_1
+		u[4] = up[3] # u_thigh_2
+		u[5] = up[4] # u_calf_2
+	elseif body == :toe_2
+		u[1] = 0.0   # u_torso
+		u[2] = up[3] # u_thigh_1
+		u[3] = up[4] # u_calf_1
+		u[4] = up[2] # u_thigh_2
+		u[5] = up[1] # u_calf_2
+	else
+		@error "incorrect body specification"
+	end
+	return u
 end
 
+
+
+
+
+qp = [-0.228, 0.228, -0.1, -0.1, -0.3]
+q1 = unpin_state(model, qp, body=:toe_1)
+q2 = unpin_state(model, qp, body=:toe_2)
+
+q1p = pin_state(unpin_state(model, qp, body=:toe_1), body=:toe_1)
+q2p = pin_state(unpin_state(model, qp, body=:toe_2), body=:toe_2)
+
+build_robot!(vis, pinnedmodel, r=0.004)
+build_robot!(vis, model, r=0.004)
+
+set_robot!(vis, pinnedmodel, qp, r=0.004)
+set_robot!(vis, pinnedmodel, q1p, r=0.004)
+set_robot!(vis, pinnedmodel, q2p, r=0.004)
+set_robot!(vis, model, q1, r=0.004)
+set_robot!(vis, model, q2, r=0.004)
 
 
 
