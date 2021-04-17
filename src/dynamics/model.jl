@@ -204,6 +204,22 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	 ψ1 .* s2 .- κ]
 end
 
+function res_con(model::ContactDynamicsModel, z, θ, κ)
+	nc = model.dim.c
+	nb = model.dim.b
+	nf = Int(nb / nc)
+	np = dim(model.env)
+
+	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
+	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
+
+	[s1 - ϕ_func(model, q2);
+	 s2 .- (μ[1] * γ1 .- E_func(model) * b1);
+	 γ1 .* s1 .- κ;
+	 b1 .* η1 .- κ;
+	 ψ1 .* s2 .- κ]
+end
+
 function linearization_var_index(model::ContactDynamicsModel)
 	nq = model.dim.q
 	nb = model.dim.b
@@ -260,32 +276,6 @@ function get_bilinear_indices(model::ContactDynamicsModel)
 	return terms, vars
 end
 
-
-
-
-# function residual(model::ContactDynamicsModel, z, θ, κ)
-# 	nc = model.dim.c
-# 	nb = model.dim.b
-# 	nf = Int(nb / nc)
-# 	np = dim(model.env)
-#
-# 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
-# 	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
-#
-# 	ϕ = ϕ_func(model, q2)
-# 	v = J_fast(model, q2) * (q2 - q1) / h[1]
-# 	vT_stack = vcat([[v[(i-1) * np .+ (1:np-1)]; -v[(i-1) * np .+ (1:np-1)]] for i = 1:nc]...)
-# 	ψ_stack = transpose(E_func(model)) * ψ1
-#
-# 	[dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2);
-# 	 s1 - ϕ;
-# 	 γ1 .* s1 .- κ;
-# 	 vT_stack + ψ_stack - η1;
-# 	 s2 .- (μ[1] * γ1 .- E_func(model) * b1);
-# 	 b1 .* η1 .- κ;
-# 	 ψ1 .* s2 .- κ]
-# end
-
 mutable struct BaseMethods
 	L::Any
 	ϕ::Any
@@ -307,12 +297,14 @@ end
 mutable struct DynamicsMethods
 	d::Any
 	dy::Any
+	dθ::Any
 	dq0::Any
 	dq1::Any
 	du1::Any
 	dw1::Any
 	dγ1::Any
 	db1::Any
+	dλ1::Any
 	dq2::Any
 end
 
@@ -321,7 +313,7 @@ function DynamicsMethods()
 		error("Not Implemented: use instantiate_dynamics!")
 		return nothing
 	end
-	return DynamicsMethods(fill(f, 9)...)
+	return DynamicsMethods(fill(f, 11)...)
 end
 
 function ResidualMethods()
@@ -335,6 +327,27 @@ end
 mutable struct SparseStructure
 	rz_sp::Any
 	rθ_sp::Any
+end
+
+mutable struct ContactMethods
+	cf
+	dcf
+	vs
+	vsq2
+	vsq1h
+	mdvs
+	mdψη
+	rc
+	rcz
+	rcθ
+end
+
+function ContactMethods()
+	function f()
+		error("Not Implemented: use instantiate_contact_methods!")
+		return nothing
+	end
+	return ContactMethods(fill(f, 10)...)
 end
 
 """

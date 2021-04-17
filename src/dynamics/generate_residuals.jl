@@ -14,6 +14,9 @@ path_res = joinpath(dir, "flat/residual.jld2")
 path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
 path_linearized = joinpath(dir, "flat/linearized.jld2")
 
+instantiate_base!(model, path_base)
+instantiate_dynamics!(model, path_dyn)
+
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
