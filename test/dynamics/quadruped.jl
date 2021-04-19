@@ -8,7 +8,6 @@
     q̇0s = rand(nq)
 
     # Testing fast methods
-	@test norm(ContactControl.ϕ_fast(model, q0s) - ContactControl.ϕ_func(model, q0s), Inf) < 1.0e-8
     @test norm(ContactControl.M_fast(model, q0s) - ContactControl.M_func(model, q0s), Inf) < 1.0e-8
 	@test norm(ContactControl.B_fast(model, q0s) - ContactControl.B_func(model, q0s), Inf) < 1.0e-8
     @test norm(ContactControl.A_fast(model, q0s) - ContactControl.A_func(model, q0s), Inf) < 1.0e-8
@@ -75,6 +74,8 @@
 	#
     # ContactControl.dy_fast!(∇ys, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
     # @test norm(∇ys - [∇q0s ∇q1s ∇u1s ∇w1s ∇γ1s ∇b1s ∇q2s], Inf) < 1.0e-8
+	# Contact methods
+	# @test norm(ContactControl.ϕ_fast(model, q0s) - ContactControl.ϕ_func(model, q0s), Inf) < 1.0e-8
 
 	nz = ContactControl.num_var(model)
     nθ = ContactControl.num_data(model)

@@ -21,6 +21,7 @@ mutable struct Hopper2D{T} <: ContactDynamicsModel
 
 	base::BaseMethods
 	dyn::DynamicsMethods
+	con::ContactMethods
 	res::ResidualMethods
 	linearized::ResidualMethods
 
@@ -106,7 +107,8 @@ nb = 2
 hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, g,
-			   BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+			   BaseMethods(), DynamicsMethods(), ContactMethods(),
+			   ResidualMethods(), ResidualMethods(),
 			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			   SVector{4}(zeros(4)),
 			   environment_2D_flat())
@@ -114,7 +116,8 @@ hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 # hopper_2D_vertical = Hopper2D(Dimensions(4, 2, 2, 1, 2),
 # 			   1.0, 0.1, 0.25, 0.025,
 # 			   1.0, 0.0, 9.81,
-# 			   BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+# 			   BaseMethods(), DynamicsMethods(), ContactMethods(),
+#              ResidualMethods(), ResidualMethods(),
 # 			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 # 			   SVector{4}(zeros(4)),
 # 			   environment_2D_flat())
@@ -122,7 +125,8 @@ hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 hopper_2D_sinusoidal = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, g,
-			   BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+			   BaseMethods(), DynamicsMethods(), ContactMethods(),
+			   ResidualMethods(), ResidualMethods(),
 			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			   SVector{4}(zeros(4)),
 			   environment_2D(x -> 0.10 * sin(2π * x[1])),

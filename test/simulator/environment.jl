@@ -1,7 +1,7 @@
 @testset "Environment" begin
 	# 2D
 	surf = x -> 0.05 * sin(π * x[1])
-	surf_grad = x -> 0.05 * π * cos(π * x[1])
+	surf_grad = x -> [0.05 * π * cos(π * x[1])]
 	x0 = ones(10)
 
 	env = ContactControl.environment_2D(surf)
@@ -21,5 +21,3 @@
 	size(env.surf(x0)) == (1,)
 	size(env.surf_grad(x0)) == (2,)
 end
-
-# const ContactControl = Main

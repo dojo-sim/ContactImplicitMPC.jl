@@ -54,6 +54,7 @@ mutable struct Biped{T} <: ContactDynamicsModel
 	# fast methods
 	base
 	dyn
+	con
 	res
 	linearized
 
@@ -503,7 +504,8 @@ biped = Biped(Dimensions(nq, nu, nw, nc, nb),
 			  l_calf, d_calf, m_calf, J_calf,
 			  l_foot, d_foot, m_foot, J_foot,
 			  zeros(nc),
-			  BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+			  BaseMethods(), DynamicsMethods(), ContactMethods(),
+			  ResidualMethods(), ResidualMethods(),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
 			  environment_2D_flat())
@@ -518,7 +520,8 @@ biped_sinusoidal = Biped(Dimensions(nq, nu, nw, nc, nb),
 			  l_calf, d_calf, m_calf, J_calf,
 			  l_foot, d_foot, m_foot, J_foot,
 			  zeros(nc),
-			  BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+			  BaseMethods(), DynamicsMethods(), ContactMethods(),
+			  ResidualMethods(), ResidualMethods(),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
 			  environment_2D(x -> 0.05 * (cos(pi * x[1]) - 1.0)),

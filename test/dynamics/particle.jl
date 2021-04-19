@@ -8,7 +8,6 @@
     q̇0s = rand(nq) # TODO: Symbolics not happy with SizedArray
 
     # Testing fast methods
-	@test norm(ContactControl.ϕ_fast(model, q0s) - ContactControl.ϕ_func(model, q0s), Inf) < 1.0e-8
     @test norm(ContactControl.M_fast(model, q0s) - ContactControl.M_func(model, q0s), Inf) < 1.0e-8
 	@test norm(ContactControl.B_fast(model, q0s) - ContactControl.B_func(model, q0s), Inf) < 1.0e-8
     @test norm(ContactControl.A_fast(model, q0s) - ContactControl.A_func(model, q0s), Inf) < 1.0e-8
@@ -37,15 +36,6 @@ end
     b1s = rand(nb)
 	λ1s = rand(nc * ContactControl.dim(model.env))
     q2s = rand(nq)
-	#
-    # ∇ys   = rand(nq,2nq + nu + nw + nc + nb + nq)
-    # ∇q0s  = rand(nq,nq)
-    # ∇q1s  = rand(nq,nq)
-	# ∇u1s  = rand(nq,nu)
-    # ∇w1s  = rand(nq,nw)
-    # ∇γ1s  = rand(nq,nc)
-    # ∇b1s  = rand(nq,nb)
-    # ∇q2s  = rand(nq,nq)
 
     # Testing dynamics methods
     @test norm(ContactControl.d_fast(model, h, q0s, q1s, u1s, w1s, λ1s, q2s) -
@@ -81,6 +71,10 @@ end
 	#
     # ContactControl.dy_fast!(∇ys, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
     # @test norm(∇ys - [∇q0s ∇q1s ∇u1s ∇w1s ∇γ1s ∇b1s ∇q2s], Inf) < 1.0e-8
+end
+
+@testset "Model Methods: Contact Methods (Particle)" begin
+
 end
 
 @testset "Model Methods: Fast Residual (Particle)" begin

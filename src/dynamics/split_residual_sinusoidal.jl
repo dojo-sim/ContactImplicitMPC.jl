@@ -62,7 +62,7 @@ ncf = nc * dim(model.env)
 # @variables λ1[1:ncf]
 # @variables b1[1:nb]
 # @variables q2[1:nq]
-# @variables vs[1:ncf]
+# @variables vs[1:nb]
 # @variables ψ1[1:nc]
 # @variables η1[1:nb]
 # @variables h[1:1]

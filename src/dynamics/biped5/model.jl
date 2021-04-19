@@ -42,6 +42,7 @@ mutable struct Biped5{T} <: ContactDynamicsModel
 	# fast methods
 	base
 	dyn
+	con
 	res
 	linearized
 
@@ -356,7 +357,8 @@ biped5 = Biped5(Dimensions(nq, nu, nw, nc, nb),
 			  l_thigh, d_thigh, m_thigh, J_thigh,
 			  l_calf, d_calf, m_calf, J_calf,
 			  zeros(nc),
-			  BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+			  BaseMethods(), DynamicsMethods(), ContactMethods(),
+			  ResidualMethods(), ResidualMethods(),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
 			  environment_2D_flat())

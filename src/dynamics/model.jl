@@ -61,7 +61,7 @@ function unpack_z(model::ContactDynamicsModel, z)
 end
 
 function pack_z(model::ContactDynamicsModel, q2, γ1, b1, ψ1, η1)
-	s1 = ϕ_fast(model, q2)
+	s1 = ϕ_func(model, q2)
 	s2 = model.μ_world * γ1 .- E_func(model) * b1
 	return [q2; γ1; b1; ψ1; η1; s1; s2]
 end
@@ -119,31 +119,6 @@ function lagrangian_derivatives(model::ContactDynamicsModel, q, v)
 	return D1L, D2L
 end
 
-function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, γ1, b1, q2)
-
-	# evalutate at midpoint
-	qm1 = 0.5 * (q0 + q1)
-    vm1 = (q1 - q0) / h[1]
-    qm2 = 0.5 * (q1 + q2)
-    vm2 = (q2 - q1) / h[1]
-
-	D1L1, D2L1 = lagrangian_derivatives(model, qm1, vm1)
-	D1L2, D2L2 = lagrangian_derivatives(model, qm2, vm2)
-
-	nc = model.dim.c
-	nb = model.dim.b
-	nf = Int(nb / nc)
-	ne = dim(model.env)
-	k = kinematics(model, q2)
-	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * ne .+ (1:ne)])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
-
-	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
-		+ transpose(B_fast(model, qm2)) * u1
-		+ transpose(A_fast(model, qm2)) * w1
-		+ transpose(J_fast(model, q2)) * λ1
-		- h[1] * model.joint_friction .* vm2)
-end
-
 function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, λ1, q2)
 
 	# evalutate at midpoint
@@ -177,7 +152,7 @@ function velocity_stack(model::ContactDynamicsModel, q1, q2, h)
 	k = kinematics(model, q2)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
 	v_surf = [rotation(model.env, k[(i-1) * np .+ (1:np)]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
-	vT_stack = vcat([[v_surf[i][1]; -v_surf[i][1]] for i = 1:nc]...)
+	vT_stack = vcat([[v_surf[i][1:np-1]; -v_surf[i][1:np-1]] for i = 1:nc]...)
 end
 
 function contact_forces_approx(model::ContactDynamicsModel, γ1, b1, q2)
@@ -186,16 +161,16 @@ function contact_forces_approx(model::ContactDynamicsModel, γ1, b1, q2)
 	nf = Int(nb / nc)
 	ne = dim(model.env)
 	# k = kinematics(model, q2)
-	λ1 = vcat([transpose(rotation(model.env, q2[1])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
+	λ1 = vcat([transpose(rotation(model.env, q2[1:ne-1])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
 end
 
 function velocity_stack_approx(model::ContactDynamicsModel, q1, q2, h)
 	nc = model.dim.c
 	np = dim(model.env)
-	k = kinematics(model, q2)
+	# k = kinematics(model, q2)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
-	v_surf = [rotation(model.env, q2[1]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
-	vT_stack = vcat([[v_surf[i][1]; -v_surf[i][1]] for i = 1:nc]...)
+	v_surf = [rotation(model.env, q2[1:np-1]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
+	vT_stack = vcat([[v_surf[i][1:np-1]; -v_surf[i][1:np-1]] for i = 1:nc]...)
 end
 
 function residual(model::ContactDynamicsModel, z, θ, κ)
@@ -231,6 +206,42 @@ function res_con(model::ContactDynamicsModel, z, θ, κ)
 	 γ1 .* s1 .- κ;
 	 b1 .* η1 .- κ;
 	 ψ1 .* s2 .- κ]
+end
+
+function rz_approx!(model, rz, z, θ)
+	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
+	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
+	λ1 = model.con.cf(γ1, b1, q2)
+	vT = model.con.vs(q1, q2, h)
+
+	# Dynamics
+	rz[1:model.dim.q, 1:model.dim.q] = model.dyn.dq2(h, q0, q1, u1, w1, λ1, q2)
+	rz[1:model.dim.q, 1:(model.dim.q + model.dim.c + model.dim.b)] += model.dyn.dλ1(h, q0, q1, u1, w1, λ1, q2) * model.con.dcf(γ1, b1, q2)
+
+	# Maximum dissipation
+	rz[model.dim.q .+ (1:model.dim.b), model.dim.q + model.dim.c + model.dim.b .+ (1:model.dim.c + model.dim.b)] = model.con.mdψη(vT, ψ1, η1)
+	rz[model.dim.q .+ (1:model.dim.b), 1:model.dim.q] += model.con.mdvs(vT, ψ1, η1) * model.con.vsq2(q1, q2, h)
+
+	# Other constraints
+	model.con.rcz(view(rz, (model.dim.q + model.dim.b + 1):num_var(model), :), z, θ)
+end
+
+function rθ_approx!(model, rθ, z, θ)
+	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
+	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
+	λ1 = model.con.cf(γ1, b1, q2)
+	vT = model.con.vs(q1, q2, h)
+
+	# Dynamics
+	idx = collect([(1:2model.dim.q + model.dim.u + model.dim.w)..., num_data(model)])
+	# rθ[1:model.dim.q, idx] = model.dyn.dθ(h, q0, q1, u1, w1, λ1, q2)
+
+	# Maximum dissipation
+	idx = collect([(model.dim.q .+ (1:model.dim.q))..., (2model.dim.q + model.dim.u + model.dim.w + 1 .+ (1:1))...])
+	# rθ[model.dim.q .+ (1:model.dim.b), idx] = model.con.vsq1h(q1, q2, h)
+
+	# Other constraints
+	model.con.rcθ(view(rθ, (model.dim.q + model.dim.b + 1):num_var(model), :), z, θ)
 end
 
 function linearization_var_index(model::ContactDynamicsModel)
@@ -291,7 +302,6 @@ end
 
 mutable struct BaseMethods
 	L::Any
-	ϕ::Any
 	M::Any
 	B::Any
 	A::Any
@@ -304,7 +314,7 @@ function BaseMethods()
 		error("Not Implemented: use instantiate_base!")
 		return nothing
 	end
-	return BaseMethods(fill(f, 7)...)
+	return BaseMethods(fill(f, 6)...)
 end
 
 mutable struct DynamicsMethods
@@ -343,16 +353,12 @@ mutable struct SparseStructure
 end
 
 mutable struct ContactMethods
+	ϕ
 	cf
 	dcf
-	cfa
-	dcfa
 	vs
 	vsq2
 	vsq1h
-	vsa
-	vsaq2
-	vsaq1h
 	mdvs
 	mdψη
 	rc
@@ -365,7 +371,7 @@ function ContactMethods()
 		error("Not Implemented: use instantiate_contact_methods!")
 		return nothing
 	end
-	return ContactMethods(fill(f, 15)...)
+	return ContactMethods(fill(f, 11)...)
 end
 
 """

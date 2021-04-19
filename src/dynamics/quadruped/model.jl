@@ -64,6 +64,7 @@ mutable struct Quadruped{T} <: ContactDynamicsModel
 	# fast methods
 	base
 	dyn
+	con
 	res
 	linearized
 
@@ -540,7 +541,8 @@ quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
 				zeros(nc),
-				BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+				BaseMethods(), DynamicsMethods(), ContactMethods(),
+				ResidualMethods(), ResidualMethods(),
 				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				environment_2D_flat())
@@ -557,7 +559,8 @@ quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
 				zeros(nc),
-				BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+				BaseMethods(), DynamicsMethods(), ContactMethods(),
+				ResidualMethods(), ResidualMethods(),
 				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				# environment_2D(x -> 0.05*sin.(π*x[1:1])),
@@ -577,7 +580,8 @@ quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 # 				l_thigh, d_thigh, m_thigh, J_thigh,
 # 				l_leg, d_leg, m_leg, J_leg,
 # 				zeros(nc),
-# 				BaseMethods(), DynamicsMethods(), ResidualMethods(), ResidualMethods(),
+# 				BaseMethods(), DynamicsMethods(), ContactMethods(),
+#               ResidualMethods(), ResidualMethods(),
 # 				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 # 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 # 				environment_2D(fast_terrain))
