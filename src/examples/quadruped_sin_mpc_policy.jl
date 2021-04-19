@@ -24,7 +24,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 100
+H_sim = 1000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -79,20 +79,20 @@ plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H
 plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
-# visualize!(vis, model, sim.traj.q[1:N_sample:end], Δt=10*h/N_sample, name=:mpc)
 plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
 plot_surface!(vis, model_sim.env)
 anim = visualize_robot!(vis, model_sim, sim.traj)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
 
+
 settransform!(vis["/Cameras/default"],
 	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
-
-# filename = "quadruped_forces"
+#
+# filename = "a1_quadruped"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
-
+#
 # convert_video_to_gif(
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
