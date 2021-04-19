@@ -1,180 +1,5 @@
-# # visualization
-# function visualize!(vis, model::Quadruped, q;
-# 	r = 0.025, Δt = 0.1, name::Symbol=:quadruped, camera::Bool=false)
-#
-# 	default_background!(vis)
-#
-# 	torso = GeometryBasics.Cylinder(GeometryBasics.Point3f0(0.0, 0.0, 0.0),
-# 		GeometryBasics.Point3f0(0.0, 0.0, model.l_torso),
-# 		convert(Float32, 0.035))
-# 	setobject!(vis[name]["torso"], torso,
-# 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-#
-# 	thigh_1 = GeometryBasics.Cylinder(Point3f0(0.0),
-# 		GeometryBasics.Point3f0(0.0, 0.0, model.l_thigh1),
-# 		convert(Float32, 0.0175))
-# 	setobject!(vis[name]["thigh1"], thigh_1,
-# 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-#
-# 	calf_1 = GeometryBasics.Cylinder(Point3f0(0.0),
-# 		GeometryBasics.Point3f0(0.0, 0.0, model.l_calf1),
-# 		convert(Float32, 0.0125))
-# 	setobject!(vis[name]["leg1"], calf_1,
-# 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-#
-# 	thigh_2 = GeometryBasics.Cylinder(Point3f0(0.0),
-# 		GeometryBasics.Point3f0(0.0, 0.0, model.l_thigh2),
-# 		convert(Float32, 0.0175))
-# 	setobject!(vis[name]["thigh2"], thigh_2,
-# 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-#
-# 	calf_2 = GeometryBasics.Cylinder(Point3f0(0.0),
-# 		GeometryBasics.Point3f0(0.0, 0.0, model.l_calf2),
-# 		convert(Float32, 0.0125))
-# 	setobject!(vis[name]["leg2"], calf_2,
-# 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-#
-# 	thigh_3 = GeometryBasics.Cylinder(Point3f0(0.0),
-# 		GeometryBasics.Point3f0(0.0, 0.0, model.l_thigh3),
-# 		convert(Float32, 0.0175))
-# 	setobject!(vis[name]["thigh3"], thigh_3,
-# 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-#
-# 	calf_3 = GeometryBasics.Cylinder(Point3f0(0.0),
-# 		GeometryBasics.Point3f0(0.0, 0.0, model.l_calf3),
-# 		convert(Float32, 0.0125))
-# 	setobject!(vis[name]["leg3"], calf_3,
-# 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-#
-# 	thigh_4 = GeometryBasics.Cylinder(Point3f0(0.0),
-# 		GeometryBasics.Point3f0(0.0, 0.0, model.l_thigh4),
-# 		convert(Float32, 0.0175))
-# 	setobject!(vis[name]["thigh4"], thigh_4,
-# 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-#
-# 	calf_4 = GeometryBasics.Cylinder(Point3f0(0.0),
-# 		GeometryBasics.Point3f0(0.0, 0.0, model.l_calf4),
-# 		convert(Float32, 0.0125))
-# 	setobject!(vis[name]["leg4"], calf_4,
-# 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-#
-# 	anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
-#
-# 	hip1 = setobject!(vis[name]["hip1"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-#         convert(Float32, 0.035)),
-#         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
-#
-# 	hip2 = setobject!(vis[name]["hip2"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-#         convert(Float32, 0.035)),
-#         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
-#
-# 	knee1 = setobject!(vis[name]["knee1"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-#         convert(Float32, 0.025)),
-#         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
-#
-# 	knee2 = setobject!(vis[name]["knee2"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-# 		convert(Float32, 0.025)),
-# 		MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
-#
-# 	knee3 = setobject!(vis[name]["knee3"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-# 		convert(Float32, 0.025)),
-# 		MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
-#
-# 	knee4 = setobject!(vis[name]["knee4"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-#         convert(Float32, 0.025)),
-#         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
-#
-# 	feet1 = setobject!(vis[name]["feet1"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-#         convert(Float32, r)),
-#         MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
-#
-# 	feet2 = setobject!(vis[name]["feet2"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-# 		convert(Float32, r)),
-# 		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
-#
-# 	feet3 = setobject!(vis[name]["feet3"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-# 		convert(Float32, r)),
-# 		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
-#
-# 	feet4 = setobject!(vis[name]["feet4"],
-# 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
-#         convert(Float32, r)),
-#         MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
-#
-# 	T = length(q)
-# 	p_shift = [0.0, 0.0, r]
-# 	for t = 1:T
-# 		MeshCat.atframe(anim, t) do
-# 			p = [q[1]; 0.0; q[2]] + p_shift
-#
-# 			k_torso = kinematics_1(model, q, body = :torso, mode = :ee)
-# 			p_torso = [k_torso[1], 0.0, k_torso[2]] + p_shift
-#
-# 			k_thigh_1 = kinematics_1(model, q, body = :thigh_1, mode = :ee)
-# 			p_thigh_1 = [k_thigh_1[1], 0.0, k_thigh_1[2]] + p_shift
-#
-# 			k_calf_1 = kinematics_2(model, q, body = :calf_1, mode = :ee)
-# 			p_calf_1 = [k_calf_1[1], 0.0, k_calf_1[2]] + p_shift
-#
-# 			k_thigh_2 = kinematics_1(model, q, body = :thigh_2, mode = :ee)
-# 			p_thigh_2 = [k_thigh_2[1], 0.0, k_thigh_2[2]] + p_shift
-#
-# 			k_calf_2 = kinematics_2(model, q, body = :calf_2, mode = :ee)
-# 			p_calf_2 = [k_calf_2[1], 0.0, k_calf_2[2]] + p_shift
-#
-#
-# 			k_thigh_3 = kinematics_2(model, q, body = :thigh_3, mode = :ee)
-# 			p_thigh_3 = [k_thigh_3[1], 0.0, k_thigh_3[2]] + p_shift
-#
-# 			k_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
-# 			p_calf_3 = [k_calf_3[1], 0.0, k_calf_3[2]] + p_shift
-#
-# 			k_thigh_4 = kinematics_2(model, q[t], body = :thigh_4, mode = :ee)
-# 			p_thigh_4 = [k_thigh_4[1], 0.0, k_thigh_4[2]] + p_shift
-#
-# 			k_calf_4 = kinematics_3(model, q[t], body = :calf_4, mode = :ee)
-# 			p_calf_4 = [k_calf_4[1], 0.0, k_calf_4[2]] + p_shift
-#
-# 			settransform!(vis[name]["thigh1"], cable_transform(p, p_thigh_1))
-# 			settransform!(vis[name]["leg1"], cable_transform(p_thigh_1, p_calf_1))
-# 			settransform!(vis[name]["thigh2"], cable_transform(p, p_thigh_2))
-# 			settransform!(vis[name]["leg2"], cable_transform(p_thigh_2, p_calf_2))
-# 			settransform!(vis[name]["thigh3"], cable_transform(p_torso, p_thigh_3))
-# 			settransform!(vis[name]["leg3"], cable_transform(p_thigh_3, p_calf_3))
-# 			settransform!(vis[name]["thigh4"], cable_transform(p_torso, p_thigh_4))
-# 			settransform!(vis[name]["leg4"], cable_transform(p_thigh_4, p_calf_4))
-# 			settransform!(vis[name]["torso"], cable_transform(p, p_torso))
-# 			settransform!(vis[name]["hip1"], MeshCat.Translation(p))
-# 			settransform!(vis[name]["hip2"], MeshCat.Translation(p_torso))
-# 			settransform!(vis[name]["knee1"], MeshCat.Translation(p_thigh_1))
-# 			settransform!(vis[name]["knee2"], MeshCat.Translation(p_thigh_2))
-# 			settransform!(vis[name]["knee3"], MeshCat.Translation(p_thigh_3))
-# 			settransform!(vis[name]["knee4"], MeshCat.Translation(p_thigh_4))
-# 			settransform!(vis[name]["feet1"], MeshCat.Translation(p_calf_1))
-# 			settransform!(vis[name]["feet2"], MeshCat.Translation(p_calf_2))
-# 			settransform!(vis[name]["feet3"], MeshCat.Translation(p_calf_3))
-# 			settransform!(vis[name]["feet4"], MeshCat.Translation(p_calf_4))
-# 		end
-# 	end
-# 	if camera
-# 		settransform!(vis["/Cameras/default"],
-# 		    compose(Translation(0.0, 1.5, -1.), LinearMap(RotZ(-pi / 2.0))))
-# 	end
-# 	MeshCat.setanimation!(vis, anim)
-# end
-#
-
 function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
-		r=0.025, offset=0.05, size=10, name::Symbol=:quadruped, col::Bool=true)
+		r=0.025, offset=0.05, size=10, name::Symbol=:Quadruped, col::Bool=true)
 	p_shift = [0.0, 0.0, r]
 	orange_mat, blue_mat, black_mat = get_line_material(size)
 
@@ -225,7 +50,7 @@ function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::Quadruped; name::Symbol=:Biped, r=0.025)
+function build_robot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.025)
 	r = convert(Float32, r)
 	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0))
 	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0))
@@ -375,4 +200,94 @@ function contact_point(model::Quadruped, q::AbstractVector)
 
 	pc = [p_calf_1, p_calf_2, p_calf_3, p_calf_4]
 	return pc
+end
+
+function build_meshrobot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.025)
+	default_background!(vis)
+
+	urdf = joinpath(@__DIR__, "mesh", "a1.urdf")
+	mechanism = MeshCatMechanisms.parse_urdf(urdf)
+	mvis = MechanismVisualizer(mechanism, URDFVisuals(urdf, package_path=[@__DIR__]), vis[name])
+
+	return mvis
+end
+
+function set_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, model::Quadruped,
+		q::AbstractVector; name::Symbol=:Quadruped, r=0.025)
+
+	q_mesh, tform = convert_config(model, q)
+	set_configuration!(mvis, q_mesh)
+	settransform!(vis[name, :world], tform)
+	return nothing
+end
+
+function animate_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, anim::MeshCat.Animation,
+		model::ContactDynamicsModel, q::AbstractVector; name::Symbol=model_name(model))
+	for t in 1:length(q)
+		MeshCat.atframe(anim, t) do
+			set_meshrobot!(vis, mvis, model, q[t], name=name)
+		end
+	end
+	setanimation!(vis, anim)
+	return nothing
+end
+
+function visualize_meshrobot!(vis::Visualizer, model::ContactDynamicsModel, q::AbstractVector;
+		h=0.01,
+		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=model_name(model))
+
+	mvis = build_meshrobot!(vis, model, name=name)
+	animate_meshrobot!(vis, mvis, anim, model, q, name=name)
+	return anim
+end
+
+function visualize_meshrobot!(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj;
+		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,
+		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=model_name(model))
+
+	anim = visualize_meshrobot!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, h=h)
+	return anim
+end
+
+function convert_config(model::Quadruped, q::AbstractVector)
+    # Quadruped configuration
+    # 1.  position long axis +x
+    # 2.  position long axis +z
+    # 3.  trunk rotation along -y
+    # 4.  back  left  shoulder rotation along -y
+    # 5.  back  left  elbow    rotation along -y
+    # 6.  back  right shoulder rotation along -y
+    # 7.  back  right elbow    rotation along -y
+    # 8.  front left  shoulder rotation along -y
+    # 9.  front left  elbow    rotation along -y
+    # 10. front right shoulder rotation along -y
+    # 11. front right elbow    rotation along -y
+
+    # URDF configuration
+    # 1.  front right clavicle rotation along +x
+    # 2.  front left  clavicle rotation along +x
+    # 3.  back  right clavicle rotation along +x
+    # 4.  back  left  clavicle rotation along +x
+    # 5.  front right shoulder rotation along +y
+    # 6.  front left  shoulder rotation along +y
+    # 7.  back  right shoulder rotation along +y
+    # 8.  back  left  shoulder rotation along +y
+    # 9.  front right elbow    rotation relative to shoulder along +y
+    # 10. front left  elbow    rotation relative to shoulder along +y
+    # 11. back  right elbow    rotation relative to shoulder along +y
+    # 12. back  left  elbow    rotation relative to shoulder along +y
+    q_ = zeros(12)
+    x, z, θ = q[1:3]
+    q_[5]  = -q[10]
+    q_[6]  = -q[8]
+    q_[7]  = -q[6]
+    q_[8]  = -q[4]
+    q_[9]  = +q[10]-q[11]
+    q_[10] = +q[8]-q[9]
+    q_[11] = +q[6]-q[7]
+    q_[12] = +q[4]-q[5]
+    tform = compose(Translation(x+0.14,-0.3,z+0.02), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
+    return q_, tform
 end
