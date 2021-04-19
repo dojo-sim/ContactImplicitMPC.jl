@@ -260,10 +260,10 @@ function convert_config(model::Quadruped, q::AbstractVector)
     # 5.  back  left  elbow    rotation along -y
     # 6.  back  right shoulder rotation along -y
     # 7.  back  right elbow    rotation along -y
-    # 8.  front left  shoulder rotation along -y
-    # 9.  front left  elbow    rotation along -y
-    # 10. front right shoulder rotation along -y
-    # 11. front right elbow    rotation along -y
+    # 8.  front right shoulder rotation along -y
+    # 9.  front right elbow    rotation along -y
+	# 10. front left  shoulder rotation along -y
+	# 11. front left  elbow    rotation along -y
 
     # URDF configuration
     # 1.  front right clavicle rotation along +x
@@ -282,12 +282,12 @@ function convert_config(model::Quadruped, q::AbstractVector)
     x, z, θ = q[1:3]
     q_[5]  = -q[10]
     q_[6]  = -q[8]
-    q_[7]  = -q[6]
-    q_[8]  = -q[4]
+	q_[7]  = -q[4]
+    q_[8]  = -q[6]
     q_[9]  = +q[10]-q[11]
     q_[10] = +q[8]-q[9]
-    q_[11] = +q[6]-q[7]
-    q_[12] = +q[4]-q[5]
+	q_[11] = +q[4]-q[5]
+    q_[12] = +q[6]-q[7]
     tform = compose(Translation(x+0.14,-0.3,z+0.02), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
     return q_, tform
 end

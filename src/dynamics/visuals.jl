@@ -1,8 +1,6 @@
 function plot_surface!(vis::Visualizer, env::Environment{R3};  col=zeros(3), α=0.4,
-		n::Int=50, xlims = [-1.0, 5.0], ylims = [-0.1, 0.1])
+		n::Int=50, xlims = [-1.0, 5.0], ylims = [-2.0, 2.0])
     f(x) = x[3] - env.surf(x[1:2])[1]
-    xlims = [-1.0, 5.0]
-    ylims = [-2.0, 2.0]
     plot_surface!(vis, f, xlims=xlims, ylims=ylims, col=col, α=α, n=n)
     return nothing
 end
@@ -10,8 +8,6 @@ end
 function plot_surface!(vis::Visualizer, env::Environment{R2};  col=zeros(3), α=0.4,
 		n::Int=50, xlims = [-1.0, 5.0], ylims = [-0.1, 0.1])
     f(x) = x[3] - env.surf(x[1:1])[1]
-    xlims = [-1.0, 5.0]
-    ylims = [-0.1, 0.1]
     plot_surface!(vis, f, xlims=xlims, ylims=ylims, col=col, α=α, n=n)
     return nothing
 end
