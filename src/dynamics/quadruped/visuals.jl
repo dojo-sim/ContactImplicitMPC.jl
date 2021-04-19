@@ -1,5 +1,5 @@
 function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
-		r=0.025, offset=0.05, size=10, name::Symbol=:Quadruped, col::Bool=true)
+		r=0.0205, offset=0.05, size=10, name::Symbol=:Quadruped, col::Bool=true)
 	p_shift = [0.0, 0.0, r]
 	orange_mat, blue_mat, black_mat = get_line_material(size)
 
@@ -50,7 +50,7 @@ function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.025)
+function build_robot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.0205)
 	r = convert(Float32, r)
 	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0))
 	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0))
@@ -127,7 +127,7 @@ function build_robot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped
 end
 
 function set_robot!(vis::Visualizer, model::Quadruped, q::AbstractVector;
-		name::Symbol=:Quadruped, r=0.025)
+		name::Symbol=:Quadruped, r=0.0205)
 
 	r = convert(Float32, r)
 	p_shift = [0.0; 0.0; r]
@@ -202,7 +202,7 @@ function contact_point(model::Quadruped, q::AbstractVector)
 	return pc
 end
 
-function build_meshrobot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.025)
+function build_meshrobot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.0205)
 	default_background!(vis)
 
 	urdf = joinpath(@__DIR__, "mesh", "a1.urdf")
@@ -213,7 +213,7 @@ function build_meshrobot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadr
 end
 
 function set_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, model::Quadruped,
-		q::AbstractVector; name::Symbol=:Quadruped, r=0.025)
+		q::AbstractVector; name::Symbol=:Quadruped, r=0.0205)
 
 	q_mesh, tform = convert_config(model, q)
 	set_configuration!(mvis, q_mesh)
@@ -288,6 +288,7 @@ function convert_config(model::Quadruped, q::AbstractVector)
     q_[10] = +q[8]-q[9]
 	q_[11] = +q[4]-q[5]
     q_[12] = +q[6]-q[7]
-    tform = compose(Translation(x+0.14,-0.3,z+0.02), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
+	# tform = compose(Translation(x+0.183,-0.132, z+0.02), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
+    tform = compose(Translation(x+0.183, 0.132, z+0.02), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
     return q_, tform
 end

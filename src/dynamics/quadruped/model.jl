@@ -75,6 +75,13 @@ mutable struct Quadruped{T} <: ContactDynamicsModel
 	env::Environment
 end
 
+# Trunk model
+#                             middle   com
+#                                267 mm
+#             o---------------------|---X-----------------o
+#                                   13mm
+# BRhip o___________________________|___________________________o FRhip
+#                    183 mm                    183mm
 # kinematics
 function kinematics_1(model::Quadruped, q; body = :torso, mode = :ee)
 	x = q[1]
@@ -521,11 +528,13 @@ J_torso = 0.01683 + 4 * 0.696 * 0.183^2.0
 J_thigh = 0.00552
 J_leg = 0.00299
 
-l_torso = 0.267
+# l_torso = 0.267
+l_torso = 0.183*2
 l_thigh = 0.2
 l_leg = 0.2
 
-d_torso = 0.5 * l_torso - 0.0127
+# d_torso = 0.5 * l_torso - 0.0127
+d_torso = 0.5 * l_torso + 0.0127
 d_thigh = 0.5 * l_thigh - 0.00323
 d_leg = 0.5 * l_leg - 0.006435
 
