@@ -288,7 +288,11 @@ function convert_config(model::Quadruped, q::AbstractVector)
     q_[10] = +q[8]-q[9]
 	q_[11] = +q[4]-q[5]
     q_[12] = +q[6]-q[7]
-	# tform = compose(Translation(x+0.183,-0.132, z+0.02), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
-    tform = compose(Translation(x+0.183, 0.132, z+0.02), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
+
+	r_foot = 0.02
+	trunk_length = 2*0.183
+	trunk_width = 2*0.132
+	# tform = compose(Translation(x - trunk_length/2, trunk_width/2, z+r_foot), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
+    tform = compose(Translation(x + trunk_length/2, trunk_width/2, z+r_foot), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
     return q_, tform
 end

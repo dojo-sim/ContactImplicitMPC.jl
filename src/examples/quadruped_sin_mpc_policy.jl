@@ -88,7 +88,7 @@ anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
 settransform!(vis["/Cameras/default"],
 	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
 #
-# filename = "a1_quadruped"
+# filename = "aligned_quadruped"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
