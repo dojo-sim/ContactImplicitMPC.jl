@@ -35,7 +35,7 @@ end
     w1s = rand(nw)
     γ1s = rand(nc)
     b1s = rand(nb)
-	λ1s = rand(nc * dim(model.env))
+	λ1s = rand(nc * ContactControl.dim(model.env))
     q2s = rand(nq)
 	#
     # ∇ys   = rand(nq,2nq + nu + nw + nc + nb + nq)

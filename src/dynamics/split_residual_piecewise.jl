@@ -6,9 +6,9 @@ model.env = Environment{R2}(terrain_sym, d_terrain_sym)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-path_res = joinpath(dir, "sinusoidal/residual.jld2")
-path_jac = joinpath(dir, "sinusoidal/sparse_jacobians.jld2")
-path_linearized = joinpath(dir, "sinusoidal/linearized.jld2")
+path_res = joinpath(dir, "piecewise/residual.jld2")
+path_jac = joinpath(dir, "piecewise/sparse_jacobians.jld2")
+# path_linearized = joinpath(dir, "sinusoidal/linearized.jld2")
 
 instantiate_base!(model, path_base)
 instantiate_dynamics!(model, path_dyn)
@@ -49,73 +49,21 @@ nc = model.dim.c
 nb = model.dim.b
 ncf = nc * dim(model.env)
 
-# Declare variables
-# @variables q0[1:nq]
-# @variables q1[1:nq]
-# @variables u1[1:nu]
-# @variables w1[1:nw]
-# @variables γ1[1:nc]
-# @variables λ1[1:ncf]
-# @variables b1[1:nb]
-# @variables q2[1:nq]
-# @variables vs[1:ncf]
-# @variables ψ1[1:nc]
-# @variables η1[1:nb]
-# @variables h[1:1]
-
-# Dynamics
-# d = dynamics(model, h, q0, q1, u1, w1, γ1, b1, q2)
-# d = dynamics(model, h, q0, q1, u1, w1, λ1, q2)
-# d = Symbolics.simplify.(d)
-# dy  = Symbolics.jacobian(d, [q0; q1; u1; w1; λ1; q2], simplify=true)
-# dq2 = Symbolics.jacobian(d, q2, simplify = true)
-# dλ1 = Symbolics.jacobian(d, λ1, simplify = true)
-# dθ = Symbolics.jacobian(d, [q0; q1; u1; w1; h], simplify = true)
-#
-# dq2_func  = eval(build_function(dq2, h, q0, q1, u1, w1, λ1, q2)[1])
-# dλ1_func  = eval(build_function(dλ1, h, q0, q1, u1, w1, λ1, q2)[1])
-# dθ_func   = eval(build_function(dθ, h, q0, q1, u1, w1, λ1, q2)[1])
-#
-# cf = contact_forces(model, γ1, b1, q2)
-# dcf  = Symbolics.jacobian(cf, [q2; γ1; b1], simplify=true)
-# dcf_func = eval(build_function(dcf, γ1, b1, q2)[1])
-
-# _vs = velocity_stack(model, q1, q2, h)
-# vsq2 = Symbolics.jacobian(_vs, q2, simplify = true)
-# vsq1h = Symbolics.jacobian(_vs, [q1; h], simplify = true)
-# vsq2_func = eval(build_function(vsq2, q1, q2, h)[1])
-# vsq1h_func = eval(build_function(vsq1h, q1, q2, h)[1])
-#
-# dq2_func(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
-# dλ1_func(_h, _q0, _q1, _u1, _w1, _λ1, _q2) * dcf_func(_q2, _γ1, _b1)
-# dθ_func(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
-
 rd = zeros(model.dim.q, num_var(model))
 rd[:, 1:model.dim.q] = model.dyn.dq2(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
-rd[:, 1:(model.dim.q + model.dim.c + model.dim.b)] += model.dyn.dλ1(_h, _q0, _q1, _u1, _w1, _λ1, _q2) * cf_methods.dcf(_γ1, _b1,_q2)
-# @test norm(model.spa.rz_sp[1:model.dim.q, :] - rd) < 1.0e-8
-
-# md = vs + transpose(E_func(model)) * ψ1 - η1
-# mdvs = Symbolics.jacobian(md, vs, simplify = true)
-# mdvs_func = eval(build_function(mdvs, vs, ψ1, η1)[1])
-# mdψη = Symbolics.jacobian(md, [ψ1; η1], simplify = true)
-# mdψη_func = eval(build_function(mdψη, vs, ψ1, η1)[1])
+rd[:, 1:(model.dim.q + model.dim.c + model.dim.b)] += model.dyn.dλ1(_h, _q0, _q1, _u1, _w1, _λ1, _q2) * cf_methods.dcf(_γ1, _b1, _q2)
 
 rmd = zeros(model.dim.b, num_var(model))
 rmd[:, model.dim.q + model.dim.c + model.dim.b .+ (1:model.dim.c + model.dim.b)] = cf_methods.mdψη(_vT, _ψ1, _η1)# copy(mdψη_func(_vT, _ψ1, _η1))
-rmd[:, 1:model.dim.q] += cf_methods.mdvs(_vT, _ψ1, _η1) * cf_methods.vsq2(_q1, _q2, _h)
-# @test norm(model.spa.rz_sp[model.dim.q .+ (1:model.dim.b), :] - rmd) < 1.0e-8
+rmd[:, 1:model.dim.q] += cf_methods.mdvs(_vT, _ψ1, _η1) * cf_methods.vsq2(_q1, _q2, _h) # NOTE: breaks?
 
 rθd = zeros(model.dim.q, num_data(model))
 idx = collect([(1:2model.dim.q + model.dim.u + model.dim.w)..., num_data(model)])
 rθd[:, idx] = model.dyn.dθ(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
-# @test norm(model.spa.rθ_sp[1:model.dim.q, :] - rθd[:, :]) < 1.0e-8
 
 rθmd = zeros(model.dim.b, num_data(model))
-# vsq1h_func(_q1, _q2, _h)
 idx = collect([(model.dim.q .+ (1:model.dim.q))..., (2model.dim.q + model.dim.u + model.dim.w + 1 .+ (1:1))...])
 rθmd[:, idx] = cf_methods.vsq1h(_q1, _q2, _h)
-# @test norm(model.spa.rθ_sp[model.dim.q .+ (1:model.dim.b), :] - rθmd) < 1.0e-8
 
 nz = num_var(model)
 nθ = num_data(model)

@@ -199,5 +199,5 @@ rθ_test .= 0.0
 rz_split!(rz_test, _z, _θ)
 rθ_split!(rθ_test, _z, _θ)
 
-@test norm(model.spa.rz_sp[10:end,:] - rz_test[10:end,:]) < 1.0e-8
+@test norm(model.spa.rz_sp - rz_test) < 1.0e-8
 @test norm(model.spa.rθ_sp - rθ_test) < 1.0e-8

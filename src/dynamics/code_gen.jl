@@ -209,15 +209,27 @@ function generate_contact_expressions(model::ContactDynamicsModel; T = Float64)
 
 	# Contact forces
 	cf = contact_forces(model, γ1, b1, q2)
+	cf = Symbolics.simplify.(cf)
 	dcf  = Symbolics.jacobian(cf, [q2; γ1; b1], simplify=true) # NOTE: input order change
+
+	cfa = contact_forces(model, γ1, b1, q2)
+	cfa = Symbolics.simplify.(cfa)
+	dcfa  = Symbolics.jacobian(cfa, [q2; γ1; b1], simplify=true) # NOTE: input order change
 
 	# Velocity stack
 	vs = velocity_stack(model, q1, q2, h)
+	vs = Symbolics.simplify.(vs)
 	vsq2 = Symbolics.jacobian(vs, q2, simplify = true)
 	vsq1h = Symbolics.jacobian(vs, [q1; h], simplify = true)
 
+	vsa = velocity_stack(model, q1, q2, h)
+	vsa = Symbolics.simplify.(vsa)
+	vsaq2 = Symbolics.jacobian(vsa, q2, simplify = true)
+	vsaq1h = Symbolics.jacobian(vsa, [q1; h], simplify = true)
+
 	# Maximum dissipation (eq.)
 	md = vt + transpose(E_func(model)) * ψ1 - η1
+	md = Symbolics.simplify.(md)
 	mdvs = Symbolics.jacobian(md, vt, simplify = true)
 	mdψη = Symbolics.jacobian(md, [ψ1; η1], simplify = true)
 
@@ -231,9 +243,16 @@ function generate_contact_expressions(model::ContactDynamicsModel; T = Float64)
 	expr[:cf]   = build_function(cf, γ1, b1, q2)[1]
 	expr[:dcf]  = build_function(dcf, γ1, b1, q2)[1]
 
+	expr[:cfa]   = build_function(cfa, γ1, b1, q2)[1]
+	expr[:dcfa]  = build_function(dcfa, γ1, b1, q2)[1]
+
 	expr[:vs]   = build_function(vs, q1, q2, h)[1]
 	expr[:vsq2]  = build_function(vsq2, q1, q2, h)[1]
 	expr[:vsq1h] = build_function(vsq1h, q1, q2, h)[1]
+
+	expr[:vsa]   = build_function(vsa, q1, q2, h)[1]
+	expr[:vsaq2]  = build_function(vsaq2, q1, q2, h)[1]
+	expr[:vsaq1h] = build_function(vsaq1h, q1, q2, h)[1]
 
 	expr[:mdvs] = build_function(mdvs, vt, ψ1, η1)[1]
 	expr[:mdψη] = build_function(mdψη, vt, ψ1, η1)[1]
@@ -476,9 +495,14 @@ end
 function instantiate_contact_methods!(fct::ContactMethods, expr::Dict{Symbol,Expr})
 	fct.cf = eval(expr[:cf])
 	fct.dcf = eval(expr[:dcf])
+	fct.cfa = eval(expr[:cfa])
+	fct.dcfa = eval(expr[:dcfa])
 	fct.vs = eval(expr[:vs])
 	fct.vsq2 = eval(expr[:vsq2])
 	fct.vsq1h = eval(expr[:vsq1h])
+	fct.vsa = eval(expr[:vsa])
+	fct.vsaq2 = eval(expr[:vsaq2])
+	fct.vsaq1h = eval(expr[:vsaq1h])
 	fct.mdvs = eval(expr[:mdvs])
 	fct.mdψη = eval(expr[:mdψη])
 	fct.rc = eval(expr[:rc])

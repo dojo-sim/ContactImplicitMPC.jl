@@ -180,6 +180,24 @@ function velocity_stack(model::ContactDynamicsModel, q1, q2, h)
 	vT_stack = vcat([[v_surf[i][1]; -v_surf[i][1]] for i = 1:nc]...)
 end
 
+function contact_forces_approx(model::ContactDynamicsModel, γ1, b1, q2)
+	nc = model.dim.c
+	nb = model.dim.b
+	nf = Int(nb / nc)
+	ne = dim(model.env)
+	# k = kinematics(model, q2)
+	λ1 = vcat([transpose(rotation(model.env, q2[1])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
+end
+
+function velocity_stack_approx(model::ContactDynamicsModel, q1, q2, h)
+	nc = model.dim.c
+	np = dim(model.env)
+	k = kinematics(model, q2)
+	v = J_fast(model, q2) * (q2 - q1) / h[1]
+	v_surf = [rotation(model.env, q2[1]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
+	vT_stack = vcat([[v_surf[i][1]; -v_surf[i][1]] for i = 1:nc]...)
+end
+
 function residual(model::ContactDynamicsModel, z, θ, κ)
 	nc = model.dim.c
 	nb = model.dim.b
@@ -205,15 +223,10 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 end
 
 function res_con(model::ContactDynamicsModel, z, θ, κ)
-	nc = model.dim.c
-	nb = model.dim.b
-	nf = Int(nb / nc)
-	np = dim(model.env)
-
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
 
-	[s1 - ϕ_func(model, q2);
+	[s1 .- ϕ_func(model, q2);
 	 s2 .- (μ[1] * γ1 .- E_func(model) * b1);
 	 γ1 .* s1 .- κ;
 	 b1 .* η1 .- κ;
@@ -332,9 +345,14 @@ end
 mutable struct ContactMethods
 	cf
 	dcf
+	cfa
+	dcfa
 	vs
 	vsq2
 	vsq1h
+	vsa
+	vsaq2
+	vsaq1h
 	mdvs
 	mdψη
 	rc
@@ -347,7 +365,7 @@ function ContactMethods()
 		error("Not Implemented: use instantiate_contact_methods!")
 		return nothing
 	end
-	return ContactMethods(fill(f, 10)...)
+	return ContactMethods(fill(f, 15)...)
 end
 
 """

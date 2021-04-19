@@ -19,11 +19,11 @@ include("solver/gs.jl")
 include("solver/schur.jl")
 
 # Dynamics
-include("dynamics/environment.jl")
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
 
 # Simulator
+include("simulator/environment.jl")
 include("simulator/particle.jl")
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
 include("simulator/hopper_3D.jl")
