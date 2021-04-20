@@ -78,11 +78,11 @@ function update_altitude!(alt, model::ContactDynamicsModel, traj, t, N_sample;
 			end
 		end
 		if γ_max > threshold
-			alt[i] = ϕ_fast(model, traj.q[idx_max])[i]
+			alt[i] = ϕ_func(model, traj.q[idx_max])[i]
 			verbose && println(" ")
 			verbose && println("point $i in contact")
 			verbose && println("sim_step : $idx_max")
-			verbose && println("alt      : $(ϕ_fast(model, traj.q[idx_max])[i])")
+			verbose && println("alt      : $(ϕ_func(model, traj.q[idx_max])[i])")
 			verbose && println("force    : $(traj.γ[idx_max][i])")
 		end
 	end

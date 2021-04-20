@@ -296,15 +296,7 @@ function RθLin(model::ContactDynamicsModel, rθ0::AbstractMatrix{T}) where {T}
 
     # Terms
     off = 0
-    # ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
-    # ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
-    # ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
-    # ibil = [ibil1; ibil2; ibil3]
-    # idyn = Vector(1:nq)
-    # irst2 = Vector(nq .+ (1:nb))
-    # irst1 = Vector(nq + nb .+ (1:nc))
-    # irst3 = Vector(nq + nb + nc .+ (1:nc))
-    # irst = [irst1; irst2; irst3]
+
     idyn, irst, ibil, ialt = linearization_term_index(model)
 
     # Fill the matrix blocks rθ0s
@@ -333,7 +325,7 @@ function r!(r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, z::Vector{T}, θ::
     r.y2 = z[r.iy2]
     r.θ  = θ[r.iθ]
     r.rdyn = r.rdyn0 + r.Dx*(r.x - r.x0) + r.Dy1*(r.y1 - r.y10)                         + r.rθdyn*(r.θ - r.θ0)
-    r.rrst = r.rrst0 + r.Rx*(r.x - r.x0) + r.Ry1*(r.y1 - r.y10) + r.Ry2.*(r.y2 - r.y20) + r.rθrst*(r.θ - r.θ0) + SVector{ny}([r.alt_zeros1; r.alt; r.alt_zeros2])
+    r.rrst = r.rrst0 + r.Rx*(r.x - r.x0) + r.Ry1*(r.y1 - r.y10) + r.Ry2.*(r.y2 - r.y20) + r.rθrst*(r.θ - r.θ0) + SVector{ny}([r.alt; r.alt_zeros1; r.alt_zeros2])
     r.rbil = r.y1 .* r.y2 .- κ
     return nothing
 end

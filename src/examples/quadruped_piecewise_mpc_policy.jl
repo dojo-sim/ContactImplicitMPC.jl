@@ -4,8 +4,35 @@ vis = Visualizer()
 open(vis)
 render(vis)
 
-# get hopper model
-model_sim = get_model("quadruped", surf="piecewise")
+### quadruped piecewise surface
+model_sim = deepcopy(quadruped)
+dir = joinpath(pwd(), "src/dynamics/quadruped")
+include(joinpath(pwd(), "src/simulator/environment/piecewise.jl"))
+model_sim.env = Environment{R2}(terrain_sym, d_terrain_sym)
+
+t = range(-5.0, stop = 5.0, length = 100)
+plot(t, model_sim.env.surf.(t))
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+path_res = joinpath(dir, "piecewise/residual.jld2")
+path_jac = joinpath(dir, "piecewise/sparse_jacobians.jld2")
+path_linearized = joinpath(dir, "piecewise/linearized.jld2")
+
+instantiate_base!(model_sim, path_base)
+
+expr_dyn = generate_dynamics_expressions(model_sim, derivs = true)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model_sim, path_dyn, derivs = true)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model_sim, jacobians = :approx)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(model_sim, path_res, jacobians = :approx)
+model_sim.spa.rz_sp = copy(rz_sp)
+model_sim.spa.rθ_sp = copy(rθ_sp)
+
+###
+
 model = get_model("quadruped", surf="flat")
 nq = model.dim.q
 nu = model.dim.u
@@ -24,7 +51,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 100
+H_sim = 1000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -55,51 +82,8 @@ q0_ref = copy(ref_traj.q[1])
 q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 
-# policy(p, ref_traj.q[2], ref_traj, 1)
-#
-# z0 = rand(num_var(model_sim))
-# θ0 = rand(num_data(model_sim))
-# r0 = zeros(num_var(model_sim))
-# rz0 = zeros(num_var(model_sim), num_var(model_sim))
-# rθ0 = zeros(num_var(model_sim), num_data(model_sim))
-#
-#
-# nq = model_sim.dim.q
-# nu = model_sim.dim.u
-# nc = model_sim.dim.c
-# nb = model_sim.dim.b
-# nz = num_var(model_sim)
-# nθ = num_data(model_sim)
-#
-# # Declare variables
-# @variables z[1:nz]
-# @variables θ[1:nθ]
-# @variables κ
-#
-# # Residual
-# r = residual(model_sim, z, θ, κ)
-# r = Symbolics.simplify.(r)
-# rz = Symbolics.jacobian(r, z, simplify = true)
-# # rθ = Symbolics.jacobian(r, θ, simplify = true) # TODO: sparse version
-#
-# rz_sp = similar(rz, T)
-# # rθ_sp = similar(rθ, T)
-#
-# # Build function
-# expr = Dict{Symbol, Expr}()
-# # expr[:r]  = build_function(r, z, θ, κ)[2]
-# expr[:rz] = build_function(rz, z, θ)[2]
-# # expr[:rθ] = build_function(rθ, z, θ)[2]
-#
-# eval(expr[:rz])(rz_sp, z0, θ0)
-#
-# # model_sim.res.r!(r0, z0, θ0, 0.1)
-# # model_sim.res.rz!(rz0, z0, θ0)
-# # model_sim.res.rθ!(rθ0, z0, θ0)
-#
-# p = no_policy(model_sim)
-w_amp = [+0.02, -0.20]
-sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
+ϕ_func(model_sim, q1_ref)
+sim = simulator(model2, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     # d = open_loop_disturbances([rand(model.dim.w) .* w_amp for i=1:H_sim]),
     ip_opts = InteriorPointOptions(
@@ -111,14 +95,14 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 @time status = simulate!(sim)
 
-plt = plot(layout=(3,1), legend=false)
-plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
-    color=:red, linewidth=3.0)
-plot!(plt[1,1], hcat(Vector.(sim.traj.q)...)', color=:blue, linewidth=1.0)
-plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
-    color=:red, linewidth=3.0)
-plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
-plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
+# plt = plot(layout=(3,1), legend=false)
+# plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
+#     color=:red, linewidth=3.0)
+# plot!(plt[1,1], hcat(Vector.(sim.traj.q)...)', color=:blue, linewidth=1.0)
+# plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
+#     color=:red, linewidth=3.0)
+# plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
+# plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
 # visualize!(vis, model, sim.traj.q[1:N_sample:end], Δt=10*h/N_sample, name=:mpc)
 plot_lines!(vis, model, sim.traj.q[1:N_sample:end])

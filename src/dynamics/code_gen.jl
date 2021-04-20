@@ -47,6 +47,10 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	C = ddLq̇q * q̇ - dLq
 	C = Symbolics.simplify.(C)
 
+	# Kinematics
+	k = kinematics(model, q)
+	k = simplify.(k)
+
 	# Build function
 	expr = Dict{Symbol, Expr}()
 	expr[:L]    = build_function([L], q, q̇)[1] # need to transpose to get a line vector
@@ -55,6 +59,8 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	expr[:A]    = build_function(A, q)[1]
 	expr[:J]    = build_function(J, q)[1]
 	expr[:C]    = build_function(C, q, q̇)[1]
+	expr[:k]    = build_function(k, q)[1]
+
 	return expr
 end
 
@@ -94,6 +100,10 @@ function generate_base_expressions_analytical(model::ContactDynamicsModel)
 	C = C_func(model, q, q̇)
 	C = Symbolics.simplify.(C)[1:nq]
 
+	# Kinematics
+	k = kinematics(model, q)
+	k = simplify.(k)
+
 	# Build function
 	expr = Dict{Symbol, Expr}()
 	expr[:L]    = :(0.0 + 0.0) # TODO: replace with base instantiation
@@ -102,6 +112,8 @@ function generate_base_expressions_analytical(model::ContactDynamicsModel)
 	expr[:A]    = build_function(A, q)[1]
 	expr[:J]    = build_function(J, q)[1]
 	expr[:C]    = build_function(C, q, q̇)[1]
+	expr[:k]    = build_function(k, q)[1]
+
 	return expr
 end
 
@@ -124,7 +136,7 @@ function generate_dynamics_expressions(model::ContactDynamicsModel; derivs = fal
 	@variables w1[1:nw]
 	@variables λ1[1:ncf]
 	@variables q2[1:nq]
-	@variables h
+	@variables h[1:1]
 
 	# Expressions
 	expr = Dict{Symbol, Expr}()
@@ -171,7 +183,8 @@ function generate_contact_expressions(model::ContactDynamicsModel;
 	@variables vt[1:nb]
 	@variables ψ1[1:nc]
 	@variables η1[1:nb]
-	@variables h
+	@variables h[1:1]
+	@variables k[1:ncf]
 
 	@variables z[1:nz]
 	@variables θ[1:nθ]
@@ -185,27 +198,23 @@ function generate_contact_expressions(model::ContactDynamicsModel;
 	ϕ = Symbolics.simplify.(ϕ)[1:nc]
 
 	# Contact forces
-	cf = contact_forces(model, γ1, b1, q2)
+	cf = contact_forces(model, γ1, b1, q2, k)
 	cf = Symbolics.simplify.(cf)
 
 	# Velocity stack
-	vs = velocity_stack(model, q1, q2, h)
+	vs = velocity_stack(model, q1, q2, k, h)
 	vs = Symbolics.simplify.(vs)
 
 	# Functions
 	expr[:ϕ]    = build_function(ϕ, q2)[1]
-	expr[:cf]   = build_function(cf, γ1, b1, q2)[1]
-	expr[:vs]   = build_function(vs, q1, q2, h)[1]
+	expr[:cf]   = build_function(cf, γ1, b1, q2, k)[1]
+	expr[:vs]   = build_function(vs, q1, q2, k, h)[1]
 
 	if jacobians
-		cfa = contact_forces_approx(model, γ1, b1, q2) #TODO: dont compute unless necessary
-		cfa = Symbolics.simplify.(cfa)
-		dcf  = Symbolics.jacobian(cfa, [q2; γ1; b1], simplify=true) # NOTE: input order change
+		dcf  = Symbolics.jacobian(cf, [q2; γ1; b1], simplify=true) # NOTE: input order change
 
-		vsa = velocity_stack_approx(model, q1, q2, h)
-		vsa = Symbolics.simplify.(vsa)
-		vsq2 = Symbolics.jacobian(vsa, q2, simplify = true)
-		vsq1h = Symbolics.jacobian(vsa, [q1; h], simplify = true)
+		vsq2 = Symbolics.jacobian(vs, q2, simplify = true)
+		vsq1h = Symbolics.jacobian(vs, [q1; h], simplify = true)
 
 		# Maximum dissipation (eq.)
 		md = vt + transpose(E_func(model)) * ψ1 - η1
@@ -220,10 +229,10 @@ function generate_contact_expressions(model::ContactDynamicsModel;
 		rcθ = Symbolics.jacobian(rc, θ, simplify = true)
 
 		# Functions
-		expr[:dcf]  = build_function(dcf, γ1, b1, q2)[1]
+		expr[:dcf]  = build_function(dcf, γ1, b1, q2, k)[1]
 
-		expr[:vsq2]  = build_function(vsq2, q1, q2, h)[1]
-		expr[:vsq1h] = build_function(vsq1h, q1, q2, h)[1]
+		expr[:vsq2]  = build_function(vsq2, q1, q2, k, h)[1]
+		expr[:vsq1h] = build_function(vsq1h, q1, q2, k, h)[1]
 
 		expr[:mdvs] = build_function(mdvs, vt, ψ1, η1)[1]
 		expr[:mdψη] = build_function(mdψη, vt, ψ1, η1)[1]
@@ -405,6 +414,7 @@ function instantiate_base!(fct::BaseMethods, expr::Dict{Symbol,Expr})
 	fct.A    = eval(expr[:A])
 	fct.J    = eval(expr[:J])
 	fct.C    = eval(expr[:C])
+	fct.k    = eval(expr[:k])
 	return nothing
 end
 
@@ -465,29 +475,29 @@ function instantiate_residual!(model::ContactDynamicsModel, path::AbstractString
 	return nothing
 end
 
-# """
-# 	instantiate_residual!(model,
-# 		path::AbstractString="model/residual.jld2")
-# Evaluates the residual expressions to generate functions, stores them into the model.
-# """
-# function instantiate_residual!(fct::ResidualMethods, expr::Dict{Symbol,Expr};
-# 	jacobians = :full)
-#
-# 	fct.r!  = eval(expr[:r])
-#
-# 	if jacobians == :full
-# 		fct.rz! = eval(expr[:rz])
-# 		fct.rθ! = eval(expr[:rθ])
-# 	else
-# 		# fct.rz! = rz_approx!
-# 		# fct.rθ! = rθ_approx!
-# 	end
-#
-# 	return nothing
-# end
+"""
+	instantiate_residual!(model,
+		path::AbstractString="model/residual.jld2")
+Evaluates the residual expressions to generate functions, stores them into the model.
+"""
+function instantiate_residual!(fct::ResidualMethods, expr::Dict{Symbol,Expr};
+	jacobians = :full)
+
+	fct.r!  = eval(expr[:r])
+
+	if jacobians == :full
+		fct.rz! = eval(expr[:rz])
+		fct.rθ! = eval(expr[:rθ])
+	else
+		# fct.rz! = rz_approx!
+		# fct.rθ! = rθ_approx!
+	end
+
+	return nothing
+end
 
 function instantiate_contact_methods!(fct::ContactMethods, expr::Dict{Symbol,Expr};
-	jacobians = false)
+	jacobians = :full)
 
 	fct.ϕ = eval(expr[:ϕ])
 	fct.cf = eval(expr[:cf])
