@@ -441,6 +441,18 @@ function get_trajectory(name::String, gait::String; model_name = name, load_type
 		traj.b .= deepcopy(b)
 		traj.z .= [pack_z(model, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
 		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), model.μ_world, h) for t = 1:T]
+	elseif load_type == :split_traj_alt
+		q, u, γ, b, ψ, η, μ, h = res["qm"], res["um"], res["γm"], res["bm"], res["ψm"], res["ηm"], res["μm"], res["hm"]
+
+		T = length(u)
+
+		traj = contact_trajectory(T, h, model)
+		traj.q .= deepcopy(q)
+		traj.u .= deepcopy(u)
+		traj.γ .= deepcopy(γ)
+		traj.b .= deepcopy(b)
+		traj.z .= [pack_z(model, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
+		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), μ, h) for t = 1:T]
 	elseif load_type == :joint_traj
 		traj = res["traj"]
 	end

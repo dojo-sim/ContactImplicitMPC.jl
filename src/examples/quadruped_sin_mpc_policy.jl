@@ -16,7 +16,7 @@ nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
 # get trajectory
-ref_traj = get_trajectory("quadruped", "gait0", load_type=:split_traj, model=model)
+ref_traj = get_trajectory("quadruped", "gait1", load_type=:split_traj_alt, model=model)
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
@@ -25,7 +25,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 3000
+H_sim = 6000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -81,14 +81,14 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
 # plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
-plot_surface!(vis, model_sim.env)
-anim = visualize_robot!(vis, model_sim, sim.traj)
+plot_surface!(vis, model_sim.env, ylims = [-0.5, 0.5])
+anim = visualize_meshrobot!(vis, model_sim, sim.traj)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
 
 settransform!(vis["/Cameras/default"],
 	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
 #
-# filename = "a1_quadruped"
+# filename = "aligned_quadruped"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
