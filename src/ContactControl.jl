@@ -37,7 +37,7 @@ include("solver/qr.jl")
 include("solver/schur.jl")
 
 # Environment
-include("simulator/environment/environment.jl")
+include("simulator/environment.jl")
 
 # Dynamics
 include("dynamics/model.jl")
@@ -58,6 +58,7 @@ include("dynamics/hopper_3D/model.jl")
 include("dynamics/quadruped/model.jl")
 include("dynamics/biped/model.jl")
 include("dynamics/biped5/model.jl")
+include("dynamics/flamingo/model.jl")
 
 # Simulator
 include("simulator/policy.jl")

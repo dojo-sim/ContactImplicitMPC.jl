@@ -1,5 +1,5 @@
-function plot_lines!(vis::Visualizer, model::Flamingo11, q::AbstractVector;
-		r=0.005, offset=0.05, size=10, name::Symbol=:Flamingo11, col::Bool=true)
+function plot_lines!(vis::Visualizer, model::Flamingo, q::AbstractVector;
+		r=0.005, offset=0.05, size=10, name::Symbol=:Flamingo, col::Bool=true)
 	r_contact = r*8/7
 	p_shift = [0.0, 0.0, r_contact]
 	orange_mat, blue_mat, black_mat = get_line_material(size)
@@ -36,7 +36,7 @@ function plot_lines!(vis::Visualizer, model::Flamingo11, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::Flamingo11; name::Symbol=:Flamingo11, r=0.005)
+function build_robot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamingo, r=0.005)
 	r = convert(Float32, r)
 	r_contact = convert(Float32, r*8/7)
 	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0))
@@ -77,8 +77,8 @@ function build_robot!(vis::Visualizer, model::Flamingo11; name::Symbol=:Flamingo
 	return nothing
 end
 
-function set_robot!(vis::Visualizer, model::Flamingo11, q::AbstractVector;
-		name::Symbol=:Flamingo11, r=0.005)
+function set_robot!(vis::Visualizer, model::Flamingo, q::AbstractVector;
+		name::Symbol=:Flamingo, r=0.005)
 
 	r = convert(Float32, r)
 	r_contact = convert(Float32, r*8/7)
@@ -134,7 +134,7 @@ function set_robot!(vis::Visualizer, model::Flamingo11, q::AbstractVector;
 	return nothing
 end
 
-function contact_point(model::Flamingo11, q::AbstractVector)
+function contact_point(model::Flamingo, q::AbstractVector)
 	k_toe_1 = kinematics_3(model, q, body = :foot_1, mode = :toe)
 	p_toe_1 = [k_toe_1[1], 0.0, k_toe_1[2]]
 

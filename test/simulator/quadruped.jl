@@ -11,7 +11,7 @@
 
     for t = 1:T
     	r = ContactControl.residual(model, ref_traj.z[t], ref_traj.θ[t], 0.0)
-    	@test norm(r) < 1.0e-3
+    	@test norm(r) < 1.0e-4
     end
 
     # initial conditions
@@ -26,7 +26,7 @@
         sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
     # simulate
-    status = ContactControl.simulate!(sim, verbose = false)
-    @test status
-    @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 5.0e-3
+    @test status = ContactControl.simulate!(sim, verbose = false)
+    @show sim.traj.q[end][1:3]
+    @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 0.025
 end

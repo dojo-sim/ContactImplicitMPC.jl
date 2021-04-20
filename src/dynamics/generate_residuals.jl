@@ -288,10 +288,6 @@ instantiate_linearized!(model, path_linearized)
 # @save path_jac rz_sp rθ_sp
 # @load path_jac rz_sp rθ_sp
 # instantiate_residual!(model, path_res)
-#
-# expr_linearized = generate_linearized_expressions(model)
-# save_expressions(expr_linearized, path_linearized, overwrite=true)
-# instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Biped
@@ -348,6 +344,31 @@ instantiate_linearized!(model, path_linearized)
 ################################################################################
 dir = joinpath(@__DIR__, "biped5")
 model = deepcopy(biped5)
+
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+path_res = joinpath(dir, "flat/residual.jld2")
+path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
+path_linearized = joinpath(dir, "flat/linearized.jld2")
+
+instantiate_base!(model, path_base)
+instantiate_dynamics!(model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+@load path_jac rz_sp rθ_sp
+instantiate_residual!(model, path_res)
+
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
+
+################################################################################
+# Flamingo
+################################################################################
+dir = joinpath(@__DIR__, "flamingo")
+model = deepcopy(flamingo)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")

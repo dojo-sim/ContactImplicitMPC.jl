@@ -1,4 +1,4 @@
-mutable struct Flamingo11{T} <: ContactDynamicsModel
+mutable struct Flamingo{T} <: ContactDynamicsModel
     dim::Dimensions
 
     g::T
@@ -65,7 +65,7 @@ mutable struct Flamingo11{T} <: ContactDynamicsModel
 	env::Environment
 end
 
-function kinematics_1(model::Flamingo11, q; body = :torso, mode = :ee)
+function kinematics_1(model::Flamingo, q; body = :torso, mode = :ee)
 	x = q[1]
 	z = q[2]
 
@@ -99,7 +99,7 @@ function kinematics_1(model::Flamingo11, q; body = :torso, mode = :ee)
 	end
 end
 
-function jacobian_1(model::Flamingo11, q; body = :torso, mode = :ee)
+function jacobian_1(model::Flamingo, q; body = :torso, mode = :ee)
 	jac = zeros(eltype(q), 2, model.dim.q)
 	jac[1, 1] = 1.0
 	jac[2, 2] = 1.0
@@ -125,7 +125,7 @@ function jacobian_1(model::Flamingo11, q; body = :torso, mode = :ee)
 	return jac
 end
 
-function kinematics_2(model::Flamingo11, q; body = :calf_1, mode = :ee)
+function kinematics_2(model::Flamingo, q; body = :calf_1, mode = :ee)
 
 	if body == :calf_1
 		p = kinematics_1(model, q, body = :thigh_1, mode = :ee)
@@ -154,7 +154,7 @@ function kinematics_2(model::Flamingo11, q; body = :calf_1, mode = :ee)
 	end
 end
 
-function jacobian_2(model::Flamingo11, q; body = :calf_1, mode = :ee)
+function jacobian_2(model::Flamingo, q; body = :calf_1, mode = :ee)
 
 	if body == :calf_1
 		jac = jacobian_1(model, q, body = :thigh_1, mode = :ee)
@@ -181,7 +181,7 @@ function jacobian_2(model::Flamingo11, q; body = :calf_1, mode = :ee)
 	return jac
 end
 
-function kinematics_3(model::Flamingo11, q; body = :foot_1, mode = :ee)
+function kinematics_3(model::Flamingo, q; body = :foot_1, mode = :ee)
 
 	if body == :foot_1
 		p = kinematics_2(model, q, body = :calf_1, mode = :ee)
@@ -214,7 +214,7 @@ function kinematics_3(model::Flamingo11, q; body = :foot_1, mode = :ee)
 	end
 end
 
-function jacobian_3(model::Flamingo11, q; body = :foot_1, mode = :ee)
+function jacobian_3(model::Flamingo, q; body = :foot_1, mode = :ee)
 
 	if body == :foot_1
 		jac = jacobian_2(model, q, body = :calf_1, mode = :ee)
@@ -260,7 +260,7 @@ end
 
 # Lagrangian
 
-function lagrangian(model::Flamingo11, q, q̇)
+function lagrangian(model::Flamingo, q, q̇)
 	L = 0.0
 
 	# torso
@@ -329,24 +329,24 @@ function lagrangian(model::Flamingo11, q, q̇)
 	return L
 end
 
-function _dLdq(model::Flamingo11, q, q̇)
+function _dLdq(model::Flamingo, q, q̇)
 	Lq(x) = lagrangian(model, x, q̇)
 	ForwardDiff.gradient(Lq, q)
 end
 
-function _dLdq̇(model::Flamingo11, q, q̇)
+function _dLdq̇(model::Flamingo, q, q̇)
 	Lq̇(x) = lagrangian(model, q, x)
 	ForwardDiff.gradient(Lq̇, q̇)
 end
 
-function _C_func(model::Flamingo11, q, q̇)
+function _C_func(model::Flamingo, q, q̇)
 	tmp_q(z) = _dLdq̇(model, z, q̇)
 	tmp_q̇(z) = _dLdq̇(model, q, z)
 
 	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
 end
 
-function kinematics(model::Flamingo11, q)
+function kinematics(model::Flamingo, q)
 	p_toe_1 = kinematics_3(model, q, body = :foot_1, mode = :toe)
 	p_heel_1 = kinematics_3(model, q, body = :foot_1, mode = :heel)
 	p_toe_2 = kinematics_3(model, q, body = :foot_2, mode = :toe)
@@ -356,7 +356,7 @@ function kinematics(model::Flamingo11, q)
 end
 
 # Methods
-function M_func(model::Flamingo11, q)
+function M_func(model::Flamingo, q)
 	M = Diagonal([0.0, 0.0,
 		model.J_torso,
 		model.J_thigh1, model.J_calf1,
@@ -394,7 +394,7 @@ function M_func(model::Flamingo11, q)
 	return M
 end
 
-function ϕ_func(model::Flamingo11, q)
+function ϕ_func(model::Flamingo, q)
 	p_toe_1 = kinematics_3(model, q, body = :foot_1, mode = :toe)
 	p_heel_1 = kinematics_3(model, q, body = :foot_1, mode = :heel)
 	p_toe_2 = kinematics_3(model, q, body = :foot_2, mode = :toe)
@@ -406,7 +406,7 @@ function ϕ_func(model::Flamingo11, q)
 				p_heel_2[2] - model.env.surf(p_heel_2[1:1])])
 end
 
-function B_func(model::Flamingo11, q)
+function B_func(model::Flamingo, q)
 	@SMatrix [0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0;
@@ -416,12 +416,12 @@ function B_func(model::Flamingo11, q)
 			  0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0]
 end
 
-function A_func(model::Flamingo11, q)
+function A_func(model::Flamingo, q)
 	@SMatrix [1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::Flamingo11, q)
+function J_func(model::Flamingo, q)
 	J_toe_1 = jacobian_3(model, q, body = :foot_1, mode = :toe)
 	J_heel_1 = jacobian_3(model, q, body = :foot_1, mode = :heel)
 	J_toe_2 = jacobian_3(model, q, body = :foot_2, mode = :toe)
@@ -433,24 +433,24 @@ function J_func(model::Flamingo11, q)
 			J_heel_2]
 end
 
-function contact_forces(model::Flamingo11, γ1, b1, q2)
+function contact_forces(model::Flamingo, γ1, b1, q2)
 	k = kinematics(model, q2)
 	m = friction_mapping(model.env)
 
-	SVector{8}([transpose(rotation(model.env, k[1:2])) * [m * b1[1:2]; γ1[1]];
-				transpose(rotation(model.env, k[3:4])) * [m * b1[3:4]; γ1[2]];
-				transpose(rotation(model.env, k[5:6])) * [m * b1[5:6]; γ1[3]];
-				transpose(rotation(model.env, k[7:8])) * [m * b1[7:8]; γ1[4]]])
+	SVector{8}([transpose(rotation(model.env, k[1:1])) * [m * b1[1:2]; γ1[1]];
+				transpose(rotation(model.env, k[3:3])) * [m * b1[3:4]; γ1[2]];
+				transpose(rotation(model.env, k[5:5])) * [m * b1[5:6]; γ1[3]];
+				transpose(rotation(model.env, k[7:7])) * [m * b1[7:8]; γ1[4]]])
 end
 
-function velocity_stack(model::Flamingo11, q1, q2, h)
+function velocity_stack(model::Flamingo, q1, q2, h)
 	k = kinematics(model, q2)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
-	v1_surf = rotation(model.env, k[1:2]) * v[1:2]
-	v2_surf = rotation(model.env, k[3:4]) * v[3:4]
-	v3_surf = rotation(model.env, k[5:6]) * v[5:6]
-	v4_surf = rotation(model.env, k[7:8]) * v[7:8]
+	v1_surf = rotation(model.env, k[1:1]) * v[1:2]
+	v2_surf = rotation(model.env, k[3:3]) * v[3:4]
+	v3_surf = rotation(model.env, k[5:5]) * v[5:6]
+	v4_surf = rotation(model.env, k[7:7]) * v[7:8]
 
 	SVector{8}([v1_surf[1]; -v1_surf[1];
 				v2_surf[1]; -v2_surf[1];
@@ -492,8 +492,7 @@ J_thigh = 0.01256
 J_calf = 0.00952
 J_foot = 0.0015
 
-
-flamingo = Flamingo11(Dimensions(nq, nu, nw, nc, nb),
+flamingo = Flamingo(Dimensions(nq, nu, nw, nc, nb),
 			  g, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
@@ -509,19 +508,19 @@ flamingo = Flamingo11(Dimensions(nq, nu, nw, nc, nb),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
 			  environment_2D_flat())
 
-flamingo_sinusoidal = Flamingo11(Dimensions(nq, nu, nw, nc, nb),
-			  g, μ_world, μ_joint,
-			  l_torso, d_torso, m_torso, J_torso,
-			  l_thigh, d_thigh, m_thigh, J_thigh,
-			  l_calf, d_calf, m_calf, J_calf,
-			  l_foot, d_foot, m_foot, J_foot,
-			  l_thigh, d_thigh, m_thigh, J_thigh,
-			  l_calf, d_calf, m_calf, J_calf,
-			  l_foot, d_foot, m_foot, J_foot,
-			  zeros(nc),
-			  BaseMethods(), DynamicsMethods(), ContactMethods(),
-			  ResidualMethods(), ResidualMethods(),
-			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
-			  environment_2D(x -> 0.05 * (cos(pi * x[1]) - 1.0)),
-			  )
+# flamingo_sinusoidal = Flamingo(Dimensions(nq, nu, nw, nc, nb),
+# 			  g, μ_world, μ_joint,
+# 			  l_torso, d_torso, m_torso, J_torso,
+# 			  l_thigh, d_thigh, m_thigh, J_thigh,
+# 			  l_calf, d_calf, m_calf, J_calf,
+# 			  l_foot, d_foot, m_foot, J_foot,
+# 			  l_thigh, d_thigh, m_thigh, J_thigh,
+# 			  l_calf, d_calf, m_calf, J_calf,
+# 			  l_foot, d_foot, m_foot, J_foot,
+# 			  zeros(nc),
+# 			  BaseMethods(), DynamicsMethods(), ContactMethods(),
+# 			  ResidualMethods(), ResidualMethods(),
+# 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+# 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
+# 			  environment_2D(x -> 0.05 * (cos(pi * x[1]) - 1.0)),
+# 			  )

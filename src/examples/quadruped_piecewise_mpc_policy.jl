@@ -4,15 +4,13 @@ vis = Visualizer()
 open(vis)
 render(vis)
 
-### quadruped piecewise surface
-# model_sim = deepcopy(quadruped)
-# dir = joinpath(pwd(), "src/dynamics/quadruped")
-# include(joinpath(pwd(), "src/simulator/environment/piecewise.jl"))
-# model_sim.env = Environment{R2}(terrain_sym, d_terrain_sym)
-model_sim = deepcopy(model)
+## quadruped on piecewise surface
 
-t = range(-5.0, stop = 5.0, length = 100)
-plot(t, model_sim.env.surf.(t), aspect_ratio = :equal)
+
+model_sim = deepcopy(quadruped)
+dir = joinpath(pwd(), "src/dynamics/quadruped")
+model_sim.env = Environment{R2}(terrain, d_terrain)
+
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 path_res = joinpath(dir, "piecewise/residual.jld2")
@@ -31,8 +29,7 @@ save_expressions(expr_res, path_res, overwrite=true)
 instantiate_residual!(model_sim, path_res, jacobians = :approx)
 model_sim.spa.rz_sp = copy(rz_sp)
 model_sim.spa.rθ_sp = copy(rθ_sp)
-
-###
+##
 
 model = get_model("quadruped", surf="flat")
 nq = model.dim.q
@@ -110,9 +107,6 @@ plot_surface!(vis, model_sim.env, ylims = [-0.4, 0.4])
 anim = visualize_meshrobot!(vis, model_sim, sim.traj)
 anim = visualize_robot!(vis, model_sim, sim.traj, anim=anim)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
-
-settransform!(vis["/Cameras/default"],
-	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
 
 # filename = "quadruped_forces"
 # MeshCat.convert_frames_to_video(
