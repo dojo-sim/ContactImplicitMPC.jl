@@ -477,7 +477,7 @@ function C_func(model::Quadruped, q, q̇)
 end
 
 function contact_forces(model::Quadruped, γ1, b1, q2, k)
-	# k = kinematics(model, q2)
+	k = kinematics(model, q2)
 	m = friction_mapping(model.env)
 
 	SVector{8}([transpose(rotation(model.env, k[1:1])) * [m * b1[1:2]; γ1[1]];
@@ -487,7 +487,7 @@ function contact_forces(model::Quadruped, γ1, b1, q2, k)
 end
 
 function velocity_stack(model::Quadruped, q1, q2, k, h)
-	# k = kinematics(model, q2)
+	k = kinematics(model, q2)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(model.env, k[1:1]) * v[1:2]

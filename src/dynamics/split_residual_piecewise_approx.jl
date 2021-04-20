@@ -1,25 +1,6 @@
-function terrain_sym(x)
-	# IfElse.ifelse(x[1] < 1.0, 0.0,
-	# 	IfElse.ifelse(x[1] < 2.0, -0.125 * x[1] + 0.125,
-	# 		IfElse.ifelse(x[1] < 3.0, -0.075 * x[1] + 0.025,
-	# 			IfElse.ifelse(x[1] < 4.0, 0.3 * x[1] - 1.1,
-	# 				0.1))))
-	IfElse.ifelse(x[1] < 10.0, sin(x[1]), 0.0)
-	# [0.0]
-end
-
-function d_terrain_sym(x)
-	# IfElse.ifelse(x[1] < 1.0, 0.0,
-	# 	IfElse.ifelse(x[1] < 2.0, -0.125,
-	# 		IfElse.ifelse(x[1] < 3.0, -0.075,
-	# 			IfElse.ifelse(x[1] < 4.0, 0.3,
-	# 				0.0))))
-	IfElse.ifelse(x[1] < 10.0, cos(x[1]), 0.0)
-	# [0.0]
-end
-
 model = deepcopy(quadruped)
 dir = joinpath(pwd(), "src/dynamics/quadruped")
+include(joinpath(pwd(), "src/simulator/environment/piecewise.jl"))
 model.env = Environment{R2}(terrain_sym, d_terrain_sym)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
@@ -42,30 +23,30 @@ model.spa.rz_sp = copy(rz_sp)
 model.spa.rθ_sp = copy(rθ_sp)
 
 
-###
-model2 = deepcopy(quadruped)
-dir = joinpath(pwd(), "src/dynamics/quadruped")
-
-model2.env = Environment{R2}(x -> sin(x[1]), x -> cos(x[1]))
-
-path_base = joinpath(dir, "dynamics/base.jld2")
-path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-path_res = joinpath(dir, "piecewise2/residual.jld2")
-path_jac = joinpath(dir, "piecewise2/sparse_jacobians.jld2")
-path_linearized = joinpath(dir, "piecewise2/linearized.jld2")
-
-instantiate_base!(model2, path_base)
-
-expr_dyn = generate_dynamics_expressions(model2, derivs = true)
-save_expressions(expr_dyn, path_dyn, overwrite=true)
-instantiate_dynamics!(model2, path_dyn, derivs = true)
-
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(model2, jacobians = :approx)
-save_expressions(expr_res, path_res, overwrite=true)
-@save path_jac rz_sp rθ_sp
-instantiate_residual!(model2, path_res, jacobians = :approx)
-model2.spa.rz_sp = copy(rz_sp)
-model2.spa.rθ_sp = copy(rθ_sp)
+# ###
+# model2 = deepcopy(quadruped)
+# dir = joinpath(pwd(), "src/dynamics/quadruped")
+#
+# model2.env = environment_2D(x -> sin(x[1]))
+#
+# path_base = joinpath(dir, "dynamics/base.jld2")
+# path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+# path_res = joinpath(dir, "piecewise2/residual.jld2")
+# path_jac = joinpath(dir, "piecewise2/sparse_jacobians.jld2")
+# path_linearized = joinpath(dir, "piecewise2/linearized.jld2")
+#
+# instantiate_base!(model2, path_base)
+#
+# expr_dyn = generate_dynamics_expressions(model2, derivs = false)
+# save_expressions(expr_dyn, path_dyn, overwrite=true)
+# instantiate_dynamics!(model2, path_dyn, derivs = false)
+#
+# expr_res, rz_sp, rθ_sp = generate_residual_expressions(model2, jacobians = :full)
+# save_expressions(expr_res, path_res, overwrite=true)
+# @save path_jac rz_sp rθ_sp
+# instantiate_residual!(model2, path_res, jacobians = :full)
+# model2.spa.rz_sp = copy(rz_sp)
+# model2.spa.rθ_sp = copy(rθ_sp)
 
 
 
@@ -84,21 +65,21 @@ nc = model.dim.c
 nb = model.dim.b
 ncf = nc * dim(model.env)
 
-# rd = zeros(model.dim.q, num_var(model))
-# rd[:, 1:model.dim.q] = model.dyn.dq2(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
-# rd[:, 1:(model.dim.q + model.dim.c + model.dim.b)] += model.dyn.dλ1(_h, _q0, _q1, _u1, _w1, _λ1, _q2) * model.con.dcf(_γ1, _b1, _q2, _k)
-#
-# rmd = zeros(model.dim.b, num_var(model))
-# rmd[:, model.dim.q + model.dim.c + model.dim.b .+ (1:model.dim.c + model.dim.b)] = model.con.mdψη(_vT, _ψ1, _η1)
-# rmd[:, 1:model.dim.q] += model.con.mdvs(_vT, _ψ1, _η1) * model.con.vsq2(_q1, _q2, _k, _h) # NOTE: breaks?
-#
-# rθd = zeros(model.dim.q, num_data(model))
-# idx = collect([(1:2model.dim.q + model.dim.u + model.dim.w)..., num_data(model)])
-# rθd[:, idx] = model.dyn.dθ(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
-#
-# rθmd = zeros(model.dim.b, num_data(model))
-# idx = collect([(model.dim.q .+ (1:model.dim.q))..., (2model.dim.q + model.dim.u + model.dim.w + 1 .+ (1:1))...])
-# rθmd[:, idx] = model.con.vsq1h(_q1, _q2, _k, _h)
+rd = zeros(model.dim.q, num_var(model))
+rd[:, 1:model.dim.q] = model.dyn.dq2(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
+rd[:, 1:(model.dim.q + model.dim.c + model.dim.b)] += model.dyn.dλ1(_h, _q0, _q1, _u1, _w1, _λ1, _q2) * model.con.dcf(_γ1, _b1, _q2, _k)
+
+rmd = zeros(model.dim.b, num_var(model))
+rmd[:, model.dim.q + model.dim.c + model.dim.b .+ (1:model.dim.c + model.dim.b)] = model.con.mdψη(_vT, _ψ1, _η1)
+rmd[:, 1:model.dim.q] += model.con.mdvs(_vT, _ψ1, _η1) * model.con.vsq2(_q1, _q2, _k, _h) # NOTE: breaks?
+
+rθd = zeros(model.dim.q, num_data(model))
+idx = collect([(1:2model.dim.q + model.dim.u + model.dim.w)..., num_data(model)])
+rθd[:, idx] = model.dyn.dθ(_h, _q0, _q1, _u1, _w1, _λ1, _q2)
+
+rθmd = zeros(model.dim.b, num_data(model))
+idx = collect([(model.dim.q .+ (1:model.dim.q))..., (2model.dim.q + model.dim.u + model.dim.w + 1 .+ (1:1))...])
+rθmd[:, idx] = model.con.vsq1h(_q1, _q2, _k, _h)
 
 nz = num_var(model)
 nθ = num_data(model)
@@ -108,18 +89,17 @@ model.res.r!(r0, _z, _θ, 1.0)
 model.res.rz!(model.spa.rz_sp, _z, _θ)
 model.res.rθ!(model.spa.rθ_sp, _z, _θ)
 
-
-r1 = zeros(nz)
-model2.res.r!(r1, _z, _θ, 1.0)
-model2.res.rz!(model2.spa.rz_sp, _z, _θ)
-model2.res.rθ!(model2.spa.rθ_sp, _z, _θ)
-
-
-norm(r0 - r1)
-norm(model.spa.rz_sp - model2.spa.rz_sp)
-norm(model.spa.rθ_sp - model2.spa.rθ_sp)
-
-# # # Declare variables
+# r1 = zeros(nz)
+# model2.res.r!(r1, _z, _θ, 1.0)
+# model2.res.rz!(model2.spa.rz_sp, _z, _θ)
+# model2.res.rθ!(model2.spa.rθ_sp, _z, _θ)
+#
+#
+# norm(r0 - r1)
+# norm(model.spa.rz_sp - model2.spa.rz_sp, Inf)
+# norm(model.spa.rθ_sp - model2.spa.rθ_sp)
+#
+# # # # Declare variables
 # @variables z[1:nz]
 # @variables θ[1:nθ]
 # @variables κ[1:1]

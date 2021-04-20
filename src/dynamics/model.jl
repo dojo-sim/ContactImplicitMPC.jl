@@ -142,14 +142,14 @@ function contact_forces(model::ContactDynamicsModel, γ1, b1, q2, k)
 	nb = model.dim.b
 	nf = Int(nb / nc)
 	ne = dim(model.env)
-	# k = kinematics(model, q2)
+	k = kinematics(model, q2)
 	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * ne .+ (1:ne)])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
 end
 
 function velocity_stack(model::ContactDynamicsModel, q1, q2, k, h)
 	nc = model.dim.c
 	np = dim(model.env)
-	# k = kinematics(model, q2)
+	k = kinematics(model, q2)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
 	v_surf = [rotation(model.env, k[(i-1) * np .+ (1:np)]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
 	vT_stack = vcat([[v_surf[i][1:np-1]; -v_surf[i][1:np-1]] for i = 1:nc]...)
@@ -224,11 +224,11 @@ function rz_approx!(model, rz, z, θ)
 	rz[1:model.dim.q, 1:(model.dim.q + model.dim.c + model.dim.b)] += model.dyn.dλ1(h, q0, q1, u1, w1, λ1, q2) * model.con.dcf(γ1, b1, q2, k)
 
 	# Maximum dissipation
-	rz[model.dim.q .+ (1:model.dim.b), model.dim.q + model.dim.c + model.dim.b .+ (1:model.dim.c + model.dim.b)] = model.con.mdψη(vT, ψ1, η1)
-	rz[model.dim.q .+ (1:model.dim.b), 1:model.dim.q] += model.con.mdvs(vT, ψ1, η1) * model.con.vsq2(q1, q2, k, h)
+	rz[model.dim.q + model.dim.c .+ (1:model.dim.b), model.dim.q + model.dim.c + model.dim.b .+ (1:model.dim.c + model.dim.b)] = model.con.mdψη(vT, ψ1, η1)
+	rz[model.dim.q + model.dim.c .+ (1:model.dim.b), 1:model.dim.q] += model.con.mdvs(vT, ψ1, η1) * model.con.vsq2(q1, q2, k, h)
 
 	# Other constraints
-	model.con.rcz(view(rz, (model.dim.q + model.dim.b + 1):num_var(model), :), z, θ)
+	model.con.rcz(view(rz, collect([(model.dim.q .+ (1:model.dim.c))..., ((model.dim.q + model.dim.c + model.dim.b + 1):num_var(model))...]), :), z, θ)
 end
 
 function rθ_approx!(model, rθ, z, θ)
@@ -247,10 +247,10 @@ function rθ_approx!(model, rθ, z, θ)
 
 	# Maximum dissipation
 	idx = collect([(model.dim.q .+ (1:model.dim.q))..., num_data(model)])
-	rθ[model.dim.q .+ (1:model.dim.b), idx] = model.con.vsq1h(q1, q2, k, h)
+	rθ[model.dim.q + model.dim.c .+ (1:model.dim.b), idx] = model.con.vsq1h(q1, q2, k, h)
 
 	# Other constraints
-	model.con.rcθ(view(rθ, (model.dim.q + model.dim.b + 1):num_var(model), :), z, θ)
+	model.con.rcθ(view(rθ, collect([(model.dim.q .+ (1:model.dim.c))..., ((model.dim.q + model.dim.c + model.dim.b + 1):num_var(model))...]), :), z, θ)
 end
 
 function linearization_var_index(model::ContactDynamicsModel)

@@ -5,13 +5,14 @@ open(vis)
 render(vis)
 
 ### quadruped piecewise surface
-model_sim = deepcopy(quadruped)
-dir = joinpath(pwd(), "src/dynamics/quadruped")
-include(joinpath(pwd(), "src/simulator/environment/piecewise.jl"))
-model_sim.env = Environment{R2}(terrain_sym, d_terrain_sym)
+# model_sim = deepcopy(quadruped)
+# dir = joinpath(pwd(), "src/dynamics/quadruped")
+# include(joinpath(pwd(), "src/simulator/environment/piecewise.jl"))
+# model_sim.env = Environment{R2}(terrain_sym, d_terrain_sym)
+model_sim = deepcopy(model)
 
 t = range(-5.0, stop = 5.0, length = 100)
-plot(t, model_sim.env.surf.(t))
+plot(t, model_sim.env.surf.(t), aspect_ratio = :equal)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 path_res = joinpath(dir, "piecewise/residual.jld2")
@@ -42,7 +43,7 @@ nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
 # get trajectory
-ref_traj = get_trajectory("quadruped", "gait0", load_type=:split_traj, model=model)
+ref_traj = get_trajectory("quadruped", "gait1", load_type=:split_traj_alt, model=model)
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
@@ -51,7 +52,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1000
+H_sim = 5000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -82,8 +83,7 @@ q0_ref = copy(ref_traj.q[1])
 q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 
-ϕ_func(model_sim, q1_ref)
-sim = simulator(model2, q0_sim, q1_sim, h_sim, H_sim,
+sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     # d = open_loop_disturbances([rand(model.dim.w) .* w_amp for i=1:H_sim]),
     ip_opts = InteriorPointOptions(
@@ -106,8 +106,9 @@ sim = simulator(model2, q0_sim, q1_sim, h_sim, H_sim,
 
 # visualize!(vis, model, sim.traj.q[1:N_sample:end], Δt=10*h/N_sample, name=:mpc)
 plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
-plot_surface!(vis, model_sim.env)
-anim = visualize_robot!(vis, model_sim, sim.traj)
+plot_surface!(vis, model_sim.env, ylims = [-0.4, 0.4])
+anim = visualize_meshrobot!(vis, model_sim, sim.traj)
+anim = visualize_robot!(vis, model_sim, sim.traj, anim=anim)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
 
 settransform!(vis["/Cameras/default"],
