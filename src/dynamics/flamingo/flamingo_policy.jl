@@ -79,7 +79,7 @@ function policy(p::Flamingo19, x, traj, t)
 		kdfz = -200.0
 
 		xref = p.q1[1] + p.xdref*p.h_sim
-		fx = kpfx*(p.q1[1] - xref) + kdfx*(qd[1] - p.xdref)
+		fx = kpgit stfx*(p.q1[1] - xref) + kdfx*(qd[1] - p.xdref)
 		fz = kpfz*(p.q1[2] - p.qref[2]+0.02) + kdfz*qd[2] + model.g*m_flamingo
 		f = [fx, fz]
 		α = 0.5
