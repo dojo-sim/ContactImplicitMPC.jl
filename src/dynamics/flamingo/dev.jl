@@ -19,3 +19,6 @@ model = flamingo
 q = [0.0, 0.83, 0.05, 0.3, -0.3, 0.1, -0.5, -π/2, -π/2]
 build_robot!(vis, model)
 set_robot!(vis, model, q)
+
+
+model
