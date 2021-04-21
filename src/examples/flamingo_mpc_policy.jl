@@ -5,7 +5,7 @@ render(vis)
 open(vis)
 
 # get hopper model
-model_sim = get_model("flamingo", surf="flat")
+model_sim = get_model("flamingo", surf="sinusoidal")
 model = get_model("flamingo", surf="flat")
 nq = model.dim.q
 nu = model.dim.u
@@ -45,7 +45,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1500
+H_sim = 5000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -113,7 +113,7 @@ anim = visualize_robot!(vis, model_sim, sim.traj)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
 
 
-# filename = "flamingo_ez"
+# filename = "flamingo_sine"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
