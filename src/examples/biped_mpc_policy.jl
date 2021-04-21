@@ -5,7 +5,7 @@ render(vis)
 open(vis)
 
 # get hopper model
-model_sim = get_model("biped", surf="sinusoidal")
+model_sim = get_model("biped", surf="flat")
 model = get_model("biped", surf="flat")
 nq = model.dim.q
 nu = model.dim.u
@@ -24,7 +24,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 800
+H_sim = 1000
 
 # barrier parameter
 κ_mpc = 1.0e-4
