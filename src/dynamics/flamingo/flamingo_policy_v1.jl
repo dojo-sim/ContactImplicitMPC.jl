@@ -1,14 +1,15 @@
 """
-    Flamingo21 hopper policy for Hopper2D
+    Flamingo22 hopper policy for Hopper2D
 """
 
-@with_kw mutable struct Flamingo21Options
+@with_kw mutable struct Flamingo22Options
     live_plotting::Bool=false # Use the live plotting tool to debug
 end
 
-mutable struct Flamingo21 <: Policy
+mutable struct Flamingo22 <: Policy
 	model::Flamingo
 	phase::Symbol
+	count::Int
 	h_sim::Real
 	u::AbstractVector
 	contact::Vector{Bool}
@@ -18,24 +19,24 @@ mutable struct Flamingo21 <: Policy
 	q1::AbstractVector
 	qref::AbstractVector
 	xdref::Real
-	opts::Flamingo21Options
+	opts::Flamingo22Options
 end
 
 function flamingo_policy(model::Flamingo, h_sim;
 		qref=[0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2],
 		xdref=0.4,
-		mpc_opts = Flamingo21Options(),
+		mpc_opts = Flamingo22Options(),
 		)
 
 	u  = zeros(model.dim.u)
 	q0 = zeros(model.dim.q)
 	q1 = zeros(model.dim.q)
 	contact = [false for i=1:model.dim.c]
-	Flamingo21(model, :settle, h_sim, u, contact, :foot_1, :foot_2,
+	Flamingo22(model, :settle, 0, h_sim, u, contact, :foot_1, :foot_2,
 		copy(q0), copy(q1), qref, xdref, mpc_opts)
 end
 
-function policy(p::Flamingo21, x, traj, t)
+function policy(p::Flamingo22, x, traj, t)
 	nc = p.model.dim.c
 	iθ = Vector(3:9)
 	il1 = [2,3,6]
@@ -64,10 +65,11 @@ function policy(p::Flamingo21, x, traj, t)
 	xr = kinematics_3(model, p.q1, body=p.rear, mode=:com)[1]
 	xf = kinematics_3(model, p.q1, body=p.front, mode=:com)[1]
 	phase = :none
-	if t < 30
-		phase == :settle
+	if p.count < 30
+		count = p.count + 1
+		phase = :settle
 	elseif p.phase == :settle && all(p.contact)
-		phase == :translation
+		phase = :translation
 	elseif p.phase == :translation && ((p.q1[1] - xr > 0.26) || (xf - p.q1[1] < 0.05))
 		phase = :rear_push
 	elseif p.phase == :rear_push && all(p.contact .== [true, true, false, false])
@@ -75,6 +77,7 @@ function policy(p::Flamingo21, x, traj, t)
 	end
 	@show t
 	p.phase = phase
+	p.count = count
 	@show p.phase
 
 	# PD joint controller
@@ -87,7 +90,7 @@ function policy(p::Flamingo21, x, traj, t)
 		kα = 100.0
 		kβ = 10.0
 		kp = -[kα, kα, kα, kα, kα, kβ, kβ]
-		kd =  10.4*kp
+		kd =  0.04*kp
 		p.u[1:7] = kp .* (p.q1[iθ] - p.qref[iθ]) + kd .* (qd[iθ])
 		# p.u[1:7] = kp .* (p.q1[iθ] - p.q1[iθ]) + kd .* (qd[iθ])
 	end

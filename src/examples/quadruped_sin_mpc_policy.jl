@@ -6,6 +6,7 @@ render(vis)
 
 # get hopper model
 model_sim = get_model("quadruped", surf="sinusoidal")
+
 model = get_model("quadruped", surf="flat")
 nq = model.dim.q
 nu = model.dim.u
@@ -15,7 +16,7 @@ nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
 # get trajectory
-ref_traj = get_trajectory("quadruped", "gait0", load_type=:split_traj, model=model)
+ref_traj = get_trajectory("quadruped", "gait1", load_type=:split_traj_alt, model=model)
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
@@ -24,7 +25,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1000
+H_sim = 600
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -46,7 +47,7 @@ p = linearized_mpc_policy(ref_traj, model, cost,
         # live_plotting=true,
         altitude_update = true,
         altitude_impact_threshold = 0.05,
-        # altitude_verbose = true,
+        altitude_verbose = true,
         )
     )
 
@@ -70,20 +71,19 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 @time status = simulate!(sim)
 
-plt = plot(layout=(3,1), legend=false)
-plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
-    color=:red, linewidth=3.0)
-plot!(plt[1,1], hcat(Vector.(sim.traj.q)...)', color=:blue, linewidth=1.0)
-plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
-    color=:red, linewidth=3.0)
-plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
-plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
+# plt = plot(layout=(3,1), legend=false)
+# plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
+#     color=:red, linewidth=3.0)
+# plot!(plt[1,1], hcat(Vector.(sim.traj.q)...)', color=:blue, linewidth=1.0)
+# plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
+#     color=:red, linewidth=3.0)
+# plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
+# plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
-plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
-plot_surface!(vis, model_sim.env)
-anim = visualize_robot!(vis, model_sim, sim.traj)
+# plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
+plot_surface!(vis, model_sim.env, ylims = [-0.5, 0.5])
+anim = visualize_meshrobot!(vis, model_sim, sim.traj)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
-
 
 settransform!(vis["/Cameras/default"],
 	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))

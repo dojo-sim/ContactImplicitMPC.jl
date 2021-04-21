@@ -3,7 +3,7 @@
     model = deepcopy(ContactControl.get_model("quadruped", surf = "flat"))
     model.μ_world = 0.5
 
-    ref_traj = deepcopy(ContactControl.get_trajectory("quadruped", "gait0"))
+    ref_traj = deepcopy(ContactControl.get_trajectory("quadruped", "gait1", load_type = :split_traj_alt))
     ContactControl.update_friction_coefficient!(ref_traj, model)
 
     T = ref_traj.H
@@ -26,7 +26,7 @@
         sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
     # simulate
-    status = ContactControl.simulate!(sim, verbose = false)
-    @test status
-    @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 5.0e-3
+    @test status = ContactControl.simulate!(sim, verbose = false)
+    @show sim.traj.q[end][1:3]
+    @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 0.025
 end

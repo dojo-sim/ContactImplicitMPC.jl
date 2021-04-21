@@ -74,15 +74,15 @@ function J_func(model::Hopper3D, q)
     ForwardDiff.jacobian(k, q)
 end
 
-function contact_forces(model::Hopper3D, γ1, b1, q2)
-	k = kinematics(model, q2)
+function contact_forces(model::Hopper3D, γ1, b1, q2, k)
+	# k = kinematics(model, q2)
 	m = friction_mapping(model.env)
 
 	SVector{3}(transpose(rotation(model.env, k)) * [m * b1; γ1])
 end
 
-function velocity_stack(model::Hopper3D, q1, q2, h)
-	k = kinematics(model, q2)
+function velocity_stack(model::Hopper3D, q1, q2, k, h)
+	# k = kinematics(model, q2)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(model.env, k) * v

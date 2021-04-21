@@ -20,13 +20,13 @@ end
 
 	# Setup variables
     T = Float64
-	h = 0.1
     nq = model.dim.q
     nu = model.dim.u
     nw = model.dim.w
     nc = model.dim.c
     nb = model.dim.b
 
+	hs = 0.1 * ones(1)
     q0s = rand(nq)
     q1s = rand(nq)
     u1s = rand(nu)
@@ -38,8 +38,8 @@ end
     q2s = rand(nq)
 
     # Testing dynamics methods
-    @test norm(ContactControl.d_fast(model, h, q0s, q1s, u1s, w1s, λ1s, q2s) -
-        ContactControl.dynamics(model, h, q0s, q1s, u1s, w1s, λ1s, q2s), Inf) < 1.0e-8
+    @test norm(ContactControl.d_fast(model, hs, q0s, q1s, u1s, w1s, λ1s, q2s) -
+        ContactControl.dynamics(model, hs, q0s, q1s, u1s, w1s, λ1s, q2s), Inf) < 1.0e-8
 
     # ContactControl.dq0_fast!(∇q0s, model, h, q0s, q1s, u1s, w1s, γ1s, b1s, q2s)
 	# fq0(x) = ContactControl.dynamics(model, h, x, q1s, u1s, w1s, γ1s, b1s, q2s)

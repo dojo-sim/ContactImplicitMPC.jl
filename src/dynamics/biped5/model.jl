@@ -300,16 +300,16 @@ function J_func(model::Biped5, q)
 	return [J_calf_1; J_calf_2]
 end
 
-function contact_forces(model::Biped5, γ1, b1, q2)
-	k = kinematics(model, q2)
+function contact_forces(model::Biped5, γ1, b1, q2, k)
+	# k = kinematics(model, q2)
 	m = friction_mapping(model.env)
 
 	SVector{4}([transpose(rotation(model.env, k[1:2])) * [m * b1[1:2]; γ1[1]];
 				transpose(rotation(model.env, k[3:4])) * [m * b1[3:4]; γ1[2]]])
 end
 
-function velocity_stack(model::Biped5, q1, q2, h)
-	k = kinematics(model, q2)
+function velocity_stack(model::Biped5, q1, q2, k, h)
+	# k = kinematics(model, q2)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(model.env, k[1:2]) * v[1:2]

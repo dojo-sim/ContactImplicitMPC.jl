@@ -288,10 +288,6 @@ instantiate_linearized!(model, path_linearized)
 # @save path_jac rz_sp rθ_sp
 # @load path_jac rz_sp rθ_sp
 # instantiate_residual!(model, path_res)
-#
-# expr_linearized = generate_linearized_expressions(model)
-# save_expressions(expr_linearized, path_linearized, overwrite=true)
-# instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Biped

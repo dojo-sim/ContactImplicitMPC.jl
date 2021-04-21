@@ -44,24 +44,11 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 800
+H_sim = 100
 
-# barrier parameter
-κ_mpc = 1.0e-4
-
-cost = CostFunction(H_mpc, model.dim,
-    q = [Diagonal(1e-1 * [1.0, 0.01, 0.05, 1.5, 1.5, .15, .15, .0005, .0005]) for t = 1:H_mpc],
-    u = [Diagonal(3e-1 * [10; 1; 10; ones(nu-5); 10; 10]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
-
-
-
-
-# q0_sim = SVector{model.dim.q}([0.0, 0.828, -0.00, -0.4, 0.2, -0.5, 0.9, π/2, π/2])
-# q1_sim = SVector{model.dim.q}([0.0, 0.828, -0.00, -0.4, 0.2, -0.5, 0.9, π/2, π/2])
 q0_sim = SVector{model.dim.q}([0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2])
 q1_sim = SVector{model.dim.q}([0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2])
+# q0_sim = SVector{model.dim.q}([0.0, 0.849, -0.00, 0.1, 0.295,  0.3, 0.4, π/2, π/2+0.4])
 visualize_robot!(vis, model, [q0_sim])
 kinematics_3(model, q0_sim, body=:foot_1, mode=:toe)[2]
 kinematics_3(model, q0_sim, body=:foot_2, mode=:toe)[2]

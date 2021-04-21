@@ -2,7 +2,7 @@
 model = get_model("quadruped")
 
 # get trajectory
-ref_traj = get_trajectory("quadruped", "gait0")
+ref_traj = get_trajectory("quadruped", "gait1", load_type = :split_traj_alt)
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
@@ -11,7 +11,7 @@ h = ref_traj.h
 N_sample = 2
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 3000
+H_sim = 1000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -47,18 +47,6 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 @time status = ContactControl.simulate!(sim)
-
-# qq = []
-# for q in ref_traj_copy.q
-#     for i = 1:N_sample
-#         push!(qq, q)
-#     end
-# end
-#
-# plot(hcat(qq...)[1:model.dim.q, 1:100]',
-#     label = "", color = :black, width = 3.0)
-# plot!(hcat(sim.traj.q...)[1:model.dim.q, 1:100]',
-#     label = "", color = :cyan, width = 1.0, legend = :topleft)
 
 include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
 vis = Visualizer()
