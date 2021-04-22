@@ -25,7 +25,7 @@ end
 
 function flamingo_policy(model::Flamingo, h_sim;
 		qref=[0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2],
-		xdref=0.4,
+		xdref=0.30,
 		swingref=[-0.6, 1.0, π/2+pi/4],
 		mpc_opts = Flamingo23Options(),
 		)
@@ -66,13 +66,12 @@ function policy(p::Flamingo23, x, traj, t)
 	# elseif p.phase == :translation && ((p.q1[1] - xr > 0.26) || (xf - p.q1[1] < 0.05)) && p.count >= 150
 	elseif p.phase == :translation && ((p.q1[1] - xr > 0.26) || (xf - p.q1[1] < 0.15)) && p.count >= 150
 		p.front, p.rear = foot_order(model, p.q1)
-		# p.phase = :rear_push
 		p.phase = :swing
 		p.count = 0
-	# elseif p.phase == :rear_push && all(p.contact .== [true, true, true, false]) && p.count >= 150
-	# 	p.front, p.rear = foot_order(model, p.q1)
-	# 	p.phase = :swing
-	# 	p.count = 0
+	elseif p.phase == :swing && ((xr - p.q1[1] > 0.02) || (p.q1[1] - xf > 0.15)) && p.count >= 150
+		p.front, p.rear = foot_order(model, p.q1)
+		p.phase = :translation
+		p.count = 0
 	end
 	@show t
 	@show p.count
@@ -139,26 +138,14 @@ function policy(p::Flamingo23, x, traj, t)
 		# fr = -0.02*f
 		τf = virtual_actuator_torque(p.model, p.q1, ff, body=p.front)
 		τr = virtual_actuator_torque(p.model, p.q1, fr, body=p.rear)
-
-		c = 20
-		pf = kinematic_map_lift(model, p.q1)
-		vf = jacobian_map_lift(model, p.q1; body=:foot_1)
-		fx_swing = kpfx*(pf[1] + 0.50)/c + kdfz*vf[1]/c
-		fx_swing = 0.0
-		fz_swing = kpfz*(pf[2] - 0.50)/c + kdfz*vf[2]/c + 1.9*model.g*(model.m_calf2+model.m_thigh2+model.m_foot2)
-		@show fz_swing
-		# u_swing = virtual_actuator_torque_swing(p.model, p.q1, [fx_swing, fz_swing]; stance_body=p.front) # foot_1 not general
-		τr = virtual_actuator_torque_lift(p.model, p.q1, [fx_swing, fz_swing]; body=p.rear) # foot_1 not general
 		p.u[ilf] .= τf
-		p.u[ilr] .= [0.5*τr[1], τr[2], τr[3]]
-		p.u[ilr[3]] = -2*(p.q1[end] - π/2-0.3) - 0.2*qd[end]
-		p.u[ilr[3]] = -2*(p.q1[end] - π/2-0.3) - 0.2*qd[end]
-		p.u[ilr[3]] = -2*(p.q1[end] - π/2-0.3) - 0.2*qd[end]
-		# p.u .+= u_swing
 
-		# p.u[ilr[2]] = -2*((p.q1[2 + ilr[2]] - p.q1[2 + ilr[1]]) - 0.6) -2*(qd[2 + ilr[2]] - qd[2 + ilr[1]])
-		p.u[ilr[2]] = -2*(p.q1[2 + ilr[2]] - 0.6) -2*(qd[2 + ilr[2]])
-		# p.u += u_swing
+		p.u[ilf[1]] += -2*(p.q1[2 + ilf[1]] + 0.2)     - 0.2*qd[2 + ilf[1]]
+		p.u[ilf[2]] += -2*(p.q1[2 + ilf[2]] + 0.2)     - 0.2*qd[2 + ilf[2]]
+
+		p.u[ilr[1]] = -2*(p.q1[2 + ilr[1]] + 0.6)     - 0.2*(qd[2 + ilr[1]] - 0.3)
+		p.u[ilr[2]] = -2*(p.q1[2 + ilr[2]] - 0.9)     - 0.2*qd[2 + ilr[2]]
+		p.u[ilr[3]] = -0.3*(p.q1[end] - π/2-0.3) - 0.2*qd[end]
 	end
 
 

@@ -101,7 +101,7 @@ filename = "flamingo_pd"
 filename = "flamingo_pd"
 filename = "flamingo_pd"
 filename = "flamingo_pd"
-filename = "flamingo_pd_step2"
+filename = "flamingo_pd_step3"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
     "/home/simon/Documents/$filename.mp4", overwrite=true)

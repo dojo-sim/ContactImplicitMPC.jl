@@ -44,7 +44,7 @@ h = ref_traj.h
 N_sample = 2
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 500
+H_sim = 1000
 
 q0_sim = SVector{model.dim.q}(
 	[0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2])
