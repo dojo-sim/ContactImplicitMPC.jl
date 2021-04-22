@@ -25,7 +25,7 @@ end
 
 function flamingo_policy(model::Flamingo, h_sim;
 		qref=[0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2],
-		xdref=0.4,
+		xdref=0.30,
 		swingref=[-0.6, 1.0, π/2+pi/4],
 		mpc_opts = Flamingo23Options(),
 		)
@@ -66,12 +66,11 @@ function policy(p::Flamingo23, x, traj, t)
 	# elseif p.phase == :translation && ((p.q1[1] - xr > 0.26) || (xf - p.q1[1] < 0.05)) && p.count >= 150
 	elseif p.phase == :translation && ((p.q1[1] - xr > 0.26) || (xf - p.q1[1] < 0.15)) && p.count >= 150
 		p.front, p.rear = foot_order(model, p.q1)
-		# p.phase = :rear_push
 		p.phase = :swing
 		p.count = 0
-	elseif p.phase == :rear_push && all(p.contact .== [true, true, true, false]) && p.count >= 150
+	elseif p.phase == :swing && ((xr - p.q1[1] > 0.02) || (p.q1[1] - xf > 0.15)) && p.count >= 150
 		p.front, p.rear = foot_order(model, p.q1)
-		p.phase = :swing
+		p.phase = :translation
 		p.count = 0
 	end
 	@show t
@@ -101,7 +100,6 @@ function policy(p::Flamingo23, x, traj, t)
 		kp = -[kα, kα, kα, kα, kα, kβ, kβ]
 		kd =  0.04*kp
 		p.u[1:7] = kp .* (p.q1[iθ] - p.qref[iθ]) + kd .* (qd[iθ])
-		# p.u[1:7] = kp .* (p.q1[iθ] - p.q1[iθ]) + kd .* (qd[iθ])
 	end
 
 	# 2 feet (heel+toe) in contact
@@ -120,30 +118,6 @@ function policy(p::Flamingo23, x, traj, t)
 		fr = (1-α)*f
 		τf = virtual_actuator_torque(p.model, p.q1, ff, body=p.front)
 		τr = virtual_actuator_torque(p.model, p.q1, fr, body=p.rear)
-		# τ1[3] = clamp(τ1[3], -20.0, 20.0)
-		# τ2[3] = clamp(τ2[3], -20.0, 20.0)
-		p.u[ilf] .= τf
-		p.u[ilr] .= τr
-	end
-
-	if p.phase == :rear_push
-		kpfx = -200.0
-		kdfx = 0.04*kpfx
-		kpfz = -400.0
-		kdfz = -200.0
-
-		xref = p.q1[1] + p.xdref*p.h_sim
-		fx = kpfx*(p.q1[1] - xref) + kdfx*(qd[1] - p.xdref)
-		fz = kpfz*(p.q1[2] - p.qref[2]+0.02) + kdfz*qd[2] + model.g*m_flamingo
-		f = [fx, fz]
-		α = 0.75
-		ff = α*f
-		fr = (1-α)*f
-		τf = virtual_actuator_torque(p.model, p.q1, ff, body=p.front)
-		τr = virtual_actuator_torque(p.model, p.q1, fr, body=p.rear)
-		τr[3] = -30.0*(p.q1[2+ilr[end]] - π/6) - 2.0*qd[2+ilr[end]]
-		# τ1[3] = clamp(τ1[3], -20.0, 20.0)
-		# τ2[3] = clamp(τ2[3], -20.0, 20.0)
 		p.u[ilf] .= τf
 		p.u[ilr] .= τr
 	end
@@ -164,26 +138,14 @@ function policy(p::Flamingo23, x, traj, t)
 		# fr = -0.02*f
 		τf = virtual_actuator_torque(p.model, p.q1, ff, body=p.front)
 		τr = virtual_actuator_torque(p.model, p.q1, fr, body=p.rear)
-
-		c = 20
-		pf = kinematic_map_swing1(model, p.q1)
-		vf = jacobian_map_swing(model, p.q1; body=:foot_1)
-		fx_swing = kpfx*(pf[1] + 0.50)/c + kdfz*vf[1]/c
-		fx_swing = 0.0
-		fz_swing = kpfz*(pf[2] - 0.50)/c + kdfz*vf[2]/c + 1.9*model.g*(model.m_calf2+model.m_thigh2+model.m_foot2)
-		@show fz_swing
-		# u_swing = virtual_actuator_torque_swing(p.model, p.q1, [fx_swing, fz_swing]; stance_body=p.front) # foot_1 not general
-		τr = virtual_actuator_torque_lift(p.model, p.q1, [fx_swing, fz_swing]; body=p.rear) # foot_1 not general
 		p.u[ilf] .= τf
-		p.u[ilr] .= [0.5*τr[1], τr[2], τr[3]]
-		p.u[ilr[3]] = -2*(p.q1[end] - π/2-0.3) - 0.2*qd[end]
-		p.u[ilr[3]] = -2*(p.q1[end] - π/2-0.3) - 0.2*qd[end]
-		p.u[ilr[3]] = -2*(p.q1[end] - π/2-0.3) - 0.2*qd[end]
-		# p.u .+= u_swing
 
-		# p.u[ilr[2]] = -2*((p.q1[2 + ilr[2]] - p.q1[2 + ilr[1]]) - 0.6) -2*(qd[2 + ilr[2]] - qd[2 + ilr[1]])
-		p.u[ilr[2]] = -2*(p.q1[2 + ilr[2]] - 0.6) -2*(qd[2 + ilr[2]])
-		# p.u += u_swing
+		p.u[ilf[1]] += -2*(p.q1[2 + ilf[1]] + 0.2)     - 0.2*qd[2 + ilf[1]]
+		p.u[ilf[2]] += -2*(p.q1[2 + ilf[2]] + 0.2)     - 0.2*qd[2 + ilf[2]]
+
+		p.u[ilr[1]] = -2*(p.q1[2 + ilr[1]] + 0.6)     - 0.2*(qd[2 + ilr[1]] - 0.3)
+		p.u[ilr[2]] = -2*(p.q1[2 + ilr[2]] - 0.9)     - 0.2*qd[2 + ilr[2]]
+		p.u[ilr[3]] = -0.3*(p.q1[end] - π/2-0.3) - 0.2*qd[end]
 	end
 
 
@@ -230,7 +192,6 @@ end
 
 function virtual_actuator_torque(model::Flamingo, q::AbstractVector,
 		f::AbstractVector; body=:foot_1)
-	fx, fz = f
 	J = jacobian_map(model, q, body=body)
 	if body == :foot_1
 		iJ = [2,3,6]
@@ -244,36 +205,6 @@ function virtual_actuator_torque(model::Flamingo, q::AbstractVector,
 	return τ
 end
 
-
-
-function kinematic_map_swing1(model::Flamingo, q)
-	x, z = kinematics_3(model, q, body=:foot_2, mode=:com) - kinematics_3(model, q, body=:foot_1, mode=:com)
-	return [x,z]
-end
-
-function kinematic_map_swing2(model::Flamingo, q)
-	x, z = kinematics_3(model, q, body=:foot_1, mode=:com) - kinematics_3(model, q, body=:foot_2, mode=:com)
-	return [x,z]
-end
-
-function jacobian_map_swing(model::Flamingo, q; body=:foot_1)
-	if body == :foot_1
-		k(q) = kinematic_map_swing1(model, q)
-	elseif body == :foot_2
-		k(q) = kinematic_map_swing2(model, q)
-	end
-	J = ForwardDiff.jacobian(k, q)[:,3:end]
-	return J
-end
-
-function virtual_actuator_torque_swing(model::Flamingo, q::AbstractVector,
-		f::AbstractVector; stance_body=:foot_1)
-	fx, fz = f
-	J = jacobian_map_swing(model, q, body=stance_body)
-	τ = J[:,2:7]'*f
-	u = [0;τ]
-	return u
-end
 
 
 
