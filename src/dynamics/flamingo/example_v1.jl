@@ -44,7 +44,7 @@ h = ref_traj.h
 N_sample = 2
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1000
+H_sim = 5000
 
 q0_sim = SVector{model.dim.q}(
 	[0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2])
@@ -88,8 +88,15 @@ filename = "flamingo_pd"
 filename = "flamingo_pd"
 filename = "flamingo_pd"
 filename = "flamingo_pd"
-filename = "flamingo_pd"
+filename = "flamingo_3_steps"
 const ContactControl = Main
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)
 
 
 
