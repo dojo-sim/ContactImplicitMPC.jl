@@ -59,3 +59,59 @@ sim = ContactControl.simulator(model, q0, q1, 0.01, 100,
 # simulate
 status = ContactControl.simulate!(sim, verbose = false)
 anim = visualize_robot!(vis, model, sim.traj)
+
+
+# gravity compensating torque
+
+idx_ineq = collect(1:0)
+_num_var = model.dim.u + model.dim.c * dim(model.env)
+_num_data = model.dim.q + 1
+
+# residual
+function _r!(r, z, θ, κ)
+	u = z[1:model.dim.u]
+	λ = z[model.dim.u .+ (1:model.dim.c * dim(model.env))]
+
+	q = θ[1:model.dim.q]
+	h = θ[model.dim.q .+ (1:1)]
+
+	dynamics(model, h, q, q, u, zeros(model.dim.w), λ, q)
+	nothing
+end
+
+@variables r_sym[1:model.dim.q]
+@variables z_sym[1:_num_var]
+@variables θ_sym[1:_num_data]
+@variables κ_sym[1:1]
+
+parallel = Symbolics.SerialForm()
+_r!(r_sym, z_sym, θ_sym, κ_sym)
+r_sym = simplify.(r_sym)
+rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
+	parallel = parallel)[2])
+rz_exp = Symbolics.jacobian(r_sym, z_sym, simplify = true)
+rθ_exp = Symbolics.jacobian(r_sym, θ_sym, simplify = true)
+rz_sp = similar(rz_exp, Float64)
+rθ_sp = similar(rθ_exp, Float64)
+rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym,
+	parallel = parallel)[2])
+rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
+	parallel = parallel)[2])
+
+rzf!(rz_sp, z, θ)
+
+# options
+opts = ContactControl.InteriorPointOptions(diff_sol = false)
+
+# solver
+z = 0.01 * randn(_num_var)
+θ = [qs; h]
+ip = ContactControl.interior_point(z, θ,
+	idx_ineq = idx_ineq,
+	r! = rf!, rz! = rzf!, rθ! = rθf!,
+	rz = rz_sp,
+	rθ = rθ_sp,
+	opts = opts)
+
+# solve
+status = ContactControl.interior_point!(ip)
