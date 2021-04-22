@@ -155,24 +155,6 @@ function velocity_stack(model::ContactDynamicsModel, q1, q2, k, h)
 	vT_stack = vcat([[v_surf[i][1:np-1]; -v_surf[i][1:np-1]] for i = 1:nc]...)
 end
 
-# function contact_forces_approx(model::ContactDynamicsModel, γ1, b1, q2, k)
-# 	nc = model.dim.c
-# 	nb = model.dim.b
-# 	nf = Int(nb / nc)
-# 	ne = dim(model.env)
-# 	# k = kinematics(model, q2)
-# 	λ1 = vcat([transpose(rotation(model.env, q2[1:ne-1])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
-# end
-#
-# function velocity_stack_approx(model::ContactDynamicsModel, q1, q2, k, h)
-# 	nc = model.dim.c
-# 	np = dim(model.env)
-# 	# k = kinematics(model, q2)
-# 	v = J_fast(model, q2) * (q2 - q1) / h[1]
-# 	v_surf = [rotation(model.env, q2[1:np-1]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
-# 	vT_stack = vcat([[v_surf[i][1:np-1]; -v_surf[i][1:np-1]] for i = 1:nc]...)
-# end
-
 function residual(model::ContactDynamicsModel, z, θ, κ)
 	nc = model.dim.c
 	nb = model.dim.b

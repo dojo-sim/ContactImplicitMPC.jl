@@ -2,7 +2,9 @@
 	generate_base_expressions(model::ContactDynamicsModel)
 Generate fast base methods using Symbolics symbolic computing tools.
 """
-function generate_base_expressions(model::ContactDynamicsModel)
+function generate_base_expressions(model::ContactDynamicsModel;
+	M_analytical = true)
+
 	nq = model.dim.q
 	nu = model.dim.u
 	nw = model.dim.w
@@ -24,9 +26,13 @@ function generate_base_expressions(model::ContactDynamicsModel)
 	ddLq̇q = ddL[nq .+ (1:nq), 1:nq]
 
 	# Mass Matrix
-	M = M_func(model, q)
-	M = reshape(M, nq, nq)
-	M = Symbolics.simplify.(M)
+	if M_analytical
+		M = M_func(model, q)
+		M = reshape(M, (nq, nq))
+		M = Symbolics.simplify.(M)
+	else
+		M = ddL[nq .+ (1:nq), nq .+ (1:nq)]
+	end
 
 	# Control input Jacobian
 	B = B_func(model, q)
@@ -40,7 +46,7 @@ function generate_base_expressions(model::ContactDynamicsModel)
 
 	# Contact Jacobian
 	J = J_func(model, q)
-	J = reshape(J, np * nc, nq)
+	J = reshape(J, (np * nc, nq))
 	J = Symbolics.simplify.(J)
 
 	# Coriolis and Centrifugal forces Jacobians
