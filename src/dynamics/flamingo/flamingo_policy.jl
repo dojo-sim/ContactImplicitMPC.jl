@@ -85,8 +85,8 @@ function policy(p::Flamingo19, x, traj, t)
 		α = 0.5
 		f1 = (1-α)*f
 		f2 = α*f
-		τ1 = virtual_actuator_torque2(p.model, p.q1, f1, body=:foot_1)
-		τ2 = virtual_actuator_torque2(p.model, p.q1, f2, body=:foot_2)
+		τ1 = virtual_actuator_torque(p.model, p.q1, f1, body=:foot_1)
+		τ2 = virtual_actuator_torque(p.model, p.q1, f2, body=:foot_2)
 		# τ1[3] = clamp(τ1[3], -20.0, 20.0)
 		# τ2[3] = clamp(τ2[3], -20.0, 20.0)
 		p.u[il1] .= τ1
