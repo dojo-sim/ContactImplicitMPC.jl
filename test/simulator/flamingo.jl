@@ -2,7 +2,7 @@
     # Reference trajectory
 model = deepcopy(ContactControl.get_model("flamingo", surf = "flat"))
 model.μ_world = 0.1
-ref_traj = deepcopy(ContactControl.get_trajectory("flamingo", "gait0", load_type = :split_traj_alt))
+ref_traj = deepcopy(ContactControl.get_trajectory("flamingo", "gait1", load_type = :split_traj_alt))
 update_friction_coefficient!(ref_traj, model)
 
 for t = 1:ref_traj.H
