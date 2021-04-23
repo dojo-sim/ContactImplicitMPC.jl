@@ -59,6 +59,7 @@ include("dynamics/quadruped/model.jl")
 include("dynamics/biped/model.jl")
 include("dynamics/biped5/model.jl")
 include("dynamics/flamingo/model.jl")
+include("dynamics/inverted_pendulum/model.jl")
 
 # Simulator
 include("simulator/policy.jl")

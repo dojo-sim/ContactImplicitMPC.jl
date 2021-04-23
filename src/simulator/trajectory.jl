@@ -42,7 +42,7 @@ function contact_trajectory(H::Int, h::T, model::ContactDynamicsModel) where {T}
 	γ = [zeros(nc) for k=1:H]
 	b = [zeros(nb) for k=1:H]
 	z = [zeros(nz) for k=1:H]
-	θ = [zeros(nθ) for k=1:H]
+	θ = [[zeros(nθ-1); copy(h)] for k=1:H]
 	κ = [0.0]
 	off = 0
 	iq0 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q0

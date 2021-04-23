@@ -51,6 +51,26 @@ function disturbances(d::OpenLoopDisturbance, x, t)
     return d.w[d.idx] ./ d.N_sample
 end
 
+"""
+    impulse disturbances
+"""
+mutable struct ImpulseDisturbance{W} <: Disturbances
+    w::Vector{W} # nominal disturbances
+    idx::Vector{Int}
+end
+
+function impulse_disturbances(w, idx)
+    ImpulseDisturbance(w, idx)
+end
+
+function disturbances(d::ImpulseDisturbance, x, t)
+    for (i, w) in enumerate(d.w)
+        if d.idx[i] == t
+            return w
+        end
+    end
+    return zero(d.w[1])
+end
 
 """
     random disturbances
