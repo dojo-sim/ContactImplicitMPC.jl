@@ -40,6 +40,9 @@ function _kinematics(model::InvertedPendulum, q; mode = :com)
 	elseif mode == :com
 		return [-0.5 * model.l * sin(θ);
 				 0.5 * model.l * cos(θ)]
+	elseif mode == :ee
+		return [-model.l * sin(θ);
+				 model.l * cos(θ)]
 	else
 		@error "incorrect mode"
 	 	return zeros(2)
@@ -72,15 +75,15 @@ end
 function lagrangian(model::InvertedPendulum, q, q̇)
 	L = 0.0
 
-	vθ = _jacobian(model, q, mode = :com) * q̇[1]
-	L += 0.5 * model.m * transpose(vθ) * vθ
+	vθ = _jacobian(model, q, mode = :com) * q̇
+	L += 0.5 * model.mb * transpose(vθ) * vθ
 	L -= model.mb * model.g * _kinematics(model, q, mode = :com)[2]
 
-	vd1 = _jacobian(model, q, mode = :d1) * q̇[1]
+	vd1 = _jacobian(model, q, mode = :d1) * q̇
 	L += 0.5 * model.m1 * transpose(vd1) * vd1
 	L -= model.m1 * model.g * _kinematics(model, q, mode = :d1)[2]
 
-	vd2 = _jacobian(model, q, mode = :d2) * q̇[1]
+	vd2 = _jacobian(model, q, mode = :d2) * q̇
 	L += 0.5 * model.m2 * transpose(vd2) * vd2
 	L -= model.m2 * model.g * _kinematics(model, q, mode = :d2)[2]
 
@@ -89,10 +92,10 @@ end
 
 function M_func(model::InvertedPendulum, q)
 	Jθ = _jacobian(model, q, mode = :com)
-	Jd1 = _jacobian(model, q, model = :d1)
-	Jd2 = _jacobian(model, q, model = :d2)
+	Jd1 = _jacobian(model, q, mode = :d1)
+	Jd2 = _jacobian(model, q, mode = :d2)
 
-	return model.mb * transpose(Jθ) * Jθ + model.m1 * transpose(Jd1) * transpose(Jd2)
+	return model.mb * transpose(Jθ) * Jθ + model.m1 * transpose(Jd1) * Jd1 + model.m2 * transpose(Jd2) * Jd2
 end
 
 function ϕ_func(model::InvertedPendulum, q)
@@ -110,7 +113,7 @@ function J_func(model::InvertedPendulum, q)
 	r1 = rot2D(-0.5 * π)
 	r2 = rot2D(0.5 * π)
 
-    SMatrix{4, 1}([r1 * _jacobian(model, q, mode = :d1);
+    SMatrix{4, 3}([r1 * _jacobian(model, q, mode = :d1);
 		           r2 * _jacobian(model, q, mode = :d2)])
 end
 

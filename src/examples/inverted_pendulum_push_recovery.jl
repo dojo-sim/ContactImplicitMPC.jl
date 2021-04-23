@@ -7,7 +7,7 @@ H = 1000
 # reference trajectory
 ref_traj = contact_trajectory(H, h, model)
 ref_traj.h
-qref = zeros(model.dim.q)
+qref = [0.0; 0.1; -0.1]
 ur = zeros(model.dim.u)
 γr = zeros(model.dim.c)
 br = zeros(model.dim.b)
