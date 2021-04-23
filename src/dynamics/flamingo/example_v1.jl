@@ -48,6 +48,7 @@ H_sim = 5000
 
 q0_sim = SVector{model.dim.q}(
 	[0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2])
+	# [0.0, 0.849, -0.00, 0.1, 0.295, -0.6, 0.1, π/2, π/2])
 q1_sim = SVector{model.dim.q}(
 	[0., 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2])
 visualize_robot!(vis, model, [q0_sim])
@@ -67,8 +68,8 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
 model.linearized
 @time status = ContactControl.simulate!(sim)
 
-anim = visualize_robot!(vis, model, sim.traj, name=:mpc)
-visualize_force!(vis, model, sim.traj, name=:mpc, anim=anim)
+anim = visualize_robot!(vis, model, sim.traj, name=:mpc, sample=20)
+visualize_force!(vis, model, sim.traj, name=:mpc, anim=anim, sample=20)
 
 
 
@@ -88,7 +89,7 @@ filename = "flamingo_pd"
 filename = "flamingo_pd"
 filename = "flamingo_pd"
 filename = "flamingo_pd"
-filename = "flamingo_3_steps"
+filename = "flamingo_reliable"
 const ContactControl = Main
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
@@ -96,7 +97,7 @@ MeshCat.convert_frames_to_video(
 
 convert_video_to_gif(
     "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
+    "/home/simon/Documents/$filename.gif", overwrite=true, width=720)
 
 
 

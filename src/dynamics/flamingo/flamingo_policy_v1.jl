@@ -78,14 +78,15 @@ function policy(p::Flamingo24, x, traj, t)
 elseif p.phase == :swing && ((xr - p.q1[1] > 0.20) || (p.q1[1] - xf > 0.10) || (p.q1[ilr[1]] > +0.0)) && p.count*p.h_sim >= 0.926
 	# elseif p.phase == :swing && ((xr - p.q1[1] > 0.10) || (p.q1[1] - xf > 0.15)) && p.count >= 100
 		p.front, p.rear = foot_order(model, p.q1)
+		@show :translation
 		p.phase = :translation
 		p.count = 0
 	end
-	@show t
-	@show p.count
-	@show p.phase
-	@show p.front
-	@show p.contact
+	# @show t
+	# @show p.count
+	# @show p.phase
+	# @show p.front
+	# @show p.contact
 
 	if p.front == :foot_1
 		ilf = il1
@@ -119,8 +120,10 @@ elseif p.phase == :swing && ((xr - p.q1[1] > 0.20) || (p.q1[1] - xf > 0.10) || (
 		fx = kpfx*(p.q1[1] - xref) + kdfx*(qd[1] - p.xdref)
 		fz = kpfz*(p.q1[2] - p.qref[2]+0.02) + kdfz*qd[2] + model.g*m_flamingo
 		f = [fx, fz]
-		α = 0.5
-		α = 0.25 + 0.5*(p.q1[1]-xr)/(xf-xr)
+		# α = 0.5
+		α = 0.25 + 0.5*(p.q1[1] -0.10 - xr)/(xf-xr)
+		α = clamp(α, 0.25, 0.75)
+		@show α
 		ff = α*f
 		fr = (1-α)*f
 		τf = virtual_actuator_torque(p.model, p.q1, ff, body=p.front)
@@ -148,10 +151,14 @@ elseif p.phase == :swing && ((xr - p.q1[1] > 0.20) || (p.q1[1] - xf > 0.10) || (
 		p.u[ilf[1]] += -2*(p.q1[2 + ilf[1]] + 0.2)     - 0.2*qd[2 + ilf[1]]
 		p.u[ilf[2]] += -2*(p.q1[2 + ilf[2]] + 0.2)     - 0.2*qd[2 + ilf[2]]
 
-		p.u[ilr[1]] = -2*(p.q1[2 + ilr[1]] + 0.6)     - 0.2*(qd[2 + ilr[1]] - 0.3)
-		p.u[ilr[2]] = -3*(p.q1[2 + ilr[2]] - 0.9)     - 0.2*qd[2 + ilr[2]]
+		p.u[ilr[1]] = -3*(p.q1[2 + ilr[1]] + 1.0)     - 1.5*(qd[2 + ilr[1]] - 0.6)
+		p.u[ilr[2]] = -3*(p.q1[2 + ilr[2]] - 0.6)     - 0.2*qd[2 + ilr[2]]
 		p.u[ilr[3]] = -0.3*(p.q1[end] - π/2-0.3) - 0.2*qd[end]
 	end
+
+	# Ankle spring damper
+	p.u[ilr[3]] = -5*(p.q1[2 + ilr[3]] - π/2-p.q1[2 + ilr[2]]) - 0.05*qd[2 + ilr[3]]
+	p.u[ilf[3]] = -5*(p.q1[2 + ilf[3]] - π/2-p.q1[2 + ilf[2]]) - 0.05*qd[2 + ilf[3]]
 
 	# Rescale
 	p.u .*= traj.h
