@@ -407,13 +407,12 @@ function ϕ_func(model::Flamingo, q)
 end
 
 function B_func(model::Flamingo, q)
-	@SMatrix [0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0;
-			  0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0;
-			  0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0;
-			  0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0;
-			  0.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0;
-			  0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0;
-			  0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0]
+	@SMatrix [0.0  0.0 -1.0  1.0  0.0  0.0  0.0  0.0  0.0;
+			  0.0  0.0  0.0 -1.0  1.0  0.0  0.0  0.0  0.0;
+			  0.0  0.0 -1.0  0.0  0.0  1.0  0.0  0.0  0.0;
+			  0.0  0.0  0.0  0.0  0.0 -1.0  1.0  0.0  0.0;
+			  0.0  0.0  0.0  0.0 -1.0  0.0  0.0  1.0  0.0;
+			  0.0  0.0  0.0  0.0  0.0  0.0 -1.0  0.0  1.0]
 end
 
 function A_func(model::Flamingo, q)
@@ -460,7 +459,7 @@ end
 
 # Dimensions
 nq = 2 + 5 + 2            # configuration dimension
-nu = 7                    # control dimension
+nu = 6                    # control dimension
 nc = 4                    # number of contact points
 nf = 2                    # number of parameters for friction cone
 nb = nc * nf              # number of friction parameters
