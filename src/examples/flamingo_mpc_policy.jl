@@ -6,6 +6,7 @@ open(vis)
 
 # get hopper model
 model_sim = get_model("flamingo", surf="sinusoidal")
+model_sim = get_model("flamingo", surf="flat")
 model = get_model("flamingo", surf="flat")
 nq = model.dim.q
 nu = model.dim.u
@@ -17,44 +18,24 @@ nz = num_var(model)
 nθ = num_data(model)
 
 # get trajectory
-ref_traj0 = get_trajectory("flamingo", "gait0", load_type=:split_traj_alt, model=model)
-ref_traj = get_trajectory("flamingo", "gait0", load_type=:split_traj_alt, model=model)
-# ref_traj = ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}(ref_traj0.H,
-#                         ref_traj0.h*1.2,
-#                         ref_traj0.κ,
-#                         ref_traj0.q,
-#                         ref_traj0.u,
-#                         ref_traj0.w,
-#                         ref_traj0.γ,
-#                         ref_traj0.b,
-#                         ref_traj0.z,
-#                         ref_traj0.θ,
-#                         ref_traj0.iq0,
-#                         ref_traj0.iq1,
-#                         ref_traj0.iu1,
-#                         ref_traj0.iw1,
-#                         ref_traj0.iq2,
-#                         ref_traj0.iγ1,
-#                         ref_traj0.ib1,
-#                         )
-
+ref_traj = get_trajectory("flamingo", "gait1", load_type=:split_traj_alt, model=model)
 
 
 H = ref_traj.H
 h = ref_traj.h
 N_sample = 5
-H_mpc = 10
+H_mpc = 15
 h_sim = h / N_sample
-H_sim = 5000
+H_sim = 1500
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 cost = CostFunction(H_mpc, model.dim,
     # q = [Diagonal(1e-1 * [1.0, 0.01, 0.05, 1.5, 1.5, .15, .15, .0005, .0005]) for t = 1:H_mpc],
-    q = [Diagonal(1e-1 * [1.0, 1.0, 10.0, 10, 10., 10, 10., 0.1, 0.1]) for t = 1:H_mpc],
-    u = [Diagonal(3e-1 * [1; 1; 1; ones(nu-5); 30; 30]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
+    q = [Diagonal(1e-1 * [10, 1, 30.0, 1, 1, 1, 1, 0.1, 0.1]) for t = 1:H_mpc],
+    u = [Diagonal(3e-1 * [0.3; 0.3; 0.3; 0.3; ones(nu-6); 2; 2]) for t = 1:H_mpc],
+    γ = [Diagonal(1.0e-2 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
 p = linearized_mpc_policy(ref_traj, model, cost,
@@ -66,8 +47,8 @@ p = linearized_mpc_policy(ref_traj, model, cost,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions(
         # live_plotting=true,
-        altitude_update = true,
-        altitude_impact_threshold = 0.05,
+        # altitude_update = true,
+        altitude_impact_threshold = 0.02,
         altitude_verbose = true,
         )
     )
@@ -94,7 +75,7 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 @time status = simulate!(sim)
 
 
-l = 9
+l = 3
 plt = plot(layout=(3,1), legend=false)
 plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
