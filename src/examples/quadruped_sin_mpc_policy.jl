@@ -6,6 +6,7 @@ render(vis)
 
 # get hopper model
 model_sim = get_model("quadruped", surf="sinusoidal")
+# model_sim = get_model("quadruped", surf="flat")
 
 model = get_model("quadruped", surf="flat")
 nq = model.dim.q
@@ -16,7 +17,7 @@ nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
 # get trajectory
-ref_traj = get_trajectory("quadruped", "gait1", load_type=:split_traj_alt, model=model)
+ref_traj = get_trajectory("quadruped", "gait2", load_type=:split_traj_alt, model=model)
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
@@ -25,13 +26,13 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 600
+H_sim = 5000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 cost = CostFunction(H_mpc, model.dim,
-    q = [Diagonal(1e-2 * [0.02; 0.02; 1.0; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
+    q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
@@ -83,10 +84,11 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 # plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
 plot_surface!(vis, model_sim.env, ylims = [-0.5, 0.5])
 anim = visualize_meshrobot!(vis, model_sim, sim.traj)
+anim = visualize_robot!(vis, model_sim, sim.traj, anim=anim)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
 
-settransform!(vis["/Cameras/default"],
-	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
+# settransform!(vis["/Cameras/default"],
+# 	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
 #
 # filename = "aligned_quadruped"
 # MeshCat.convert_frames_to_video(
