@@ -37,7 +37,8 @@ function build_robot!(vis::Visualizer, model::InvertedPendulum; name::Symbol=:In
 	link = Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, model.l), r)
 	setobject!(vis[name][:robot]["link"], link, body_mat)
 
-	setobject!(vis[name][:robot]["contact"], Sphere(Point3f0(0.0), r_contact), contact_mat)
+	setobject!(vis[name][:robot]["contact1"], Sphere(Point3f0(0.0), r_contact), contact_mat)
+	setobject!(vis[name][:robot]["contact2"], Sphere(Point3f0(0.0), r_contact), contact_mat)
 
 	# settransform!(vis["/Cameras/default"],
 	# 	compose(Translation(0.0, 0.5, -1.0), LinearMap(RotZ(-pi / 2.0))))
@@ -57,19 +58,17 @@ function add_walls!(vis::Visualizer, model::InvertedPendulum; name::Symbol=:Inve
 	settransform!(vis[:InvertedPendulum][:env]["wall2"], Translation([-1.5 - 1.5 * r; -0.5; 0.0]))
 end
 
-
-function contact_point(model::InvertedPendulum, q::AbstractVector)
-	[_kinematics(model, q)[1], 0.0, _kinematics(model, q)[2]]
-end
-
 function set_robot!(vis::Visualizer, model::InvertedPendulum, q::AbstractVector;
 		name::Symbol=:InvertedPendulum, r=0.04)
 	r = convert(Float32, r)
 
-    p_ee = contact_point(model, q)
+	pee = [_kinematics(model, q, mode = :ee)[1], 0.0, _kinematics(model, q, mode = :ee)[2]]
+    p1 = [_kinematics(model, q, mode = :d1)[1], 0.0, _kinematics(model, q, mode = :d1)[2]]
+	p2 = [_kinematics(model, q, mode = :d2)[1], 0.0, _kinematics(model, q, mode = :d2)[2]]
 
 	settransform!(vis[name][:robot]["link"], cable_transform(zeros(3), p_ee))
-	settransform!(vis[name][:robot]["contact"], Translation(p_ee))
+	settransform!(vis[name][:robot]["contact1"], Translation(p1))
+	settransform!(vis[name][:robot]["contact2"], Translation(p2))
 
 	return nothing
 end
