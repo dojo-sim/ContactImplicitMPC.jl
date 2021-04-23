@@ -59,7 +59,7 @@ nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
 # get trajectory
-ref_traj = get_trajectory("quadruped", "gait1", load_type=:split_traj_alt, model=model)
+ref_traj = get_trajectory("quadruped", "gait2", load_type=:split_traj_alt, model=model)
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
@@ -74,7 +74,7 @@ H_sim = 5000
 κ_mpc = 1.0e-4
 
 cost = CostFunction(H_mpc, model.dim,
-    q = [Diagonal(1e-2 * [0.02; 0.02; 1.0; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
+    q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
