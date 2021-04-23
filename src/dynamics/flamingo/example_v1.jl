@@ -39,18 +39,18 @@ nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
 # time
+ref_traj = get_trajectory("flamingo", "gait0", load_type=:split_traj_alt, model=model)
 H = ref_traj.H
 h = ref_traj.h
 N_sample = 2
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 5000
+H_sim = 250
 
 q0_sim = SVector{model.dim.q}(
-	[0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2])
-	# [0.0, 0.849, -0.00, 0.1, 0.295, -0.6, 0.1, π/2, π/2])
+	[0.0, 0.849, -0.00, 0.1, 0.30, -0.3, -0.1, π/2, π/2])
 q1_sim = SVector{model.dim.q}(
-	[0., 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2])
+	[0.0, 0.849, -0.00, 0.1, 0.30, -0.3, -0.1, π/2, π/2])
 visualize_robot!(vis, model, [q0_sim])
 kinematics_3(model, q0_sim, body=:foot_1, mode=:toe)[2]
 kinematics_3(model, q0_sim, body=:foot_2, mode=:toe)[2]
@@ -65,13 +65,14 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
         κ_init = 1.0e-8,
         κ_tol = 2.0e-8),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
-model.linearized
 @time status = ContactControl.simulate!(sim)
 
 anim = visualize_robot!(vis, model, sim.traj, name=:mpc, sample=20)
 visualize_force!(vis, model, sim.traj, name=:mpc, anim=anim, sample=20)
 
+B0 = B_func(model, q0_sim)
 
+inv(B0*B0')
 
 
 plt = plot(layout=(3,1), legend=false)

@@ -36,7 +36,7 @@ function plot_lines!(vis::Visualizer, model::Flamingo, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamingo, r=0.025)
+function build_robot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamingo, r=0.005)
 	r = convert(Float32, r)
 	r_contact = convert(Float32, r*8/7)
 	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0))
