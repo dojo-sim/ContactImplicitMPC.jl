@@ -3,8 +3,6 @@ function plot_lines!(vis::Visualizer, model::Hopper2D, q::AbstractVector;
 		r_foot=0.04, offset=0.04, size=10, name::Symbol=:hopper_2D, col::Bool=true)
 	p_shift = [0.0, 0.0, r_foot]
 
-	kinematics(model::Hopper2D, q) = [q[1] + q[4] * sin(q[3]), q[2] - q[4] * cos(q[3])]
-
 	# Point Traj
 	top_point = Vector{Point{3,Float64}}()
 	bot_point = Vector{Point{3,Float64}}()

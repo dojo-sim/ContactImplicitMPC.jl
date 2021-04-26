@@ -2,7 +2,7 @@
     hopper 3D
         orientation representation: modified rodrigues parameters
 		similar to Raibert hopper, all mass is located at the body
-		s = (px, py, pz, tx, ty, tz, r)
+		s = (px, py, pz, tx, ty, tz, r) = (3d_position, 3d_orientation_MRP, leg_length)
 """
 struct Hopper3D{T} <: ContactDynamicsModel where T
     dim::Dimensions
@@ -98,13 +98,25 @@ nc = 1 # number of contact points
 nf = 4 # number of faces for friction cone pyramid
 nb = nc * nf
 
+# # Parameters
+# g = 9.81 # gravity
+# μ = 1.0  # coefficient of friction
+# mb = 1.0 # body mass
+# ml = 0.1  # leg mass
+# Jb = 0.25 # body inertia
+# Jl = 0.025 # leg inertia
+
 # Parameters
 g = 9.81 # gravity
-μ = 1.0  # coefficient of friction
-mb = 1.0 # body mass
-ml = 0.1  # leg mass
-Jb = 0.25 # body inertia
-Jl = 0.025 # leg inertia
+μ_world = 0.8 # coefficient of friction
+μ_joint = 0.0
+
+# TODO: change to Raibert parameters
+mb = 3.0 # body mass
+ml = 0.3  # leg mass
+Jb = 0.75 # body inertia
+Jl = 0.075 # leg inertia
+
 
 hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
 			mb, ml, Jb, Jl,
@@ -114,3 +126,13 @@ hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
 			SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			SVector{7}(zeros(7)),
 			environment_3D_flat())
+
+hopper_3D_sinusoidal = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
+			mb, ml, Jb, Jl,
+			μ_world, μ_joint, g,
+			BaseMethods(), DynamicsMethods(), ContactMethods(),
+			ResidualMethods(), ResidualMethods(),
+			SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+			SVector{7}(zeros(7)),
+			environment_3D(x -> 0.10 * sin(2π * x[1])),
+		    )
