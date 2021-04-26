@@ -51,12 +51,12 @@ sim = simulator(model, q0_ref, q1_ref, h, H;
 simulate!(sim)
 
 # Correct trajectory: set the orientation to 0,0,0
-for t = 1:H+2
-    sim.traj.q[t][[1,2,4,5,6]] .= 0.0
-end
-for t = 1:H
-    sim.traj.b[t] .= 0.0
-end
+# for t = 1:H+2
+#     sim.traj.q[t][[1,2,4,5,6]] .= 0.0
+# end
+# for t = 1:H
+#     sim.traj.b[t] .= 0.0
+# end
 
 plot(hcat(Vector.(sim.traj.u)...)')
 plot(hcat(Vector.(sim.traj.q)...)'[:,4:6])
