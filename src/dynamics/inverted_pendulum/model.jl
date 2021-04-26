@@ -33,8 +33,8 @@ function _kinematics(model::InvertedPendulum, q; mode = :com)
 		return [-model.l * sin(θ) + d * cos(θ);
 				 model.l * cos(θ) + d * sin(θ)]
 	elseif mode == :com
-		return [-0.5 * model.l * sin(θ);
-				 0.5 * model.l * cos(θ)]
+		return [-1.0 * model.l * sin(θ);
+				 1.0 * model.l * cos(θ)]
 	elseif mode == :ee
 		return [-model.l * sin(θ);
 				 model.l * cos(θ)]
@@ -49,10 +49,10 @@ function _jacobian(model::InvertedPendulum, q; mode = :com)
 
 	if mode == :d
  		return [(-model.l * cos(θ) - d * sin(θ)) cos(θ);
-		        (-model.l * sin(θ) - d * cos(θ)) sin(θ)]
+		        (-model.l * sin(θ) + d * cos(θ)) sin(θ)]
  	elseif mode == :com
- 		return [-0.5 * model.l * cos(θ) 0.0;
-		        -0.5 * model.l * sin(θ) 0.0]
+ 		return [-1.0 * model.l * cos(θ) 0.0;
+		        -1.0 * model.l * sin(θ) 0.0]
 	elseif mode == :ee
 		return [-model.l * cos(θ) 0.0;
 		        -model.l * sin(θ) 0.0]
@@ -113,8 +113,7 @@ end
 # end
 
 function B_func(model::InvertedPendulum, q)
-	# @SMatrix [control_switch(model, q) * model.l * cos(q[1])]
-	@SMatrix [-1.0 * model.l 1.0;
+	@SMatrix [1.0 * model.l 1.0;
 	          1.0 0.0]
 end
 
@@ -126,7 +125,7 @@ end
 # Parameters
 g = 9.81 # gravity
 μ_world = 0.5  # coefficient of friction
-μ_joint = 0.5
+μ_joint = 10.0
 
 mb = 1.0 # body mass
 ma = 0.1 # mass of ee
@@ -146,5 +145,5 @@ inverted_pendulum = InvertedPendulum(Dimensions(nq, nu, nw, nc, nb),
 					   BaseMethods(), DynamicsMethods(), ContactMethods(),
 					   ResidualMethods(), ResidualMethods(),
 					   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-					   SVector{2}(μ_joint * [1.0; 1.0]),
+					   SVector{2}(μ_joint * [1.0; 0.1]),
 					   environment_2D_flat())
