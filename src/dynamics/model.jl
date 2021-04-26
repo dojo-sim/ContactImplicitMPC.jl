@@ -142,14 +142,14 @@ function contact_forces(model::ContactDynamicsModel, γ1, b1, q2, k)
 	nb = model.dim.b
 	nf = Int(nb / nc)
 	ne = dim(model.env)
-	k = kinematics(model, q2)
+	# k = kinematics(model, q2)
 	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * ne .+ (1:ne)])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
 end
 
 function velocity_stack(model::ContactDynamicsModel, q1, q2, k, h)
 	nc = model.dim.c
 	np = dim(model.env)
-	k = kinematics(model, q2)
+	# k = kinematics(model, q2)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
 	v_surf = [rotation(model.env, k[(i-1) * np .+ (1:np)]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
 	vT_stack = vcat([[v_surf[i][1:np-1]; -v_surf[i][1:np-1]] for i = 1:nc]...)

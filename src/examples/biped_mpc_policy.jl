@@ -29,14 +29,14 @@ H_sim = 1000
 # barrier parameter
 κ_mpc = 1.0e-4
 
-cost = CostFunction(H_mpc, model.dim,
+obj = TrackingObjective(H_mpc, model.dim,
     # q = [Diagonal(1e-1 * [1.0, 0.01, 0.5, .15, .15, .15, .15, .01, .01]) for t = 1:H_mpc],
     q = [Diagonal(1e-1 * [1.0, 0.01, 0.05, 1.5, 1.5, .15, .15, .0005, .0005]) for t = 1:H_mpc],
     u = [Diagonal(3e-1 * [10; 1; 10; ones(nu-5); 10; 10]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
-p = linearized_mpc_policy(ref_traj, model, cost,
+p = linearized_mpc_policy(ref_traj, model, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,

@@ -31,7 +31,7 @@ include("simulator/quadruped.jl")
 # include("simulator/biped.jl") #TODO: improve this test
 
 # Controller
-include("controller/cost_function.jl")
+include("controller/objective.jl")
 include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/linearized_solver.jl")

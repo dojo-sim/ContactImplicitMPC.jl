@@ -29,7 +29,7 @@ H_sim = 500
 
 H_mpc = 10
 im_traj = ImplicitTraj(ref_traj, model_sim)
-cost = CostFunction(H_mpc, model.dim,
+obj = TrackingCost(H_mpc, model.dim,
     q = [Diagonal(1e-2 * [1.5, 1.5, 1.5, .15, .15]) for t = 1:H_mpc],
     u = [Diagonal(10e-1 * [1; 1; 1; ones(model_sim.dim.u-3)]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-3 * ones(model_sim.dim.c)) for t = 1:H_mpc],
@@ -37,7 +37,7 @@ cost = CostFunction(H_mpc, model.dim,
 
 newton = Newton(H_mpc, h, model_sim,
     ref_traj, im_traj;
-    cost = cost,
+    obj = obj,
     opts = NewtonOptions())
 
 

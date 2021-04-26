@@ -181,7 +181,7 @@ mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3}
     Δγ::Vector{SizedArray{Tuple{nc},T,1,1}}         # difference between the traj and ref_traj
     Δb::Vector{SizedArray{Tuple{nb},T,1,1}}         # difference between the traj and ref_traj
     ind::NewtonIndices                                 # indices of a one-time-step block
-    cost::CostFunction                              # cost function
+    obj::Objective                              # obj function
     solver::LinearSolver
     β::T
     opts::NewtonOptions{T}                          # Newton solver options
@@ -189,7 +189,7 @@ end
 
 function Newton(H::Int, h::T, model::ContactDynamicsModel,
     traj::ContactTraj, im_traj::ImplicitTraj;
-    cost::CostFunction = CostFunction(H, model.dim),
+    obj::TrackingObjective = TrackingObjective(H, model.dim),
     opts::NewtonOptions = NewtonOptions()) where T
 
     dim = model.dim
@@ -208,7 +208,7 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel,
 
     # precompute Jacobian for pre-factorization
     implicit_dynamics!(im_traj, model, traj, κ = traj.κ)
-    jacobian!(jac, im_traj, cost, H, opts.β_init)
+    jacobian!(jac, im_traj, obj, H, opts.β_init)
 
     res = NewtonResidual(H, dim)
     res_cand = NewtonResidual(H, dim)
@@ -234,20 +234,20 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel,
 
     return Newton{T,nq,nu,nw,nc,nb,nz,nθ,nd,nd,2nq+nu}(
         jac, res, res_cand, Δ, ν, ν_cand, traj, traj_cand,
-        Δq, Δu, Δγ, Δb, ind, cost, solver, β, opts)
+        Δq, Δu, Δγ, Δb, ind, obj, solver, β, opts)
 end
 
-function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, cost::CostFunction,
+function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::TrackingObjective,
     H::Int, β::T) where T
 
     fill!(jac.R, 0.0) # TODO: remove
 
     for t = 1:H
         # Cost function
-        jac.obj_q2[t] .+= cost.q[t]
-        jac.obj_u1[t] .+= cost.u[t]
-        jac.obj_γ1[t] .+= cost.γ[t]
-        jac.obj_b1[t] .+= cost.b[t]
+        jac.obj_q2[t] .+= obj.q[t]
+        jac.obj_u1[t] .+= obj.u[t]
+        jac.obj_γ1[t] .+= obj.γ[t]
+        jac.obj_b1[t] .+= obj.b[t]
 
         # Implicit dynamics
         jac.IV[t] .-= 1.0
@@ -279,7 +279,7 @@ function residual!(res::NewtonResidual, model::ContactDynamicsModel, core::Newto
 
     # unpack
     opts = core.opts
-    cost = core.cost
+    obj = core.obj
     res.r .= 0.0
 
     for t in eachindex(ν)
@@ -289,10 +289,10 @@ function residual!(res::NewtonResidual, model::ContactDynamicsModel, core::Newto
         delta!(core.Δγ[t], traj.γ[t], ref_traj.γ[t])
         delta!(core.Δb[t], traj.b[t], ref_traj.b[t])
 
-        res.q2[t] .+= cost.q[t] * core.Δq[t]
-        res.u1[t] .+= cost.u[t] * core.Δu[t]
-        res.γ1[t] .+= cost.γ[t] * core.Δγ[t]
-        res.b1[t] .+= cost.b[t] * core.Δb[t]
+        res.q2[t] .+= obj.q[t] * core.Δq[t]
+        res.u1[t] .+= obj.u[t] * core.Δu[t]
+        res.γ1[t] .+= obj.γ[t] * core.Δγ[t]
+        res.b1[t] .+= obj.b[t] * core.Δb[t]
 
         # Implicit dynamics
         res.rd[t] .+= im_traj.d[t]
@@ -427,7 +427,7 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
         r_norm / length(core.res.r) < core.opts.r_tol && break
 
         # Compute NewtonJacobian
-        jacobian!(core.jac, im_traj, core.cost, core.traj.H, core.β)
+        jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
 
         # Compute Search Direction
         linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)

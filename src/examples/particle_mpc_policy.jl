@@ -30,7 +30,7 @@ q1 = SVector{model.dim.q}(ref_traj.q[2])
 #     label = ["x" "y" "z"], color = :red, width = 1.0, legend = :topleft)
 
 # linearized motion planning
-cost = ContactControl.CostFunction(H, model.dim,
+obj = ContactControl.TrackingObjective(H, model.dim,
     q = [Diagonal(1.0 * ones(model.dim.q))    for t = 1:H],
     u = [Diagonal(1.0e-2 * ones(model.dim.u)) for t = 1:H],
     γ = [Diagonal(1.0e-6 * ones(model.dim.c)) for t = 1:H],
@@ -49,7 +49,7 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-p = linearized_mpc_policy(ref_traj, model, cost,
+p = linearized_mpc_policy(ref_traj, model, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
