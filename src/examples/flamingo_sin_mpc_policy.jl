@@ -6,7 +6,7 @@ open(vis)
 
 # get hopper model
 # model_sim = get_model("flamingo", surf="sinusoidal")
-model_sim = get_model("flamingo", surf="flat")
+model_sim = get_model("flamingo", surf="sinusoidal")
 model = get_model("flamingo", surf="flat")
 nq = model.dim.q
 nu = model.dim.u
@@ -28,7 +28,7 @@ h = ref_traj.h
 N_sample = 10
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 35000
+H_sim = 15000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -49,7 +49,7 @@ p = linearized_mpc_policy(ref_traj, model, obj,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions(
         # live_plotting=true,
-        # altitude_update = true,
+        altitude_update = true,
         altitude_impact_threshold = 0.02,
         altitude_verbose = true,
         )
@@ -98,7 +98,7 @@ anim = visualize_robot!(vis, model_sim, sim.traj, sample=10)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=10)
 
 
-filename = "flamingo_100_steps"
+filename = "flamingo_40_steps_sine"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
     "/home/simon/Documents/$filename.mp4", overwrite=true)
