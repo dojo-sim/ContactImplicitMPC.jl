@@ -46,20 +46,35 @@ sim = simulator(model, q0_ref, q1_ref, h, H;
     rθ! = model.res.rθ!,
     rz = model.spa.rz_sp,
     rθ = model.spa.rθ_sp,
-    ip_opts = InteriorPointOptions(r_tol=1e-9, κ_tol=2κ),
+    ip_opts = InteriorPointOptions(r_tol=1e-12, κ_tol=2κ),
     sim_opts = SimulatorOptions())
 simulate!(sim)
 
-# Correct trajectory: set the orientation to 0,0,0
-# for t = 1:H+2
-#     sim.traj.q[t][[1,2,4,5,6]] .= 0.0
-# end
-# for t = 1:H
-#     sim.traj.b[t] .= 0.0
-# end
+sim.traj.z
+sim.traj.θ
+plt = plot(legend=false)
+for t = 1:80
+    r = residual(model, sim.traj.z[t], sim.traj.θ[t], [κ])
+    @show norm(r)
+    nz = num_var(model)
+    # plot!(log.(10, abs.(r[1:nz])))
+    # plot!(Vector(1:nz), log.(10, abs.(r[10:14)))
+    plot!(log.(10, abs.(r .+ 1e-20)))
+    # plot!(Vector(1:nz), log.(10, abs.(r)))
+    # plot!(log.(10, abs.(r[1:nq+10])))
+end
+display(plt)
+
+plot([q[4] for q in sim.traj.q])
+plot([q[5] for q in sim.traj.q])
+plot([q[6] for q in sim.traj.q])
+
+
+
 
 plot(hcat(Vector.(sim.traj.u)...)')
 plot(hcat(Vector.(sim.traj.q)...)'[:,4:6])
+plot(hcat(Vector.(loaded_traj.q)...)'[:,4:6])
 anim = visualize_robot!(vis, model, sim.traj)
 anim = visualize_force!(vis, model, sim.traj, anim=anim)
 

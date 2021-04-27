@@ -226,9 +226,57 @@ model = deepcopy(hopper_3D_sinusoidal)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+path_res = joinpath(dir, "sinusoidal/residual.jld2")
+path_jac = joinpath(dir, "sinusoidal/sparse_jacobians.jld2")
+path_linearized = joinpath(dir, "sinusoidal/linearized.jld2")
+
+instantiate_base!(model, path_base)
+instantiate_dynamics!(model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(model, path_res)
+
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
+
+################################################################################
+# Hopper (6D)
+################################################################################
+dir = joinpath(@__DIR__, "hopper_6D")
+model = deepcopy(hopper_6D)
+
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 path_res = joinpath(dir, "flat/residual.jld2")
 path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
 path_linearized = joinpath(dir, "flat/linearized.jld2")
+
+instantiate_base!(model, path_base)
+instantiate_dynamics!(model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(model, path_res)
+
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
+
+################################################################################
+# Hopper (6D) (sinusoidal)
+################################################################################
+dir = joinpath(@__DIR__, "hopper_6D")
+model = deepcopy(hopper_6D_sinusoidal)
+
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+path_res = joinpath(dir, "sinusoidal/residual.jld2")
+path_jac = joinpath(dir, "sinusoidal/sparse_jacobians.jld2")
+path_linearized = joinpath(dir, "sinusoidal/linearized.jld2")
 
 instantiate_base!(model, path_base)
 instantiate_dynamics!(model, path_dyn)

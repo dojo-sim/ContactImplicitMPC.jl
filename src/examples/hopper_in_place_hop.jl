@@ -53,6 +53,10 @@ plot(hcat(Vector.(sim.traj.u)...)')
 plot(hcat(Vector.(sim.traj.q)...)')
 visualize_robot!(vis, model, sim.traj.q)
 
+for t = 1:10
+    @show norm(residual(model, sim.traj.z[t], sim.traj.θ[t], [κ]))
+end
+
 # Check ~perfect loop
 @show round.(sim.traj.q[end-2] - q0_ref, digits=3)
 @show round.(sim.traj.q[end-1] - q1_ref, digits=3)
