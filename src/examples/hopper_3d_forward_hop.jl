@@ -21,15 +21,16 @@ h = ref_traj.h
 
 # Cost function
 cost = CostFunction(H, model.dim,
-    q = [[Diagonal(1.0e-3 * ones(nq)) for t = 1:H-1]; [Diagonal(1.0e1 * ones(nq))]],
+    q = [[Diagonal(1.0e-5 * ones(nq)) for t = 1:H-2]; fill([Diagonal(1.0e-2 * ones(nq))],2)...],
     u = [Diagonal(1.0e-5 * [0.1, 0.1, 1.0]) for t = 1:H],
     γ = [Diagonal(1.0e-100 * ones(nc)) for t = 1:H],
     b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H])
 n_opts = NewtonOptions(r_tol=3e-8, max_iter=100)
 im_traj = ImplicitTraj(ref_traj, model, κ=κ)
 core = Newton(H, h, model, ref_traj, im_traj, cost = cost, opts = n_opts)
-q0_dist = deepcopy(ref_traj.q[1] + [-0.1,-0.1,0,0,0,0,0])
-q1_dist = deepcopy(ref_traj.q[2] + [-0.1,-0.1,0,0,0,0,0])
+β = 0.05/sqrt(2)
+q0_dist = deepcopy(ref_traj.q[1] + [-β,-β,0,0,0,0,0])
+q1_dist = deepcopy(ref_traj.q[2] + [-β,-β,0,0,0,0,0])
 newton_solve!(core, model, im_traj, ref_traj, q0=q0_dist, q1=q1_dist, verbose=true)
 
 visualize_robot!(vis, model, core.traj.q)
@@ -49,5 +50,5 @@ gait_path = joinpath(@__DIR__, "..", "dynamics", "hopper_3D", "gaits", "gait_for
 res = JLD2.jldopen(gait_path)
 loaded_traj = res["traj"]
 
-traj = get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
+traj = get_trajectory("hopper_3D", "gait_forward", load_type=:joint_traj)
 plot(hcat(Vector.(traj.q)...)')

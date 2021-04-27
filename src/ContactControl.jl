@@ -55,6 +55,7 @@ include("dynamics/particle_2D/model.jl")
 include("dynamics/particle/model.jl")
 include("dynamics/hopper_2D/model.jl")
 include("dynamics/hopper_3D/model.jl")
+include("dynamics/hopper_6D/model.jl")
 include("dynamics/quadruped/model.jl")
 include("dynamics/biped/model.jl")
 include("dynamics/biped5/model.jl")
@@ -80,6 +81,8 @@ include("dynamics/visuals.jl")
 include("dynamics/visual_utils.jl")
 
 export SparseStructure, LinearizedStep, get_bilinear_indices, bil_addition!, r_linearized!, rz_linearized!
+
+
 export ImplicitTraj, linearization!, implicit_dynamics!
 export TrackingObjective
 

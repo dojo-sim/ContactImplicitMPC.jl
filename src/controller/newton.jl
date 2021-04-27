@@ -400,6 +400,12 @@ function reset!(core::Newton, ref_traj::ContactTraj;
     update_θ!(core.traj, 1)
     update_θ!(core.traj, 2)
 
+    # Always rese the duals
+    # for t = 1:H_mpc
+    #     fill!(core.ν[t], 0.0)
+    #     fill!(core.ν_cand[t], 0.0)
+    # end
+
 	# Set up traj cand
 	core.traj_cand = deepcopy(core.traj)
 

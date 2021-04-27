@@ -2,7 +2,7 @@
     hopper 3D
         orientation representation: modified rodrigues parameters
 		similar to Raibert hopper, all mass is located at the body
-		s = (px, py, pz, tx, ty, tz, r) = (3d_position, 3d_orientation_MRP, leg_length)
+		s = (px, py, pz, tx, ty, tz, r) = (3d_position, MRP(m1, m2, 0.0), leg_length)
 """
 struct Hopper3D{T} <: ContactDynamicsModel where T
     dim::Dimensions
@@ -90,6 +90,12 @@ function velocity_stack(model::Hopper3D, q1, q2, k, h)
 	SVector{4}([v1_surf[1:2]; -v1_surf[1:2]])
 end
 
+function get_stride(model::Hopper3D, traj::ContactTraj)
+    stride = zeros(SizedVector{model.dim.q})
+    stride[1:2] = traj.q[end-1][1:2] - traj.q[1][1:2]
+    return stride
+end
+
 # Dimensions
 nq = 7 # configuration dimension
 nu = 3 # control dimension
@@ -108,7 +114,7 @@ nb = nc * nf
 
 # Parameters
 g = 9.81 # gravity
-μ_world = 0.8 # coefficient of friction
+μ_world = 2.0 # coefficient of friction
 μ_joint = 0.0
 
 # TODO: change to Raibert parameters
@@ -134,5 +140,5 @@ hopper_3D_sinusoidal = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
 			ResidualMethods(), ResidualMethods(),
 			SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			SVector{7}(zeros(7)),
-			environment_3D(x -> 0.10 * sin(2π * x[1])),
+			environment_3D(x -> 0.025 * sin(2π * x[1])),
 		    )

@@ -71,6 +71,23 @@ save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
 ################################################################################
+# Hopper (6D)
+################################################################################
+dir = joinpath(@__DIR__, "hopper_6D")
+model = deepcopy(hopper_6D)
+
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+
+expr_base = generate_base_expressions_analytical(model)
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
+
+################################################################################
 # Quadruped
 ################################################################################
 dir = joinpath(@__DIR__, "quadruped")
