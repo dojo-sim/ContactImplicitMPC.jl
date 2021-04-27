@@ -124,7 +124,7 @@ nb = nc * nf
 
 # Parameters
 g = 9.81 # gravity
-μ_world = 2.0 # coefficient of friction
+μ_world = 1.5 # coefficient of friction
 μ_joint = 0.0
 
 # TODO: change to Raibert parameters
@@ -150,5 +150,5 @@ hopper_6D_sinusoidal = Hopper6D(Dimensions(nq, nu, nw, nc, nb),
 			ResidualMethods(), ResidualMethods(),
 			SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			SVector{6}(zeros(6)),
-			environment_3D(x -> 0.025 * sin(2π * x[1])),
+			environment_3D(x -> 0.075 * sin(2π * x[1])),
 		    )
