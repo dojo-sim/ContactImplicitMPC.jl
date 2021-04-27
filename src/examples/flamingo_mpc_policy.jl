@@ -19,7 +19,7 @@ nθ = num_data(model)
 
 # get trajectory
 # ref_traj = get_trajectory("flamingo", "gait1", load_type=:split_traj_alt, model=model)
-ref_traj = get_trajectory("flamingo", "gait_simon", load_type=:split_traj_alt, model=model)
+ref_traj = get_trajectory("flamingo", "gait_forward_36_3", load_type=:split_traj_alt, model=model)
 
 
 H = ref_traj.H
@@ -27,16 +27,16 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 4000
+H_sim = 10000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 obj = TrackingObjective(H_mpc, model.dim,
     # q = [Diagonal(1e-1 * [1.0, 0.01, 0.05, 1.5, 1.5, .15, .15, .0005, .0005]) for t = 1:H_mpc],
-    q = [Diagonal(1e-1 * [10, 1, 1e3, 1, 1, 1, 1, 0.1, 0.1]) for t = 1:H_mpc],
+    q = [Diagonal(1e-1 * [1e3, 1e-6, 1e3, 1, 1, 1, 1, 0.1, 0.1]) for t = 1:H_mpc],
     u = [Diagonal(3e-1 * [0.1; 0.1; 0.3; 0.3; ones(nu-6); 2; 2]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-2 * ones(model.dim.c)) for t = 1:H_mpc],
+    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
 p = linearized_mpc_policy(ref_traj, model, obj,
@@ -90,9 +90,9 @@ plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', co
 plot!(plt[3,1], hcat(Vector.([b[1:nb] for b in sim.traj.b]*N_sample)...)', color=:red, linewidth=1.0)
 
 plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
-plot_surface!(vis, model_sim.env)
-anim = visualize_robot!(vis, model_sim, sim.traj)
-anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
+plot_surface!(vis, model_sim.env, xlims=[-1, 9])
+anim = visualize_robot!(vis, model_sim, sim.traj, sample=10)
+anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=10)
 
 
 # filename = "flamingo_flat"
