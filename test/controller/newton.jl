@@ -179,5 +179,5 @@ end
 end
 
 @testset "Newton: newton_solve!" begin
-	
+
 end

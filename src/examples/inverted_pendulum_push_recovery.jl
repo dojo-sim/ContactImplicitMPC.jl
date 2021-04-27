@@ -1,7 +1,7 @@
 model = ContactControl.get_model("inverted_pendulum")
 
 # time
-h = 0.01
+h = 0.001
 H = 1000
 
 # reference trajectory
@@ -67,16 +67,17 @@ anim = visualize_robot!(vis, model, sim.traj, sample = 1)
 
 # MPC
 N_sample = 2
-H_mpc = 25
+H_mpc = 10
 h_sim = h / N_sample
-H_sim = 500
+H_sim = 5000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
-obj = TrackingObjective(H_mpc, model.dim,
-    q = [Diagonal(1.0 * [0.0001; 0.000001]) for t = 1:H_mpc],
-    u = [Diagonal(1.0 * [10.0; 0.00001]) for t = 1:H_mpc],
+obj = TrackingVelocityObjective(H_mpc, model.dim,
+    q = [Diagonal(1.0 * [10.0; 1.0]) for t = 1:H_mpc],
+	v = [Diagonal(0.1 * [0.0001; 0.001] ./ (h^2.0)) for t = 1:H_mpc],
+    u = [Diagonal(1.0 * [1.0; 1.0]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
@@ -90,7 +91,7 @@ p = linearized_mpc_policy(ref_traj, model, obj,
         max_iter = 10),
     mpc_opts = LinearizedMPCOptions())
 
-d = impulse_disturbances([[-5.0; 0.0]], [100])
+d = impulse_disturbances([[-1.0; 0.0]], [10])
 
 q1_sim = SVector{model.dim.q}([0.0, 0.0])
 q0_sim = SVector{model.dim.q}([0.0, 0.0])
@@ -105,9 +106,10 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 @time status = ContactControl.simulate!(sim)
-vis = Visualizer()
-render(vis)
-add_walls!(vis, model)
+# vis = Visualizer()
+# render(vis)
+# open(vis)
+# add_walls!(vis, model)
 anim = visualize_robot!(vis, model, sim.traj, sample = 1)
 
 γ_max = maximum(hcat(sim.traj.γ...))

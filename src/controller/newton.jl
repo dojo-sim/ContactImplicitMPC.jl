@@ -64,6 +64,9 @@ struct NewtonJacobian{T,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vreg}
     obj_γ1::Vector{Vγ}                          # obj views
     obj_b1::Vector{Vb}                          # obj views
 
+    obj_q1q2::Vector{Vq}
+    obj_q2q1::Vector{Vq}
+
     IV::Vector{VI}                          # dynamics -I views [q2, γ1, b1]
     ITV::Vector{VIT}                        # dynamics -I views [q2, γ1, b1] transposed
     q0::Vector{Vq0}                         # dynamics q0 views
@@ -99,6 +102,8 @@ function NewtonJacobian(H::Int, dim::Dimensions)
     obj_u1  = [view(R, (t - 1) * nr .+ iu, (t - 1) * nr .+ iu) for t = 1:H]
     obj_γ1  = [view(R, (t - 1) * nr .+ iγ, (t - 1) * nr .+ iγ) for t = 1:H]
     obj_b1  = [view(R, (t - 1) * nr .+ ib, (t - 1) * nr .+ ib) for t = 1:H]
+    obj_q1q2  = [view(R, (t - 1) * nr .+ iq, t * nr .+ iq) for t = 1:H-1]
+    obj_q2q1  = [view(R, t * nr .+ iq, (t - 1) * nr .+ iq) for t = 1:H-1]
 
     IV  = [view(R, CartesianIndex.((t - 1) * nr .+ iz, (t - 1) * nr .+ iν)) for t = 1:H]
     ITV = [view(R, CartesianIndex.((t - 1) * nr .+ iν, (t - 1) * nr .+ iz)) for t = 1:H]
@@ -113,7 +118,9 @@ function NewtonJacobian(H::Int, dim::Dimensions)
     return NewtonJacobian{eltype(R),
         eltype.((obj_q2, obj_u1, obj_γ1, obj_b1))...,
         eltype.((IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg))...}(
-        R, obj_q2, obj_u1, obj_γ1, obj_b1, IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg)
+        R, obj_q2, obj_u1, obj_γ1, obj_b1,
+        obj_q1q2, obj_q2q1,
+        IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg)
 end
 
 mutable struct NewtonIndices{nq,nu,nc,nb,n1,n2,n3}
@@ -189,7 +196,7 @@ end
 
 function Newton(H::Int, h::T, model::ContactDynamicsModel,
     traj::ContactTraj, im_traj::ImplicitTraj;
-    obj::TrackingObjective = TrackingObjective(H, model.dim),
+    obj::Objective = TrackingObjective(H, model.dim),
     opts::NewtonOptions = NewtonOptions()) where T
 
     dim = model.dim
@@ -237,17 +244,19 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel,
         Δq, Δu, Δγ, Δb, ind, obj, solver, β, opts)
 end
 
-function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::TrackingObjective,
+function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objective,
     H::Int, β::T) where T
 
     fill!(jac.R, 0.0) # TODO: remove
 
+    # Objective
+    hessian!(jac, obj)
     for t = 1:H
-        # Cost function
-        jac.obj_q2[t] .+= obj.q[t]
-        jac.obj_u1[t] .+= obj.u[t]
-        jac.obj_γ1[t] .+= obj.γ[t]
-        jac.obj_b1[t] .+= obj.b[t]
+        # # Cost function
+        # jac.obj_q2[t] .+= obj.q[t]
+        # jac.obj_u1[t] .+= obj.u[t]
+        # jac.obj_γ1[t] .+= obj.γ[t]
+        # jac.obj_b1[t] .+= obj.b[t]
 
         # Implicit dynamics
         jac.IV[t] .-= 1.0
@@ -282,17 +291,19 @@ function residual!(res::NewtonResidual, model::ContactDynamicsModel, core::Newto
     obj = core.obj
     res.r .= 0.0
 
+    # Objective
+    gradient!(res, obj, core, traj, ref_traj)
     for t in eachindex(ν)
-        # Cost function
-        delta!(core.Δq[t], traj.q[t+2], ref_traj.q[t+2])
-        delta!(core.Δu[t], traj.u[t], ref_traj.u[t])
-        delta!(core.Δγ[t], traj.γ[t], ref_traj.γ[t])
-        delta!(core.Δb[t], traj.b[t], ref_traj.b[t])
-
-        res.q2[t] .+= obj.q[t] * core.Δq[t]
-        res.u1[t] .+= obj.u[t] * core.Δu[t]
-        res.γ1[t] .+= obj.γ[t] * core.Δγ[t]
-        res.b1[t] .+= obj.b[t] * core.Δb[t]
+        # # Cost function
+        # delta!(core.Δq[t], traj.q[t+2], ref_traj.q[t+2])
+        # delta!(core.Δu[t], traj.u[t], ref_traj.u[t])
+        # delta!(core.Δγ[t], traj.γ[t], ref_traj.γ[t])
+        # delta!(core.Δb[t], traj.b[t], ref_traj.b[t])
+        #
+        # res.q2[t] .+= obj.q[t] * core.Δq[t]
+        # res.u1[t] .+= obj.u[t] * core.Δu[t]
+        # res.γ1[t] .+= obj.γ[t] * core.Δγ[t]
+        # res.b1[t] .+= obj.b[t] * core.Δb[t]
 
         # Implicit dynamics
         res.rd[t] .+= im_traj.d[t]

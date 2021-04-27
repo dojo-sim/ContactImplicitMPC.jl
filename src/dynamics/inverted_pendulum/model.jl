@@ -90,8 +90,8 @@ end
 
 function ϕ_func(model::InvertedPendulum, q)
 	# walls at x = -0.5, x = 0.5
-    SVector{2}([_kinematics(model, q, mode = :d)[1] + 0.5;
-	            0.5 - _kinematics(model, q, mode = :d)[1]])
+    SVector{2}([_kinematics(model, q, mode = :d)[1] + 0.25;
+	            0.25 - _kinematics(model, q, mode = :d)[1]])
 end
 
 function rot2D(x)
@@ -114,7 +114,7 @@ end
 
 function B_func(model::InvertedPendulum, q)
 	@SMatrix [1.0 * model.l 1.0;
-	          1.0 0.0]
+	          1.0 1.0 * model.l]
 end
 
 function A_func(::InvertedPendulum, q)

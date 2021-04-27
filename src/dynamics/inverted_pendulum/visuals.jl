@@ -54,8 +54,8 @@ function add_walls!(vis::Visualizer, model::InvertedPendulum; name::Symbol=:Inve
 		Rect(Vec(0, 0, 0),Vec(1.0, 1.0, 1.5)),
 		MeshPhongMaterial(color = RGBA(0.7, 0.7, 0.7, 1.0)))
 
-	settransform!(vis[:InvertedPendulum][:env]["wall1"], Translation([0.5 + 1.5 * r; -0.5; 0.0]))
-	settransform!(vis[:InvertedPendulum][:env]["wall2"], Translation([-1.5 - 1.5 * r; -0.5; 0.0]))
+	settransform!(vis[:InvertedPendulum][:env]["wall1"], Translation([0.25 + 1.5 * r; -0.5; 0.0]))
+	settransform!(vis[:InvertedPendulum][:env]["wall2"], Translation([-1.25 - 1.5 * r; -0.5; 0.0]))
 end
 
 function set_robot!(vis::Visualizer, model::InvertedPendulum, q::AbstractVector;
