@@ -3,7 +3,10 @@
 	T = Float64
 	κ = 1.0e-4
 	model = ContactControl.get_model("quadruped")
-	ref_traj = ContactControl.get_trajectory("quadruped", "gait0")
+	model.μ_world = 0.5
+
+	ref_traj = deepcopy(ContactControl.get_trajectory("quadruped", "gait2", load_type = :split_traj_alt))
+	ContactControl.update_friction_coefficient!(ref_traj, model)
 
 	# time
 	h = ref_traj.h
@@ -40,77 +43,77 @@
 	ContactControl.implicit_dynamics!(im_traj1, model, ref_traj1)
 	@test maximum(norm.(im_traj1.d, 2)) > 5.0e-1
 	#
-	# Check that we can optimize z with the residual function r and rz
-	# Verify that we get the ~same results using r_approx and rz_approx if the linearization was done about the solution.
-	nq = model.dim.q
-	nz = ContactControl.num_var(model)
-	α = 5.0e-2
-
-	ref_traj = deepcopy(sim.traj)
-	ref_traj1 = deepcopy(ref_traj)
-	ref_traj1.q[3] .+= α * ones(model.dim.q)
-	ref_traj1.z[1][1:nq] .= ref_traj1.q[3]
-
-	im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
-
-	z1 = ref_traj1.z[1]
-	θ1 = ref_traj1.θ[1]
-	@test LinearAlgebra.norm(θ1 - ref_traj.θ[1], 1) < 1.0e-8
-	@test abs(norm(z1 - ref_traj.z[1], 1) - nq * α) < 1.0e-8
-
-	r1 = zeros(nz)
-	κ = ref_traj1.κ
-	rz1 = spzeros(nz,nz)
-	model.res.r!(r1, z1, θ1, κ[1])
-	@test norm(r1) > 1.0
-
-	#TODO: add tests
-
-	# function dummy_newton(z, θ, κ)
-	# 	for k = 1:400
-	# 		r = zeros(nz)
-	# 		rz = spzeros(nz,nz)
-	# 		rz = similar(model.spa.rz_sp)
-	# 		model.res.r!(r, z, θ, κ, nothing)
-	# 		model.res.rz!(rz, z, θ, nothing)
-	# 		Δ = - rz \ r
-	# 		z = z + 0.1 * Δ
-	# 		# @show norm(r)
-	# 	end
-	# 	return z
-	# end
+	# # Check that we can optimize z with the residual function r and rz
+	# # Verify that we get the ~same results using r_approx and rz_approx if the linearization was done about the solution.
+	# nq = model.dim.q
+	# nz = ContactControl.num_var(model)
+	# α = 5.0e-2
 	#
-	# z2 = dummy_newton(z1, θ1, κ[1])
-	# model.res.r!(r1, z2, θ1, κ[1], nothing)
-	# @test norm(r1) < 1.0e-10
+	# ref_traj = deepcopy(sim.traj)
+	# ref_traj1 = deepcopy(ref_traj)
+	# ref_traj1.q[3] .+= α * ones(model.dim.q)
+	# ref_traj1.z[1][1:nq] .= ref_traj1.q[3]
 	#
-	# function dummy_linear_newton(im_traj, z, θ, κ)
-	# 	for k = 1:400
-	# 		r = zeros(nz)
-	# 		rz = spzeros(nz, nz)
-	# 		rz = similar(model.spa.rz_sp)
-	# 		model.linearized.r!(im_traj.lin[1], r, z, θ, κ[1])
-	# 		model.linearized.rz!(im_traj.lin[1], rz, z, θ)
-	# 		Δ = - rz \ r
-	# 		z = z + 0.1 * Δ
-	# 		# @show norm(r)
-	# 	end
-	# 	return z
-	# end
+	# im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
 	#
-	# z3 = dummy_linear_newton(im_traj0, z1, θ1, κ)
-	# model.linearized.r!(im_traj0.lin[1], r1, z3, θ1, κ[1])
+	# z1 = ref_traj1.z[1]
+	# θ1 = ref_traj1.θ[1]
+	# @test LinearAlgebra.norm(θ1 - ref_traj.θ[1], 1) < 1.0e-8
+	# @test abs(norm(z1 - ref_traj.z[1], 1) - nq * α) < 1.0e-8
 	#
-	# @test norm(r1) < 1.0e-10
+	# r1 = zeros(nz)
+	# κ = ref_traj1.κ
+	# rz1 = spzeros(nz,nz)
+	# model.res.r!(r1, z1, θ1, κ[1])
+	# @test norm(r1) > 1.0
 	#
-	# # We recover the original z using r and rz
-	# @test norm(ref_traj.z[1] - z2) < 1.0e-6
+	# #TODO: add tests
 	#
-	# # We recover the original z using r_approx and rz_approx
-	# @test norm(ref_traj.z[1] - z3) < 1.0e-6
-	#
-	# # We recover the same solution using either methods
-	# @test norm(z2 - z3) < 1.0e-6
+	# # function dummy_newton(z, θ, κ)
+	# # 	for k = 1:400
+	# # 		r = zeros(nz)
+	# # 		rz = spzeros(nz,nz)
+	# # 		rz = similar(model.spa.rz_sp)
+	# # 		model.res.r!(r, z, θ, κ, nothing)
+	# # 		model.res.rz!(rz, z, θ, nothing)
+	# # 		Δ = - rz \ r
+	# # 		z = z + 0.1 * Δ
+	# # 		# @show norm(r)
+	# # 	end
+	# # 	return z
+	# # end
+	# #
+	# # z2 = dummy_newton(z1, θ1, κ[1])
+	# # model.res.r!(r1, z2, θ1, κ[1], nothing)
+	# # @test norm(r1) < 1.0e-10
+	# #
+	# # function dummy_linear_newton(im_traj, z, θ, κ)
+	# # 	for k = 1:400
+	# # 		r = zeros(nz)
+	# # 		rz = spzeros(nz, nz)
+	# # 		rz = similar(model.spa.rz_sp)
+	# # 		model.linearized.r!(im_traj.lin[1], r, z, θ, κ[1])
+	# # 		model.linearized.rz!(im_traj.lin[1], rz, z, θ)
+	# # 		Δ = - rz \ r
+	# # 		z = z + 0.1 * Δ
+	# # 		# @show norm(r)
+	# # 	end
+	# # 	return z
+	# # end
+	# #
+	# # z3 = dummy_linear_newton(im_traj0, z1, θ1, κ)
+	# # model.linearized.r!(im_traj0.lin[1], r1, z3, θ1, κ[1])
+	# #
+	# # @test norm(r1) < 1.0e-10
+	# #
+	# # # We recover the original z using r and rz
+	# # @test norm(ref_traj.z[1] - z2) < 1.0e-6
+	# #
+	# # # We recover the original z using r_approx and rz_approx
+	# # @test norm(ref_traj.z[1] - z3) < 1.0e-6
+	# #
+	# # # We recover the same solution using either methods
+	# # @test norm(z2 - z3) < 1.0e-6
 end
 
 @testset "Newton: copy_traj!" begin
@@ -183,7 +186,7 @@ end
 	model = ContactControl.get_model("quadruped")
 	κ = 1.0e-4
 
-	ref_traj = ContactControl.get_trajectory("quadruped", "gait0")
+	ref_traj = get_trajectory("quadruped", "gait2", load_type = :split_traj_alt)
 	ref_traj.κ .= κ
 	H = ref_traj.H
 	h = 0.1
@@ -196,19 +199,19 @@ end
 	nr = nq + nu + nc + nb + nd
 
 	# Test Jacobian!
-	cost = CostFunction(H, model.dim,
+	obj = TrackingObjective(H, model.dim,
 	    q = [Diagonal(1.0 * ones(nq)) for t = 1:H],
 	    u = [Diagonal(1.0e-1 * ones(nu)) for t = 1:H],
 	    γ = [Diagonal(1.0e-2 * ones(nc)) for t = 1:H],
 	    b = [Diagonal(1.0e-3 * ones(nb)) for t = 1:H])
 	im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
-	core = ContactControl.Newton(H, h, model, ref_traj, im_traj0, cost = cost)
-	ContactControl.jacobian!(core.jac, im_traj0, cost, ref_traj.H, core.β)
+	core = ContactControl.Newton(H, h, model, ref_traj, im_traj0, obj = obj)
+	ContactControl.jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
 
 	# Test symmetry
 	@test core.jac.R - core.jac.R' == spzeros(H * nr, H * nr)
 
-	# Test cost function terms and regularization terms
+	# Test obj function terms and regularization terms
 	off = 0
 	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nq), off .+ (1:nq)] .- 1e-0))) .< 1e-8); off += nq
 	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nu), off .+ (1:nu)] .- 1e-1))) .< 1e-8); off += nu
@@ -250,13 +253,13 @@ end
 	nr = nq + nu + nc + nb + nd
 
 	# Test Jacobian!
-	cost = CostFunction(H, model.dim,
+	obj = TrackingObjective(H, model.dim,
 	    q = [Diagonal(1.0 * ones(nq)) for t = 1:H],
 	    u = [Diagonal(1.0 * ones(nu)) for t = 1:H],
 	    γ = [Diagonal(1.0e-6 * ones(nc)) for t = 1:H],
 	    b = [Diagonal(1.0e-6 * ones(nb)) for t = 1:H])
 	im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
-	core = ContactControl.Newton(H, h, model, ref_traj, im_traj0, cost = cost)
+	core = ContactControl.Newton(H, h, model, ref_traj, im_traj0, obj = obj)
 	ContactControl.implicit_dynamics!(im_traj0, model, ref_traj)
 
 	# Offset the trajectory and the dual variables to get a residual
@@ -282,13 +285,13 @@ end
 	@test norm(core.Δγ[1] .- 0.1, Inf) < 1.0e-8
 	@test norm(core.Δb[1] .- 0.1, Inf) < 1.0e-8
 
-	@test (norm(core.res.q2[1] .- core.cost.q[1] * core.Δq[1]
+	@test (norm(core.res.q2[1] .- core.obj.q[1] * core.Δq[1]
 		- im_traj0.δq0[1+2]' * core.ν[1+2] - im_traj0.δq1[1+1]' * core.ν[1+1]
 		.+ core.ν[1][1], Inf) < 1.0e-8)
-	@test (norm(core.res.u1[1] .- core.cost.u[1] * core.Δu[1]
+	@test (norm(core.res.u1[1] .- core.obj.u[1] * core.Δu[1]
 		- im_traj0.δu1[1]' * core.ν[1], Inf) < 1.0e-8)
-	@test (norm(core.res.γ1[1] .- core.cost.γ[1] * core.Δγ[1]
+	@test (norm(core.res.γ1[1] .- core.obj.γ[1] * core.Δγ[1]
 		.+ core.ν[1][1], Inf) < 1.0e-8)
-	@test (norm(core.res.b1[1] .- core.cost.b[1] * core.Δb[1]
+	@test (norm(core.res.b1[1] .- core.obj.b[1] * core.Δb[1]
 		.+ core.ν[1][1], Inf) < 1.0e-8)
 end

@@ -74,7 +74,7 @@ function lagrangian(model::InvertedPendulum, q, q̇)
 	L += 0.5 * model.mb * transpose(vθ) * vθ
 	L -= model.mb * model.g * _kinematics(model, q, mode = :com)[2]
 
-	vd1 = _jacobian(model, q, mode = :d) * q̇
+	vd1 = _jacobian(model, q, mode = :com) * q̇
 	L += 0.5 * model.ma * transpose(vd1) * vd1
 	L -= model.ma * model.g * _kinematics(model, q, mode = :d)[2]
 
@@ -83,7 +83,7 @@ end
 
 function M_func(model::InvertedPendulum, q)
 	Jθ = _jacobian(model, q, mode = :com)
-	Jd = _jacobian(model, q, mode = :d)
+	Jd = _jacobian(model, q, mode = :com)
 
 	return model.mb * transpose(Jθ) * Jθ + model.ma * transpose(Jd) * Jd
 end

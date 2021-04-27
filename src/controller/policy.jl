@@ -25,7 +25,7 @@ mutable struct LinearizedMPC <: Policy
 	opts
 end
 
-function linearized_mpc_policy(traj, model, cost;
+function linearized_mpc_policy(traj, model, obj;
 	H_mpc = traj.H,
 	N_sample = 1,
 	κ_mpc = traj.κ[1],
@@ -43,7 +43,7 @@ function linearized_mpc_policy(traj, model, cost;
 	stride = get_stride(model, traj)
 	altitude = zeros(model.dim.c)
 	update!(im_traj, traj, model, altitude, κ = κ_mpc)
-	newton = Newton(H_mpc, traj.h, model, traj, im_traj, cost = cost, opts = n_opts)
+	newton = Newton(H_mpc, traj.h, model, traj, im_traj, obj = obj, opts = n_opts)
 
 	LinearizedMPC(traj, ref_traj, im_traj, stride, altitude, κ_mpc, newton, model, copy(ref_traj.q[1]),
 		N_sample, N_sample, mpc_opts)

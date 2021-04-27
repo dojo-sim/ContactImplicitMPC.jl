@@ -70,7 +70,7 @@ include("simulator/simulator.jl")
 # Controller
 include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
-include("controller/cost_function.jl")
+include("controller/objective.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 include("controller/mpc_utils.jl")
@@ -84,6 +84,6 @@ export SparseStructure, LinearizedStep, get_bilinear_indices, bil_addition!, r_l
 
 
 export ImplicitTraj, linearization!, implicit_dynamics!
-export CostFunction
+export TrackingObjective
 
 end # module

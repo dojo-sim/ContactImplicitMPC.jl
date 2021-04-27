@@ -2,6 +2,7 @@ include(joinpath(@__DIR__, "..", "dynamics", "hopper_3D", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)
+render(vis)
 
 # qet hopper model
 model = get_model("hopper_3D")
