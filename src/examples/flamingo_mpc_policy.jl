@@ -5,7 +5,7 @@ render(vis)
 open(vis)
 
 # get hopper model
-model_sim = get_model("flamingo", surf="sinusoidal")
+# model_sim = get_model("flamingo", surf="sinusoidal")
 model_sim = get_model("flamingo", surf="flat")
 model = get_model("flamingo", surf="flat")
 nq = model.dim.q
@@ -18,7 +18,8 @@ nz = num_var(model)
 nθ = num_data(model)
 
 # get trajectory
-ref_traj = get_trajectory("flamingo", "gait1", load_type=:split_traj_alt, model=model)
+# ref_traj = get_trajectory("flamingo", "gait1", load_type=:split_traj_alt, model=model)
+ref_traj = get_trajectory("flamingo", "gait_simon", load_type=:split_traj_alt, model=model)
 
 
 H = ref_traj.H
