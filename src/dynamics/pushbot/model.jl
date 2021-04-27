@@ -1,7 +1,7 @@
 """
-    InvertedPendulum
+    PushBot
 """
-mutable struct InvertedPendulum{T} <: ContactDynamicsModel
+mutable struct PushBot{T} <: ContactDynamicsModel
     dim::Dimensions
 
     mb::T # mass
@@ -27,7 +27,7 @@ end
 
 
 # Kinematics
-function _kinematics(model::InvertedPendulum, q; mode = :com)
+function _kinematics(model::PushBot, q; mode = :com)
 	θ, d  = q
 	if mode == :d
 		return [-model.l * sin(θ) + d * cos(θ);
@@ -44,7 +44,7 @@ function _kinematics(model::InvertedPendulum, q; mode = :com)
 	end
 end
 
-function _jacobian(model::InvertedPendulum, q; mode = :com)
+function _jacobian(model::PushBot, q; mode = :com)
 	θ, d = q
 
 	if mode == :d
@@ -62,36 +62,36 @@ function _jacobian(model::InvertedPendulum, q; mode = :com)
  	end
 end
 
-function kinematics(model::InvertedPendulum, q)
+function kinematics(model::PushBot, q)
 	[_kinematics(model, q, mode = :d);
 	 _kinematics(model, q, mode = :d)]
 end
 
-function lagrangian(model::InvertedPendulum, q, q̇)
+function lagrangian(model::PushBot, q, q̇)
 	L = 0.0
 
 	vθ = _jacobian(model, q, mode = :com) * q̇
 	L += 0.5 * model.mb * transpose(vθ) * vθ
 	L -= model.mb * model.g * _kinematics(model, q, mode = :com)[2]
 
-	vd1 = _jacobian(model, q, mode = :com) * q̇
+	vd1 = _jacobian(model, q, mode = :d) * q̇
 	L += 0.5 * model.ma * transpose(vd1) * vd1
 	L -= model.ma * model.g * _kinematics(model, q, mode = :d)[2]
 
 	return L
 end
 
-function M_func(model::InvertedPendulum, q)
+function M_func(model::PushBot, q)
 	Jθ = _jacobian(model, q, mode = :com)
-	Jd = _jacobian(model, q, mode = :com)
+	Jd = _jacobian(model, q, mode = :d)
 
 	return model.mb * transpose(Jθ) * Jθ + model.ma * transpose(Jd) * Jd
 end
 
-function ϕ_func(model::InvertedPendulum, q)
+function ϕ_func(model::PushBot, q)
 	# walls at x = -0.5, x = 0.5
-    SVector{2}([_kinematics(model, q, mode = :d)[1] + 0.25;
-	            0.25 - _kinematics(model, q, mode = :d)[1]])
+    SVector{2}([_kinematics(model, q, mode = :d)[1] + 0.5;
+	            0.5 - _kinematics(model, q, mode = :d)[1]])
 end
 
 function rot2D(x)
@@ -99,7 +99,7 @@ function rot2D(x)
     -sin(x) cos(x)]
 end
 
-function J_func(model::InvertedPendulum, q)
+function J_func(model::PushBot, q)
 	r1 = [0.0 -1.0; 1.0 0.0]
 	r2 = [0.0 1.0; -1.0 0.0]
 
@@ -112,12 +112,12 @@ end
 # 	IfElse.ifelse(ϕ[1] > 1.0e-3, IfElse.ifelse(ϕ[2] > 1.0e-3, 0.0, 1.0), 1.0)
 # end
 
-function B_func(model::InvertedPendulum, q)
+function B_func(model::PushBot, q)
 	@SMatrix [1.0 * model.l 1.0;
-	          1.0 1.0 * model.l]
+	          1.0 1.0 / model.l]
 end
 
-function A_func(::InvertedPendulum, q)
+function A_func(::PushBot, q)
 	@SMatrix [1.0 0.0;
 			  0.0 1.0]
 end
@@ -139,11 +139,11 @@ nc = 2
 nf = 2
 nb = nc * nf
 
-inverted_pendulum = InvertedPendulum(Dimensions(nq, nu, nw, nc, nb),
+pushbot = PushBot(Dimensions(nq, nu, nw, nc, nb),
 					   mb, ma, l,
 					   μ_world, μ_joint, g,
 					   BaseMethods(), DynamicsMethods(), ContactMethods(),
 					   ResidualMethods(), ResidualMethods(),
 					   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-					   SVector{2}(μ_joint * [1.0; 0.1]),
+					   SVector{2}(μ_joint * [1.0; 1.0]),
 					   environment_2D_flat())
