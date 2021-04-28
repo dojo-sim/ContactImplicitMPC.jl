@@ -20,8 +20,8 @@ h = 0.01
 κ = 1.0e-8
 
 # Design open-loop control trajectory
-q0_ref = SVector{nq,T}([0.0, 0.0, 0.50, 0.0, 0.0, 0.0, 0.5])
-q1_ref = SVector{nq,T}([0.0, 0.0, 0.50, 0.0, 0.0, 0.0, 0.5])
+q0_ref = SVector{nq,T}([0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5])
+q1_ref = SVector{nq,T}([0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5])
 # α = 0.02937 # N=45 h=0.04
 # α = 0.01468 # N=45 h=0.02
 α = 0.0077 # N=46 h=0.01
@@ -36,8 +36,6 @@ push!(u_ref,  [[0.0, 0.0,   5.0*α*model.g*(model.mb+model.ml)/2] for k=1:2*6]..
 push!(u_ref,  [[0.0, 0.0,  -0.60*α*model.g*(model.mb+model.ml)/2] for k=1:2*10]...);
 push!(u_ref,  [[0.0, 0.0,   0.14*α*model.g*(model.mb+model.ml)/2] for k=1:2*15]...);
 push!(u_ref,  [[0.0, 0.0,   2.19*α*model.g*(model.mb+model.ml)/2] for k=1:H-length(u_ref)]...);
-
-contact_trajectory(H, h, model)
 
 # Simulate
 sim = simulator(model, q0_ref, q1_ref, h, H;
@@ -67,11 +65,14 @@ for t = 1:80
 end
 display(plt)
 
+sim.traj.q[40][3]
+sim.traj.q[4][7]
+plot([q[3] for q in sim.traj.q])
+plot!([q[7] for q in sim.traj.q])
+
 plot([q[4] for q in sim.traj.q])
 plot([q[5] for q in sim.traj.q])
 plot([q[6] for q in sim.traj.q])
-
-
 
 
 plot(hcat(Vector.(sim.traj.u)...)')

@@ -16,6 +16,8 @@ struct Hopper3D{T} <: ContactDynamicsModel where T
 	μ_joint::T
     g::T # gravity
 
+	orientation::Symbol
+
 	base::BaseMethods
 	dyn::DynamicsMethods
 	con::ContactMethods
@@ -32,9 +34,9 @@ end
 lagrangian(model::Hopper3D, q, q̇) = 0.0
 
 # Kinematics
-function kinematics(::Hopper3D, q)
+function kinematics(model::Hopper3D, q)
 	p = view(q, 1:3)
-	R = MRP(view(q, 4:6)...)
+	R = eval(model.orientation)(view(q, 4:6)...)
 	p + R * [0.0; 0.0; -1.0 * q[7]]
 end
 
@@ -55,7 +57,7 @@ end
 
 function B_func(::Hopper3D, q)
     rot = view(q, 4:6)
-    R = MRP(rot...)
+    R = eval(model.orientation)(rot...)
     @SMatrix [0.0 0.0 0.0 R[1,1] R[2,1] R[3,1] 0.0;
               0.0 0.0 0.0 R[1,2] R[2,2] R[3,2] 0.0;
 			  R[1,3] R[2,3] R[3,3] 0.0 0.0 0.0 1.0]
@@ -63,7 +65,7 @@ end
 
 function A_func(::Hopper3D, q)
     rot = view(q, 4:6)
-    R = MRP(rot...)
+    R = eval(model.orientation)(rot...)
     @SMatrix [1.0 0.0 0.0 0.0 0.0 0.0 0.0;
               0.0 1.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 1.0 0.0 0.0 0.0 0.0]
@@ -127,6 +129,7 @@ Jl = 0.075 # leg inertia
 hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
 			mb, ml, Jb, Jl,
 			μ_world, μ_joint, g,
+			:MRP,
 			BaseMethods(), DynamicsMethods(), ContactMethods(),
 			ResidualMethods(), ResidualMethods(),
 			SparseStructure(spzeros(0, 0), spzeros(0, 0)),
@@ -136,9 +139,21 @@ hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
 hopper_3D_sinusoidal = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
 			mb, ml, Jb, Jl,
 			μ_world, μ_joint, g,
+			:MRP,
 			BaseMethods(), DynamicsMethods(), ContactMethods(),
 			ResidualMethods(), ResidualMethods(),
 			SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			SVector{7}(zeros(7)),
 			environment_3D(x -> 0.075 * sin(2π * x[1])),
 		    )
+
+hopper_3D_euler = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
+		mb, ml, Jb, Jl,
+		μ_world, μ_joint, g,
+		:RotXYX, # Euler angles
+		BaseMethods(), DynamicsMethods(), ContactMethods(),
+		ResidualMethods(), ResidualMethods(),
+		SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+		SVector{7}(zeros(7)),
+		environment_3D(x -> 0.075 * sin(2π * x[1])),
+	    )
