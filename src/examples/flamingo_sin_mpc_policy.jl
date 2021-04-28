@@ -25,10 +25,10 @@ ref_traj = get_trajectory("flamingo", "gait_forward_36_4", load_type=:split_traj
 
 H = ref_traj.H
 h = ref_traj.h
-N_sample = 10
+N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 15000
+H_sim = 2500#15000
 
 # barrier parameter
 κ_mpc = 1.0e-4

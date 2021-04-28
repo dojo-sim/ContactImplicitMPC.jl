@@ -523,3 +523,21 @@ flamingo_sinusoidal = Flamingo(Dimensions(nq, nu, nw, nc, nb),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
 			  environment_2D(x -> 0.03 * (cos(pi * x[1]) - 1.0)),
 			  )
+
+include(joinpath(pwd(), "src/simulator/terrain/smooth_slope.jl"))
+flamingo_smooth_slope = Flamingo(Dimensions(nq, nu, nw, nc, nb),
+			  g, μ_world, μ_joint,
+			  l_torso, d_torso, m_torso, J_torso,
+			  l_thigh, d_thigh, m_thigh, J_thigh,
+			  l_calf, d_calf, m_calf, J_calf,
+			  l_foot, d_foot, m_foot, J_foot,
+			  l_thigh, d_thigh, m_thigh, J_thigh,
+			  l_calf, d_calf, m_calf, J_calf,
+			  l_foot, d_foot, m_foot, J_foot,
+			  zeros(nc),
+			  BaseMethods(), DynamicsMethods(), ContactMethods(),
+			  ResidualMethods(), ResidualMethods(),
+			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
+			  environment_2D(ss),
+			  )

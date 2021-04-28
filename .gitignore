@@ -5,3 +5,4 @@ Manifest.toml
 /src/dynamics/biped/sinusoidal/
 /src/dynamics/quadruped/piecewise
 /src/dynamics/flamingo/sinusoidal
+/src/dynamics/flamingo/smooth_slope
