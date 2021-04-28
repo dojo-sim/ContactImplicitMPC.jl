@@ -3,6 +3,6 @@ Manifest.toml
 /src/dynamics/hopper_2D/sinusoidal/
 /src/dynamics/hopper_3D/sinusoidal/
 /src/dynamics/biped/sinusoidal/
-/src/dynamics/quadruped/piecewise
-/src/dynamics/flamingo/sinusoidal
-/src/dynamics/flamingo/smooth_slope
+/src/dynamics/quadruped/piecewise/
+/src/dynamics/flamingo/sinusoidal/
+/src/dynamics/flamingo/smooth_slope/
