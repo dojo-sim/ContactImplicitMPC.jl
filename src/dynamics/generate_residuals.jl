@@ -487,10 +487,10 @@ save_expressions(expr_linearized, path_linearized, overwrite=true)
 instantiate_linearized!(model, path_linearized)
 
 ################################################################################
-# Inverted Pendulum
+# PushBot
 ################################################################################
-dir = joinpath(@__DIR__, "inverted_pendulum")
-model = deepcopy(inverted_pendulum)
+dir = joinpath(@__DIR__, "pushbot")
+model = deepcopy(pushbot)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")

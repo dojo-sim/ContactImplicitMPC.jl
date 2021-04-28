@@ -93,9 +93,3 @@ function hessian!(hess, obj::TrackingVelocityObjective)
         hess.obj_q2q1[t-1] .-= obj.v[t]
     end
 end
-
-
-for i = 1:20
-    i > 10 && continue
-    println(i)
-end

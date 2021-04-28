@@ -2,7 +2,6 @@ include("../biped5/model.jl")
 include("../biped5/visuals.jl")
 include("../pinnedbiped5/model.jl")
 include("../pinnedbiped5/visuals.jl")
-include("../pinnedbiped5/inverted_pendulum.jl")
 
 vis = Visualizer()
 open(vis)
