@@ -34,7 +34,7 @@ lagrangian(model::Hopper6D, q, q̇) = 0.0
 # Kinematics
 function kinematics(::Hopper6D, q)
 	p = view(q, 1:3)
-	R = MRP(q[4], q[5], 0.0) #########################################################
+	R = MRP(q[4], q[5], 0.0)
 	p + R * [0.0; 0.0; -1.0 * q[6]]
 end
 

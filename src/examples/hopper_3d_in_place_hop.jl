@@ -76,7 +76,6 @@ plot([q[6] for q in sim.traj.q])
 
 plot(hcat(Vector.(sim.traj.u)...)')
 plot(hcat(Vector.(sim.traj.q)...)'[:,4:6])
-plot(hcat(Vector.(loaded_traj.q)...)'[:,4:6])
 anim = visualize_robot!(vis, model, sim.traj)
 anim = visualize_force!(vis, model, sim.traj, anim=anim)
 
