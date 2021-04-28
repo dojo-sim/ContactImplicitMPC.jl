@@ -128,7 +128,8 @@ g = 9.81 # gravity
 μ_joint = 10.0
 
 mb = 1.0 # body mass
-ma = 0.1 # mass of ee
+# ma = 0.1 # mass of ee
+ma = 0.01 # mass of ee # CHANGED
 l = 1.0  # leg mass
 
 # Dimensions
