@@ -1,3 +1,5 @@
+# run hopper_in_place_hop.jl
+
 include(joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "visuals.jl"))
 T = Float64
 vis = Visualizer()
@@ -12,8 +14,8 @@ nc = model_sim.dim.c
 nb = model_sim.dim.b
 
 # time
-H = ref_traj.H
-h = ref_traj.h
+H = traj.H
+h = traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
@@ -23,7 +25,8 @@ H_sim = 3000
 v0 = 0.0
 Tstance = 0.13 # measure using hop-in-place gait
 Tflight = 0.62 # measure using hop-in-place gait
-p = raibert_policy(q0_sim, q1_sim, v0=v0, Tstance=Tstance, Tflight=Tflight)
+include(joinpath(pwd(), "src/controller/raibert_policy.jl"))
+p = raibert_policy(model, v0=v0, Tstance=Tstance, Tflight=Tflight, h=h)
 
 off0 = SVector{nq,T}([0.0, 0.5, 0.0, 0.0])
 off1 = SVector{nq,T}([v0*h_sim, 0.5, 0.0, 0.0])

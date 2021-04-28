@@ -36,7 +36,6 @@ push!(u_ref,  [[0.0, -0.60*α*model.g*(model.mb+model.ml)/2] for k=1:2*10]...);
 push!(u_ref,  [[0.0,  0.14*α*model.g*(model.mb+model.ml)/2] for k=1:2*15]...);
 push!(u_ref,  [[0.0,  2.19*α*model.g*(model.mb+model.ml)/2] for k=1:H-length(u_ref)]...);
 
-contact_trajectory(H, h, model)
 # Simulate
 sim = simulator(model, q0_ref, q1_ref, h, H;
     p = open_loop_policy(u_ref),

@@ -5,14 +5,15 @@ open(vis)
 
 # get hopper model
 model_sim = get_model("hopper_2D", surf="sinusoidal")
+
 nq = model_sim.dim.q
 nu = model_sim.dim.u
 nc = model_sim.dim.c
 nb = model_sim.dim.b
 
 # time
-H = ref_traj.H
-h = ref_traj.h
+H = traj.H
+h = traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
@@ -22,7 +23,7 @@ H_sim = 3000
 v0 = 0.2
 Tstance = 0.13 # measure using hop-in-place gait
 Tflight = 0.62 # measure using hop-in-place gait
-p = raibert_policy(q0_sim, q1_sim, v0=v0, Tstance=Tstance, Tflight=Tflight)
+p = raibert_policy(model_sim, v0=v0, Tstance=Tstance, Tflight=Tflight, h=h)
 
 off0 = SVector{nq,T}([0.0, 0.5, 0.0, 0.0])
 off1 = SVector{nq,T}([0*v0*h_sim, 0.5, 0.0, 0.0])
@@ -40,7 +41,6 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     )
 
 @time status = simulate!(sim)
-
 
 plt = plot(layout=(3,1), legend=false)
 plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
@@ -60,7 +60,6 @@ plot(hcat([q[[2,4]] for q in Vector.(sim.traj.q)[220:530]]...)')
 plot(hcat([q[[3]] for q in Vector.(sim.traj.q)[1:end]]...)')
 plot(hcat([γ[[1]] for γ in Vector.(sim.traj.γ)[1:end]]...)')
 plot(hcat([u[[1,2]] for u in Vector.(sim.traj.u)[1:end]]...)')
-
 
 # filename = "raibert_hopper_sine"
 # MeshCat.convert_frames_to_video(

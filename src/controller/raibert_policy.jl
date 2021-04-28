@@ -24,7 +24,8 @@ mutable struct Raibert <: Policy
 	opts::RaibertOptions
 end
 
-function raibert_policy(model::Hopper2D; v0=0.5, Tstance=0.13, Tflight=0.62,
+function raibert_policy(model::Hopper2D;
+		v0=0.5, Tstance=0.13, Tflight=0.62, h = 0.1,
 		kr_c =  8e1,
 		kr_p = -1e3,
 		kr_v_stance = -1e-2,
@@ -35,11 +36,11 @@ function raibert_policy(model::Hopper2D; v0=0.5, Tstance=0.13, Tflight=0.62,
 		mpc_opts = RaibertOptions(),
 		)
 
-	h = ref_traj.h
 	u  = zeros(model.dim.u)
 	q0 = zeros(model.dim.q)
 	q1 = zeros(model.dim.q)
 	contact = false
+
 	Raibert(kr_c, kr_p, kr_v_stance, kr_v_flight, kθ_c, kθ_p, kθ_v,
 		u, contact, v0, Tstance, Tflight, copy(q0), copy(q1), mpc_opts)
 end
@@ -47,8 +48,8 @@ end
 function policy(p::Raibert, x, traj, t)
 	# Initialization
 	h = traj.h
-	p.q0 = copy(x)
-	p.q1 = copy(traj.q[t+1])
+	p.q0 = copy(traj.q[t])
+	p.q1 = copy(x)
 
 	# Detect contact
 	if any(traj.γ[max(1,t-1)] .> 1.5e-2)
