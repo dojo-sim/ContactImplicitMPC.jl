@@ -212,45 +212,6 @@ function build_meshrobot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadr
 	return mvis
 end
 
-function set_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, model::Quadruped,
-		q::AbstractVector; name::Symbol=:Quadruped, r=0.0205)
-
-	q_mesh, tform = convert_config(model, q)
-	set_configuration!(mvis, q_mesh)
-	settransform!(vis[name, :world], tform)
-	return nothing
-end
-
-function animate_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, anim::MeshCat.Animation,
-		model::ContactDynamicsModel, q::AbstractVector; name::Symbol=model_name(model))
-	for t in 1:length(q)
-		MeshCat.atframe(anim, t) do
-			set_meshrobot!(vis, mvis, model, q[t], name=name)
-		end
-	end
-	setanimation!(vis, anim)
-	return nothing
-end
-
-function visualize_meshrobot!(vis::Visualizer, model::ContactDynamicsModel, q::AbstractVector;
-		h=0.01,
-		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
-		name::Symbol=model_name(model))
-
-	mvis = build_meshrobot!(vis, model, name=name)
-	animate_meshrobot!(vis, mvis, anim, model, q, name=name)
-	return anim
-end
-
-function visualize_meshrobot!(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj;
-		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,
-		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
-		name::Symbol=model_name(model))
-
-	anim = visualize_meshrobot!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, h=h)
-	return anim
-end
-
 function convert_config(model::Quadruped, q::AbstractVector)
     # Quadruped configuration
     # 1.  position long axis +x

@@ -25,17 +25,17 @@
   <joint name="left_fan_fixed_joint" type="fixed">
     <parent link="base_link"/>
     <child link="left_fan"/>
-    <origin rpy="0 0 0" xyz="0 -0.12 0"/>
+    <origin rpy="0 0 0" xyz="0 0.0 0"/>
     <axis xyz="0 1 0"/>
   </joint>
   <link name="left_strut_1">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.24 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba="1.0 0.0 0.0 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
   </link>
@@ -48,11 +48,11 @@
   <link name="left_strut_2">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.23 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
-      <material name="grey">
-        <color rgba="0.0 1.0 0.0 1"/>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1"/>
       </material>
     </visual>
   </link>
@@ -65,11 +65,11 @@
   <link name="left_strut_3">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.24 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
   </link>
@@ -82,11 +82,11 @@
   <link name="left_strut_4">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.23 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
-      <material name="grey">
-        <color rgba="0.0 0.0 .8 1"/>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1"/>
       </material>
     </visual>
   </link>
@@ -99,11 +99,11 @@
   <link name="left_strut_5">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.24 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
   </link>
@@ -116,11 +116,11 @@
   <link name="left_strut_6">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.23 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
-      <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1"/>
       </material>
     </visual>
   </link>
@@ -133,11 +133,11 @@
   <link name="left_strut_7">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.24 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
   </link>
@@ -150,11 +150,11 @@
   <link name="left_strut_8">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.23 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
-      <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1"/>
       </material>
     </visual>
   </link>
@@ -167,11 +167,11 @@
   <link name="left_strut_9">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.24 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
   </link>
@@ -184,11 +184,11 @@
   <link name="left_strut_10">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.23 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
-      <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1"/>
       </material>
     </visual>
   </link>
@@ -201,11 +201,11 @@
   <link name="left_strut_11">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.24 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
   </link>
@@ -218,11 +218,11 @@
   <link name="left_strut_12">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.23 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
-      <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1"/>
       </material>
     </visual>
   </link>
@@ -235,11 +235,11 @@
   <link name="left_strut_13">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.24 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba="0.0 0.0 0.0 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
   </link>
@@ -252,11 +252,11 @@
   <link name="left_strut_14">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.23 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
-      <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1"/>
       </material>
     </visual>
   </link>
@@ -269,11 +269,11 @@
   <link name="left_strut_15">
     <visual>
       <geometry>
-        <box size="0.05 0.12 0.385"/>
+        <box size="0.05 0.24 0.385"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
   </link>
@@ -288,9 +288,12 @@
       <geometry>
         <cylinder length="0.42" radius=".00565"/>
       </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
       <origin rpy="0 1.57075 0" xyz="0.21 0 0"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
     <inertial>
@@ -340,6 +343,9 @@
       <geometry>
         <cylinder length="0.42" radius=".00565"/>
       </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
       <origin rpy="0 1.57075 0" xyz="0.21 0 0"/>
     </visual>
     <inertial>
@@ -387,11 +393,11 @@
   <link name="right_foot">
     <visual>
       <geometry>
-        <box size=".01 .1 .23"/>
+        <box size=".01 .025 .23"/>
       </geometry>
       <origin rpy="0 0 0" xyz=".035 0 -0.0575"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
     <inertial>
@@ -473,8 +479,8 @@
         <cylinder length="0.42" radius=".00565"/>
       </geometry>
       <origin rpy="0 1.57075 0" xyz="0.21 0 0"/>
-      <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
       </material>
     </visual>
     <inertial>
@@ -524,6 +530,9 @@
       <geometry>
         <cylinder length="0.42" radius=".00565"/>
       </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
       <origin rpy="0 1.57075 0" xyz="0.21 0 0"/>
     </visual>
     <inertial>
@@ -571,11 +580,11 @@
   <link name="left_foot">
     <visual>
       <geometry>
-        <box size=".01 .1 .23"/>
+        <box size=".01 .025 .23"/>
       </geometry>
       <origin rpy="0 0 0" xyz=".035 0 -0.0575"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba=".72 .72 .72 1"/>
       </material>
     </visual>
     <inertial>

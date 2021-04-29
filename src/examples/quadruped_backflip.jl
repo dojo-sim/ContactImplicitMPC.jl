@@ -13,7 +13,6 @@ for t = 1:H
 	@test norm(r) < 1.0e-4
 end
 
-ϕ_func(model, q1)
 model.μ_world = 1.0
 
 # initial conditions

@@ -96,7 +96,7 @@ plot_lines!(vis, model, sim.traj.q[1:N_sample:end], offset=-0.01)
 plot_surface!(vis, model_sim.env, xlims=[-1, 9])
 anim = visualize_robot!(vis, model_sim, sim.traj, sample=10)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=10)
-
+anim = visualize_meshrobot!(vis, model, ref_traj)
 
 filename = "flamingo_100_steps"
 MeshCat.convert_frames_to_video(

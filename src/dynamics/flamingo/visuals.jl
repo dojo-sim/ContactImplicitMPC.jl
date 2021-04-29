@@ -150,3 +150,23 @@ function contact_point(model::Flamingo, q::AbstractVector)
 	pc = [p_toe_1, p_heel_1, p_toe_2, p_heel_2]
 	return pc
 end
+
+function build_meshrobot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamingo)
+	default_background!(vis)
+
+	urdf = joinpath(@__DIR__, "mesh", "flamingo.urdf")
+	mechanism = MeshCatMechanisms.parse_urdf(urdf)
+	mvis = MechanismVisualizer(mechanism, URDFVisuals(urdf, package_path=[@__DIR__]), vis[name])
+
+	return mvis
+end
+
+function convert_config(model::Flamingo, q::AbstractVector)
+	@warn "Flamingo convert_config not implemented"
+    # Flamingo configuration
+
+    # URDF configuration
+	q = zeros(model.dim.q)
+    t = compose(Translation(zeros(3)...), LinearMap(AngleAxis(zeros(4)...)))
+    return q, t
+end
