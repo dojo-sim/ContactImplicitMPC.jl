@@ -90,13 +90,13 @@ anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
 # settransform!(vis["/Cameras/default"],
 # 	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
 #
-# filename = "aligned_quadruped"
-# MeshCat.convert_frames_to_video(
-#     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/$filename.mp4", overwrite=true)
-#
-# convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)
+filename = "quadruped_fixed"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)
 
 # const ContactControl = Main
