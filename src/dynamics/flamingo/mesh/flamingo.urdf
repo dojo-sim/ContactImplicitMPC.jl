@@ -239,7 +239,7 @@
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba=".8 .8 .8 1"/>
+        <color rgba="0.0 0.0 0.0 1"/>
       </material>
     </visual>
   </link>

@@ -29,7 +29,7 @@ status = ContactControl.simulate!(sim, verbose = false)
 include(joinpath(pwd(), "src", "dynamics", "flamingo", "visuals.jl"))
 vis = Visualizer()
 render(vis)
-anim = visualize_robot!(vis, model, sim.traj)
+anim = visualize_meshrobot!(vis, model, sim.traj)
 
 qs = zeros(model.dim.q)
 
