@@ -6,3 +6,4 @@ Manifest.toml
 /src/dynamics/quadruped/piecewise/
 /src/dynamics/flamingo/sinusoidal/
 /src/dynamics/flamingo/smooth_slope/
+/src/dynamics/flamingo/piecewise/
