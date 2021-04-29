@@ -47,8 +47,10 @@ include("dynamics/fast_methods.jl")
 # Simulator
 include("simulator/trajectory.jl")
 
-export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods, ResidualMethods, Environment
-export environment_2D, environment_3D, environment_2D_flat, environment_3D_flat, get_model
+export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods,
+    ResidualMethods, Environment
+export environment_2D, environment_3D, environment_2D_flat,
+    environment_3D_flat, get_model
 
 # Models
 include("dynamics/particle_2D/model.jl")
@@ -80,7 +82,8 @@ include("controller/policy.jl")
 include("dynamics/visuals.jl")
 include("dynamics/visual_utils.jl")
 
-export SparseStructure, LinearizedStep, get_bilinear_indices, bil_addition!, r_linearized!, rz_linearized!
+export SparseStructure, LinearizedStep, get_bilinear_indices,
+    bil_addition!, r_linearized!, rz_linearized!
 
 
 export ImplicitTraj, linearization!, implicit_dynamics!
