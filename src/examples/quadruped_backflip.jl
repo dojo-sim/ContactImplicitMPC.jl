@@ -1,8 +1,12 @@
+include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
+vis = Visualizer()
+render(vis)
+open(vis)
 # Reference trajectory
 model = deepcopy(ContactControl.get_model("quadruped", surf = "flat"))
 model.μ_world = 0.1
 
-ref_traj = deepcopy(ContactControl.get_trajectory("quadruped", "jump_v1", load_type = :split_traj_alt))
+ref_traj = deepcopy(ContactControl.get_trajectory("quadruped", "backflip_v1", load_type = :split_traj_alt))
 ContactControl.update_friction_coefficient!(ref_traj, model)
 
 H = ref_traj.H
@@ -13,6 +17,7 @@ for t = 1:H
 	@test norm(r) < 1.0e-4
 end
 
+ϕ_func(model, q1)
 model.μ_world = 1.0
 
 # initial conditions
@@ -30,9 +35,6 @@ sim = ContactControl.simulator(model, q0, q1, h_sim, 2 * H,
 # simulate
 status = ContactControl.simulate!(sim, verbose = false)
 
-include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
-vis = Visualizer()
-render(vis)
 anim = visualize_robot!(vis, model, ref_traj)
 anim = visualize_robot!(vis, model, sim.traj)
 
@@ -44,3 +46,5 @@ plot(hcat(ref_traj.b...)', linetype = :steppost)
 plot(hcat(ref_traj.u...)', linetype = :steppost)
 
 plot(hcat(ref_traj.q...)', labels = "")
+
+# const ContactControl = Main
