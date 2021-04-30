@@ -11,6 +11,11 @@
 - [ ] Regularization of the friction forces in the simulator
 - [ ] Improve simulator interior point solver (predictor-corrector method)
 
+### Experiments
+- [ ] baseline comparison Raibert hopper: jump over large obstacle, test anything that is not periodic hop.
+- [ ] baseline comparison with Robin Deits explicit MPC: inverted pendulum with walls, cartpole with walls,
+      https://github.com/TobiaMarcucci/pympc/blob/humanoids2017/inverted_pendulum_with_wall.ipynb
+
 ### API
 - [ ] Decide over the use of SVector vs SizedVector
 - [ ] Ensure that the symbolic-generated functions are allocation free and fast
