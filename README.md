@@ -18,7 +18,8 @@
 ### Visualization
 - [ ] Add friction cone visualization 
 - [ ] Add contact force vectors visualization for 3D systems
-- [ ] fix visualization of the trajectories
+- [ ] Fix visualization of the trajectories
+- [ ] Fix quadruped mesh visualization
 
 ## Timings:
 - [x] quadruped 0.5x slower
