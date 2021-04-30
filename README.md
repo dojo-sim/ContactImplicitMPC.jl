@@ -1,19 +1,21 @@
 # ContactControl.jl
 [![CI](https://github.com/simon-lc/ContactControl.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/simon-lc/ContactControl.jl/actions/workflows/CI.yml) 
+## Features
 - [x] Contact dynamics computation
 - [x] Differentiable contact simulator
 - [x] MPC contact controller
 
-## Algorithm
+## Improvements 
+### Algorithm
 - [ ] Duals initialization and resetting strategy
 - [ ] Regularization of the friction forces in the simulator
 - [ ] Improve simulator interior point solver (predictor-corrector method)
 
-## API
+### API
 - [ ] Decide over the use of SVector vs SizedVector
 - [ ] Ensure that the symbolic-generated functions are allocation free fast
 
-## Visualization
+### Visualization
 - [ ] Add friction cone visualization 
 - [ ] Add contact force vectors visualization for 3D systems
 - [ ] fix visualization of the trajectories
