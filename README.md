@@ -13,7 +13,7 @@
 
 ### API
 - [ ] Decide over the use of SVector vs SizedVector
-- [ ] Ensure that the symbolic-generated functions are allocation free fast
+- [ ] Ensure that the symbolic-generated functions are allocation free and fast
 
 ### Visualization
 - [ ] Add friction cone visualization 
