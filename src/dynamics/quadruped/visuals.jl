@@ -12,7 +12,7 @@ function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 
 	for qi in q
 		k_torso = kinematics_1(model, qi, body = :torso, mode = :com)
-		p_torso = [k_torso[1]+0.1, -offset, k_torso[2]] + p_shift
+		p_torso = [k_torso[1], -offset, k_torso[2]] + p_shift
 
 		k_calf_1 = kinematics_2(model, qi, body = :calf_1, mode = :ee)
 		p_calf_1 = [k_calf_1[1], -offset, k_calf_1[2]] + p_shift
