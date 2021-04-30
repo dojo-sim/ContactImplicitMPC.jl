@@ -1,3 +1,10 @@
+mutable struct TimingGain12{T}
+	name::String
+	gain::T
+	t_naive::T
+	t_efficient::T
+end
+
 function linearized_solver_timing_gain(model::ContactDynamicsModel)
 	# Sizes
 	nq = model.dim.q
@@ -45,32 +52,69 @@ function linearized_solver_timing_gain(model::ContactDynamicsModel)
 	linear_solve!(Δ, rz1, r1)
 	gain = t_naive / t_efficient
 	@assert norm(Δ - rz2 \ r2, Inf) < 1e-10
-	return gain, t_naive, t_efficient
+	return TimingGain12(gain, t_naive, t_efficient)
 end
 
-model = get_model("hopper_2D")
-model = get_model("hopper_3D")
-model = get_model("flamingo")
-model = get_model("pushbot")
-model = get_model("quadruped")
-linearized_solver_timing_gain(model)
+function linearized_solver_timing_gain(names::Vector{String})
+	tgs = Vector{TimingGain12}()
+	for name in names
+		model = get_model(name)
+		tg = linearized_solver_timing_gain(model)
+		push!(tgs, tg)
+	end
+	return tgs
+end
+
+function generate_markdown(tgs::Vector{<:TimingGain12})
+    io = IOBuffer()
+	ncol = 4
+	println(io, "# Linearized Solver Timing Gains")
+	println(io, content_line(["model", "gain", "naive solver time (s)", "efficient solver time (s)"]))
+    for tg in tgs
+		println(io, horizontal_line(ncol))
+		println(io, content_line([tg.name, tg.gain, scn(tg.t_naive), scn(tg.t_efficient)]))
+    end
+
+	md = String(take!(io))
+	return md
+end
+
+function horizontal_line(n::Int)
+	@assert n >= 1
+	out = "|" * " --- |"^n
+	return out
+end
+function content_line(c::AbstractVector)
+	n = length(c)
+	@assert n >= 1
+	out = "|"
+	for i = 1:n
+		out *= string(c[i]) * "|"
+	end
+	return out
+end
+
+
+# names = ["hopper_2D", "hopper_3D", "pushbot", "flamingo", "quadruped"]
+# model = get_model("hopper_2D")
+# model = get_model("hopper_3D")
+# model = get_model("flamingo")
+# model = get_model("pushbot")
+# model = get_model("quadruped")
+# linearized_solver_timing_gain(model)
 
 # # Test
 
-struct MD str end                                                      #hide
-Base.show(io::IO, ::MIME"text/markdown", md::MD) = print(io, md.str)   #hide
-function f()                                                           #hide
-    io = IOBuffer()                                                    #hide
-    for i in 1:2                                                       #hide
-        println(io, "## test_$(i)")                                    #hide
-    end                                                                #hide
-    return MD(String(take!(io)))                                       #hide
-end                                                                    #hide
-md = f()
-
-typeof(md.str)
-
-save_markdown(joinpath(@__DIR__, "test.md"), "## end", overwrite=false)
+# struct MD str end
+# Base.show(io::IO, ::MIME"text/markdown", md::MD) = print(io, md.str)
+# function f()
+#     io = IOBuffer()
+#     for i in 1:2
+#         println(io, "## test_$(i)")
+#     end
+#     return MD(String(take!(io)))
+# end
+# md = f()
 
 
 
@@ -82,3 +126,15 @@ function save_markdown(path::String, content::String; overwrite::Bool=true)
 	close(io)
 	return nothing
 end
+
+
+tgs = [
+	TimingGain12("hopper_2D", 0.1, 0.2, 0.3),
+	TimingGain12("hopper_2D", 0.1, 0.2, 0.3),
+	TimingGain12("hopper_2D", 0.1, 0.2, 0.3),
+	TimingGain12("hopper_2D", 0.1, 0.2, 0.3),
+	]
+content = generate_markdown(tgs)
+save_markdown(joinpath(@__DIR__, "test.md"), content, overwrite=true)
+io = IOBuffer()
+print(content)
