@@ -1,19 +1,26 @@
 # ContactControl.jl
-[![CI](https://github.com/simon-lc/ContactControl.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/simon-lc/ContactControl.jl/actions/workflows/CI.yml)
+[![CI](https://github.com/simon-lc/ContactControl.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/simon-lc/ContactControl.jl/actions/workflows/CI.yml) 
+- [x] Contact dynamics computation
+- [x] Differentiable contact simulator
+- [x] MPC contact controller
 
-- Dynamics computation
-- Contact simulator
-- Contact-implicit controller
+## Algorithm
+- [ ] Duals initialization and resetting strategy
+- [ ] Regularization of the friction forces in the simulator
+- [ ] Improve simulator interior point solver (predictor-corrector method)
 
-- [ ] Decide on the use of SVector vs SizedVector
-- [ ] design quadruped gait so that the four feet are in contact with the ground for a few times step between each step, instead of having a 'trotting' gait
-- [ ] Enforce no slip conditions on nominal gaits
-- [ ] Improve visualizations: visualize the torques at the revolute joints and the forces at the prismatic joints
-- [ ] Add friction cone visualization and contact force vectors
+## API
+- [ ] Decide over the use of SVector vs SizedVector
+- [ ] Ensure that the symbolic-generated functions are allocation free fast
+
+## Visualization
+- [ ] Add friction cone visualization 
+- [ ] Add contact force vectors visualization for 3D systems
 - [ ] fix visualization of the trajectories
-- [ ] add terrain visualization
 
-#Timings:
--  quadruped 1.5x slower
--  hopper2D 0.2x slower
--  
+## Timings:
+- [x] quadruped 0.5x slower
+- [x] biped 1.1x slower
+- [x] hopper2D 0.2x slower
+- [x] hopper3D 1.4x slower
+- [x] pushbot 0.5x slower
