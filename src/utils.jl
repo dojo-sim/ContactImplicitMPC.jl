@@ -83,3 +83,27 @@ function convert_video_to_gif(video_file_path::AbstractString, output_path::Abst
     @info("Saved output as $output_path")
     return output_path
 end
+
+function save_markdown(path::String, content::String; overwrite::Bool=true)
+	mode = overwrite ? "w" : "a"
+	io = open(path, mode)
+	write(io, content)
+	close(io)
+	return nothing
+end
+
+function horizontal_line(n::Int)
+	@assert n >= 1
+	out = "|" * " --- |"^n
+	return out
+end
+
+function content_line(c::AbstractVector)
+	n = length(c)
+	@assert n >= 1
+	out = "|"
+	for i = 1:n
+		out *= string(c[i]) * "|"
+	end
+	return out
+end
