@@ -70,8 +70,8 @@ function generate_markdown(tgs::Vector{<:TimingGain12})
 	ncol = 4
 	println(io, "# Linearized Solver Timing Gains")
 	println(io, content_line(["model", "gain", "naive solver time (s)", "efficient solver time (s)"]))
+	println(io, horizontal_line(ncol))
     for tg in tgs
-		# println(io, horizontal_line(ncol))
 		println(io, content_line([tg.name, tg.gain, scn(tg.t_naive), scn(tg.t_efficient)]))
     end
 
