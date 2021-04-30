@@ -52,17 +52,7 @@ function linearized_solver_timing_gain(model::ContactDynamicsModel)
 	linear_solve!(Δ, rz1, r1)
 	gain = t_naive / t_efficient
 	@assert norm(Δ - rz2 \ r2, Inf) < 1e-10
-	return TimingGain12(gain, t_naive, t_efficient)
-end
-
-function linearized_solver_timing_gain(names::Vector{String})
-	tgs = Vector{TimingGain12}()
-	for name in names
-		model = get_model(name)
-		tg = linearized_solver_timing_gain(model)
-		push!(tgs, tg)
-	end
-	return tgs
+	return TimingGain12(string(model_name(model)), gain, t_naive, t_efficient)
 end
 
 function generate_markdown(tgs::Vector{<:TimingGain12})
@@ -72,69 +62,16 @@ function generate_markdown(tgs::Vector{<:TimingGain12})
 	println(io, content_line(["model", "gain", "naive solver time (s)", "efficient solver time (s)"]))
 	println(io, horizontal_line(ncol))
     for tg in tgs
-		println(io, content_line([tg.name, tg.gain, scn(tg.t_naive), scn(tg.t_efficient)]))
+		println(io, content_line([tg.name, scn(tg.gain), scn(tg.t_naive), scn(tg.t_efficient)]))
     end
 
 	md = String(take!(io))
 	return md
 end
 
-function horizontal_line(n::Int)
-	@assert n >= 1
-	out = "|" * " --- |"^n
-	return out
-end
-function content_line(c::AbstractVector)
-	n = length(c)
-	@assert n >= 1
-	out = "|"
-	for i = 1:n
-		out *= string(c[i]) * "|"
-	end
-	return out
-end
-
-
+# Run experiment for models in names
 # names = ["hopper_2D", "hopper_3D", "pushbot", "flamingo", "quadruped"]
-# model = get_model("hopper_2D")
-# model = get_model("hopper_3D")
-# model = get_model("flamingo")
-# model = get_model("pushbot")
-# model = get_model("quadruped")
-# linearized_solver_timing_gain(model)
-
-# # Test
-
-# struct MD str end
-# Base.show(io::IO, ::MIME"text/markdown", md::MD) = print(io, md.str)
-# function f()
-#     io = IOBuffer()
-#     for i in 1:2
-#         println(io, "## test_$(i)")
-#     end
-#     return MD(String(take!(io)))
-# end
-# md = f()
-
-
-
-
-function save_markdown(path::String, content::String; overwrite::Bool=true)
-	mode = overwrite ? "w" : "a"
-	io = open(path, mode)
-	write(io, content)
-	close(io)
-	return nothing
-end
-
-
-tgs = [
-	TimingGain12("hopper_2D", 0.1, 0.2, 0.3),
-	TimingGain12("hopper_2D", 0.1, 0.2, 0.3),
-	TimingGain12("hopper_2D", 0.1, 0.2, 0.3),
-	TimingGain12("hopper_2D", 0.1, 0.2, 0.3),
-	]
-content = generate_markdown(tgs)
-save_markdown(joinpath(@__DIR__, "test.md"), content, overwrite=true)
-io = IOBuffer()
-print(content)
+# models = get_model.(names)
+# tgs = linearized_solver_timing_gain.(models)
+# content = generate_markdown(tgs)
+# save_markdown(joinpath(@__DIR__, "linearized_solver_timing_gain.md"), content, overwrite=true)
