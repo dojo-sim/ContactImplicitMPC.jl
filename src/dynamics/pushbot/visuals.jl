@@ -1,36 +1,36 @@
-function build_robot!(vis::Visualizer, model::PushBot; name::Symbol=:PushBot, r=0.05, n_leg::Int=30)
-	r = convert(Float32, r)
-	r_contact = convert(Float32, r * 1.5)
-	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0))
-	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0))
-
-	default_background!(vis)
-
-	link = Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, model.l), r)
-	setobject!(vis[name][:robot]["link"], link, body_mat)
-	setobject!(vis[name][:robot]["linkbase"], Sphere(Point3f0(0.0), r), body_mat)
-
-	setobject!(vis[name][:robot]["contact1"], Sphere(Point3f0(0.0), r_contact), contact_mat)
-
-	for i = 1:n_leg
-		setobject!(vis[name][:robot]["arm$i"], Sphere(Point3f0(0), r), body_mat)
-	end
-
-	setobject!(vis[name][:env]["wall1"],
-		Rect(Vec(0, 0, 0),Vec(1.0, 1.0, 1.5)),
-		MeshPhongMaterial(color = RGBA(0.7, 0.7, 0.7, 1.0)))
-
-	setobject!(vis[name][:env]["wall2"],
-		Rect(Vec(0, 0, 0),Vec(1.0, 1.0, 1.5)),
-		MeshPhongMaterial(color = RGBA(0.7, 0.7, 0.7, 1.0)))
-
-	settransform!(vis[:PushBot][:env]["wall1"], Translation([0.5 + 1.5 * r; -0.5; 0.0]))
-	settransform!(vis[:PushBot][:env]["wall2"], Translation([-1.5 - 1.5 * r; -0.5; 0.0]))
-
-	# settransform!(vis["/Cameras/default"],
-	# 	compose(Translation(0.0, 0.5, -1.0), LinearMap(RotZ(-pi / 2.0))))
-	return nothing
-end
+# function build_robot!(vis::Visualizer, model::PushBot; name::Symbol=:PushBot, r=0.05, n_leg::Int=30)
+# 	r = convert(Float32, r)
+# 	r_contact = convert(Float32, r * 1.5)
+# 	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0))
+# 	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0))
+#
+# 	default_background!(vis)
+#
+# 	link = Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, model.l), r)
+# 	setobject!(vis[name][:robot]["link"], link, body_mat)
+# 	setobject!(vis[name][:robot]["linkbase"], Sphere(Point3f0(0.0), r), body_mat)
+#
+# 	setobject!(vis[name][:robot]["contact1"], Sphere(Point3f0(0.0), r_contact), contact_mat)
+#
+# 	for i = 1:n_leg
+# 		setobject!(vis[name][:robot]["arm$i"], Sphere(Point3f0(0), r), body_mat)
+# 	end
+#
+# 	setobject!(vis[name][:env]["wall1"],
+# 		Rect(Vec(0, 0, 0),Vec(1.0, 1.0, 1.5)),
+# 		MeshPhongMaterial(color = RGBA(0.7, 0.7, 0.7, 1.0)))
+#
+# 	setobject!(vis[name][:env]["wall2"],
+# 		Rect(Vec(0, 0, 0),Vec(1.0, 1.0, 1.5)),
+# 		MeshPhongMaterial(color = RGBA(0.7, 0.7, 0.7, 1.0)))
+#
+# 	settransform!(vis[:PushBot][:env]["wall1"], Translation([0.5 + 1.5 * r; -0.5; 0.0]))
+# 	settransform!(vis[:PushBot][:env]["wall2"], Translation([-1.5 - 1.5 * r; -0.5; 0.0]))
+#
+# 	# settransform!(vis["/Cameras/default"],
+# 	# 	compose(Translation(0.0, 0.5, -1.0), LinearMap(RotZ(-pi / 2.0))))
+# 	return nothing
+# end
 #
 # function animate_disturbance!(vis::Visualizer, anim::MeshCat.Animation, model::PushBot,
 # 	traj; x_push = [range(-2.0, stop = -0.088, length = traj.H)...,
@@ -70,13 +70,76 @@ end
 # 	return anim
 # end
 
+# function set_robot!(vis::Visualizer, model::PushBot, q::AbstractVector;
+# 		name::Symbol=:PushBot, n_leg::Int=30)
+#
+# 	pee = [_kinematics(model, q, mode = :ee)[1], 0.0, _kinematics(model, q, mode = :ee)[2]]
+#     p1 = [_kinematics(model, q, mode = :d)[1], 0.0, _kinematics(model, q, mode = :d)[2]]
+#
+# 	settransform!(vis[name][:robot]["link"], cable_transform(zeros(3), pee))
+# 	settransform!(vis[name][:robot]["contact1"], Translation(p1))
+#
+# 	r_range = range(0, stop = q[2], length = n_leg)
+# 	for i = 1:n_leg
+# 		q_tmp = Array(copy(q))
+# 		q_tmp[2] = r_range[i]
+# 		p_leg = [_kinematics(model, q_tmp, mode = :d)[1], 0.0, _kinematics(model, q_tmp, mode = :d)[2]]
+#         settransform!(vis[name][:robot]["arm$i"], Translation(p_leg))
+#     end
+#
+# 	return nothing
+# end
+
+
+function build_robot!(vis::Visualizer, model::PushBot; name::Symbol=:PushBot, r=0.05, n_leg::Int=30)
+	r = convert(Float32, r)
+	r_contact = convert(Float32, r * 1.5)
+	r_arm = convert(Float32, r * 0.3)
+	l_joint = 0.16
+	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0))
+	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0))
+	wall_mat = MeshPhongMaterial(color = RGBA(0.7, 0.7, 0.7, 1.0))
+
+	default_background!(vis)
+
+	link = Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, model.l-3r_arm), r)
+	setobject!(vis[name][:robot]["link"], link, body_mat)
+	setobject!(vis[name][:robot]["linkbase"], Sphere(Point3f0(0.0), r), body_mat)
+
+	setobject!(vis[name][:robot]["contact1"], Sphere(Point3f0(0.0), r_contact), contact_mat)
+	setobject!(vis[name][:robot]["joint1"],
+		Rect(Vec(-l_joint/2, -r/3, -4r_arm),Vec(l_joint, 2r/3, 2r_arm)), body_mat)
+	setobject!(vis[name][:robot]["joint2"],
+		Rect(Vec(-l_joint/2, -r/3, 2r_arm),Vec(l_joint, 2r/3, 2r_arm)), body_mat)
+
+	for i = 1:n_leg
+		setobject!(vis[name][:robot]["arm$i"], Sphere(Point3f0(0), r_arm), body_mat)
+	end
+
+	setobject!(vis[name][:env]["wall1"],
+		Rect(Vec(0, 0, 0),Vec(1.0, 1.0, 1.5)), wall_mat)
+
+	setobject!(vis[name][:env]["wall2"],
+		Rect(Vec(0, 0, 0),Vec(1.0, 1.0, 1.5)), wall_mat)
+
+	settransform!(vis[:PushBot][:env]["wall1"], Translation([0.5 + 1.5 * r; -0.5; 0.0]))
+	settransform!(vis[:PushBot][:env]["wall2"], Translation([-1.5 - 1.5 * r; -0.5; 0.0]))
+
+	# settransform!(vis["/Cameras/default"],
+	# 	compose(Translation(0.0, 0.5, -1.0), LinearMap(RotZ(-pi / 2.0))))
+	return nothing
+end
+
+
 function set_robot!(vis::Visualizer, model::PushBot, q::AbstractVector;
 		name::Symbol=:PushBot, n_leg::Int=30)
 
 	pee = [_kinematics(model, q, mode = :ee)[1], 0.0, _kinematics(model, q, mode = :ee)[2]]
     p1 = [_kinematics(model, q, mode = :d)[1], 0.0, _kinematics(model, q, mode = :d)[2]]
 
-	settransform!(vis[name][:robot]["link"], cable_transform(zeros(3), pee))
+	settransform!(vis[name][:robot]["joint1"], compose(cable_transform(zeros(3), pee), Translation(0,0,0)))
+	settransform!(vis[name][:robot]["joint2"], cable_transform(zeros(3), pee))
+	settransform!(vis[name][:robot]["link"], cable_transform(pee, zeros(3)))
 	settransform!(vis[name][:robot]["contact1"], Translation(p1))
 
 	r_range = range(0, stop = q[2], length = n_leg)

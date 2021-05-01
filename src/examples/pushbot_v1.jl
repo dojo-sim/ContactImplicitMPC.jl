@@ -87,9 +87,9 @@ idx_d2 = idx_d1 + 200
 idx_d3 = idx_d2 + 80
 idx_d4 = idx_d3 + 200
 idx_d5 = idx_d4 + 30
-d = impulse_disturbances(
-	[[-5.5; 0.0], [+5.5; 0.0], [+5.5; 0.0], [-1.5; 0.0], [-4.5; 0.0]],
-	[idx_d1, idx_d2, idx_d3, idx_d4, idx_d5])
+idx = [idx_d1, idx_d2, idx_d3, idx_d4, idx_d5]
+impulses = [[-5.5; 0.0], [+5.5; 0.0], [+5.5; 0.0], [-1.5; 0.0], [-4.5; 0.0]]
+d = impulse_disturbances(impulses, idx)
 
 
 q1_sim = SVector{model.dim.q}([0.0, 0.0])
@@ -106,12 +106,13 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
 
 @time status = ContactControl.simulate!(sim)
 
-anim = visualize_robot!(vis, model, sim.traj, sample = 1)
-anim = animate_disturbance!(vis, anim, model, sim.traj,
-	x_push = [range(-1.0, stop = -0.025, length = idx_d)...,
-		range(-0.025, stop = -1.0, length = 100)...,
-		[-1.0 for t = 1:sim.traj.H-idx_d-100]...],
-	z_push = 1.0)
+sample = 1
+anim = visualize_robot!(vis, model, sim.traj, sample = sample)
+pθ_right = generate_pusher_traj(d, sim.traj, side=:right)
+pθ_left  = generate_pusher_traj(d, sim.traj, side=:left)
+visualize_disturbance!(vis, model, pθ_right, anim=anim, sample=sample, offset=0.05, name=:PusherRight)
+visualize_disturbance!(vis, model, pθ_left,  anim=anim, sample=sample, offset=0.05, name=:PusherLeft)
+
 
 γ_max = maximum(hcat(sim.traj.γ...))
 u_max = maximum(hcat(sim.traj.u...))
@@ -121,7 +122,12 @@ plot!((hcat(sim.traj.u...) ./ u_max)[2:2, :]', linetype = :steppost)
 plot((hcat(sim.traj.u...) ./ u_max)[1:1, :]', linetype = :steppost)
 plot(hcat(sim.traj.q...)')
 
-# filename = "pushbot_fast_recovery"
+plot([pθ[1] for pθ in pθ_right])
+plot!([pθ[1] for pθ in pθ_left])
+plot!([q[1] for q in sim.traj.q[3:end]])
+
+
+# filename = "pushbot_multiple_pushes"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
@@ -129,5 +135,5 @@ plot(hcat(sim.traj.q...)')
 # convert_video_to_gif(
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
-#
+
 # const ContactControl = Main
