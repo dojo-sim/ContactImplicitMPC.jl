@@ -1,4 +1,4 @@
-mutable struct TimingGain12{T}
+mutable struct TimingGain{T}
 	name::String
 	gain::T
 	t_naive::T
@@ -52,10 +52,10 @@ function linearized_solver_timing_gain(model::ContactDynamicsModel)
 	linear_solve!(Δ, rz1, r1)
 	gain = t_naive / t_efficient
 	@assert norm(Δ - rz2 \ r2, Inf) < 1e-10
-	return TimingGain12(string(model_name(model)), gain, t_naive, t_efficient)
+	return TimingGain(string(model_name(model)), gain, t_naive, t_efficient)
 end
 
-function generate_markdown(tgs::Vector{<:TimingGain12})
+function generate_markdown(tgs::Vector{<:TimingGain})
     io = IOBuffer()
 	ncol = 4
 	println(io, "# Linearized Solver Timing Gains")
@@ -64,7 +64,6 @@ function generate_markdown(tgs::Vector{<:TimingGain12})
     for tg in tgs
 		println(io, content_line([tg.name, scn(tg.gain), scn(tg.t_naive), scn(tg.t_efficient)]))
     end
-
 	md = String(take!(io))
 	return md
 end

@@ -52,24 +52,23 @@ status = ContactControl.simulate!(sim)
 N_sample = 2
 H_mpc = 40
 h_sim = h / N_sample
-H_sim = 300
+H_sim = 1000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 # FAST RECOVERY
 obj = TrackingVelocityObjective(H_mpc, model.dim,
-    q = [Diagonal(1.0 * [10*t/H_mpc; 10*(t/H_mpc)^2]) for t = 1:H_mpc-0],
-	v = [Diagonal(1.0 * [1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
-    u = [Diagonal(1.0 * [300*(1-t/H_mpc); 1]) for t = 1:H_mpc-0],
+    q = [Diagonal([12*(t/H_mpc)^2; 12*(t/H_mpc)^2]) for t = 1:H_mpc-0],
+	v = [Diagonal([1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
+    u = [Diagonal([100; 1]) for t = 1:H_mpc-0],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc-0],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
-
-# SLOW RECOVERY
+# FAST RECOVERY
 obj = TrackingVelocityObjective(H_mpc, model.dim,
-    q = [Diagonal(1.0 * [10*t/H_mpc; 1*(t/H_mpc)^2]) for t = 1:H_mpc-0],
-	v = [Diagonal(1.0 * [1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
-    u = [Diagonal(1.0 * [300*(1-t/H_mpc); 1]) for t = 1:H_mpc-0],
+    q = [Diagonal([12*(t/H_mpc)^2; 2.0*(t/H_mpc)^4]) for t = 1:H_mpc-0],
+	v = [Diagonal([1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
+    u = [Diagonal([100; 1]) for t = 1:H_mpc-0],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc-0],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
@@ -83,8 +82,15 @@ p = linearized_mpc_policy(ref_traj, model, obj,
         max_iter = 10),
     mpc_opts = LinearizedMPCOptions())
 
-idx_d = 20
-d = impulse_disturbances([[-5.5; 0.0]], [idx_d])
+idx_d1 = 20
+idx_d2 = idx_d1 + 200
+idx_d3 = idx_d2 + 80
+idx_d4 = idx_d3 + 200
+idx_d5 = idx_d4 + 30
+d = impulse_disturbances(
+	[[-5.5; 0.0], [+5.5; 0.0], [+5.5; 0.0], [-1.5; 0.0], [-4.5; 0.0]],
+	[idx_d1, idx_d2, idx_d3, idx_d4, idx_d5])
+
 
 q1_sim = SVector{model.dim.q}([0.0, 0.0])
 q0_sim = SVector{model.dim.q}([0.0, 0.0])
@@ -100,7 +106,6 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
 
 @time status = ContactControl.simulate!(sim)
 
-add_walls!(vis, model)
 anim = visualize_robot!(vis, model, sim.traj, sample = 1)
 anim = animate_disturbance!(vis, anim, model, sim.traj,
 	x_push = [range(-1.0, stop = -0.025, length = idx_d)...,
@@ -116,11 +121,13 @@ plot!((hcat(sim.traj.u...) ./ u_max)[2:2, :]', linetype = :steppost)
 plot((hcat(sim.traj.u...) ./ u_max)[1:1, :]', linetype = :steppost)
 plot(hcat(sim.traj.q...)')
 
-filename = "pushbot_fast_recovery"
-MeshCat.convert_frames_to_video(
-    "/home/simon/Downloads/$filename.tar",
-    "/home/simon/Documents/$filename.mp4", overwrite=true)
-
-convert_video_to_gif(
-    "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
+# filename = "pushbot_fast_recovery"
+# MeshCat.convert_frames_to_video(
+#     "/home/simon/Downloads/$filename.tar",
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+#
+# convert_video_to_gif(
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)
+#
+# const ContactControl = Main

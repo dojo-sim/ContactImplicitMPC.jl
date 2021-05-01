@@ -11,7 +11,7 @@ h = ref_traj.h
 N_sample = 2
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 3000
+H_sim = 500 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -46,10 +46,11 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
         κ_tol = 2.0e-6),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
-@time status = ContactControl.simulate!(sim)
+# @time status = ContactControl.simulate!(sim)
+@profiler status = ContactControl.simulate!(sim)
 
-include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
-vis = Visualizer()
-render(vis)
+# include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
+# vis = Visualizer()
+# render(vis)
 anim = visualize_robot!(vis, model, sim.traj)
 anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim)
