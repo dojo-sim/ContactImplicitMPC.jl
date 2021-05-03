@@ -4,7 +4,7 @@ vis = Visualizer()
 render(vis)
 open(vis)
 
-model = ContactControl.get_model("pushbot")
+model = get_model("pushbot")
 
 # time
 h = 0.04
@@ -57,16 +57,16 @@ H_sim = 1000
 # barrier parameter
 κ_mpc = 1.0e-4
 
+# SLOW RECOVERY
+obj = TrackingVelocityObjective(H_mpc, model.dim,
+	q = [Diagonal([12*(t/H_mpc)^2; 2.0*(t/H_mpc)^4]) for t = 1:H_mpc-0],
+	v = [Diagonal([1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
+	u = [Diagonal([100; 1]) for t = 1:H_mpc-0],
+	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc-0],
+	b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 # FAST RECOVERY
 obj = TrackingVelocityObjective(H_mpc, model.dim,
     q = [Diagonal([12*(t/H_mpc)^2; 12*(t/H_mpc)^2]) for t = 1:H_mpc-0],
-	v = [Diagonal([1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
-    u = [Diagonal([100; 1]) for t = 1:H_mpc-0],
-    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc-0],
-    b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
-# FAST RECOVERY
-obj = TrackingVelocityObjective(H_mpc, model.dim,
-    q = [Diagonal([12*(t/H_mpc)^2; 2.0*(t/H_mpc)^4]) for t = 1:H_mpc-0],
 	v = [Diagonal([1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
     u = [Diagonal([100; 1]) for t = 1:H_mpc-0],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc-0],
@@ -136,4 +136,4 @@ plot!([q[1] for q in sim.traj.q[3:end]])
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
 
-# const ContactControl = Main
+const ContactControl = Main

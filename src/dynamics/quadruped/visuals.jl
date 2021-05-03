@@ -127,10 +127,10 @@ function build_robot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped
 end
 
 function set_robot!(vis::Visualizer, model::Quadruped, q::AbstractVector;
-		name::Symbol=:Quadruped, r=0.0205)
+		name::Symbol=:Quadruped, r=0.0205, offset=0.00)
 
 	r = convert(Float32, r)
-	p_shift = [0.0; 0.0; r]
+	p_shift = [0.0; offset; r]
 
 	p = [q[1]; 0.0; q[2]] + p_shift
 
@@ -241,10 +241,10 @@ function convert_config(model::Quadruped, q::AbstractVector)
     # 12. back  left  elbow    rotation relative to shoulder along +y
     q_ = zeros(12)
     x, z, θ = q[1:3]
-    q_[5]  = -q[10]
-    q_[6]  = -q[8]
-	q_[7]  = -q[4]
-    q_[8]  = -q[6]
+    q_[5]  = -q[10] + θ - π/2
+    q_[6]  = -q[8] + θ - π/2
+	q_[7]  = -q[4] + θ - π/2
+    q_[8]  = -q[6] + θ - π/2
     q_[9]  = +q[10]-q[11]
     q_[10] = +q[8]-q[9]
 	q_[11] = +q[4]-q[5]
@@ -253,7 +253,12 @@ function convert_config(model::Quadruped, q::AbstractVector)
 	r_foot = 0.02
 	trunk_length = 2*0.183
 	trunk_width = 2*0.132
-	# tform = compose(Translation(x - trunk_length/2, trunk_width/2, z+r_foot), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
-    tform = compose(Translation(x + trunk_length/2, trunk_width/2, z+r_foot), LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)))
+    tform = compose(
+		Translation(x , trunk_width/2, z+r_foot),
+		compose(
+			LinearMap(AngleAxis(π/2-θ, 0, 1.0, 0)),
+			Translation(trunk_length/2, 0,0)
+			)
+		)
     return q_, tform
 end

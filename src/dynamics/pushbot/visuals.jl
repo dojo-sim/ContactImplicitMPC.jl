@@ -195,12 +195,13 @@ function generate_pusher_traj(d::ImpulseDisturbance, traj::ContactTraj; side::Sy
 	for (i,idx) in enumerate(d.idx)
 		w = d.w[i][1]
 		θ_impact = traj.q[idx+1][1] + π/2
+		θ_next = traj.q[idx+2][1] + π/2
 
 		if ((w > 0.0) && (side == :right)) || ((w < 0.0) && (side == :left))
 			forward_arc = pusher_arc_traj(center, radius, θ_rest, θ_impact, N_arc; sense=sense)
-			backward_arc = pusher_arc_traj(center, radius, θ_impact, θ_rest, N_arc; sense=sense)
-			arc = [forward_arc; backward_arc[2:end]] # 2N-1
-			pθ[idx-N_arc-1:idx+N_arc-3] .= arc
+			backward_arc = pusher_arc_traj(center, radius, θ_next, θ_rest, N_arc; sense=sense)
+			arc = [forward_arc; backward_arc] # 2N
+			pθ[idx-N_arc-0:idx+N_arc-1] .= arc
 		end
 	end
 	return pθ
