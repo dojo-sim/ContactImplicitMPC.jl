@@ -52,22 +52,22 @@ function default_background!(vis; grid::Bool=false, axes::Bool=false, zoom=1.0)
 	# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", zoom)
 end
 
-function get_line_material(size::Real)
+function get_line_material(size::Real; α=1.0)
     orange_col = [1,153/255,51/255]
     blue_col = [51/255,1,1]
     black_col = [0,0,0]
-    orange_mat = LineBasicMaterial(color=color=RGBA(orange_col...,1.0), linewidth=size)
-    blue_mat = LineBasicMaterial(color=color=RGBA(blue_col...,1.0), linewidth=size)
-    black_mat = LineBasicMaterial(color=color=RGBA(black_col...,1.0), linewidth=size)
+    orange_mat = LineBasicMaterial(color=color=RGBA(orange_col...,α), linewidth=size)
+    blue_mat = LineBasicMaterial(color=color=RGBA(blue_col...,α), linewidth=size)
+    black_mat = LineBasicMaterial(color=color=RGBA(black_col...,α), linewidth=size)
     return orange_mat, blue_mat, black_mat
 end
 
-function get_material()
+function get_material(;α=1.0)
     orange_col = [1,153/255,51/255]
     blue_col = [51/255,1,1]
     black_col = [0,0,0]
-    orange_mat = MeshPhongMaterial(color=RGBA(orange_col...,1.0))
-    blue_mat = MeshPhongMaterial(color=RGBA(blue_col...,1.0))
-    black_mat = MeshPhongMaterial(color=RGBA(black_col...,1.0))
+    orange_mat = MeshPhongMaterial(color=RGBA(orange_col...,α))
+    blue_mat = MeshPhongMaterial(color=RGBA(blue_col...,α))
+    black_mat = MeshPhongMaterial(color=RGBA(black_col...,α))
     return orange_mat, blue_mat, black_mat
 end
