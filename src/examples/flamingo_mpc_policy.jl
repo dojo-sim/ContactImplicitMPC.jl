@@ -25,10 +25,10 @@ ref_traj = get_trajectory("flamingo", "gait_forward_36_4", load_type=:split_traj
 
 H = ref_traj.H
 h = ref_traj.h
-N_sample = 10
+N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 5000#35000
+H_sim = 10000#35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -61,13 +61,8 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-
-# u = vcat([fill(ref_traj.u[t], N_sample) for t=1:H]...)
-# p = open_loop_policy(u; N_sample=N_sample)
-w_amp = [+0.02, -0.20]
 sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-    # d = open_loop_disturbances([rand(model.dim.w) .* w_amp for i=1:H_sim]),
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
         κ_init = 1.0e-8,
@@ -93,10 +88,11 @@ plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', colo
 # plot!(plt[3,1], hcat(Vector.([b[1:nb] for b in sim.traj.b]*N_sample)...)', color=:red, linewidth=1.0)
 
 plot_lines!(vis, model, sim.traj.q[1:N_sample:end], offset=-0.01)
-plot_surface!(vis, model_sim.env, xlims=[-1, 9])
+plot_surface!(vis, model_sim.env, xlims=[-1, 7.5], ylims = [-0.5, 0.5])
 anim = visualize_robot!(vis, model_sim, sim.traj, sample=10)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=10)
-anim = visualize_meshrobot!(vis, model, ref_traj)
+
+convert_config(model_sim, sim.traj.q[1])
 
 filename = "flamingo_100_steps"
 MeshCat.convert_frames_to_video(
@@ -106,3 +102,39 @@ MeshCat.convert_frames_to_video(
 convert_video_to_gif(
     "/home/simon/Documents/$filename.mp4",
     "/home/simon/Documents/$filename.gif", overwrite=true)
+
+
+settransform!(vis["/Cameras/default"],
+		compose(Translation(0.0, 0.5, -1.0),LinearMap(RotZ(-pi / 2.0))))
+
+
+x_mean = 0.5 * (sim.traj.q[1][1] + sim.traj.q[end][1])
+shift_traj = deepcopy(sim.traj)
+sim.traj.q[end][1]
+for t = 1:length(shift_traj.q)
+	shift_traj.q[t][1] -= x_mean
+end
+shift_traj.q[1][1]
+shift_traj.q[end-1][1]
+anim = visualize_meshrobot!(vis, model_sim, shift_traj, sample=10)
+plot_surface!(vis, model_sim.env, xlims=[-4.5, 4.5], ylims = [-0.5, 0.5],
+	col = (0.8, 0.8, 0.8), α = 1.0)
+
+settransform!(vis["/Cameras/default"],
+		compose(Translation(0.0, -0.5, -0.5), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+
+t = 1
+mvis1 = build_meshrobot!(vis, model; name=:Flamingo1)
+set_meshrobot!(vis, mvis1, model, shift_traj.q[t], name = :Flamingo1)
+
+t = 2500
+mvis2 = build_meshrobot!(vis, model; name=:Flamingo2)
+set_meshrobot!(vis, mvis2, model, shift_traj.q[t], name = :Flamingo2)
+
+t = 5000
+mvis3 = build_meshrobot!(vis, model; name=:Flamingo3)
+set_meshrobot!(vis, mvis3, model, shift_traj.q[t], name = :Flamingo3)
+
+t = 7500
+mvis4 = build_meshrobot!(vis, model; name=:Flamingo4)
+set_meshrobot!(vis, mvis4, model, shift_traj.q[t], name = :Flamingo4)

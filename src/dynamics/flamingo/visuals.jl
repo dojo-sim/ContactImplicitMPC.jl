@@ -158,15 +158,19 @@ function build_meshrobot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamin
 	mechanism = MeshCatMechanisms.parse_urdf(urdf)
 	mvis = MechanismVisualizer(mechanism, URDFVisuals(urdf, package_path=[@__DIR__]), vis[name])
 
-	return mvis
+	return mvis#, mechanism
 end
 
 function convert_config(model::Flamingo, q::AbstractVector)
-	@warn "Flamingo convert_config not implemented"
-    # Flamingo configuration
+    _q = zeros(7)
+    _q[1] = q[3]
+    _q[2] = q[4] - _q[1]
+    _q[4] = (q[5] - _q[2] - _q[1])
+    _q[6] = q[8] - _q[4] - _q[2] - _q[1] - 0.5 * π
 
-    # URDF configuration
-	q = zeros(model.dim.q)
-    t = compose(Translation(zeros(3)...), LinearMap(AngleAxis(zeros(4)...)))
-    return q, t
+    _q[3] = q[6] - _q[1]
+    _q[5] = q[7] - _q[3] - _q[1]
+    _q[7] = q[9] - _q[5] - _q[3] - _q[1] - 0.5 * π
+
+    return _q, compose(Translation(q[1], 0.0, q[2] + 0.02), LinearMap(RotZ(π)))
 end
