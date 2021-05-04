@@ -1,15 +1,15 @@
-m_ss = tan(deg2rad(10.0)) # 20 degree slope
+m_ss = tan(deg2rad(10.0)) # 10 degree slope
 
 function piecewise(x)
 	IfElse.ifelse(x[1] < 0.5, 0.0,
 		IfElse.ifelse(x[1] < 2.0, m_ss * x[1] - 0.5 * m_ss,
-			-0.5 * m_ss * (x[1] - 2.0) + 1.5 * m_ss))
+			-0.25 * m_ss * (x[1] - 2.0) + 1.5 * m_ss))
 end
 
 function d_piecewise(x)
 	IfElse.ifelse(x[1] < 0.5, 0.0,
 		IfElse.ifelse(x[1] < 2.0, m_ss,
-			-0.5 * m_ss))
+			-0.25 * m_ss))
 end
 
 # smooth kinks w/ cubic polynomial
@@ -42,7 +42,7 @@ m1 = m_ss
 x1 = 1.4
 y1 = m_ss * x1
 
-m2 = -0.5 * m_ss
+m2 = -0.25 * m_ss
 x2 = 1.6
 y2 = m_ss * 1.5 + m2 * 0.1
 
@@ -63,7 +63,7 @@ function piecewise_smoothed(x)
 		IfElse.ifelse(x[1] < 0.6, poly(a1, x[1]),
 			IfElse.ifelse(x[1] < 1.9, m_ss * x[1] - 0.5 * m_ss,
 				IfElse.ifelse(x[1] < 2.1, poly(a2, x[1] - 0.5),
-				-0.5 * m_ss * (x[1] - 2.0) + 1.5 * m_ss))))
+				-0.25 * m_ss * (x[1] - 2.0) + 1.5 * m_ss))))
 end
 
 function d_piecewise_smoothed(x)
@@ -71,7 +71,7 @@ function d_piecewise_smoothed(x)
 		IfElse.ifelse(x[1] < 0.6, d_poly(a1, x[1]),
 			IfElse.ifelse(x[1] < 1.9, m_ss,
 				IfElse.ifelse(x[1] < 2.1, d_poly(a2, x[1] - 0.5),
-				-0.5 * m_ss))))
+				-0.25 * m_ss))))
 end
 
 x = range(-1.0, stop = 4.0, length = 1000)

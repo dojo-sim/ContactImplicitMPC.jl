@@ -68,7 +68,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 5000
+H_sim = 4000# 5000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -120,12 +120,28 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 # plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
-# visualize!(vis, model, sim.traj.q[1:N_sample:end], Δt=10*h/N_sample, name=:mpc)
-plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
-plot_surface!(vis, model_sim.env, ylims = [-0.4, 0.4])
-anim = visualize_meshrobot!(vis, model_sim, sim.traj)
-anim = visualize_robot!(vis, model_sim, sim.traj, anim=anim)
-anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
+
+
+plot_lines!(vis, model, sim.traj.q[1:25:end])
+plot_surface!(vis, model_sim.env, ylims=[0.3, -0.05])
+anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
+# anim = visualize_robot!(vis, model, sim.traj, anim=anim)
+anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim)
+
+# Display ghosts
+t_ghosts = [1, 1333, 2666]
+mvis_ghosts = []
+for (i,t) in enumerate(t_ghosts)
+    α = i/(length(t_ghosts)+1)
+    name = Symbol("ghost$i")
+    mvis = build_meshrobot!(vis, model, name=name, α=α)
+    push!(mvis_ghosts, mvis)
+end
+
+for (i,t) in enumerate(t_ghosts)
+    name = Symbol("ghost$i")
+    set_meshrobot!(vis, mvis_ghosts[i], model, sim.traj.q[t], name=name)
+end
 
 # filename = "quadruped_forces"
 # MeshCat.convert_frames_to_video(

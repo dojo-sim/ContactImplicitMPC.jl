@@ -1,3 +1,4 @@
+const ContactControl = Main
 include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
 T = Float64
 vis = Visualizer()
@@ -26,7 +27,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 5000
+H_sim = 4000 #5000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -81,15 +82,29 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 # plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
-# plot_lines!(vis, model, sim.traj.q[1:N_sample:end])
-plot_surface!(vis, model_sim.env, ylims = [-0.5, 0.5])
-anim = visualize_meshrobot!(vis, model_sim, sim.traj)
-anim = visualize_robot!(vis, model_sim, sim.traj, anim=anim)
-anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
+plot_surface!(vis, model_sim.env, ylims=[0.3, -0.05])
+plot_lines!(vis, model, sim.traj.q[1:25:end])
+anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
+# anim = visualize_robot!(vis, model, sim.traj, anim=anim)
+anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim)
 
-# settransform!(vis["/Cameras/default"],
-# 	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
-#
+# Display ghosts
+t_ghosts = [1, 1333, 2666]
+mvis_ghosts = []
+for (i,t) in enumerate(t_ghosts)
+    α = i/(length(t_ghosts)+1)
+    name = Symbol("ghost$i")
+    mvis = build_meshrobot!(vis, model, name=name, α=α)
+    push!(mvis_ghosts, mvis)
+end
+
+for (i,t) in enumerate(t_ghosts)
+    name = Symbol("ghost$i")
+    set_meshrobot!(vis, mvis_ghosts[i], model, sim.traj.q[t], name=name)
+end
+
+
+
 # filename = "quadruped_fixed"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
@@ -98,5 +113,3 @@ anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim)
 # convert_video_to_gif(
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
-
-# const ContactControl = Main

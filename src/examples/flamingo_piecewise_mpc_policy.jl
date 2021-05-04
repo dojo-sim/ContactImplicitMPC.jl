@@ -6,6 +6,7 @@ open(vis)
 
 # get model
 include(joinpath(pwd(), "src/simulator/terrain/piecewise1.jl"))
+include(joinpath(pwd(), "src/dynamics/flamingo/model.jl"))
 flamingo_piecewise = Flamingo(Dimensions(nq, nu, nw, nc, nb),
 			  g, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
@@ -20,6 +21,7 @@ flamingo_piecewise = Flamingo(Dimensions(nq, nu, nw, nc, nb),
 			  ResidualMethods(), ResidualMethods(),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
+			  # environment_2D_flat()
 			  Environment{R2}(piecewise_smoothed, d_piecewise_smoothed),
 			  )
 
@@ -46,7 +48,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 instantiate_residual!(model_sim, path_res, jacobians = :approx)
 model_sim.spa.rz_sp = copy(rz_sp)
 model_sim.spa.rθ_sp = copy(rθ_sp)
-
 
 model = get_model("flamingo", surf="flat")
 nq = model.dim.q
@@ -118,6 +119,9 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 @time status = simulate!(sim)
 
+# save trajectory
+@save joinpath(pwd(), "src/dynamics/flamingo/simulations/piecewise.jld2") sim
+@load joinpath(pwd(), "src/dynamics/flamingo/simulations/piecewise.jld2") sim
 
 l = 9
 lu = 1
@@ -147,3 +151,6 @@ MeshCat.convert_frames_to_video(
 convert_video_to_gif(
     "/home/simon/Documents/$filename.mp4",
     "/home/simon/Documents/$filename.gif", overwrite=true)
+
+# Ghost
+flamingo_ghost!(vis, sim)

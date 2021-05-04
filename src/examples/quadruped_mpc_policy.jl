@@ -1,3 +1,9 @@
+const ContactControl =  Main
+include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
+vis = Visualizer()
+render(vis)
+open(vis)
+
 # get model
 model = get_model("quadruped")
 
@@ -8,10 +14,10 @@ ref_traj_copy = deepcopy(ref_traj)
 # time
 H = ref_traj.H
 h = ref_traj.h
-N_sample = 2
+N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 500 #3000
+H_sim = 4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -46,11 +52,27 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
         κ_tol = 2.0e-6),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
-# @time status = ContactControl.simulate!(sim)
-@profiler status = ContactControl.simulate!(sim)
+@time status = ContactControl.simulate!(sim)
+# @profiler status = ContactControl.simulate!(sim)
 
-# include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
-# vis = Visualizer()
-# render(vis)
-anim = visualize_robot!(vis, model, sim.traj)
+
+plot_lines!(vis, model, sim.traj.q[1:25:end])
+plot_surface!(vis, model.env, ylims=[0.3, -0.05])
+anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
+# anim = visualize_robot!(vis, model, sim.traj, anim=anim)
 anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim)
+
+# Display ghosts
+t_ghosts = [1, 1333, 2666]
+mvis_ghosts = []
+for (i,t) in enumerate(t_ghosts)
+    α = i/(length(t_ghosts)+1)
+    name = Symbol("ghost$i")
+    mvis = build_meshrobot!(vis, model, name=name, α=α)
+    push!(mvis_ghosts, mvis)
+end
+
+for (i,t) in enumerate(t_ghosts)
+    name = Symbol("ghost$i")
+    set_meshrobot!(vis, mvis_ghosts[i], model, sim.traj.q[t], name=name)
+end

@@ -43,12 +43,13 @@ function bivector_rotation(a::AbstractVector{T}, b::AbstractVector{T}) where {T}
 	return R
 end
 
-function default_background!(vis; grid::Bool=false, axes::Bool=false)
+function default_background!(vis; grid::Bool=false, axes::Bool=false, zoom=1.0)
     setvisible!(vis["/Background"], true)
     setprop!(vis["/Background"], "top_color", RGBA(1.0, 1.0, 1.0, 1.0))
     setprop!(vis["/Background"], "bottom_color", RGBA(1.0, 1.0, 1.0, 1.0))
 	setvisible!(vis["/Axes"], axes)
     setvisible!(vis["/Grid"], grid)
+	# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", zoom)
 end
 
 function get_line_material(size::Real)

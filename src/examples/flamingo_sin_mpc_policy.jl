@@ -28,7 +28,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 2500#15000
+H_sim = 5000#15000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -64,7 +64,7 @@ q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 
 # u = vcat([fill(ref_traj.u[t], N_sample) for t=1:H]...)
 # p = open_loop_policy(u; N_sample=N_sample)
-w_amp = [+0.02, -0.20]
+# w_amp = [+0.02, -0.20]
 sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     # d = open_loop_disturbances([rand(model.dim.w) .* w_amp for i=1:H_sim]),
@@ -76,6 +76,10 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     )
 
 @time status = simulate!(sim)
+
+# save trajectory
+@save joinpath(pwd(), "src/dynamics/flamingo/simulations/sine.jld2") sim
+@load joinpath(pwd(), "src/dynamics/flamingo/simulations/sine.jld2") sim
 
 
 l = 9
@@ -106,3 +110,5 @@ MeshCat.convert_frames_to_video(
 convert_video_to_gif(
     "/home/simon/Documents/$filename.mp4",
     "/home/simon/Documents/$filename.gif", overwrite=true)
+
+flamingo_ghost!(vis, sim)

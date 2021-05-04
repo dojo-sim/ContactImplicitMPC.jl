@@ -202,15 +202,15 @@ function contact_point(model::Quadruped, q::AbstractVector)
 	return pc
 end
 
-function build_meshrobot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.0205)
+function build_meshrobot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, α=1.0)
 	default_background!(vis)
 
 	urdf = joinpath(@__DIR__, "mesh", "a1.urdf")
-	mechanism = MeshCatMechanisms.parse_urdf(urdf)
-	mvis = MechanismVisualizer(mechanism, URDFVisuals(urdf, package_path=[@__DIR__]), vis[name])
-
-	return mvis
+	package_path = @__DIR__
+	build_meshrobot!(vis, model, urdf, package_path; name=name, α=α)
 end
+
+
 
 function convert_config(model::Quadruped, q::AbstractVector)
     # Quadruped configuration
