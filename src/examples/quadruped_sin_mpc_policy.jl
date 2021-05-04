@@ -26,7 +26,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 5000
+H_sim = 5000 #5000
 
 # barrier parameter
 κ_mpc = 1.0e-4

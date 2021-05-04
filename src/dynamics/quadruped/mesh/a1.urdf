@@ -4,6 +4,21 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="a1_description" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <material name="trunk_color">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+  </material>
+  <material name="hip_color">
+    <color rgba="0.4 0.4 0.4 1.0"/>
+  </material>
+  <material name="thigh_color">
+    <color rgba="0.4 0.4 0.4 1.0"/>
+  </material>
+  <material name="calf_color">
+    <color rgba="0.7 0.7 0.7 1.0"/>
+  </material>
+  <material name="foot_color">
+    <color rgba="0.7 0.7 0.7 1.0"/>
+  </material>
   <material name="black">
     <color rgba="0.0 0.0 0.0 1.0"/>
   </material>
@@ -48,9 +63,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/trunk.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/trunk.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="trunk_color"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -101,9 +116,9 @@
     <visual>
       <origin rpy="3.14159265359 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/hip.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/hip.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="hip_color"/>
     </visual>
     <collision>
       <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
@@ -143,9 +158,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/thigh_mirror.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/thigh_mirror.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="thigh_color"/>
     </visual>
     <collision>
       <origin rpy="0 1.57079632679 0" xyz="0 0 -0.1"/>
@@ -171,9 +186,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/calf.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/calf.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="calf_color"/>
     </visual>
     <collision>
       <origin rpy="0 1.57079632679 0" xyz="0 0 -0.1"/>
@@ -198,7 +213,7 @@
       <geometry>
         <sphere radius="0.01"/>
       </geometry>
-      <material name="orange"/>
+      <material name="foot_color"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -253,9 +268,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/hip.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/hip.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="hip_color"/>
     </visual>
     <collision>
       <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
@@ -295,9 +310,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/thigh.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/thigh.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="thigh_color"/>
     </visual>
     <collision>
       <origin rpy="0 1.57079632679 0" xyz="0 0 -0.1"/>
@@ -323,9 +338,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/calf.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/calf.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="calf_color"/>
     </visual>
     <collision>
       <origin rpy="0 1.57079632679 0" xyz="0 0 -0.1"/>
@@ -350,7 +365,7 @@
       <geometry>
         <sphere radius="0.01"/>
       </geometry>
-      <material name="orange"/>
+      <material name="foot_color"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -405,9 +420,9 @@
     <visual>
       <origin rpy="3.14159265359 3.14159265359 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/hip.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/hip.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="hip_color"/>
     </visual>
     <collision>
       <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
@@ -447,9 +462,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/thigh_mirror.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/thigh_mirror.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="thigh_color"/>
     </visual>
     <collision>
       <origin rpy="0 1.57079632679 0" xyz="0 0 -0.1"/>
@@ -475,9 +490,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/calf.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/calf.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="calf_color"/>
     </visual>
     <collision>
       <origin rpy="0 1.57079632679 0" xyz="0 0 -0.1"/>
@@ -502,7 +517,7 @@
       <geometry>
         <sphere radius="0.01"/>
       </geometry>
-      <material name="orange"/>
+      <material name="foot_color"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -557,9 +572,9 @@
     <visual>
       <origin rpy="0 3.14159265359 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/hip.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/hip.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="hip_color"/>
     </visual>
     <collision>
       <origin rpy="1.57079632679 0 0" xyz="0 0 0"/>
@@ -599,9 +614,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/thigh.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/thigh.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="thigh_color"/>
     </visual>
     <collision>
       <origin rpy="0 1.57079632679 0" xyz="0 0 -0.1"/>
@@ -627,9 +642,9 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://mesh/calf.dae" scale="1 1 1"/>
+        <mesh filename="package://mesh/calf.obj" scale="1 1 1"/>
       </geometry>
-      <material name="orange"/>
+      <material name="calf_color"/>
     </visual>
     <collision>
       <origin rpy="0 1.57079632679 0" xyz="0 0 -0.1"/>
@@ -654,7 +669,7 @@
       <geometry>
         <sphere radius="0.01"/>
       </geometry>
-      <material name="orange"/>
+      <material name="foot_color"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>

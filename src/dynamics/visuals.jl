@@ -206,3 +206,11 @@ function visualize_force!(vis::Visualizer, model::ContactDynamicsModel,
 			anim=anim, name=name, h=h)
 	return anim
 end
+
+function set_alpha!(visuals::Vector{VisualElement}, α)
+    for el in visuals
+        c = el.color
+        c_new = RGBA(red(c),green(c),blue(c),α)
+        el.color = c_new
+    end
+end
