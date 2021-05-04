@@ -6,7 +6,8 @@ open(vis)
 render(vis)
 
 # get hopper model
-model_sim = get_model("quadruped", surf="sinusoidal")
+model_sim = get_model("quadruped", surf="payload")
+model_sim = get_model("quadruped", surf="flat")
 # model_sim = get_model("quadruped", surf="flat")
 
 model = get_model("quadruped", surf="flat")
@@ -72,6 +73,7 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     )
 
 @time status = simulate!(sim)
+sum(sim.traj.γ[1])/h_sim/(model.g*(model.m_torso+4model.m_thigh1+4model.m_calf1))
 
 # plt = plot(layout=(3,1), legend=false)
 # plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
@@ -86,7 +88,7 @@ plot_surface!(vis, model_sim.env, ylims=[0.3, -0.05])
 plot_lines!(vis, model, sim.traj.q[1:25:end])
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
 # anim = visualize_robot!(vis, model, sim.traj, anim=anim)
-anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim)
+anim = visualize_force!(vis, model, sim.traj, anim=anim, sample=5, h=h_sim)
 
 # Display ghosts
 t_ghosts = [1, 1333, 2666]
@@ -105,11 +107,11 @@ end
 
 
 
-# filename = "quadruped_fixed"
-# MeshCat.convert_frames_to_video(
-#     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/$filename.mp4", overwrite=true)
-#
-# convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)
+filename = "quadruped_3kg_payload"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)
