@@ -541,9 +541,32 @@ d_torso = 0.5 * l_torso + 0.0127
 d_thigh = 0.5 * l_thigh - 0.00323
 d_leg = 0.5 * l_leg - 0.006435
 
+m_payload = 1.0
+J_payload = 0.0
+
 quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				g, μ_world, μ_joint,
 				l_torso, d_torso, m_torso, J_torso,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				zeros(nc),
+				BaseMethods(), DynamicsMethods(), ContactMethods(),
+				ResidualMethods(), ResidualMethods(),
+				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
+				environment_2D_flat())
+
+quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+				g, μ_world, μ_joint,
+				l_torso, d_torso,
+				m_torso + m_payload,
+				J_torso + J_payload,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
 				l_thigh, d_thigh, m_thigh, J_thigh,
