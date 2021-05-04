@@ -50,10 +50,10 @@ function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.0205)
+function build_robot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.0205, α=1.0)
 	r = convert(Float32, r)
-	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0))
-	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0))
+	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, α))
+	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, α))
 
 	default_background!(vis)
 

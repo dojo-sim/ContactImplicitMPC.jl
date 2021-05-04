@@ -25,12 +25,12 @@ function plot_lines!(vis::Visualizer, model::Hopper3D, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::Hopper3D; name::Symbol=:Hopper3D, r=0.04)
+function build_robot!(vis::Visualizer, model::Hopper3D; name::Symbol=:Hopper3D, r=0.04, α=1.0)
 	n_leg = 100
 	r = convert(Float32, r)
 	r_leg = convert(Float32, 0.5 * r)
-	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0))
-	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0))
+	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, α))
+	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, α))
 
 	default_background!(vis)
 

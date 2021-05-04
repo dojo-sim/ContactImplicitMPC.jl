@@ -34,21 +34,21 @@ function animate_robot!(vis::Visualizer, anim::MeshCat.Animation, model::Contact
 end
 
 function visualize_robot!(vis::Visualizer, model::ContactDynamicsModel, q::AbstractVector;
-		h=0.01,
+		h=0.01, α=1.0,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
-	build_robot!(vis, model, name=name)
+	build_robot!(vis, model, name=name, α=α)
 	animate_robot!(vis, anim, model, q, name=name)
 	return anim
 end
 
 function visualize_robot!(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj;
-		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,
+		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,  α=1.0,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
-	visualize_robot!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, h=h)
+	visualize_robot!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, h=h, α=α)
 	return anim
 end
 

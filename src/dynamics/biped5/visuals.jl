@@ -1,8 +1,8 @@
 function plot_lines!(vis::Visualizer, model::Biped5, q::AbstractVector;
-		r=0.035, offset=0.05, size=10, name::Symbol=:Biped5, col::Bool=true)
+		r=0.035, offset=0.05, size=10, name::Symbol=:Biped5, col::Bool=true, α=1.0)
 	r_contact = r*8/7
 	p_shift = [0.0, 0.0, r_contact]
-	orange_mat, blue_mat, black_mat = get_line_material(size)
+	orange_mat, blue_mat, black_mat = get_line_material(size, α=α)
 
 	# Point Traj
 	torso_point = Vector{Point{3,Float64}}()
