@@ -163,11 +163,58 @@ function build_meshrobot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamin
 end
 
 function convert_config(model::Flamingo, q::AbstractVector)
-	@warn "Flamingo convert_config not implemented"
-    # Flamingo configuration
+    _q = zeros(7)
+    _q[1] = q[3]
+    _q[2] = q[4] - _q[1]
+    _q[4] = (q[5] - _q[2] - _q[1])
+    _q[6] = q[8] - _q[4] - _q[2] - _q[1] - 0.5 * π
 
-    # URDF configuration
-	q = zeros(model.dim.q)
-    t = compose(Translation(zeros(3)...), LinearMap(AngleAxis(zeros(4)...)))
-    return q, t
+    _q[3] = q[6] - _q[1]
+    _q[5] = q[7] - _q[3] - _q[1]
+    _q[7] = q[9] - _q[5] - _q[3] - _q[1] - 0.5 * π
+
+    return _q, compose(Translation(q[1], 0.0, q[2] + 0.02), LinearMap(RotZ(π)))
+end
+
+
+function flamingo_ghost!(vis, sim)
+	x_mean = 1.5 #0.5 * (sim.traj.q[1][1] + sim.traj.q[end][1])
+	shift_traj = deepcopy(sim.traj)
+	sim.traj.q[end][1]
+	for t = 1:length(shift_traj.q)
+		shift_traj.q[t][1] -= x_mean
+	end
+
+	# surf_shift = x -> x[3] - sim.model.env.surf(x[1] + x_mean)[1]
+	# plot_surface!(vis, surf_shift, xlims=[-4.5, 4.5], ylims = [-0.5, 0.5],
+	# 	col = (0.9, 0.9, 0.9), α = 1.0)
+	x_range = range(-3.0, stop = 3.0, length = 100)
+	surface_points = [Point(x, 0.0, sim.model.env.surf(x + x_mean) - 0.01) for x in x_range]
+	surface_mat = LineBasicMaterial(color=RGBA(0.0, 0.0, 0.0, 1.0), linewidth=5)
+	setobject!(vis[:lines][:surface], MeshCat.Line(surface_points, surface_mat))
+
+	# plot_lines!(vis, model, shift_traj.q[1:N_sample:end], offset=-0.25)
+
+	settransform!(vis["/Cameras/default"],
+			compose(Translation(0.0, 0.0, -0.75), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+
+	t = 1
+	mvis1 = build_meshrobot!(vis, sim.model; name=:Flamingo1, α = 0.20)
+	set_meshrobot!(vis, mvis1, sim.model, shift_traj.q[t], name = :Flamingo1)
+
+	t = 1175
+	mvis2 = build_meshrobot!(vis, sim.model; name=:Flamingo2, α = 0.40)
+	set_meshrobot!(vis, mvis2, sim.model, shift_traj.q[t], name = :Flamingo2)
+
+	t = 2565
+	mvis3 = build_meshrobot!(vis, sim.model; name=:Flamingo3, α = 0.60)
+	set_meshrobot!(vis, mvis3, sim.model, shift_traj.q[t], name = :Flamingo3)
+
+	t = 3750
+	mvis4 = build_meshrobot!(vis, sim.model; name=:Flamingo4, α = 0.80)
+	set_meshrobot!(vis, mvis4, sim.model, shift_traj.q[t], name = :Flamingo4)
+
+	t = shift_traj.H
+	mvis5 = build_meshrobot!(vis, sim.model; name=:Flamingo5, α = 1.0)
+	set_meshrobot!(vis, mvis5, sim.model, shift_traj.q[t], name = :Flamingo5)
 end

@@ -13,6 +13,13 @@
   <!-- Encapsulates the body code.-->
   <!-- Defines a ground contact point xacro-->
   <!-- Defines a leg xacro. Most of the action is here.-->
+  <link name="body">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.0"/>
+      <mass value="0.0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+  </link>
   <link name="base_link">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0.20"/>
@@ -20,6 +27,12 @@
       <inertia ixx=".25" ixy="0" ixz="0" iyy=".25" iyz="0" izz=".25"/>
     </inertial>
   </link>
+  <joint name="orientation" type="continuous">
+    <parent link="body"/>
+    <child link="base_link"/>
+    <origin rpy="0 0 0" xyz="0 0.0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
   <link name="left_fan">
   </link>
   <joint name="left_fan_fixed_joint" type="fixed">
@@ -35,7 +48,7 @@
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0.1925"/>
       <material name="grey">
-        <color rgba=".72 .72 .72 1"/>
+        <color rgba="0.72 0.72 0.72 1"/>
       </material>
     </visual>
   </link>
