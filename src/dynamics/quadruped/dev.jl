@@ -26,10 +26,10 @@ visualize_robot!(vis, model, ref_traj.q, anim=anim)
 plot_surface!(vis, model.env, ylims=[-0.5, 0.3])
 build_robot!(vis, model, name=:quad0f)
 build_robot!(vis, model, name=:quad0b)
-mvis = build_meshrobot!(vis, model, name=:mesh1, α=0.5)
+mvis = build_meshrobot!(vis, model, name=:shadow_1, α=0.5)
 
 t = 20
 q = ref_traj.q[t] + [0,0,pi/1,0,0,0,0,0,0,0,0]
 set_robot!(vis, model, q, name=:quad0f, offset=0.00)
 set_robot!(vis, model, q, name=:quad0b, offset=0.264)
-set_meshrobot!(vis, mvis, model, q, name=:mesh1)
+set_meshrobot!(vis, mvis, model, q, name=:shadow_1)

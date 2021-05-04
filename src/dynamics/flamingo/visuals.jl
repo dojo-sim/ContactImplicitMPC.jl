@@ -151,14 +151,15 @@ function contact_point(model::Flamingo, q::AbstractVector)
 	return pc
 end
 
-function build_meshrobot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamingo)
+function build_meshrobot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamingo, α=1.0)
 	default_background!(vis)
 
+	# urdf = joinpath(@__DIR__, "mesh", "flamingo.urdf")
+	# mechanism = MeshCatMechanisms.parse_urdf(urdf)
+	# mvis = MechanismVisualizer(mechanism, URDFVisuals(urdf, package_path=[@__DIR__]), vis[name])
 	urdf = joinpath(@__DIR__, "mesh", "flamingo.urdf")
-	mechanism = MeshCatMechanisms.parse_urdf(urdf)
-	mvis = MechanismVisualizer(mechanism, URDFVisuals(urdf, package_path=[@__DIR__]), vis[name])
-
-	return mvis
+	package_path = @__DIR__
+	build_meshrobot!(vis, model, urdf, package_path; name=name, α=α)
 end
 
 function convert_config(model::Flamingo, q::AbstractVector)

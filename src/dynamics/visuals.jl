@@ -52,6 +52,30 @@ function visualize_robot!(vis::Visualizer, model::ContactDynamicsModel, traj::Co
 	return anim
 end
 
+function build_meshrobot!(vis::Visualizer, model::ContactDynamicsModel, urdf::String,
+		package_path::String; name::Symbol=model_name(model), α=1.0)
+	default_background!(vis)
+
+	mechanism = MeshCatMechanisms.parse_urdf(urdf)
+    visuals = URDFVisuals(urdf, package_path=[package_path])
+    state = MeshCatMechanisms.MechanismState(mechanism)
+    vis_el = MeshCatMechanisms.visual_elements(mechanism, visuals)
+    set_alpha!(vis_el,α)
+
+    mvis = MechanismVisualizer(state, vis[name, :world])
+    MeshCatMechanisms._set_mechanism!(mvis, vis_el)
+    MeshCatMechanisms._render_state!(mvis)
+	return mvis
+end
+
+function set_alpha!(visuals::Vector{VisualElement}, α)
+    for el in visuals
+        c = el.color
+        c_new = RGBA(red(c),green(c),blue(c),α)
+        el.color = c_new
+    end
+end
+
 function set_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, model::ContactDynamicsModel,
 		q::AbstractVector; name::Symbol=model_name(model))
 
@@ -205,12 +229,4 @@ function visualize_force!(vis::Visualizer, model::ContactDynamicsModel,
 	visualize_force!(vis, model, traj.q[3:sample:end], traj.γ[1:sample:end], traj.b[1:sample:end];
 			anim=anim, name=name, h=h)
 	return anim
-end
-
-function set_alpha!(visuals::Vector{VisualElement}, α)
-    for el in visuals
-        c = el.color
-        c_new = RGBA(red(c),green(c),blue(c),α)
-        el.color = c_new
-    end
 end
