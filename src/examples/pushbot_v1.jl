@@ -107,7 +107,7 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
 @time status = ContactControl.simulate!(sim)
 
 sample = 1
-anim = visualize_robot!(vis, model, sim.traj, sample = sample)
+anim = visualize_robot!(vis, model, sim.traj, sample = sample, α=0.5)
 pθ_right = generate_pusher_traj(d, sim.traj, side=:right)
 pθ_left  = generate_pusher_traj(d, sim.traj, side=:left)
 visualize_disturbance!(vis, model, pθ_right, anim=anim, sample=sample, offset=0.05, name=:PusherRight)
@@ -126,6 +126,58 @@ plot([pθ[1] for pθ in pθ_right])
 plot!([pθ[1] for pθ in pθ_left])
 plot!([q[1] for q in sim.traj.q[3:end]])
 
+
+
+# Display highlights
+t_highlights = [20,23,35,216]
+α_highlights = ones(4)
+α_pusher = [1.0, 0.0, 0.0, 0.0]
+
+# # Initial push
+# i = 1
+# t = t_highlights[i]
+# α = i/(length(t_highlights)+1)
+# name = Symbol("High$i")
+# pusher_name = Symbol("HighPusherRight$i")
+# build_robot!(vis, model, name=name, α=α_highlights[i])
+# build_disturbance!(vis, model, name=pusher_name, α=α_highlights[i])
+# set_robot!(vis, model, sim.traj.q[t+2], name=name)
+# set_disturbance!(vis, model, pθ_left[t], name=pusher_name, offset=0.05)
+
+# # Contact with wall
+# i = 2
+# t = t_highlights[i]
+# α = i/(length(t_highlights)+1)
+# name = Symbol("High$i")
+# pusher_name = Symbol("HighPusherRight$i")
+# build_robot!(vis, model, name=name, α=α_highlights[i])
+# build_disturbance!(vis, model, name=pusher_name, α=α_pusher[i])
+# set_robot!(vis, model, sim.traj.q[t+2], name=name)
+# set_disturbance!(vis, model, pθ_left[t], name=pusher_name, offset=0.05)
+
+# # Recovery main body
+# i = 3
+# t = t_highlights[i]
+# α = i/(length(t_highlights)+1)
+# name = Symbol("High$i")
+# pusher_name = Symbol("HighPusherRight$i")
+# build_robot!(vis, model, name=name, α=α_highlights[i])
+# build_disturbance!(vis, model, name=pusher_name, α=α_pusher[i])
+# set_robot!(vis, model, sim.traj.q[t+2], name=name)
+# set_disturbance!(vis, model, pθ_left[t], name=pusher_name, offset=0.05)
+
+# Recovery hand
+i = 4
+t = t_highlights[i]
+α = i/(length(t_highlights)+1)
+name = Symbol("High$i")
+pusher_name = Symbol("HighPusherRight$i")
+build_robot!(vis, model, name=name, α=α_highlights[i])
+build_disturbance!(vis, model, name=pusher_name, α=α_pusher[i])
+set_robot!(vis, model, sim.traj.q[t+2], name=name)
+set_disturbance!(vis, model, pθ_left[t], name=pusher_name, offset=0.05)
+
+(t_highlights .- 19)*h_sim
 
 # filename = "pushbot_multiple_pushes"
 # MeshCat.convert_frames_to_video(

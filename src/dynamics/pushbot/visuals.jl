@@ -26,13 +26,13 @@ function build_robot!(vis::Visualizer, model::PushBot; name::Symbol=:PushBot,
 	end
 
 	setobject!(vis[name][:env]["wall1"],
-		Rect(Vec(0, 0, 0),Vec(1.0, 1.0, 1.5)), wall_mat)
+		Rect(Vec(0, 0, 0),Vec(wall_thickness, wall_thickness, 1.5)), wall_mat)
 
 	setobject!(vis[name][:env]["wall2"],
-		Rect(Vec(0, 0, 0),Vec(1.0, 1.0, 1.5)), wall_mat)
+		Rect(Vec(0, 0, 0),Vec(wall_thickness, wall_thickness, 1.5)), wall_mat)
 
-	settransform!(vis[name][:env]["wall1"], Translation([0.5 + 1.5 * r; -0.5; 0.0]))
-	settransform!(vis[name][:env]["wall2"], Translation([-1.5 - 1.5 * r; -0.5; 0.0]))
+	settransform!(vis[name][:env]["wall1"], Translation([0.5 + 1.5 * r;                 -wall_thickness/2; 0.0]))
+	settransform!(vis[name][:env]["wall2"], Translation([-wall_thickness-0.5 - 1.5 * r; -wall_thickness/2; 0.0]))
 
 	# settransform!(vis["/Cameras/default"],
 	# 	compose(Translation(0.0, 0.5, -1.0), LinearMap(RotZ(-pi / 2.0))))
