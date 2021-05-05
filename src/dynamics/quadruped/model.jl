@@ -541,8 +541,8 @@ d_torso = 0.5 * l_torso + 0.0127
 d_thigh = 0.5 * l_thigh - 0.00323
 d_leg = 0.5 * l_leg - 0.006435
 
-m_payload = 1.0
-J_payload = 0.01
+m_payload = 5.0
+J_payload = 0.05
 
 quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				g, μ_world, μ_joint,
