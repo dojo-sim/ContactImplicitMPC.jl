@@ -11,6 +11,9 @@ struct Simulator{T}
     deriv_traj::ContactDerivTraj
 
     p::Policy
+    uL::Vector{T}
+    uU::Vector{T}
+
     d::Disturbances
 
     ip::InteriorPoint{T}
@@ -20,6 +23,8 @@ end
 
 function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     p = no_policy(model),
+    uL = -Inf * ones(model.dim.u),
+    uU = Inf * ones(model.dim.u),
     d = no_disturbances(model),
     r! = model.res.r!,
     rz! = model.res.rz!,
@@ -33,7 +38,7 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
     traj = contact_trajectory(H, h, model)
     traj.q[1] = q0
     traj.q[2] = q1
-    traj.u[1] = policy(p, traj.q[2], traj, 1)
+    traj.u[1] = control_saturation(policy(p, traj.q[2], traj, 1), uL, uU)
     traj.w[1] = disturbances(d, traj.q[2], 1)
 
     traj_deriv = contact_derivative_trajectory(H, model)
@@ -57,7 +62,7 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
         model,
         traj,
         traj_deriv,
-        p,
+        p, uL, uU,
         d,
         ip,
         sim_opts)
@@ -76,11 +81,10 @@ function step!(sim::Simulator, t)
     θ = ip.θ
 
     # policy
-    # u[t] .= policy(sim.p, q[t], sim.traj, t)
-    u[t] .= policy(sim.p, q[t+1], sim.traj, t)
+    u[t] .= control_saturation(policy(sim.p, q[t+1], sim.traj, t), sim.uL, sim.uU)
 
     # disturbances
-    w[t] = disturbances(sim.d, q[t], t)
+    w[t] .= disturbances(sim.d, q[t], t)
 
     # initialize
     if sim.opts.warmstart
@@ -121,6 +125,7 @@ function step!(sim::Simulator, t)
             sim.deriv_traj.dbdu[t] = view(ip.δz, nq + nc .+ (1:nb), 2 * nq .+ (1:nu))
         end
     end
+
     return status
 end
 

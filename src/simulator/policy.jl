@@ -50,3 +50,9 @@ function policy(p::OpenLoop, x, traj, t)
 
     return p.u[p.idx] ./ p.N_sample
 end
+
+"""
+    control saturation
+"""
+
+control_saturation(u, uL, uU) = min.(max.(uL, u), uU)
