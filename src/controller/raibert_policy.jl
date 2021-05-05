@@ -90,6 +90,6 @@ function policy(p::Raibert, x, traj, t)
 		p.u[1] = kθ_p*(θ1 - θtd)  + kθ_v*θv
 		p.u[2] = kr_p*(r1 - rref) + kr_v_flight*rv
 	end
-	p.u .*= h
-    return p.u
+
+	return p.u .* h
 end
