@@ -1,7 +1,7 @@
 function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
-		r=0.0205, offset=0.05, size=10, name::Symbol=:Quadruped, col::Bool=true)
+		r=0.0205, offset=0.05, size=10, name::Symbol=:Quadruped, col::Bool=true, α::Real=1.0)
 	p_shift = [0.0, 0.0, r]
-	orange_mat, blue_mat, black_mat = get_line_material(size)
+	orange_mat, blue_mat, black_mat = get_line_material(size, α=α)
 
 	# Point Traj
 	torso_point = Vector{Point{3,Float64}}()
@@ -48,6 +48,63 @@ function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 		setobject!(vis[name]["lines/foot4"], MeshCat.Line(f4_point, black_mat))
 	end
 	return nothing
+end
+
+function build_payload!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.0205, rp=0.13, α=1.0)
+	rp = convert(Float32, rp)
+	pl_mat = MeshPhongMaterial(color = RGBA(0.4, 0.4, 0.4, α))
+	thickness = 0.10
+	quad_thickness = 0.267
+	default_background!(vis)
+
+	setobject!(vis[name][:payload],
+		Rect(Vec(0.05, quad_thickness/2-thickness/2, -rp/2+0.15),Vec(rp, thickness, rp)), pl_mat)
+		# Rect(Vec(-rp/2, 0, 0),Vec(rp, 0.10, rp)), pl_mat)
+	return nothing
+end
+
+function set_payload!(vis::Visualizer, model::Quadruped, q::AbstractVector;
+		name::Symbol=:Quadruped, r=0.0205, rp=0.15, offset=0.00)
+
+	r = convert(Float32, r)
+	p_shift = [0.0; offset; r]
+
+	p = [q[1]; 0.0; q[2]] + p_shift
+
+	k_torso = kinematics_1(model, q, body = :torso, mode = :ee)
+	p_torso = [k_torso[1], 0.0, k_torso[2]] + p_shift
+	settransform!(vis[name][:payload], cable_transform(p, p_torso))
+	return nothing
+end
+
+function animate_payload!(vis::Visualizer, anim::MeshCat.Animation, model::ContactDynamicsModel,
+		q::AbstractVector; name::Symbol=model_name(model))
+	for t in 1:length(q)
+		MeshCat.atframe(anim, t) do
+			set_payload!(vis, model, q[t], name=name)
+		end
+	end
+	setanimation!(vis, anim)
+	return nothing
+end
+
+function visualize_payload!(vis::Visualizer, model::ContactDynamicsModel, q::AbstractVector;
+		h=0.01, α=1.0,
+		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=model_name(model))
+
+	build_payload!(vis, model, name=name, α=α)
+	animate_payload!(vis, anim, model, q, name=name)
+	return anim
+end
+
+function visualize_payload!(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj;
+		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,  α=1.0,
+		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=model_name(model))
+
+	visualize_payload!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, h=h, α=α)
+	return anim
 end
 
 function build_robot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.0205, α=1.0)
@@ -209,8 +266,6 @@ function build_meshrobot!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadr
 	package_path = @__DIR__
 	build_meshrobot!(vis, model, urdf, package_path; name=name, α=α)
 end
-
-
 
 function convert_config(model::Quadruped, q::AbstractVector)
     # Quadruped configuration

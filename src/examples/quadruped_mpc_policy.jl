@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 4000 #3000
+H_sim = 500 #4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -53,7 +53,11 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 @time status = ContactControl.simulate!(sim)
+# @elapsed status = ContactControl.simulate!(sim)
 # @profiler status = ContactControl.simulate!(sim)
+
+
+(H_sim*h_sim)/(2.45*970/2332)
 
 
 plot_lines!(vis, model, sim.traj.q[1:25:end])

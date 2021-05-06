@@ -6,9 +6,8 @@ open(vis)
 render(vis)
 
 # get hopper model
-model_sim = get_model("quadruped", surf="payload")
-model_sim = get_model("quadruped", surf="flat")
-# model_sim = get_model("quadruped", surf="flat")
+model_payload = get_model("quadruped", surf="payload", dynamics="dynamics_payload")
+model_no_payload = get_model("quadruped", surf="flat")
 
 model = get_model("quadruped", surf="flat")
 nq = model.dim.q
@@ -17,6 +16,8 @@ nc = model.dim.c
 nb = model.dim.b
 nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
+M_fast(model_payload, zeros(nq))
+M_fast(model_no_payload, zeros(nq))
 
 # get trajectory
 ref_traj = get_trajectory("quadruped", "gait2", load_type=:split_traj_alt, model=model)
@@ -28,7 +29,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 4000 #5000
+H_sim = 2100 #220 #5000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -54,6 +55,8 @@ p = linearized_mpc_policy(ref_traj, model, obj,
         )
     )
 
+# Test open loop policy to see the impact of the payload
+# p = open_loop_policy(deepcopy(ref_traj.u), N_sample=N_sample)
 
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])
@@ -61,19 +64,25 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-w_amp = [+0.02, -0.20]
-sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
+sim_no_payload = simulator(model_no_payload, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-    # d = open_loop_disturbances([rand(model.dim.w) .* w_amp for i=1:H_sim]),
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
         κ_init = 1.0e-6,
         κ_tol = 2.0e-6),
     sim_opts = SimulatorOptions(warmstart = true)
     )
+@time status = simulate!(sim_no_payload)
 
-@time status = simulate!(sim)
-sum(sim.traj.γ[1])/h_sim/(model.g*(model.m_torso+4model.m_thigh1+4model.m_calf1))
+sim_payload = simulator(model_payload, q0_sim, q1_sim, h_sim, H_sim,
+    p = p,
+    ip_opts = InteriorPointOptions(
+        r_tol = 1.0e-8,
+        κ_init = 1.0e-6,
+        κ_tol = 2.0e-6),
+    sim_opts = SimulatorOptions(warmstart = true)
+    )
+@time status = simulate!(sim_payload)
 
 # plt = plot(layout=(3,1), legend=false)
 # plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
@@ -84,30 +93,38 @@ sum(sim.traj.γ[1])/h_sim/(model.g*(model.m_torso+4model.m_thigh1+4model.m_calf1
 # plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
-plot_surface!(vis, model_sim.env, ylims=[0.3, -0.05])
-plot_lines!(vis, model, sim.traj.q[1:25:end])
-anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
-# anim = visualize_robot!(vis, model, sim.traj, anim=anim)
-anim = visualize_force!(vis, model, sim.traj, anim=anim, sample=5, h=h_sim)
+plot_surface!(vis, model.env, ylims=[0.3, -0.05])
+plot_lines!(vis, model, sim_no_payload.traj.q[1:1:end], name=:NoPayload)
+plot_lines!(vis, model, sim_payload.traj.q[1:1:end], name=:Payload)
+ext_ref_traj = repeat_ref_traj(ref_traj, model, 7; idx_shift = (1:1))
+plot_lines!(vis, model, ext_ref_traj.q, offset=0.025, name=:Ref, col=false)
+
+anim = visualize_meshrobot!(vis, model, sim_no_payload.traj, sample=5, name=:NoPayload)
+anim = visualize_meshrobot!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload)
+anim = visualize_payload!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload)
+anim = visualize_force!(vis, model, sim_no_payload.traj, anim=anim, sample=5, h=h_sim, name=:NoPayload)
+anim = visualize_force!(vis, model, sim_payload.traj, anim=anim, sample=5, h=h_sim, name=:Payload)
 
 # Display ghosts
-t_ghosts = [1, 1333, 2666]
+t_ghosts = [1]
 mvis_ghosts = []
 for (i,t) in enumerate(t_ghosts)
     α = i/(length(t_ghosts)+1)
     name = Symbol("ghost$i")
-    mvis = build_meshrobot!(vis, model, name=name, α=α)
+    mvis = build_meshrobot!(vis, model_payload, name=name, α=α)
+    build_payload!(vis, model_payload, name=name, α=α)
     push!(mvis_ghosts, mvis)
 end
 
 for (i,t) in enumerate(t_ghosts)
     name = Symbol("ghost$i")
-    set_meshrobot!(vis, mvis_ghosts[i], model, sim.traj.q[t], name=name)
+    set_meshrobot!(vis, mvis_ghosts[i], model, sim_payload.traj.q[t], name=name)
+    set_payload!(vis, model, sim_payload.traj.q[t], name=name)
 end
 
 
 
-filename = "quadruped_3kg_payload"
+filename = "quadruped_3kg_vs_ref"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
     "/home/simon/Documents/$filename.mp4", overwrite=true)
