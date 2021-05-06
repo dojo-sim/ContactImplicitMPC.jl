@@ -1,4 +1,4 @@
-"""
+"""triu_perm
     QR factorization and solve methods
 """
 abstract type GSData{n,T} end
