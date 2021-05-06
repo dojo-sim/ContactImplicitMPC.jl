@@ -1,8 +1,8 @@
 function stairs3steps(x)
-    s1 = 0.25
-    s2 = 0.75
-    s3 = 1.25
-    s4 = 1.75
+    s1 = 0.125
+    s2 = 0.375
+    s3 = 0.625
+    s4 = 0.875
     a0 = 0.00
     a1 = 0.25
     a2 = 0.50
@@ -19,8 +19,8 @@ function d_stairs3steps(x)
 end
 
 
-# X = Vector(0:0.01:3)
-# plot(X, stairs3steps.(X))
+X = Vector(0:0.01:1.5)
+plot(X, stairs3steps.(X))
 
 # Kernel
 function f(x, center, radius, sharpness)

@@ -15,16 +15,30 @@ nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
 # get trajectory
-ref_traj = get_trajectory("hopper_2D", "gait_in_place_high", load_type=:joint_traj)
+ref_traj0 = get_trajectory("hopper_2D", "gait_forward_high", load_type=:joint_traj)
+ref_traj = deepcopy(ref_traj0)
+for t = 1:ref_traj.H+2
+    ref_traj.q[t][1] += 0.25
+end
 
+LinearizedStep(model, ref_traj.z[end], ref_traj.θ[end], κ)
+LinearizedStep(model, ref_traj.z[end], ref_traj.θ[end], κ)
+
+nz = num_var(model)
+nθ = num_data(model)
+z0 = SizedVector{nz,T}(ref_traj.z[end])
+θ0 = SizedVector{nθ,T}(ref_traj.θ[end])
+κ0 = 1e-8
+r0 = zeros(SizedVector{nz,T})
+model.res.r!(r0, z0, θ0, κ0)
+r0
+
+ϕ_fast(model, ref_traj.q[end])
+ϕ_func(model, ref_traj.q[end])
 
 H = ref_traj.H
 h = ref_traj.h
 κ = 1.0e-8
-
-# for t = 1:H+2
-    # ref_traj.q[t][1] += 0.00
-# end
 
 # Cost function
 obj = TrackingObjective(H, model.dim,
@@ -38,8 +52,8 @@ core = Newton(H, h, model_sim, ref_traj, im_traj, obj = obj, opts = n_opts)
 
 ϕ_fast(model_sim, ref_traj.q[end])
 
-q0_dist = deepcopy(ref_traj.q[1] + [-0.25,0.0,0,0])
-q1_dist = deepcopy(ref_traj.q[2] + [-0.25,0.0,0,0])
+q0_dist = deepcopy(ref_traj.q[1] + [-0.00,0.0,0,0])
+q1_dist = deepcopy(ref_traj.q[2] + [-0.00,0.0,0,0])
 newton_solve!(core, model_sim, im_traj, ref_traj, q0=q0_dist, q1=q1_dist, verbose=true)
 
 plot_surface!(vis, model_sim.env, n=200)
@@ -56,12 +70,12 @@ plot(hcat(Vector.(core.traj.q)...)')
 
 # Save trajectory
 traj = deepcopy(core.traj)
-gait_path = joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "gaits", "gait_forward_high.jld2")
+gait_path = joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "gaits", "gait_stair.jld2")
 @save gait_path traj
 
 # Reload trajectory
 res = JLD2.jldopen(gait_path)
 loaded_traj = res["traj"]
 
-traj = get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
+traj = get_trajectory("hopper_2D", "gait_stair", load_type=:joint_traj)
 plot(hcat(Vector.(traj.q)...)')
