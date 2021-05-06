@@ -7,8 +7,8 @@ open(vis)
 include(joinpath(pwd(), "src/dynamics/hopper_2D/model.jl"))
 model_nom = get_model("hopper_2D")
 
-model_1 = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
-			   1.0 * mb, ml, 1.0 * Jb, Jl,
+model_sim = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
+			   1.5 * mb, ml, 1.5 * Jb, Jl,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(), ContactMethods(),
 			   ResidualMethods(), ResidualMethods(),
@@ -16,14 +16,14 @@ model_1 = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   SVector{4}(zeros(4)),
 			   environment_2D_flat())
 
-expr_base = generate_base_expressions_analytical(model_1)
-instantiate_base!(model_1.base, expr_base)
-expr_dyn = generate_dynamics_expressions(model_1)
-instantiate_dynamics!(model_1.dyn, expr_dyn)
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(model_1)
-instantiate_residual!(model_1.res, expr_res)
-model_1.spa.rz_sp = rz_sp
-model_1.spa.rθ_sp = rθ_sp
+expr_base = generate_base_expressions_analytical(model_sim)
+instantiate_base!(model_sim.base, expr_base)
+expr_dyn = generate_dynamics_expressions(model_sim)
+instantiate_dynamics!(model_sim.dyn, expr_dyn)
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model_sim)
+instantiate_residual!(model_sim.res, expr_res)
+model_sim.spa.rz_sp = rz_sp
+model_sim.spa.rθ_sp = rθ_sp
 
 nq = model_nom.dim.q
 nu = model_nom.dim.u
@@ -51,9 +51,9 @@ q_ref = SVector{nq,T}([0.0, 0.5, 0.0, 0.5])
 q0_sim = copy(q_ref) + off0
 q1_sim = copy(q_ref) + off1
 
-sim = simulator(model_1, q0_sim, q1_sim, h_sim, H_sim,
+sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-	uL = [-1.0, -0.3], uU = [1.0, 0.3],
+	uL = [-0.25, -0.3], uU = [0.25, 0.3],
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
         κ_init = 1.0e-8,
@@ -65,4 +65,5 @@ sim = simulator(model_1, q0_sim, q1_sim, h_sim, H_sim,
 
 anim = visualize_robot!(vis, sim.model, sim.traj, sample=20)
 
-plot(hcat(sim.traj.u...)[1:2, 1:10:end]')
+plot(hcat(sim.traj.u...)[1:2, 1:10:end]',
+	label = ["torque" "force"], xlabel = "time step", ylabel = "control")
