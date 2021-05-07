@@ -5,7 +5,13 @@ open(vis)
 
 # get hopper model
 model_sim = get_model("hopper_2D", surf="stairs")
-model = get_model("hopper_2D", surf="stairs")
+model = get_model("hopper_2D", surf="flat")
+model_sim.res = deepcopy(ResidualMethods(
+    model_sim.res.r!,
+    model.res.rz!,
+    model_sim.res.rθ!,
+    ))
+
 # model = get_model("hopper_2D")
 nq = model.dim.q
 nu = model.dim.u
@@ -21,8 +27,11 @@ for t = 1:ref_traj.H+2
     ref_traj.q[t][1] += 0.25
 end
 
-LinearizedStep(model, ref_traj.z[end], ref_traj.θ[end], κ)
-LinearizedStep(model, ref_traj.z[end], ref_traj.θ[end], κ)
+
+
+
+LinearizedStep(model_sim, ref_traj.z[end], ref_traj.θ[end], κ0)
+LinearizedStep(model_sim, ref_traj.z[end], ref_traj.θ[end], κ0)
 
 nz = num_var(model)
 nθ = num_data(model)
@@ -30,11 +39,16 @@ z0 = SizedVector{nz,T}(ref_traj.z[end])
 θ0 = SizedVector{nθ,T}(ref_traj.θ[end])
 κ0 = 1e-8
 r0 = zeros(SizedVector{nz,T})
-model.res.r!(r0, z0, θ0, κ0)
+rz0 = zeros(nz, nz)
+rθ0 = zeros(nz, nθ)
+
+model_sim.res.r!(r0, z0, θ0, κ0)
+model_sim.res.rz!(rz0, z0, θ0)
+model_sim.res.rθ!(rθ0, z0, θ0)
 r0
 
-ϕ_fast(model, ref_traj.q[end])
-ϕ_func(model, ref_traj.q[end])
+ϕ_fast(model_sim, ref_traj.q[end])
+ϕ_func(model_sim, ref_traj.q[end])
 
 H = ref_traj.H
 h = ref_traj.h

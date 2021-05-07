@@ -435,6 +435,7 @@ function get_trajectory(model::ContactDynamicsModel, gait_path::String;
 
 		T = length(u)
 
+		h = mean(h)
 		traj = contact_trajectory(T, h, model)
 		traj.q .= deepcopy(q)
 		traj.u .= deepcopy(u)
