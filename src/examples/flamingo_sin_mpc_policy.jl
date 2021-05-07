@@ -81,7 +81,6 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 @save joinpath(pwd(), "src/dynamics/flamingo/simulations/sine.jld2") sim
 @load joinpath(pwd(), "src/dynamics/flamingo/simulations/sine.jld2") sim
 
-
 l = 9
 lu = 1
 plt = plot(layout=(3,1), legend=false)
@@ -111,4 +110,4 @@ convert_video_to_gif(
     "/home/simon/Documents/$filename.mp4",
     "/home/simon/Documents/$filename.gif", overwrite=true)
 
-flamingo_ghost!(vis, sim)
+flamingo_ghost!(vis, sim, model_sim.env.surf)

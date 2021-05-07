@@ -177,7 +177,7 @@ function convert_config(model::Flamingo, q::AbstractVector)
 end
 
 
-function flamingo_ghost!(vis, sim)
+function flamingo_ghost!(vis, sim, surf)
 	x_mean = 1.5 #0.5 * (sim.traj.q[1][1] + sim.traj.q[end][1])
 	shift_traj = deepcopy(sim.traj)
 	sim.traj.q[end][1]
@@ -189,14 +189,15 @@ function flamingo_ghost!(vis, sim)
 	# plot_surface!(vis, surf_shift, xlims=[-4.5, 4.5], ylims = [-0.5, 0.5],
 	# 	col = (0.9, 0.9, 0.9), α = 1.0)
 	x_range = range(-3.0, stop = 3.0, length = 100)
-	surface_points = [Point(x, 0.0, sim.model.env.surf(x + x_mean) - 0.01) for x in x_range]
+	surface_points = [Point(x, 0.0, surf(x + x_mean)) for x in x_range]
 	surface_mat = LineBasicMaterial(color=RGBA(0.0, 0.0, 0.0, 1.0), linewidth=5)
 	setobject!(vis[:lines][:surface], MeshCat.Line(surface_points, surface_mat))
 
 	# plot_lines!(vis, model, shift_traj.q[1:N_sample:end], offset=-0.25)
 
 	settransform!(vis["/Cameras/default"],
-			compose(Translation(0.0, 0.0, -0.75), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+			compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+	setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
 
 	t = 1
 	mvis1 = build_meshrobot!(vis, sim.model; name=:Flamingo1, α = 0.20)

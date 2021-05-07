@@ -110,4 +110,4 @@ settransform!(vis["/Cameras/default"],
 		compose(Translation(0.0, 0.5, -1.0),LinearMap(RotZ(-pi / 2.0))))
 
 # Ghost
-flamingo_ghost!(vis, sim)
+flamingo_ghost!(vis, sim, x -> 0.0)

@@ -153,4 +153,4 @@ convert_video_to_gif(
     "/home/simon/Documents/$filename.gif", overwrite=true)
 
 # Ghost
-flamingo_ghost!(vis, sim)
+flamingo_ghost!(vis, sim, piecewise_smoothed)
