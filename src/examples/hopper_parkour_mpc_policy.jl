@@ -18,7 +18,6 @@ model = get_model("hopper_2D")
 # MPC parameters
 N_sample = 10
 H_mpc = 10
-# barrier parameter
 κ_mpc = 1.0e-4
 n_opts = NewtonOptions(
     r_tol = 3e-4,
@@ -27,6 +26,11 @@ mpc_opts = LinearizedMPCOptions(
     altitude_update = true,
     altitude_impact_threshold = 0.1,
     altitude_verbose = true)
+
+
+################################################################################
+# Stair climbing
+################################################################################
 
 # get stair trajectory
 ref_traj_ = get_trajectory(model,
@@ -40,7 +44,7 @@ h = ref_traj.h
 h_sim = h / N_sample
 H_sim = 254*N_sample
 
-
+# Objective
 obj = TrackingVelocityObjective(H_mpc, model.dim,
     v = [Diagonal(1e-3 * [0.1,1,1,10]) for t = 1:H_mpc],
     q = [[Diagonal(1.0e-0 * [0.3,0.3,0.3,1])   for t = 1:H_mpc]; [Diagonal(1.0e+2 * [5,0.3,0.3,0.1])   for t = 1:H_mpc]],
@@ -48,6 +52,7 @@ obj = TrackingVelocityObjective(H_mpc, model.dim,
     γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-3 * ones(model.dim.b)) for t = 1:H_mpc])
 
+# Policy
 p = linearized_mpc_policy(ref_traj, model, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
@@ -79,30 +84,27 @@ sim_stair = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0)
 # anim = visualize_robot!(vis, model, ref_traj, anim=anim, name=:Ref, α=0.3)
 
-
 ################################################################################
-
-
+# Front flip
+################################################################################
 
 # get trajectory
 ref_traj_ = get_trajectory(model,
     joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_tall_flip5.jld2"),
     load_type=:split_traj_alt)
 ref_traj = deepcopy(ref_traj_)
+# offset the trajectory
 for t = 1:ref_traj.H+2
     ref_traj.q[t][1] += sim_stair.traj.q[end][1]
 end
+
 # time
 H = ref_traj.H
 h = ref_traj.h
-N_sample = 10
-H_mpc = 10
 h_sim = h / N_sample
-H_sim = 650
+H_sim = 64*N_sample
 
-# barrier parameter
-κ_mpc = 1.0e-4
-
+# Objective
 obj = TrackingVelocityObjective(H_mpc, model.dim,
     v = [Diagonal(1e-3 * [0.1,1,1,10]) for t = 1:H_mpc],
     q = [[Diagonal(1.0e-1 * [0.1,10,3,3]) for t = 1:H_mpc]; [Diagonal(1.0e+2 * [5,10,3,10])   for t = 1:H_mpc]],
@@ -110,22 +112,16 @@ obj = TrackingVelocityObjective(H_mpc, model.dim,
     γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-3 * ones(model.dim.b)) for t = 1:H_mpc])
 
+# Policy
 p = linearized_mpc_policy(ref_traj, model, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
-    n_opts = NewtonOptions(
-        r_tol = 3e-4,
-        max_iter = 5),
-    mpc_opts = LinearizedMPCOptions(
-        # live_plotting=true,
-        altitude_update = true,
-        altitude_impact_threshold = 0.1,
-        altitude_verbose = true,
-        )
+    n_opts = n_opts,
+    mpc_opts = mpc_opts,
     )
 
-
+# Initial configurations
 q0_sim = deepcopy(SVector{model.dim.q}(sim_stair.traj.q[end-1]))
 q1_sim = deepcopy(SVector{model.dim.q}(sim_stair.traj.q[end]))
 
@@ -144,13 +140,16 @@ sim_flip = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)
 # anim = visualize_robot!(vis, model, ref_traj, anim=anim, name=:Ref, α=0.3)
 
-
 ################################################################################
+# Full trajectory
+################################################################################
+
 ref_traj_full = get_trajectory(model,
     joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stairs_3_flip_v3.jld2"),
     load_type=:split_traj_alt)
 
-anim = visualize_robot!(vis, model, [sim_stair.traj.q[1:end-2]; sim_flip.traj.q][1:10:end], name=:Sim, α=1.0)
+sim_traj_full = [sim_stair.traj.q[1:end-2]; sim_flip.traj.q]
+anim = visualize_robot!(vis, model, sim_traj_full[1:10:end], name=:Sim, α=1.0)
 anim = visualize_robot!(vis, model, ref_traj_full.q, anim=anim, name=:Ref, α=0.3)
 
 
