@@ -400,6 +400,13 @@ function get_trajectory(name::String, gait::String; model_name = name, load_type
 	#TODO: assert model exists
 	path = joinpath(@__DIR__, name)
 	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
+	traj = get_trajectory(model, gait_path; load_type=load_type)
+	return traj
+end
+
+function get_trajectory(model::ContactDynamicsModel, gait_path::String;
+		load_type::Symbol=:split_traj)
+	#TODO: assert model exists
 
 	nq = model.dim.q
 	nu = model.dim.u

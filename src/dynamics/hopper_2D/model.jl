@@ -147,3 +147,17 @@ hopper_2D_sinusoidal = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   SVector{4}(zeros(4)),
 			   environment_2D(x -> 0.10 * sin(2π * x[1])),
 			   )
+
+hopper_2D_stairs = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
+			   mb, ml, Jb, Jl,
+			   μ_world, μ_joint, g,
+			   BaseMethods(), DynamicsMethods(), ContactMethods(),
+			   ResidualMethods(), ResidualMethods(),
+			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+			   SVector{4}(zeros(4)),
+			   # environment_2D(x -> 0.1 * x[1]),
+			   # environment_2D(x -> 0.10 * sin(2π * x[1])),
+			   Environment{R2}(x -> 0.1*x[1], x -> 0.0),
+			   # Environment{R2}(x -> 0.1, x -> 0.0),
+			   # Environment{R2}(stairs3steps, d_stairs3steps),
+			   )
