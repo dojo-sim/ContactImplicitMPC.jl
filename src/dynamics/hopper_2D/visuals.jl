@@ -72,14 +72,14 @@ end
 
 function plot_stairs!(vis)
 	setobject!(vis["box1"], GeometryBasics.HyperRectangle(Vec(0.0, 0.0, 0.0),
-	Vec(0.5, 0.5, 0.25)), MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, 1.0)))
-	settransform!(vis["box1"], Translation(0.25, -0.25, 0))
+		Vec(0.25, 0.5, 0.25)), MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, 1.0)))
+	settransform!(vis["box1"], Translation(0.125, -0.25, 0))
 
 	setobject!(vis["box2"], GeometryBasics.HyperRectangle(Vec(0.0, 0.0, 0.0),
-		Vec(0.5, 0.5, 2 * 0.25)), MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, 1.0)))
-	settransform!(vis["box2"], Translation(0.25 + 0.5, -0.25, 0))
+		Vec(0.25, 0.5, 2 * 0.25)), MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, 1.0)))
+	settransform!(vis["box2"], Translation(0.125 + 0.25, -0.25, 0))
 
 	setobject!(vis["box3"], GeometryBasics.HyperRectangle(Vec(0.0, 0.0, 0.0),
-		Vec(0.5, 0.5, 3 * 0.25)), MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, 1.0)))
-	settransform!(vis["box3"], Translation(0.25 + 2 * 0.5, -0.25, 0))
+		Vec(0.25, 0.5, 3 * 0.25)), MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, 1.0)))
+	settransform!(vis["box3"], Translation(0.125 + 2 * 0.25, -0.25, 0))
 end
