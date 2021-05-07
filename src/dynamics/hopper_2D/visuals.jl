@@ -70,7 +70,7 @@ function contact_point(model::Hopper2D, q::AbstractVector)
 	return pc
 end
 
-function plot_stairs!(vis)
+function stairs!(vis)
 	setobject!(vis["box1"], GeometryBasics.HyperRectangle(Vec(0.0, 0.0, 0.0),
 		Vec(0.25, 0.5, 0.25)), MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, 1.0)))
 	settransform!(vis["box1"], Translation(0.125, -0.25, 0))
