@@ -34,7 +34,7 @@ mpc_opts = LinearizedMPCOptions(
 
 # get stair trajectory
 ref_traj_ = get_trajectory(model,
-    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stair1.jld2"),
+    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stair_ref.jld2"),
     load_type=:split_traj_alt)
 ref_traj = deepcopy(ref_traj_)
 
@@ -90,7 +90,7 @@ anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0
 
 # get trajectory
 ref_traj_ = get_trajectory(model,
-    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_tall_flip5.jld2"),
+    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_tall_flip_ref.jld2"),
     load_type=:split_traj_alt)
 ref_traj = deepcopy(ref_traj_)
 # offset the trajectory
@@ -145,7 +145,7 @@ anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)
 ################################################################################
 
 ref_traj_full = get_trajectory(model,
-    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stairs_3_flip_v3.jld2"),
+    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stairs_flip_ref.jld2"),
     load_type=:split_traj_alt)
 
 sim_traj_full = [sim_stair.traj.q[1:end-2]; sim_flip.traj.q]
