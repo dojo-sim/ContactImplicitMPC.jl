@@ -16,7 +16,7 @@ nr = nq + nu + nc + nb + nd
 
 # get trajectory
 ref_traj = get_trajectory(model,
-    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stair.jld2"),
+    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stairs_3_flip_v3.jld2"),
     load_type=:split_traj_alt)
 
 # time
@@ -73,8 +73,6 @@ visualize_robot!(vis, model, sim.traj)
 visualize_robot!(vis, model, ref_traj)
 
 
-
-
 plt = plot(layout=(3,1), legend=false)
 plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
@@ -94,3 +92,114 @@ plot(hcat([q[1:1] for q in ref_traj.q]...)')
 # convert_video_to_gif(
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
+
+plot_lines!(vis, sim.model, ref_traj.q[1:1:end], size = 5, offset = -0.5)
+stairs!(vis)
+settransform!(vis["/Cameras/default"],
+        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
+
+t = 1
+name = Symbol("Hopper" * "1")
+build_robot!(vis, sim.model, name=name, α = 0.2)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+#
+# t = 25
+# name = Symbol("Hopper" * "2")
+# build_robot!(vis, sim.model, name=name, α = 0.2)
+# set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 35
+name = Symbol("Hopper" * "3")
+build_robot!(vis, sim.model, name=name, α = 0.2)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+# t = 40
+# name = Symbol("Hopper" * "4")
+# build_robot!(vis, sim.model, name=name, α = 0.2)
+# set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 50
+name = Symbol("Hopper" * "5")
+build_robot!(vis, sim.model, name=name, α = 0.2)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 110
+name = Symbol("Hopper" * "6")
+build_robot!(vis, sim.model, name=name, α = 0.2)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+# t = 105
+# name = Symbol("Hopper" * "7")
+# build_robot!(vis, sim.model, name=name, α = 0.4)
+# set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 130
+name = Symbol("Hopper" * "8")
+build_robot!(vis, sim.model, name=name, α = 0.4)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+# t = 130
+# name = Symbol("Hopper" * "9")
+# build_robot!(vis, sim.model, name=name, α = 0.4)
+# set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 190
+name = Symbol("Hopper" * "10")
+build_robot!(vis, sim.model, name=name, α = 0.4)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 210
+name = Symbol("Hopper" * "11")
+build_robot!(vis, sim.model, name=name, α = 0.4)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+# t = 200
+# name = Symbol("Hopper" * "12")
+# build_robot!(vis, sim.model, name=name, α = 0.4)
+# set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+# t = 210
+# name = Symbol("Hopper" * "13")
+# build_robot!(vis, sim.model, name=name, α = 0.4)
+# set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 265
+name = Symbol("Hopper" * "14")
+build_robot!(vis, sim.model, name=name, α = 0.6)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 270
+name = Symbol("Hopper" * "15")
+build_robot!(vis, sim.model, name=name, α = 0.6)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 284
+name = Symbol("Hopper" * "16")
+build_robot!(vis, sim.model, name=name, α = 0.6)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 295
+name = Symbol("Hopper" * "17")
+build_robot!(vis, sim.model, name=name, α = 0.6)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 300
+name = Symbol("Hopper" * "18")
+build_robot!(vis, sim.model, name=name, α = 0.8)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+# t = 300
+# name = Symbol("Hopper" * "19")
+# build_robot!(vis, sim.model, name=name, α = 0.8)
+# set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 305
+name = Symbol("Hopper" * "20")
+build_robot!(vis, sim.model, name=name, α = 0.8)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
+
+t = 320
+name = Symbol("Hopper" * "21")
+build_robot!(vis, sim.model, name=name, α = 1.0)
+set_robot!(vis, sim.model, ref_traj.q[t], name = name)
