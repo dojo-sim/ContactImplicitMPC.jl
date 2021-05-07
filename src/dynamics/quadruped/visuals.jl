@@ -3,6 +3,9 @@ function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 	p_shift = [0.0, 0.0, r]
 	orange_mat, blue_mat, black_mat = get_line_material(size, α=α)
 	black_mat.color = RGBA(0.0,153/256,153/256,α)
+	black_mat.color = RGBA(209/256,0/256,209/256,α)
+	black_mat.color = RGBA(136/256,008/256,008/256,α)
+	black_mat.color = RGBA(170/256,074/256,068/256,α)
 
 	# Point Traj
 	torso_point = Vector{Point{3,Float64}}()
@@ -52,7 +55,7 @@ function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 end
 
 function build_payload!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped,
-		object=:mesh, r=0.0205, rp=0.13, α=1.0)
+		object=:mesh, r=0.0205, rp=0.20, α=1.0)
 	rp = convert(Float32, rp)
 	pl_mat = MeshPhongMaterial(color = RGBA(0.4, 0.4, 0.4, α))
 	thickness = 0.10
@@ -62,12 +65,12 @@ function build_payload!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadrup
 	if object == :mesh
 		obj = MeshFileObject(joinpath(@__DIR__, "payload_mesh", "Box.obj"))
 		setobject!(vis[name][:payload][:object], obj)
-		tr = Translation(0.05, quad_thickness/2, 0.15)
+		tr = Translation(0.058, quad_thickness/2, 0.18)
 		rt = LinearMap(rp*0.5*I(3)*RotZ(π/2)*RotX(pi))
 		tform = compose(tr, rt)
 		settransform!(vis[name][:payload][:object], tform)
 	elseif object == :rectangle
-		obj = Rect(Vec(0.05, quad_thickness/2-thickness/2, -rp/2+0.15), Vec(rp, thickness, rp))
+		obj = Rect(Vec(0.058, quad_thickness/2-thickness/2, -rp/2+0.18), Vec(rp, thickness, rp))
 		setobject!(vis[name][:payload][:object], obj, pl_mat)
 	end
 	return nothing

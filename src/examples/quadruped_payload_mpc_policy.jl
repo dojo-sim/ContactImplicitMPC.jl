@@ -99,7 +99,7 @@ plot_surface!(vis, model.env, ylims=[0.3, -0.05])
 plot_lines!(vis, model, sim_no_payload.traj.q[1:1:end], name=:NoPayload, offset=-0.15)
 plot_lines!(vis, model, sim_payload.traj.q[1:1:end], name=:Payload, offset=-0.15)
 ext_ref_traj = repeat_ref_traj(ref_traj, model, 7; idx_shift = (1:1))
-plot_lines!(vis, model, ext_ref_traj.q, offset=-0.15, name=:Ref, col=false,)
+plot_lines!(vis, model, ext_ref_traj.q, offset=-0.17, name=:Ref, col=false,)
 
 anim = visualize_meshrobot!(vis, model, sim_no_payload.traj, sample=5, name=:NoPayload)
 anim = visualize_meshrobot!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload)
@@ -107,7 +107,6 @@ anim = visualize_payload!(vis, model, sim_payload.traj, anim=anim, sample=5, nam
 # anim = visualize_force!(vis, model, sim_no_payload.traj, anim=anim, sample=5, h=h_sim, name=:NoPayload)
 # anim = visualize_force!(vis, model, sim_payload.traj, anim=anim, sample=5, h=h_sim, name=:Payload)
 
-get_line_material(10.0)[1].color = RGBA(0.0, 0.0, 0.0, 0.6)
 
 # Display ghosts
 t_ghosts = [1]
@@ -129,11 +128,11 @@ end
 anim = visualize_payload!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload)
 
 
-# filename = "quadruped_3kg_vs_ref"
-# MeshCat.convert_frames_to_video(
-#     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/$filename.mp4", overwrite=true)
-#
-# convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)
+filename = "quadruped_cardboard"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)
