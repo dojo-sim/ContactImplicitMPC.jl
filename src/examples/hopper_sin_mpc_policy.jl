@@ -94,7 +94,7 @@ anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=20)
 plot(hcat([u[[1,2]] for u in Vector.(sim.traj.u)[1:end]]...)')
 
 
-# filename = "hopper_2d_steep_sine"
+# filename = "hopper_ipopt"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
