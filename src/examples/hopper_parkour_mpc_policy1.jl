@@ -13,7 +13,7 @@ end
 
 # get hopper model
 model_sim = get_model("hopper_2D", surf="stairs")
-model = get_model("hopper_2D")
+model = get_model("hopper_2D", surf="flat")
 nq = model.dim.q
 nu = model.dim.u
 nc = model.dim.c
@@ -23,22 +23,31 @@ nr = nq + nu + nc + nb + nd
 
 # get trajectory
 ref_traj_ = get_trajectory(model,
-    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stair1.jld2"),
+    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stairs_3_flip_v3.jld2"),
+    # joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stair_v3.jld2"),
     # joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_tall_flip5.jld2"),
     load_type=:split_traj_alt)
-
 ref_traj = deepcopy(ref_traj_)
-# ContactControl.update_friction_coefficient!(ref_traj, model_sim)
-for t = 1:H+2
-    # ref_traj.q[t][1] += 0.75
-end
+plot(hcat([γ[1:1] for γ in ref_traj.γ[1:end]]...)')
+
+# Solve altitude issue
+l1 = 41
+l2 = 80
+l3 = 80
+l4 = 62
+l5 = (ref_traj.H+2) - (l1+l2+l3+l4)
+offset = [zeros(l1); 0.25*ones(l2), 0.50*ones(l3), 0.25*ones(l4)]
+# for
+plot(hcat([q[1:1] for q in ref_traj.q]...)')
+plot!(hcat([q[4:4] for q in ref_traj.q]...)')
+
 # time
 H = ref_traj.H
 h = ref_traj.h
 N_sample = 10
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 690
+H_sim = 1400
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -54,6 +63,14 @@ H_sim = 690
 #     u = [Diagonal(1.0e-1 * [1e-0, 1e1]) for t = 1:H_mpc],
 #     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
 #     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
+obj = TrackingVelocityObjective(H_mpc, model.dim,
+    v = [Diagonal(1e-3 * [1,1,1,10]) for t = 1:H_mpc],
+    # q = [[Diagonal(1.0e-1 * [0.1,10,3,3]) for t = 1:H_mpc]; [Diagonal(1.0e+2 * [0.1,10,3,10])   for t = 1:H_mpc]],
+    q = [[Diagonal(1.0e-0 * [0.3,1,1,1])   for t = 1:H_mpc]; [Diagonal(1.0e+2 * [0.3,1,1,1])   for t = 1:H_mpc]],
+    u = [Diagonal(1.0e-1 * [1e0, 1e-0]) for t = 1:H_mpc],
+    γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
+    b = [Diagonal(1.0e-3 * ones(model.dim.b)) for t = 1:H_mpc])
+
 obj = TrackingVelocityObjective(H_mpc, model.dim,
     v = [Diagonal(1e-3 * [1,1,1,10]) for t = 1:H_mpc],
     # q = [[Diagonal(1.0e-1 * [0.1,10,3,3]) for t = 1:H_mpc]; [Diagonal(1.0e+2 * [0.1,10,3,10])   for t = 1:H_mpc]],
@@ -121,8 +138,10 @@ plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color
 plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
 
-plot(hcat([q[1:4] for q in ref_traj.q[1:10]]...)')
-plot!(hcat([q[1:4] for q in sim.traj.q[1:10]]...)')
+plot(hcat([γ[1:1] for γ in sim.traj.γ[400:430]]...)')
+plot(hcat([q[1:4] for q in ref_traj.q[1:200]]...)')
+plot(hcat([q[1:4] for q in sim.traj.q[1:1900]]...)')
+# plot!(hcat([q[1:4] for q in sim.traj.q[1:10]]...)')
 # filename = "hopper_flip4"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
