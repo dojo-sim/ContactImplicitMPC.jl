@@ -177,7 +177,7 @@ function convert_config(model::Flamingo, q::AbstractVector)
 end
 
 
-function flamingo_ghost!(vis, sim, surf)
+function flamingo_ghost!(vis, sim, surf; lines = true)
 	x_mean = 1.5 #0.5 * (sim.traj.q[1][1] + sim.traj.q[end][1])
 	shift_traj = deepcopy(sim.traj)
 	sim.traj.q[end][1]
@@ -193,7 +193,7 @@ function flamingo_ghost!(vis, sim, surf)
 	surface_mat = LineBasicMaterial(color=RGBA(0.0, 0.0, 0.0, 1.0), linewidth=5)
 	setobject!(vis[:lines][:surface], MeshCat.Line(surface_points, surface_mat))
 
-	# plot_lines!(vis, model, shift_traj.q[1:N_sample:end], offset=-0.25)
+	lines && plot_lines!(vis, model, shift_traj.q[1:N_sample:end], offset=-0.25, size = 5)
 
 	settransform!(vis["/Cameras/default"],
 			compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))

@@ -81,7 +81,7 @@ sim_stair = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 
 # plot_surface!(vis, model_sim.env, n=400)
-anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0)
+# anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0)
 
 # ghost
 ref_traj_full = get_trajectory(model,
@@ -146,7 +146,7 @@ sim_flip = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 
 # plot_surface!(vis, model_sim.env, n=400)
-anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)
+# anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)
 # anim = visualize_robot!(vis, model, ref_traj, anim=anim, name=:Ref, α=0.3)
 idx = [150, 190, 325, 450, 500, 550, 640]
 α   = [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1.0]
@@ -183,25 +183,3 @@ anim = visualize_robot!(vis, model, ref_traj_full.q, anim=anim, name=:Ref, α=0.
 # convert_video_to_gif(
 #     "/home/simon/Documents/$filename.mp4",
 #     "/home/simon/Documents/$filename.gif", overwrite=true)
-
-function hopper_parkour_ghost!(vis, sim, traj, ref_traj;
-    idx = [1, 35, 50, 110, 130, 190, 210, 265, 270, 284, 295, 300, 305, 320],
-    α = [convert(Float64, i / length(idx)) for i = 1:length(idx)],
-    _name = "_stairs")
-
-    plot_lines!(vis, sim.model, ref_traj.q[1:1:end], size = 5, offset = -0.5)
-    stairs!(vis)
-    settransform!(vis["/Cameras/default"],
-            compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-    setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
-
-    for (i, t) in enumerate(idx)
-        name = Symbol("Hopper" * "$i" * _name)
-        build_robot!(vis, sim.model, name=name, α = α[i])
-        set_robot!(vis, sim.model, traj.q[t], name = name)
-    end
-end
-
-# hopper_parkour_ghost!(vis, sim, ref_traj)
-
-"Hopper" * "$t" * "_stairs"
