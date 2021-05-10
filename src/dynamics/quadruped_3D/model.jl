@@ -901,7 +901,7 @@ d_leg = 0.5 * l_leg - 0.006435
 m_payload = 5.0
 J_payload = 0.05
 
-quadruped_3d = Quadruped3D11(Dimensions(nq, nu, nw, nc, nb),
+quadruped_3D = Quadruped3D11(Dimensions(nq, nu, nw, nc, nb),
 				g, μ_world, μ_joint,
 				orientation, shoulder_lateral_offset,
 				l_torso, d_torso, m_torso, J_torso,
@@ -924,7 +924,7 @@ quadruped_3d = Quadruped3D11(Dimensions(nq, nu, nw, nc, nb),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				environment_2D_flat())
 
-quadruped_payload_3d = Quadruped3D11(Dimensions(nq, nu, nw, nc, nb),
+quadruped_payload_3D = Quadruped3D11(Dimensions(nq, nu, nw, nc, nb),
 				g, μ_world, μ_joint,
 				orientation, shoulder_lateral_offset,
 				l_torso, d_torso,
@@ -949,7 +949,7 @@ quadruped_payload_3d = Quadruped3D11(Dimensions(nq, nu, nw, nc, nb),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				environment_2D_flat())
 
-quadruped_sinusoidal_3d = Quadruped3D11(Dimensions(nq, nu, nw, nc, nb),
+quadruped_sinusoidal_3D = Quadruped3D11(Dimensions(nq, nu, nw, nc, nb),
 				g, μ_world, μ_joint,
 				orientation, shoulder_lateral_offset,
 				l_torso, d_torso, m_torso, J_torso,

@@ -148,7 +148,7 @@ hopper_2D_sinusoidal = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   environment_2D(x -> 0.10 * sin(2π * x[1])),
 			   )
 
-include(joinpath(pwd(), "src/simulator/terrain/stairs.jl"))
+include(joinpath(@pwd(), "src/simulator/terrain/stairs.jl"))
 hopper_2D_stairs = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, g,

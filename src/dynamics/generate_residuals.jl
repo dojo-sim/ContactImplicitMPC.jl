@@ -218,33 +218,6 @@ expr_linearized = generate_linearized_expressions(model)
 save_expressions(expr_linearized, path_linearized, overwrite=true)
 instantiate_linearized!(model, path_linearized)
 
-# dir = joinpath(@__DIR__, "hopper_2D")
-# model = deepcopy(hopper_2D_stairs)
-#
-# path_base = joinpath(dir, "dynamics/base.jld2")
-# path_dyn = joinpath(dir, "dynamics/dynamics_derivs.jld2")
-# path_res = joinpath(dir, "stairs/residual.jld2")
-# path_jac = joinpath(dir, "stairs/sparse_jacobians.jld2")
-# path_linearized = joinpath(dir, "stairs/linearized.jld2")
-#
-# instantiate_base!(model, path_base)
-#
-# expr_dyn = generate_dynamics_expressions(model, derivs = true)
-# save_expressions(expr_dyn, path_dyn, overwrite=true)
-# instantiate_dynamics!(model, path_dyn, derivs = true)
-#
-# expr_res, rz_sp, rθ_sp = generate_residual_expressions(model, jacobians = :approx)
-# save_expressions(expr_res, path_res, overwrite=true)
-# @save path_jac rz_sp rθ_sp
-# instantiate_residual!(model, path_res, jacobians = :approx)
-# model_sim.spa.rz_sp = copy(rz_sp)
-# model_sim.spa.rθ_sp = copy(rθ_sp)
-#
-# expr_linearized = generate_linearized_expressions(model)
-# save_expressions(expr_linearized, path_linearized, overwrite=true)
-# instantiate_linearized!(model, path_linearized)
-
-
 ################################################################################
 # Hopper (3D)
 ################################################################################
@@ -274,54 +247,6 @@ instantiate_linearized!(model, path_linearized)
 ################################################################################
 dir = joinpath(@__DIR__, "hopper_3D")
 model = deepcopy(hopper_3D_sinusoidal)
-
-path_base = joinpath(dir, "dynamics/base.jld2")
-path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-path_res = joinpath(dir, "sinusoidal/residual.jld2")
-path_jac = joinpath(dir, "sinusoidal/sparse_jacobians.jld2")
-path_linearized = joinpath(dir, "sinusoidal/linearized.jld2")
-
-instantiate_base!(model, path_base)
-instantiate_dynamics!(model, path_dyn)
-
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
-save_expressions(expr_res, path_res, overwrite=true)
-@save path_jac rz_sp rθ_sp
-instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
-################################################################################
-# Hopper (6D)
-################################################################################
-dir = joinpath(@__DIR__, "hopper_6D")
-model = deepcopy(hopper_6D)
-
-path_base = joinpath(dir, "dynamics/base.jld2")
-path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-path_res = joinpath(dir, "flat/residual.jld2")
-path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
-path_linearized = joinpath(dir, "flat/linearized.jld2")
-
-instantiate_base!(model, path_base)
-instantiate_dynamics!(model, path_dyn)
-
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
-save_expressions(expr_res, path_res, overwrite=true)
-@save path_jac rz_sp rθ_sp
-instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
-################################################################################
-# Hopper (6D) (sinusoidal)
-################################################################################
-dir = joinpath(@__DIR__, "hopper_6D")
-model = deepcopy(hopper_6D_sinusoidal)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
@@ -436,6 +361,31 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
+
+################################################################################
+# Quadruped (3D)
+################################################################################
+dir = joinpath(@__DIR__, "quadruped_3D")
+model = deepcopy(quadruped_3D)
+
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+path_res = joinpath(dir, "flat/residual.jld2")
+path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
+path_linearized = joinpath(dir, "flat/linearized.jld2")
+
+instantiate_base!(model, path_base)
+instantiate_dynamics!(model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+@load path_jac rz_sp rθ_sp
+instantiate_residual!(model, path_res)
+
+expr_linearized = generate_linearized_expressions(model)
+save_expressions(expr_linearized, path_linearized, overwrite=true)
+instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Biped
