@@ -32,7 +32,7 @@ t = 20
 q = ref_traj.q[t] + [0,0,pi/1,0,0,0,0,0,0,0,0]
 set_robot!(vis, model, q, name=:quad0f, offset=0.00)
 set_robot!(vis, model, q, name=:quad0b, offset=0.264)
-set_meshrobot!(vis, mvis, model, q, name=:shadow_1)
+set_meshrobot!(Fvis, mvis, model, q, name=:shadow_1)
 
 
 
@@ -312,7 +312,6 @@ attach!(doublependulum, upperlink, lowerlink, elbow,
 srcdir = dirname(pathof(RigidBodyDynamics))
 urdf = joinpath(srcdir, "..", "test", "urdf", "Acrobot.urdf")
 parse_urdf(urdf)
-
 
 # ## The state of a `Mechanism`
 # A `Mechanism` stores the joint/rigid body layout, but no state information.
