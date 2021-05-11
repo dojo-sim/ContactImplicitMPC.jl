@@ -83,3 +83,21 @@ function stairs!(vis)
 		Vec(0.25, 0.5, 3 * 0.25)), MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, 1.0)))
 	settransform!(vis["box3"], Translation(0.125 + 2 * 0.25, -0.25, 0))
 end
+
+function hopper_parkour_ghost!(vis, sim, traj, ref_traj;
+    idx = [1, 35, 50, 110, 130, 190, 210, 265, 270, 284, 295, 300, 305, 320],
+    α = [convert(Float64, i / length(idx)) for i = 1:length(idx)],
+    _name = "_stairs")
+
+    plot_lines!(vis, sim.model, ref_traj.q[1:1:end], size = 5, offset = -0.5)
+    stairs!(vis)
+    settransform!(vis["/Cameras/default"],
+            compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+    setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
+
+    for (i, t) in enumerate(idx)
+        name = Symbol("Hopper" * "$i" * _name)
+        build_robot!(vis, sim.model, name=name, α = α[i])
+        set_robot!(vis, sim.model, traj.q[t], name = name)
+    end
+end

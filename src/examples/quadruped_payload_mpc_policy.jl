@@ -107,6 +107,12 @@ anim = visualize_payload!(vis, model, sim_payload.traj, anim=anim, sample=5, nam
 # anim = visualize_force!(vis, model, sim_no_payload.traj, anim=anim, sample=5, h=h_sim, name=:NoPayload)
 # anim = visualize_force!(vis, model, sim_payload.traj, anim=anim, sample=5, h=h_sim, name=:Payload)
 
+anim = visualize_meshrobot!(vis, model, sim_payload.traj, sample=5, name=:Payload)
+anim = visualize_payload!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload, object=:mesh)
+settransform!(vis["/Cameras/default"],
+        compose(Translation(0.0, -25.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
+
 
 # Display ghosts
 t_ghosts = [1]

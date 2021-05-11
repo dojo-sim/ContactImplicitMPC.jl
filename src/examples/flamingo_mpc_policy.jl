@@ -90,8 +90,8 @@ plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', colo
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 # plot!(plt[3,1], hcat(Vector.([b[1:nb] for b in sim.traj.b]*N_sample)...)', color=:red, linewidth=1.0)
 
-plot_surface!(vis, model_sim.env, xlims=[-1, 7.5], ylims = [-0.5, 0.5])
-anim = visualize_robot!(vis, model_sim, sim.traj, sample=10)
+plot_surface!(vis, sim.model.env, xlims=[-1, 7.5], ylims = [-0.5, 0.5])
+anim = visualize_robot!(vis, sim.model, sim.traj, sample=10)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=10)
 
 convert_config(model_sim, sim.traj.q[1])
@@ -111,3 +111,6 @@ settransform!(vis["/Cameras/default"],
 
 # Ghost
 flamingo_ghost!(vis, sim, x -> 0.0)
+
+# Animation
+flamingo_animation!(vis, sim, x -> 0.0)

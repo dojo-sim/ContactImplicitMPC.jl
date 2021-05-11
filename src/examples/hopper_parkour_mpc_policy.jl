@@ -81,8 +81,17 @@ sim_stair = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 
 # plot_surface!(vis, model_sim.env, n=400)
-anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0)
-# anim = visualize_robot!(vis, model, ref_traj, anim=anim, name=:Ref, α=0.3)
+# anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0)
+
+# ghost
+ref_traj_full = get_trajectory(model,
+    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stairs_3_flip_v3.jld2"),
+    load_type=:split_traj_alt)
+ref_traj_full = deepcopy(ref_traj_full)
+
+idx = [1, 300, 500, 1100, 1300, 1900, 2100]
+α = [0.2, 0.2, 0.4, 0.4, 0.6, 0.6, 0.6]
+hopper_parkour_ghost!(vis, sim_stair, sim_stair.traj, ref_traj_full, idx = idx, α = α)
 
 ################################################################################
 # Front flip
@@ -137,7 +146,7 @@ sim_flip = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 
 # plot_surface!(vis, model_sim.env, n=400)
-anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)
+# anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)
 # anim = visualize_robot!(vis, model, ref_traj, anim=anim, name=:Ref, α=0.3)
 
 ################################################################################
@@ -149,12 +158,15 @@ ref_traj_full = get_trajectory(model,
     load_type=:split_traj_alt)
 
 sim_traj_full = [sim_stair.traj.q[1:end-2]; sim_flip.traj.q]
-anim = visualize_robot!(vis, model, sim_traj_full[1:10:end], name=:Sim, α=1.0)
-anim = visualize_robot!(vis, model, ref_traj_full.q, anim=anim, name=:Ref, α=0.3)
-
+anim = visualize_robot!(vis, model, [sim_traj_full[1:N_sample:end]..., [sim_traj_full[end] for i = 1:50]...], name=:Sim, α=1.0)
+anim = visualize_robot!(vis, model, [ref_traj_full.q..., [ref_traj_full.q[end] for i = 1:50]...], anim=anim, name=:Ref, α=0.3)
+stairs!(vis)
+settransform!(vis["/Cameras/default"],
+        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
 
 plot_lines!(vis, model, ref_traj_full.q)
-plot_lines!(vis, model, sim_traj_full)
+plot_lines!(vis, model, sim_traj_full, offset = -0.5, size = 5)
 
 
 
