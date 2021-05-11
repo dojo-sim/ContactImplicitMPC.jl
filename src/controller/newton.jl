@@ -215,7 +215,8 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel,
 
     # precompute Jacobian for pre-factorization
     implicit_dynamics!(im_traj, model, traj, κ = traj.κ)
-    jacobian!(jac, im_traj, obj, H, opts.β_init)
+    initialize_jacobian!(jac, obj, H)
+    update_jacobian!(jac, im_traj, obj, H, opts.β_init)
 
     res = NewtonResidual(H, dim)
     res_cand = NewtonResidual(H, dim)
@@ -244,23 +245,33 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel,
         Δq, Δu, Δγ, Δb, ind, obj, solver, β, opts)
 end
 
-function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objective,
-    H::Int, β::T) where T
-
-    fill!(jac.R, 0.0) # TODO: remove
+function initialize_jacobian!(jac::NewtonJacobian, obj::Objective, H::Int)
+    fill!(jac.R, 0.0) # TODO: modify
 
     # Objective
     hessian!(jac, obj)
-    for t = 1:H
-        # # Cost function
-        # jac.obj_q2[t] .+= obj.q[t]
-        # jac.obj_u1[t] .+= obj.u[t]
-        # jac.obj_γ1[t] .+= obj.γ[t]
-        # jac.obj_b1[t] .+= obj.b[t]
 
+    for t = 1:H
         # Implicit dynamics
         jac.IV[t] .-= 1.0
         jac.ITV[t] .-= 1.0
+    end
+
+    return nothing
+end
+
+function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objective,
+    H::Int, β::T) where T
+
+    # fill!(jac.R, 0.0) # TODO: modify
+
+    # Objective
+    # hessian!(jac, obj)
+
+    for t = 1:H
+        # Implicit dynamics
+        # jac.IV[t] .-= 1.0
+        # jac.ITV[t] .-= 1.0
 
         # TODO: ^ perform only once
         if t >= 3
@@ -293,27 +304,14 @@ function residual!(res::NewtonResidual, model::ContactDynamicsModel, core::Newto
 
     # Objective
     gradient!(res, obj, core, traj, ref_traj)
-    for t in eachindex(ν)
-        # # Cost function
-        # delta!(core.Δq[t], traj.q[t+2], ref_traj.q[t+2])
-        # delta!(core.Δu[t], traj.u[t], ref_traj.u[t])
-        # delta!(core.Δγ[t], traj.γ[t], ref_traj.γ[t])
-        # delta!(core.Δb[t], traj.b[t], ref_traj.b[t])
-        #
-        # res.q2[t] .+= obj.q[t] * core.Δq[t]
-        # res.u1[t] .+= obj.u[t] * core.Δu[t]
-        # res.γ1[t] .+= obj.γ[t] * core.Δγ[t]
-        # res.b1[t] .+= obj.b[t] * core.Δb[t]
 
+    for t in eachindex(ν)
         # Implicit dynamics
         res.rd[t] .+= im_traj.d[t]
 
         # Minus Identity term #∇qk1, ∇γk, ∇bk
         res.rI[t] .-= ν[t]
-        # Implicit function theorem part #∇qk_1, ∇qk, ∇uk
-        # t >= 3 ? mul!(res.q0[t-2], impl.δq0[t]', ν[t]) : nothing
-        # t >= 2 ? mul!(res.q1[t-1], impl.δq1[t]', ν[t]) : nothing
-        # mul!(res.u1[t], impl.δu1[t]', ν[t])
+
         t >= 3 ? res.q0[t-2] .+= im_traj.δq0[t]' * ν[t] : nothing
         t >= 2 ? res.q1[t-1] .+= im_traj.δq1[t]' * ν[t] : nothing
         res.u1[t] .+= im_traj.δu1[t]' * ν[t]
@@ -340,8 +338,7 @@ function update_traj!(traj_cand::ContactTraj, traj::ContactTraj,
         traj_cand.u[t] .= traj.u[t] .- α .* Δ.u1[t]
         traj_cand.γ[t] .= traj.γ[t] .- α .* Δ.γ1[t]
         traj_cand.b[t] .= traj.b[t] .- α .* Δ.b1[t]
-        # traj.z[t] .= traj_cand.z[t] - α .* Δ.z[t]
-        # traj.θ[t] .= traj_cand.θ[t] - α .* Δ.θ[t]
+
         ν_cand[t]  .= ν[t] .- α .* Δ.rd[t]
     end
 
@@ -405,20 +402,18 @@ function reset!(core::Newton, ref_traj::ContactTraj;
 			update_θ!(core.traj, 2)
 		end
 	end
+
     core.traj.q[1] .= deepcopy(q0)
     core.traj.q[2] .= deepcopy(q1)
 
     update_θ!(core.traj, 1)
     update_θ!(core.traj, 2)
 
-    # Always rese the duals
-    # for t = 1:H_mpc
-    #     fill!(core.ν[t], 0.0)
-    #     fill!(core.ν_cand[t], 0.0)
-    # end
-
 	# Set up traj cand
 	core.traj_cand = deepcopy(core.traj)
+
+    # Initialize Jacobian
+    initialize_jacobian!(core.jac, core.obj, core.traj.H)
 
 	return nothing
 end
@@ -444,7 +439,7 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
         r_norm / length(core.res.r) < core.opts.r_tol && break
 
         # Compute NewtonJacobian
-        jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
+        update_jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
 
         # Compute Search Direction
         linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)

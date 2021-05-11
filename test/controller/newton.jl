@@ -88,7 +88,8 @@ end
 	    b = [Diagonal(1.0e-3 * ones(nb)) for t = 1:H])
 	im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
 	core = ContactControl.Newton(H, h, model, ref_traj, im_traj0, obj = obj)
-	ContactControl.jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
+	ContactControl.initialize_jacobian!(core.jac, obj, ref_traj.H)
+	ContactControl.update_jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
 
 	# Test symmetry
 	@test core.jac.R - core.jac.R' == spzeros(H * nr, H * nr)

@@ -89,7 +89,7 @@ function velocity_stack(model::Hopper3D, q1, q2, k, h)
 
 	v1_surf = rotation(model.env, k) * v
 
-	SVector{4}([v1_surf[1:2]; -v1_surf[1:2]])
+	SVector{4}(friction_mapping(model.env)' * v1_surf[1:2])
 end
 
 function get_stride(model::Hopper3D, traj::ContactTraj)

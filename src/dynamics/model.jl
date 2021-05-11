@@ -152,7 +152,7 @@ function velocity_stack(model::ContactDynamicsModel, q1, q2, k, h)
 	# k = kinematics(model, q2)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
 	v_surf = [rotation(model.env, k[(i-1) * np .+ (1:np)]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
-	vT_stack = vcat([[v_surf[i][1:np-1]; -v_surf[i][1:np-1]] for i = 1:nc]...)
+	vT_stack = vcat([[friction_mapping(model.env)' * v_surf[i][1:np-1]] for i = 1:nc]...)
 end
 
 function residual(model::ContactDynamicsModel, z, θ, κ)

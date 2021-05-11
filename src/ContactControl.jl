@@ -59,7 +59,6 @@ include("dynamics/hopper_2D/model.jl")
 include("dynamics/hopper_3D/model.jl")
 include("dynamics/quadruped/model.jl")
 include("dynamics/biped/model.jl")
-include("dynamics/biped5/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 

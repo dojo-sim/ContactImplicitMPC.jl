@@ -94,7 +94,7 @@ function velocity_stack(model::Particle2D, q1, q2, k, h)
 
 	v1_surf = rotation(model.env, k) * v
 
-	SVector{2}([v1_surf[1]; -v1_surf[1]])
+	SVector{2}(friction_mapping(model.env)' * v1_surf[1])
 end
 
 # Model (flat surface)

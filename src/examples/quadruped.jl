@@ -56,10 +56,6 @@ time = @elapsed status = ContactControl.simulate!(sim)
 # @elapsed status = ContactControl.simulate!(sim)
 # @profiler status = ContactControl.simulate!(sim)
 
-
-(H_sim*h_sim)/(2.45*970/2332)
-
-
 plot_lines!(vis, model, sim.traj.q[1:25:end])
 plot_surface!(vis, model.env, ylims=[0.3, -0.05])
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)

@@ -500,10 +500,10 @@ function velocity_stack(model::Quadruped, q1, q2, k, h)
 	v3_surf = v[5:6]
 	v4_surf = v[7:8]
 
-	SVector{8}([v1_surf[1]; -v1_surf[1];
-				v2_surf[1]; -v2_surf[1];
-				v3_surf[1]; -v3_surf[1];
-				v4_surf[1]; -v4_surf[1]])
+	SVector{8}([friction_mapping(model.env)' * v1_surf[1];
+				friction_mapping(model.env)' * v2_surf[1];
+				friction_mapping(model.env)' * v3_surf[1];
+				friction_mapping(model.env)' * v4_surf[1]])
 end
 
 
