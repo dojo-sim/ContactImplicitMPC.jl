@@ -2,6 +2,10 @@ function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 		r=0.0205, offset=0.05, size=10, name::Symbol=:Quadruped, col::Bool=true, α::Real=1.0)
 	p_shift = [0.0, 0.0, r]
 	orange_mat, blue_mat, black_mat = get_line_material(size, α=α)
+	black_mat.color = RGBA(0.0,153/256,153/256,α)
+	black_mat.color = RGBA(209/256,0/256,209/256,α)
+	black_mat.color = RGBA(136/256,008/256,008/256,α)
+	black_mat.color = RGBA(170/256,074/256,068/256,α)
 
 	# Point Traj
 	torso_point = Vector{Point{3,Float64}}()
@@ -50,16 +54,25 @@ function plot_lines!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 	return nothing
 end
 
-function build_payload!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped, r=0.0205, rp=0.13, α=1.0)
+function build_payload!(vis::Visualizer, model::Quadruped; name::Symbol=:Quadruped,
+		object=:mesh, r=0.0205, rp=0.20, α=1.0)
 	rp = convert(Float32, rp)
 	pl_mat = MeshPhongMaterial(color = RGBA(0.4, 0.4, 0.4, α))
 	thickness = 0.10
 	quad_thickness = 0.267
 	default_background!(vis)
 
-	setobject!(vis[name][:payload],
-		Rect(Vec(0.05, quad_thickness/2-thickness/2, -rp/2+0.15),Vec(rp, thickness, rp)), pl_mat)
-		# Rect(Vec(-rp/2, 0, 0),Vec(rp, 0.10, rp)), pl_mat)
+	if object == :mesh
+		obj = MeshFileObject(joinpath(@__DIR__, "payload_mesh", "Box.obj"))
+		setobject!(vis[name][:payload][:object], obj)
+		tr = Translation(0.058, quad_thickness/2, 0.18)
+		rt = LinearMap(rp*0.5*I(3)*RotZ(π/2)*RotX(pi))
+		tform = compose(tr, rt)
+		settransform!(vis[name][:payload][:object], tform)
+	elseif object == :rectangle
+		obj = Rect(Vec(0.058, quad_thickness/2-thickness/2, -rp/2+0.18), Vec(rp, thickness, rp))
+		setobject!(vis[name][:payload][:object], obj, pl_mat)
+	end
 	return nothing
 end
 
@@ -89,21 +102,21 @@ function animate_payload!(vis::Visualizer, anim::MeshCat.Animation, model::Conta
 end
 
 function visualize_payload!(vis::Visualizer, model::ContactDynamicsModel, q::AbstractVector;
-		h=0.01, α=1.0,
+		h=0.01, α=1.0, object::Symbol=:mesh,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
-	build_payload!(vis, model, name=name, α=α)
+	build_payload!(vis, model, name=name, object=object, α=α)
 	animate_payload!(vis, anim, model, q, name=name)
 	return anim
 end
 
 function visualize_payload!(vis::Visualizer, model::ContactDynamicsModel, traj::ContactTraj;
-		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,  α=1.0,
+		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,  α=1.0, object::Symbol=:mesh,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
-	visualize_payload!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, h=h, α=α)
+	visualize_payload!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, object=object, h=h, α=α)
 	return anim
 end
 

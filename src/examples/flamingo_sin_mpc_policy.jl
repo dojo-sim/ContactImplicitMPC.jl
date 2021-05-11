@@ -111,3 +111,4 @@ convert_video_to_gif(
     "/home/simon/Documents/$filename.gif", overwrite=true)
 
 flamingo_ghost!(vis, sim, model_sim.env.surf)
+flamingo_animation!(vis, sim, model_sim.env.surf)

@@ -154,3 +154,7 @@ convert_video_to_gif(
 
 # Ghost
 flamingo_ghost!(vis, sim, piecewise_smoothed)
+
+# Animation
+anim, shift_traj = flamingo_animation!(vis, sim, piecewise_smoothed)
+anim = visualize_force!(vis, sim.model, shift_traj, anim=anim, h=h_sim, sample=10)

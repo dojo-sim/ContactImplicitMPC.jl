@@ -3,7 +3,7 @@ include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)
-render(vis)
+# render(vis)
 
 # get hopper model
 model_payload = get_model("quadruped", surf="payload", dynamics="dynamics_payload")
@@ -20,8 +20,8 @@ M_fast(model_payload, zeros(nq))
 M_fast(model_no_payload, zeros(nq))
 
 # get trajectory
-ref_traj = get_trajectory("quadruped", "gait2", load_type=:split_traj_alt, model=model)
-ref_traj_copy = deepcopy(ref_traj)
+ref_traj_ = get_trajectory("quadruped", "gait2", load_type=:split_traj_alt, model=model)
+ref_traj = deepcopy(ref_traj_)
 
 # time
 H = ref_traj.H
@@ -64,6 +64,17 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
+sim_payload = simulator(model_payload, q0_sim, q1_sim, h_sim, H_sim,
+    p = p,
+    ip_opts = InteriorPointOptions(
+        r_tol = 1.0e-8,
+        κ_init = 1.0e-6,
+        κ_tol = 2.0e-6),
+    sim_opts = SimulatorOptions(warmstart = true)
+    )
+@time status = simulate!(sim_payload)
+
+
 sim_no_payload = simulator(model_no_payload, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = InteriorPointOptions(
@@ -74,15 +85,6 @@ sim_no_payload = simulator(model_no_payload, q0_sim, q1_sim, h_sim, H_sim,
     )
 @time status = simulate!(sim_no_payload)
 
-sim_payload = simulator(model_payload, q0_sim, q1_sim, h_sim, H_sim,
-    p = p,
-    ip_opts = InteriorPointOptions(
-        r_tol = 1.0e-8,
-        κ_init = 1.0e-6,
-        κ_tol = 2.0e-6),
-    sim_opts = SimulatorOptions(warmstart = true)
-    )
-@time status = simulate!(sim_payload)
 
 # plt = plot(layout=(3,1), legend=false)
 # plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
@@ -94,16 +96,23 @@ sim_payload = simulator(model_payload, q0_sim, q1_sim, h_sim, H_sim,
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
 plot_surface!(vis, model.env, ylims=[0.3, -0.05])
-plot_lines!(vis, model, sim_no_payload.traj.q[1:1:end], name=:NoPayload)
-plot_lines!(vis, model, sim_payload.traj.q[1:1:end], name=:Payload)
+plot_lines!(vis, model, sim_no_payload.traj.q[1:1:end], name=:NoPayload, offset=-0.15)
+plot_lines!(vis, model, sim_payload.traj.q[1:1:end], name=:Payload, offset=-0.15)
 ext_ref_traj = repeat_ref_traj(ref_traj, model, 7; idx_shift = (1:1))
-plot_lines!(vis, model, ext_ref_traj.q, offset=0.025, name=:Ref, col=false)
+plot_lines!(vis, model, ext_ref_traj.q, offset=-0.17, name=:Ref, col=false,)
 
 anim = visualize_meshrobot!(vis, model, sim_no_payload.traj, sample=5, name=:NoPayload)
 anim = visualize_meshrobot!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload)
-anim = visualize_payload!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload)
-anim = visualize_force!(vis, model, sim_no_payload.traj, anim=anim, sample=5, h=h_sim, name=:NoPayload)
-anim = visualize_force!(vis, model, sim_payload.traj, anim=anim, sample=5, h=h_sim, name=:Payload)
+anim = visualize_payload!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload, object=:mesh)
+# anim = visualize_force!(vis, model, sim_no_payload.traj, anim=anim, sample=5, h=h_sim, name=:NoPayload)
+# anim = visualize_force!(vis, model, sim_payload.traj, anim=anim, sample=5, h=h_sim, name=:Payload)
+
+anim = visualize_meshrobot!(vis, model, sim_payload.traj, sample=5, name=:Payload)
+anim = visualize_payload!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload, object=:mesh)
+settransform!(vis["/Cameras/default"],
+        compose(Translation(0.0, -25.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
+
 
 # Display ghosts
 t_ghosts = [1]
@@ -122,9 +131,10 @@ for (i,t) in enumerate(t_ghosts)
     set_payload!(vis, model, sim_payload.traj.q[t], name=name)
 end
 
+anim = visualize_payload!(vis, model, sim_payload.traj, anim=anim, sample=5, name=:Payload)
 
 
-filename = "quadruped_3kg_vs_ref"
+filename = "quadruped_cardboard"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
     "/home/simon/Documents/$filename.mp4", overwrite=true)
@@ -132,56 +142,3 @@ MeshCat.convert_frames_to_video(
 convert_video_to_gif(
     "/home/simon/Documents/$filename.mp4",
     "/home/simon/Documents/$filename.gif", overwrite=true)
-
-
-function ModifiedMeshFileObject(obj_path::String, material_path::String;
-        scale::T = 0.1) where {T}
-    obj = MeshFileObject(obj_path)
-    rescaled_contents = rescale_contents(obj_path, scale = scale)
-    material = select_material(material_path)
-    mod_obj = MeshFileObject(
-        rescaled_contents,
-        obj.format,
-        material,
-        obj.resources,
-        )
-    return mod_obj
-end
-
-function rescale_contents(obj_path::String; scale::T = 0.1) where T
-    lines = readlines(obj_path)
-    rescaled_lines = copy(lines)
-    for (k,line) in enumerate(lines)
-        if length(line) >= 2
-            if line[1] == 'v'
-                stringvec = split(line, " ")
-                vals = map(x -> parse(Float64, x), stringvec[2:end])
-                rescaled_vals = vals .* scale
-                rescaled_lines[k] = join([stringvec[1]; string.(rescaled_vals)], " ")
-            end
-        end
-    end
-    rescaled_contents = join(rescaled_lines, "\r\n")
-    return rescaled_contents
-end
-
-function select_material(material_path::String)
-    mtl_file = open(material_path)
-    mtl = read(mtl_file, String)
-    return mtl
-end
-
-obj_box = joinpath(pwd(), "src/dynamics/quadruped/box/Box.obj")
-mtl_box = joinpath(pwd(), "src/dynamics/quadruped/box/Box.mtl")
-ctm_box = ModifiedMeshFileObject(obj_box, mtl_box, scale=1.0)
-
-vis = Visualizer()
-open(vis)
-setobject!(vis["box"],ctm_box)
-settransform!(vis["box"], compose(Translation(0.0,0.1,0.1),LinearMap(RotZ(0.0)*RotX(0.0))))
-
-build_payload!(vis, model_payload, name = :Quadruped, r=0.0205, rp=0.13, α=1.0)
-
-
-tform = LinearMap(0.10*I(3))
-settransform!(vis, tform)
