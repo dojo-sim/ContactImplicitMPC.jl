@@ -5,7 +5,7 @@ render(vis)
 open(vis)
 
 # get model
-include(joinpath(pwd(), "src/simulator/terrain/piecewise1.jl"))
+include(joinpath(pwd(), "src/simulator/terrain/piecewise.jl"))
 include(joinpath(pwd(), "src/dynamics/flamingo/model.jl"))
 flamingo_piecewise = Flamingo(Dimensions(nq, nu, nw, nc, nb),
 			  g, μ_world, μ_joint,
