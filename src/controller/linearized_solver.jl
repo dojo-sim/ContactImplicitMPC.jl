@@ -12,7 +12,7 @@
     The bilinear part:
         rbil = y1 .* y2 .- κ
 """
-mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nb}
+mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
     # Reference residual
     rdyn0::SVector{nx,T}
     rrst0::SVector{ny,T}
@@ -58,8 +58,7 @@ mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nb}
 
     # Altitude
     alt::SVector{nc,T}
-    alt_zeros1::SVector{nb,T}
-    alt_zeros2::SVector{nc,T}
+    alt_zeros::SVector{nn,T}
 end
 
 function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractVector{T},
@@ -109,7 +108,7 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
     y2 = zeros(SVector{ny,T})
     θ  = zeros(SVector{nθ,T})
 
-    return RLin{T,nx,ny,nθ,nx^2,nx*ny,ny*ny,nx*nθ,ny*nθ,nc,nb}(
+    return RLin{T,nx,ny,nθ,nx^2,nx*ny,ny*ny,nx*nθ,ny*nθ,nc,nc + nb}(
         rdyn0,
         rrst0,
         rbil0,
@@ -146,8 +145,7 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
         SVector{ny,Int}(ibil),
         SVector{nc,Int}(ialt),
         zeros(SVector{nc,T}),
-        zeros(SVector{nb,T}),
-        zeros(SVector{nc,T}))
+        zeros(SVector{nc + nb,T}))
 end
 
 """
@@ -294,9 +292,19 @@ function r!(r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, z::Vector{T}, θ::
     r.y2 = z[r.iy2]
     r.θ  = θ[r.iθ]
     r.rdyn = r.rdyn0 + r.Dx*(r.x - r.x0) + r.Dy1*(r.y1 - r.y10)                         + r.rθdyn*(r.θ - r.θ0)
-    r.rrst = r.rrst0 + r.Rx*(r.x - r.x0) + r.Ry1*(r.y1 - r.y10) + r.Ry2.*(r.y2 - r.y20) + r.rθrst*(r.θ - r.θ0) + SVector{ny}([r.alt; r.alt_zeros1; r.alt_zeros2])
+    r.rrst = r.rrst0 + r.Rx*(r.x - r.x0) + r.Ry1*(r.y1 - r.y10) + r.Ry2.*(r.y2 - r.y20) + r.rθrst*(r.θ - r.θ0) + SVector{ny}([r.alt; r.alt_zeros])
     r.rbil = r.y1 .* r.y2 .- κ
     return nothing
+end
+
+function r_update!(r::RLin, r̄::RLin)
+    r.x  = r̄.x
+    r.y1 = r̄.y1
+    r.y2 = r̄.y2
+    r.θ  = r̄.θ
+    r.rdyn = r̄.rdyn
+    r.rrst = r̄.rrst
+    r.rbil = r̄.rbil
 end
 
 """

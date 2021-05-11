@@ -28,6 +28,10 @@ function rθ!(rθ, z, θ)
     nothing
 end
 
+function r_update!(r, r̄)
+    r .= r̄
+end
+
 # interior-point solver options
 @with_kw mutable struct InteriorPointOptions{T}
     r_tol::T = 1.0e-5
@@ -240,10 +244,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
                 # update
                 z .= z̄
-                # r .= r̄ #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-                r!(r, z, θ, κ[1])
-                # v_pr .= 0.0
-                # v_du .= 0.0
+                r_update!(r, r̄)
                 r_norm = r̄_norm
             end
         end
@@ -277,7 +278,7 @@ function differentiate_solution!(ip::InteriorPoint)
     δz = ip.δz
     κ = ip.κ
 
-    ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
+    # ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
     ip.methods.rθ!(rθ, z, θ)
 
     linear_solve!(ip.solver, δz, rz, rθ)

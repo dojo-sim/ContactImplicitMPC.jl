@@ -1,6 +1,6 @@
 name = "ContactControl"
 uuid = "fe1a5170-18c9-44dd-aab6-11f571b630b0"
-authors = ["simon-lc <simonlc@stanford.edu>"]
+authors = ["simon-lc <simonlc@stanford.edu>", "thowell <thowell@stanford.edu"]
 version = "0.1.0"
 
 [deps]

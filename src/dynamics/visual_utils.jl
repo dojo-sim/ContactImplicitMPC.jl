@@ -48,7 +48,7 @@ function default_background!(vis; grid::Bool=false, axes::Bool=false, zoom=1.0)
     setprop!(vis["/Background"], "top_color", RGBA(1.0, 1.0, 1.0, 1.0))
     setprop!(vis["/Background"], "bottom_color", RGBA(1.0, 1.0, 1.0, 1.0))
 	setvisible!(vis["/Axes"], axes)
-    setvisible!(vis["/Grid"], grid)
+    # setvisible!(vis["/Grid"], grid)
 	# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", zoom)
 end
 
