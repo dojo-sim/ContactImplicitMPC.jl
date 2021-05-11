@@ -85,6 +85,7 @@ export SparseStructure, LinearizedStep, get_bilinear_indices,
     bil_addition!, r_linearized!, rz_linearized!
 
 
+
 export ImplicitTraj, linearization!, implicit_dynamics!
 export TrackingObjective
 
