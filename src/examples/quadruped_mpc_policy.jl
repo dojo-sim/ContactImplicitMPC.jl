@@ -1,8 +1,8 @@
 const ContactControl =  Main
 include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
 vis = Visualizer()
-render(vis)
 open(vis)
+# render(vis)
 
 # get model
 model = get_model("quadruped")
@@ -52,7 +52,7 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
         κ_tol = 2.0e-6),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
-@time status = ContactControl.simulate!(sim)
+time = @elapsed status = ContactControl.simulate!(sim)
 # @elapsed status = ContactControl.simulate!(sim)
 # @profiler status = ContactControl.simulate!(sim)
 
