@@ -16,13 +16,13 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 500 #4000 #3000
+H_sim = 2000 #4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 obj = TrackingObjective(H_mpc, model.dim,
-    q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
+    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])

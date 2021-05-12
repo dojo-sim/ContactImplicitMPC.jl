@@ -66,7 +66,7 @@
     # test
     @test status
     @test norm(ip.r, Inf) < opts.r_tol
-    @test !ContactControl.inequality_check(ip.z, ip.idx_ineq)
+    @test ContactControl.inequality_check(ip.z, ip.idx_ineq)
     @test ip.κ[1] < opts.κ_tol
     @test norm(ip.δz, 1) != 0.0
 end
@@ -329,16 +329,16 @@ end
     # test
     @test status_cgs
     @test norm(ip_cgs.r, Inf) < opts_cgs.r_tol
-    @test !ContactControl.inequality_check(ip_cgs.z, ip_cgs.idx_ineq)
+    @test ContactControl.inequality_check(ip_cgs.z, ip_cgs.idx_ineq)
     @test ip_cgs.κ[1] < opts_cgs.κ_tol
 
     @test status_mgs
     @test norm(ip_mgs.r, Inf) < opts_mgs.r_tol
-    @test !ContactControl.inequality_check(ip_mgs.z, ip_mgs.idx_ineq)
+    @test ContactControl.inequality_check(ip_mgs.z, ip_mgs.idx_ineq)
     @test ip_mgs.κ[1] < opts_mgs.κ_tol
 
     @test status_dmgs
     @test norm(ip_dmgs.r, Inf) < opts_dmgs.r_tol
-    @test !ContactControl.inequality_check(ip_dmgs.z, ip_dmgs.idx_ineq)
+    @test ContactControl.inequality_check(ip_dmgs.z, ip_dmgs.idx_ineq)
     @test ip_dmgs.κ[1] < opts_dmgs.κ_tol
 end
