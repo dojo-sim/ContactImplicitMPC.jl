@@ -54,201 +54,7 @@ mutable struct PlanarPush13{T} <: ContactDynamicsModel
 	env::Environment
 end
 
-# function kinematics_1(model::PlanarPush13, q; body = :torso, mode = :ee)
-# 	x = q[1]
-# 	z = q[2]
-#
-# 	if body == :torso
-# 		l = model.l_torso
-# 		d = model.d_torso
-# 		θ = q[3]
-# 		if mode == :ee
-# 			return [x - l * sin(θ); z + l * cos(θ)]
-# 		elseif mode == :com
-# 			return [x - d * sin(θ); z + d * cos(θ)]
-# 		end
-# 	elseif body == :thigh_1
-# 		l = model.l_thigh1
-# 		d = model.d_thigh1
-# 		θ = q[4]
-# 	elseif body == :thigh_2
-# 		l = model.l_thigh2
-# 		d = model.d_thigh2
-# 		θ = q[6]
-# 	else
-# 		@error "incorrect body specification"
-# 	end
-#
-# 	if mode == :ee
-# 		return [x + l * sin(θ); z - l * cos(θ)]
-# 	elseif mode == :com
-# 		return [x + d * sin(θ); z - d * cos(θ)]
-# 	else
-# 		@error "incorrect mode specification"
-# 	end
-# end
-#
-# function jacobian_1(model::PlanarPush13, q; body = :torso, mode = :ee)
-# 	jac = zeros(eltype(q), 2, model.dim.q)
-# 	jac[1, 1] = 1.0
-# 	jac[2, 2] = 1.0
-# 	if body == :torso
-# 		r = mode == :ee ? model.l_torso : model.d_torso
-# 		θ = q[3]
-# 		jac[1, 3] = -r * cos(θ)
-# 		jac[2, 3] = -r * sin(θ)
-# 	elseif body == :thigh_1
-# 		r = mode == :ee ? model.l_thigh1 : model.d_thigh1
-# 		θ = q[4]
-# 		jac[1, 4] = r * cos(θ)
-# 		jac[2, 4] = r * sin(θ)
-# 	elseif body == :thigh_2
-# 		r = mode == :ee ? model.l_thigh2 : model.d_thigh2
-# 		θ = q[6]
-# 		jac[1, 6] = r * cos(θ)
-# 		jac[2, 6] = r * sin(θ)
-# 	else
-# 		@error "incorrect body specification"
-# 	end
-#
-# 	return jac
-# end
-#
-# function kinematics_2(model::PlanarPush13, q; body = :calf_1, mode = :ee)
-#
-# 	if body == :calf_1
-# 		p = kinematics_1(model, q, body = :thigh_1, mode = :ee)
-#
-# 		θb = q[5]
-#
-# 		lb = model.l_calf1
-# 		db = model.d_calf1
-# 	elseif body == :calf_2
-# 		p = kinematics_1(model, q, body = :thigh_2, mode = :ee)
-#
-# 		θb = q[7]
-#
-# 		lb = model.l_calf2
-# 		db = model.d_calf2
-# 	else
-# 		@error "incorrect body specification"
-# 	end
-#
-# 	if mode == :ee
-# 		return p + [lb * sin(θb); -1.0 * lb * cos(θb)]
-# 	elseif mode == :com
-# 		return p + [db * sin(θb); -1.0 * db * cos(θb)]
-# 	else
-# 		@error "incorrect mode specification"
-# 	end
-# end
-#
-# function jacobian_2(model::PlanarPush13, q; body = :calf_1, mode = :ee)
-#
-# 	if body == :calf_1
-# 		jac = jacobian_1(model, q, body = :thigh_1, mode = :ee)
-#
-# 		θb = q[5]
-#
-# 		r = mode == :ee ? model.l_calf1 : model.d_calf1
-#
-# 		jac[1, 5] += r * cos(θb)
-# 		jac[2, 5] += r * sin(θb)
-# 	elseif body == :calf_2
-# 		jac = jacobian_1(model, q, body = :thigh_2, mode = :ee)
-#
-# 		θb = q[7]
-#
-# 		r = mode == :ee ? model.l_calf2 : model.d_calf2
-#
-# 		jac[1, 7] += r * cos(θb)
-# 		jac[2, 7] += r * sin(θb)
-# 	else
-# 		@error "incorrect body specification"
-# 	end
-#
-# 	return jac
-# end
-#
-# function kinematics_3(model::PlanarPush13, q; body = :foot_1, mode = :ee)
-#
-# 	if body == :foot_1
-# 		p = kinematics_2(model, q, body = :calf_1, mode = :ee)
-#
-# 		θb = q[8]
-#
-# 		lb = model.l_foot1
-# 		db = model.d_foot1
-# 		cb = 0.5 * (model.l_foot1 - model.d_foot1)
-# 	elseif body == :foot_2
-# 		p = kinematics_2(model, q, body = :calf_2, mode = :ee)
-#
-# 		θb = q[9]
-#
-# 		lb = model.l_foot2
-# 		db = model.d_foot2
-# 		cb = 0.5 * (model.l_foot2 - model.d_foot2)
-# 	else
-# 		@error "incorrect body specification"
-# 	end
-#
-# 	if mode == :toe
-# 		return p + [lb * sin(θb); -1.0 * lb * cos(θb)]
-# 	elseif mode == :heel
-# 		return p + [-db * sin(θb); 1.0 * db * cos(θb)]
-# 	elseif mode == :com
-# 		return p + [cb * sin(θb); -1.0 * cb * cos(θb)]
-# 	else
-# 		@error "incorrect mode specification"
-# 	end
-# end
-#
-# function jacobian_3(model::PlanarPush13, q; body = :foot_1, mode = :ee)
-#
-# 	if body == :foot_1
-# 		jac = jacobian_2(model, q, body = :calf_1, mode = :ee)
-#
-# 		θb = q[8]
-#
-# 		if mode == :toe
-# 			r = model.l_foot1
-# 		elseif mode == :heel
-# 			r = -1.0 * model.d_foot1
-# 		elseif mode == :com
-# 			r = 0.5 * (model.l_foot1 - model.d_foot1)
-# 		else
-# 			@error "incorrect mode specification"
-# 		end
-#
-# 		jac[1, 8] += r * cos(θb)
-# 		jac[2, 8] += r * sin(θb)
-#
-# 	elseif body == :foot_2
-# 		jac = jacobian_2(model, q, body = :calf_2, mode = :ee)
-#
-# 		θb = q[9]
-#
-# 		if mode == :toe
-# 			r = model.l_foot2
-# 		elseif mode == :heel
-# 			r = -1.0 * model.d_foot2
-# 		elseif mode == :com
-# 			r = 0.5 * (model.l_foot2 - model.d_foot2)
-# 		else
-# 			@error "incorrect mode specification"
-# 		end
-# 		jac[1, 9] += r * cos(θb)
-# 		jac[2, 9] += r * sin(θb)
-#
-# 	else
-# 		@error "incorrect body specification"
-# 	end
-#
-# 	return jac
-# end
-
 # Lagrangian
-
 function lagrangian(model::PlanarPush13, q, q̇)
 	v_object = [q̇[1], q̇[2], q̇[3]]
 	v_pusher = [q̇[5], q̇[6], q̇[7]]
@@ -260,7 +66,7 @@ function lagrangian(model::PlanarPush13, q, q̇)
 	L += 0.5 * model.J * q̇[4]^2
 	# potential energy
 	L -= model.m * model.g * q[3]
-	L -= model.mp * model.g * q[7]
+	# L -= model.mp * model.g * q[7]
 	return L
 end
 
@@ -300,10 +106,12 @@ function kinematics_1(model::PlanarPush13, q; body = :floor)
 end
 
 function kinematics(model::PlanarPush13, q)
+	# p_floor = kinematics_1(model, q; body = :floor)
+	# p_object = kinematics_1(model, q; body = :object)
+	# p_pusher= kinematics_1(model, q; body = :pusher)
+	# SVector{9}([p_floor; p_object; p_pusher])
 	p_floor = kinematics_1(model, q; body = :floor)
-	p_object = kinematics_1(model, q; body = :object)
-	p_pusher= kinematics_1(model, q; body = :pusher)
-	SVector{9}([p_floor; p_object; p_pusher])
+	SVector{3}([p_floor; ])
 end
 
 # Methods
@@ -317,9 +125,14 @@ function ϕ_func(model::PlanarPush13, q)
 	x = [q[1], q[2], 0.0]
 	xp = [q[5], q[6], 0.0]
 	Δ = x - xp
-	SVector{3}([q[3] - model.env.surf(x[1:2]),
-				norm(Δ) - (model.r + model.rp),
-				norm(Δ) - (model.r + model.rp)])
+	# SVector{3}([q[3] - model.env.surf(x[1:2]),
+	# 			norm(Δ) - (model.r + model.rp),
+	# 			norm(Δ) - (model.r + model.rp),
+	# 			])
+	SVector{1}([q[3] - model.env.surf(x[1:2]),
+				# norm(Δ) - (model.r + model.rp),
+				# norm(Δ) - (model.r + model.rp),
+				])
 end
 
 function B_func(model::PlanarPush13, q)
@@ -347,20 +160,25 @@ function J_func(model::PlanarPush13, q)
 	# Jacobian velocity in world frame of contact points ATTACHED to their respective links.
 	J_floor = [1.0  0.0  0.0  0.0  0.0  0.0  0.0;
 			   0.0  1.0  0.0  0.0  0.0  0.0  0.0;
-			   0.0  0.0  0.0  0.0  0.0  0.0  0.0]
+			   # 0.0  0.0  0.0  0.0  0.0  0.0  0.0]
+			   0.0  0.0  1.0  0.0  0.0  0.0  0.0]
 	# p_object = [x + r cos(α) , y + sin(α)]
 	# v_object = [ẋ - r sin(α) θd, ẏ + r cos(α) θd]
 	r = model.r
 	α = contact_angle(model, q)
     J_object = [1.0  0.0  0.0 -r*sin(α) 0.0  0.0  0.0;
 			    0.0  1.0  0.0  r*cos(α) 0.0  0.0  0.0;
-			    0.0  0.0  0.0  0.0      0.0  0.0  0.0]
+				# 0.0  0.0  0.0  0.0      0.0  0.0  0.0]
+			    0.0  0.0  1.0  0.0      0.0  0.0  0.0]
 	J_pusher = [0.0  0.0  0.0  0.0  1.0  0.0  0.0;
 			    0.0  0.0  0.0  0.0  0.0  1.0  0.0;
-			    0.0  0.0  0.0  0.0  0.0  0.0  0.0]
+				# 0.0  0.0  0.0  0.0  0.0  0.0  0.0]
+			    0.0  0.0  0.0  0.0  0.0  0.0  1.0]
+	# return [J_floor;
+	# 		J_object;
+	# 		J_pusher] # (nc*np) x nq  = 9x7
 	return [J_floor;
-			J_object;
-			J_pusher] # (nc*np) x nq  = 9x7
+			] # (nc*np) x nq  = 9x7
 end
 
 function contact_forces(model::PlanarPush13, γ1, b1, q2, k)
@@ -369,7 +187,7 @@ function contact_forces(model::PlanarPush13, γ1, b1, q2, k)
 	# which will be used in dynamics: transpose(J_fast(model, q2)) * λ1
 	m = friction_mapping(model.env)
 	# get rotation
-	α = contact_angle(model, q)
+	α = contact_angle(model, q2)
 	cα = cos(α)
 	sα = sin(α)
 	R = [-sα  0.0  cα; # rotation matrix for contact frame to world frame
@@ -377,21 +195,14 @@ function contact_forces(model::PlanarPush13, γ1, b1, q2, k)
 		 0.0  1.0  0.0]
 	# Express in world frame
 	λ_floor = [m * b1[1:4]; γ1[1]]
-	λ_object_c = [m * b1[5:8]; γ1[2]]
-	λ_pusher_c = [m * b1[9:12]; γ1[3]]
-	λ_object =  R * λ_object_c # rotate in world frame
-	λ_pusher = -R * λ_pusher_c # action reaction principle
-	SVector{9}([λ_floor; λ_object; λ_pusher])
+	# λ_object_c = [m * b1[5:8]; γ1[2]]
+	# λ_pusher_c = [m * b1[9:12]; γ1[3]]
+	# λ_object =  R * λ_object_c # rotate in world frame
+	# # λ_pusher = -R * λ_pusher_c # action reaction principle
+	# λ_pusher =  R * λ_pusher_c # action reaction principle
+	# # SVector{9}([λ_floor; λ_object; λ_pusher])
+	SVector{3}([λ_floor;])
 end
-
-
-# function contact_forces(model::Hopper3D, γ1, b1, q2, k)
-# 	# k = kinematics(model, q2)
-# 	m = friction_mapping(model.env)
-#
-# 	SVector{3}(transpose(rotation(model.env, k)) * [m * b1; γ1])
-# end
-
 
 function velocity_stack(model::PlanarPush13, q1, q2, k, h)
 	# k = kinematics(model, q2)
@@ -399,19 +210,23 @@ function velocity_stack(model::PlanarPush13, q1, q2, k, h)
 
 	# In the world frame
 	v_floor = rotation(model.env, k) * v[1:3]
-	v_object = rotation(model.env, k) * v[4:6]
-	v_pusher = rotation(model.env, k) * v[7:9]
+	# v_object = rotation(model.env, k) * v[4:6]
+	# v_pusher = rotation(model.env, k) * v[7:9]
 
-
-	SVector{12}([v_floor[1:2];  -v_floor[1:2];
-				v_object[1:2]; -v_object[1:2];
-				v_pusher[1:2]; -v_pusher[1:2];])
+	# SVector{12}([v_floor[1:2];  -v_floor[1:2];
+	# 			v_object[1:2]; -v_object[1:2];
+	# 			v_pusher[1:2]; -v_pusher[1:2];])
+	SVector{4}([v_floor[1:2];  -v_floor[1:2];
+				# v_object[1:2]; -v_object[1:2];
+				# v_pusher[1:2]; -v_pusher[1:2];
+				])
 end
 
 # Dimensions
 nq = 3 + 1 + 3            # configuration dimension
 nu = 2                    # control dimension
-nc = 3                    # number of contact points
+# nc = 3                    # number of contact points
+nc = 1                    # number of contact points
 nf = 4                    # number of parameters for friction cone
 nb = nc * nf              # number of friction parameters
 nw = 3                    # disturbance dimension
@@ -430,7 +245,7 @@ rp = 0.01
 
 
 planarpush = PlanarPush13(Dimensions(nq, nu, nw, nc, nb),
-			  g, μ_world, μ_joint,
+			  μ_world, μ_joint, g,
 			  m, J, mp, r, rp,
 			  zeros(nc),
 			  BaseMethods(), DynamicsMethods(), ContactMethods(),
