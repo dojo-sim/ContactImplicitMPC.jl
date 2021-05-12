@@ -16,12 +16,12 @@ nf = 4
 
 # time
 # h = 0.04
-h = 0.01
+h = 0.003
 H = 100
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 200
+H_sim = 400
 
 # # reference trajectory
 # ref_traj = contact_trajectory(H, h, model)
@@ -47,8 +47,8 @@ H_sim = 200
 # end
 
 # initial conditions
-q0 = @SVector [0.00, 0.00, 0.3, 0.0, 0.10, 0.20, 0.0]
-q1 = @SVector [0.02, 0.02, 0.3, 0.0, 0.11, 0.21, 0.0]
+q0 = @SVector [0.22, 0.20, 0.3, 0.0, -0.15, 0.22, 0.10]
+q1 = @SVector [0.20, 0.20, 0.3, 0.0, -0.14, 0.22, 0.10]
 # q2 = @SVector [0.02, 0.02, 0.3, 0.0, 0.11, 0.21, 0.6]
 
 
@@ -111,7 +111,7 @@ q1 = @SVector [0.02, 0.02, 0.3, 0.0, 0.11, 0.21, 0.0]
 # model.res.r!(r0, z0, θ0, κ0)
 # model.res.r!(r0, z0, θ0, κ0)
 
-p = open_loop_policy(fill(SVector{nu}(zeros(nu)), H_sim), N_sample=N_sample)
+p = open_loop_policy(fill(SVector{nu}([0.0, 0.0]), H_sim), N_sample=N_sample)
 
 # simulator
 sim = ContactControl.simulator(model, q0, q1, h, H,
@@ -128,7 +128,7 @@ status = ContactControl.simulate!(sim)
 visualize_robot!(vis, model, sim.traj.q[1:2])
 visualize_robot!(vis, model, sim.traj)
 
-plot(hcat([q[1:3] for q in sim.traj.q]...)')
+plot(hcat([q[1:7] for q in sim.traj.q]...)')
 sim.traj.q
 [q[1] for q in sim.traj.q]
 

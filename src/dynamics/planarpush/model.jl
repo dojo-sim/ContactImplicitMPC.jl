@@ -109,7 +109,8 @@ function kinematics(model::PlanarPush13, q)
 	p_floor = kinematics_1(model, q; body = :floor)
 	p_object = kinematics_1(model, q; body = :object)
 	p_pusher= kinematics_1(model, q; body = :pusher)
-	SVector{9}([p_floor; p_object; p_pusher])
+	# SVector{9}([p_floor; p_object; p_pusher])
+	SVector{6}([p_floor; p_object])
 	# p_floor = kinematics_1(model, q; body = :floor)
 	# SVector{3}([p_floor; ])
 end
@@ -125,9 +126,20 @@ function ϕ_func(model::PlanarPush13, q)
 	x = [q[1], q[2], 0.0]
 	xp = [q[5], q[6], 0.0]
 	Δ = x - xp
-	SVector{3}([q[3] - model.env.surf(x[1:2]),
+	# SVector{3}([q[3] - model.env.surf(x[1:2]),
+	# 			norm(Δ) - (model.r + model.rp),
+	# 			norm(Δ) - (model.r + model.rp),
+	# 			])
+	# SVector{3}([q[3] - model.env.surf(x[1:2]),
+	# 			x[1],
+	# 			xp[1],
+	# 			])
+	# SVector{2}([q[3] - model.env.surf(x[1:2]),
+	# 			x[1],
+	# 			])
+	SVector{2}([q[3] - model.env.surf(x[1:2]),
 				norm(Δ) - (model.r + model.rp),
-				norm(Δ) - (model.r + model.rp),
+				# norm(Δ) - (model.r + model.rp),
 				])
 	# SVector{1}([q[3] - model.env.surf(x[1:2]),
 	# 			# norm(Δ) - (model.r + model.rp),
@@ -169,14 +181,17 @@ function J_func(model::PlanarPush13, q)
     J_object = [1.0  0.0  0.0 -r*sin(α) 0.0  0.0  0.0;
 			    0.0  1.0  0.0  r*cos(α) 0.0  0.0  0.0;
 				# 0.0  0.0  0.0  0.0      0.0  0.0  0.0]
-			    0.0  0.0  1.0  0.0      0.0  0.0  0.0]
+			    0.0  0.0  1.0  0.0  0.0  0.0  0.0]
 	J_pusher = [0.0  0.0  0.0  0.0  1.0  0.0  0.0;
 			    0.0  0.0  0.0  0.0  0.0  1.0  0.0;
 				# 0.0  0.0  0.0  0.0  0.0  0.0  0.0]
 			    0.0  0.0  0.0  0.0  0.0  0.0  1.0]
+	# return [J_floor;
+	# 		J_object;
+	# 		J_pusher] # (nc*np) x nq  = 9x7
 	return [J_floor;
 			J_object;
-			J_pusher] # (nc*np) x nq  = 9x7
+			] # (nc*np) x nq  = 9x7
 	# return [J_floor;
 	# 		] # (nc*np) x nq  = 9x7
 end
@@ -193,15 +208,38 @@ function contact_forces(model::PlanarPush13, γ1, b1, q2, k)
 	R = [-sα  0.0  cα; # rotation matrix for contact frame to world frame
 		  cα  0.0  sα;
 		 0.0  1.0  0.0]
-	# Express in world frame
-	λ_floor = [m * b1[1:4]; γ1[1]]
+	# # Express in world frame
+	# λ_floor = [m * b1[1:4]; γ1[1]]
 	# λ_object_c = [m * b1[5:8]; γ1[2]]
 	# λ_pusher_c = [m * b1[9:12]; γ1[3]]
 	# λ_object =  R * λ_object_c # rotate in world frame
 	# # λ_pusher = -R * λ_pusher_c # action reaction principle
 	# λ_pusher =  R * λ_pusher_c # action reaction principle
-	# # SVector{9}([λ_floor; λ_object; λ_pusher])
-	SVector{3}([λ_floor;])
+	# SVector{9}([λ_floor; λ_object; λ_pusher])
+
+	# λ_floor = [m * b1[1:4]; γ1[1]]
+	# λ_object_c = [γ1[2]; m * b1[5:8]]
+	# λ_pusher_c = [γ1[3]; m * b1[9:12]]
+	# λ_object =  λ_object_c # rotate in world frame
+	# # λ_pusher = -R * λ_pusher_c # action reaction principle
+	# λ_pusher =  λ_pusher_c # action reaction principle
+	# SVector{9}([λ_floor; λ_object; λ_pusher])
+
+
+	λ_floor = [m * b1[1:4]; γ1[1]]
+	b_object_c = m * b1[5:8]
+	# λ_object_c = [γ1[2], b_object_c[1], b_object_c[2]]
+	# λ_object_c = [0.0 ; m * b1[5:8]]
+	β = α-π # angle between pusher and object
+	λ_object_c = [-sin(β)*b_object_c[1], cos(β)*b_object_c[1], b_object_c[2]]
+	λ_object_c += [cos(β) * γ1[2], sin(β) * γ1[2], 0.0]
+	# λ_pusher_c = [γ1[3]; m * b1[9:12]]
+	λ_object =  λ_object_c # rotate in world frame
+	# λ_pusher = -R * λ_pusher_c # action reaction principle
+	# λ_pusher =  λ_pusher_c # action reaction principle
+	SVector{6}([λ_floor; λ_object])
+
+	# SVector{3}([λ_floor;])
 end
 
 function velocity_stack(model::PlanarPush13, q1, q2, k, h)
@@ -210,23 +248,34 @@ function velocity_stack(model::PlanarPush13, q1, q2, k, h)
 
 	# In the world frame
 	v_floor = rotation(model.env, k) * v[1:3]
-	# v_object = rotation(model.env, k) * v[4:6]
+	v_object = rotation(model.env, k) * v[4:6]
 	# v_pusher = rotation(model.env, k) * v[7:9]
 
 	# SVector{12}([v_floor[1:2];  -v_floor[1:2];
 	# 			v_object[1:2]; -v_object[1:2];
 	# 			v_pusher[1:2]; -v_pusher[1:2];])
-	SVector{4}([v_floor[1:2];  -v_floor[1:2];
-				# v_object[1:2]; -v_object[1:2];
-				# v_pusher[1:2]; -v_pusher[1:2];
-				])
+
+	# SVector{8}([v_floor[1:2];  -v_floor[1:2];
+	# 			v_object[1:2]; -v_object[1:2];])
+
+	SVector{8}([v_floor[1:2];  -v_floor[1:2];
+				v_object[2:3]; -v_object[2:3];])
+
+	# SVector{8}([v_floor[1:2];  -v_floor[1:2];
+	# 			v_object[[3,2]]; -v_object[[3,2]];])
+
+	# SVector{4}([v_floor[1:2];  -v_floor[1:2];
+	# 			# v_object[1:2]; -v_object[1:2];
+	# 			# v_pusher[1:2]; -v_pusher[1:2];
+	# 			])
 end
 
 # Dimensions
 nq = 3 + 1 + 3            # configuration dimension
 nu = 2                    # control dimension
 # nc = 3                    # number of contact points
-nc = 1                    # number of contact points
+nc = 2                    # number of contact points
+# nc = 1                    # number of contact points
 nf = 4                    # number of parameters for friction cone
 nb = nc * nf              # number of friction parameters
 nw = 3                    # disturbance dimension
@@ -253,9 +302,9 @@ planarpush = PlanarPush13(Dimensions(nq, nu, nw, nc, nb),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
 			  environment_3D_flat())
-
-@variables q[1:7]
-@variables q̇[1:7]
-
-L = lagrangian(planarpush, q, q̇)
-ddLdq̇q̇ = Symbolics.sparsehessian(L, q̇, simplify=true)
+#
+# @variables q[1:7]
+# @variables q̇[1:7]
+#
+# L = lagrangian(planarpush, q, q̇)
+# ddLdq̇q̇ = Symbolics.sparsehessian(L, q̇, simplify=true)
