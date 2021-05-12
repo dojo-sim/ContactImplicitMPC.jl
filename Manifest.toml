@@ -415,9 +415,9 @@ version = "1.3.0"
 
 [[JSExpr]]
 deps = ["JSON", "MacroTools", "Observables", "WebIO"]
-git-tree-sha1 = "829f37792c9a63904a95c3c579e3b5847b40802a"
+git-tree-sha1 = "bd6c034156b1e7295450a219c4340e32e50b08b1"
 uuid = "97c1335a-c9c5-57fe-bc5d-ec35cebe8660"
-version = "0.5.2"
+version = "0.5.3"
 
 [[JSON]]
 deps = ["Dates", "Mmap", "Parsers", "Unicode"]
