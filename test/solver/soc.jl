@@ -54,13 +54,14 @@
 	z[5] += 1.0
 
 	# solver
+	opts = ContactControl.InteriorPointOptions(diff_sol = true)
 	ip = ContactControl.interior_point(z, θ,
 		idx_ineq = idx_ineq,
 		idx_soc = idx_soc,
 		r! = rf!, rz! = rzf!, rθ! = rθf!,
 		rz = rz_sp,
 		rθ = rθ_sp,
-		opts = ContactControl.InteriorPointOptions(diff_sol = true))
+		opts = opts)
 
 	# solve
 	status = ContactControl.interior_point!(ip)
