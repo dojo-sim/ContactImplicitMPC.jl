@@ -30,7 +30,7 @@ using MeshIO
 include("utils.jl")
 
 # Solver
-# include("solver/cones.jl")
+include("solver/cones.jl")
 include("solver/interior_point.jl")
 include("solver/lu.jl")
 include("solver/ldl.jl")

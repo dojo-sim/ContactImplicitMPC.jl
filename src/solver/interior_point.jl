@@ -239,8 +239,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
                 # update
                 z .= z̄
-                r!(r, z, θ, κ[1])
-                # r_update!(r, r̄)
+                r_update!(r, r̄)
                 r_norm = r̄_norm
             end
         end
@@ -274,7 +273,7 @@ function differentiate_solution!(ip::InteriorPoint)
     δz = ip.δz
     κ = ip.κ
 
-    ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
+    # ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
     ip.methods.rθ!(rθ, z, θ)
 
     linear_solve!(ip.solver, δz, rz, rθ)
