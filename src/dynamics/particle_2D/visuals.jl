@@ -5,7 +5,7 @@ using GeometryBasics
 using MeshCat, MeshIO, Meshing
 using Rotations
 
-function visualize!(vis, model::Particle, q;
+function visualize!(vis, model::Particle2D, q;
 	Δt = 0.1, r = 0.25)
 
 	default_background!(vis)
@@ -19,7 +19,7 @@ function visualize!(vis, model::Particle, q;
 
     for t = 1:length(q)
         MeshCat.atframe(anim, t) do
-            settransform!(vis["particle"], MeshCat.Translation(q[t][1:3]...))
+            settransform!(vis["particle"], MeshCat.Translation(q[t][1], 0.0, q[t][2]))
         end
     end
 
