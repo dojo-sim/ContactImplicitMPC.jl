@@ -1,4 +1,6 @@
-model = get_model("particle_2D")
+model = get_model("particle_2D", surf="slope")
+vis = Visualizer()
+open(vis)
 
 # time
 h = 0.01
@@ -17,3 +19,9 @@ sim = ContactControl.simulator(model, q0, q1, h, T,
 @time status = ContactControl.simulate!(sim)
 
 plot(hcat(sim.traj.q[1:1:T]...)', label = ["x" "z"])
+
+visualize!(vis, model, sim.traj.q)
+plot_surface!(vis, model.env)
+visualize_force!(vis, model, sim.traj)
+
+const ContactControl = Main
