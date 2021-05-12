@@ -970,9 +970,11 @@ version = "0.11.2"
 
 [[Symbolics]]
 deps = ["AbstractAlgebra", "DiffRules", "Distributions", "DocStringExtensions", "IfElse", "Latexify", "Libdl", "LinearAlgebra", "MacroTools", "NaNMath", "RecipesBase", "Reexport", "RuntimeGeneratedFunctions", "SciMLBase", "Setfield", "SparseArrays", "SpecialFunctions", "SymbolicUtils", "TreeViews"]
-git-tree-sha1 = "dbf9d244c7b399049b6a5b53771c0c149a8ab0b2"
+git-tree-sha1 = "a752ddc52faab2e5d1fe2a35d7ead2496430eb11"
+repo-rev = "v0.1.24"
+repo-url = "https://github.com/JuliaSymbolics/Symbolics.jl.git"
 uuid = "0c5d862f-8b57-4792-8d23-62f2024744c7"
-version = "0.1.25"
+version = "0.1.24"
 
 [[TOML]]
 deps = ["Dates"]

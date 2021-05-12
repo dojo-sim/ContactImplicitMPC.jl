@@ -65,21 +65,18 @@ end
 function update_altitude!(alt, model::ContactDynamicsModel, traj, t, N_sample;
 	threshold = 1.0, verbose = false)
 
-	# idx1 = max(0, t - N_sample) + 1
-	idx1 = max(0, t-1 - N_sample) + 1
+	idx1 = max(0, t - N_sample) + 1
 
 	for i = 1:model.dim.c
 		γ_max = 0.0
 		idx_max = 0
 
-		# for j = idx1:t
-		for j = idx1:t-1
+		for j = idx1:t
 			if traj.γ[j][i] > γ_max
 				γ_max =  traj.γ[j][i]
 				idx_max = j
 			end
 		end
-		# @show ([γ[1] for γ in traj.γ[max(1, t-3): t]])
 		if γ_max > threshold
 			alt[i] = ϕ_func(model, traj.q[idx_max+2])[i] #TODO check this this is correct
 			# alt[i] = ϕ_func(model, traj.q[idx_max+2])[i]

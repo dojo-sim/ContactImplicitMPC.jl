@@ -53,6 +53,7 @@ function contact_trajectory(H::Int, h::T, model::ContactDynamicsModel) where {T}
 	iq2 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q2
     iγ1 = SizedVector{nc}(off .+ (1:nc)); off += nc # index of the impact γ1
     ib1 = SizedVector{nb}(off .+ (1:nb)); off += nb # index of the linear friction b1
+
 	return ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}(H,h,κ,q,u,w,γ,b,z,θ,iq0,iq1,iu1,iw1,iq2,iγ1,ib1)
 end
 
@@ -66,19 +67,9 @@ struct ContactDerivTraj{S,nq,nu,nc,nb}
     dbdq0::Vector{SizedArray{Tuple{nb,nq},S,2,2,Array{S,2}}}
     dbdq1::Vector{SizedArray{Tuple{nb,nq},S,2,2,Array{S,2}}}
     dbdu::Vector{SizedArray{Tuple{nb,nu},S,2,2,Array{S,2}}}
-	#TODO: specify type
-	vqq
-	vqqq
-	vqu
-	vγq
-	vγqq
-	vγu
-	vbq
-	vbqq
-	vbu
 end
 
-function contact_derivative_trajectory(δz::AbstractArray, H::Int, model::ContactDynamicsModel)
+function contact_derivative_trajectory(H::Int, model::ContactDynamicsModel)
 	nq = model.dim.q
     nu = model.dim.u
     nw = model.dim.w
@@ -95,16 +86,6 @@ function contact_derivative_trajectory(δz::AbstractArray, H::Int, model::Contac
 	dbdq1 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:H]
 	dbdu = [SizedMatrix{nb,nu}(zeros(nb, nu)) for t = 1:H]
 
-	vqq = view(δz, 1:nq, 1:nq)
-	vqqq = view(δz, 1:nq, nq .+ (1:nq))
-	vqu = view(δz, 1:nq, 2 * nq .+ (1:nu))
-	vγq = view(δz, nq .+ (1:nc), 1:nq)
-	vγqq = view(δz, nq .+ (1:nc), nq .+ (1:nq))
-	vγu = view(δz, nq .+ (1:nc), 2 * nq .+ (1:nu))
-	vbq = view(δz, nq + nc .+ (1:nb), 1:nq)
-	vbqq = view(δz, nq + nc .+ (1:nb), nq .+ (1:nq))
-	vbu = view(δz, nq + nc .+ (1:nb), 2 * nq .+ (1:nu))
-
 	ContactDerivTraj(
 		dq2dq0,
 		dq2dq1,
@@ -114,16 +95,7 @@ function contact_derivative_trajectory(δz::AbstractArray, H::Int, model::Contac
 		dγdu,
 		dbdq0,
 		dbdq1,
-		dbdu,
-		vqq,
-		vqqq,
-		vqu,
-		vγq,
-		vγqq,
-		vγu,
-		vbq,
-		vbqq,
-		vbu)
+		dbdu)
 end
 
 function update_z!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) where {T,nq,nu,nw,nc,nb,nz,nθ}

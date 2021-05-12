@@ -12,7 +12,7 @@
     The bilinear part:
         rbil = y1 .* y2 .- κ
 """
-mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nb}
     # Reference residual
     rdyn0::SVector{nx,T}
     rrst0::SVector{ny,T}
@@ -58,7 +58,8 @@ mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
 
     # Altitude
     alt::SVector{nc,T}
-    alt_zeros::SVector{nn,T}
+    alt_zeros1::SVector{nb,T}
+    alt_zeros2::SVector{nc,T}
 end
 
 function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractVector{T},
@@ -73,8 +74,24 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
     ny = 2nc + nb
 
     # Terms
+    off = 0
+    # ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
+    # ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
+    # ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
+    # ibil = [ibil1; ibil2; ibil3]
+    # idyn = Vector(1:nq)
+    # irst2 = Vector(nq .+ (1:nb))
+    # irst1 = Vector(nq + nb .+ (1:nc))
+    # irst3 = Vector(nq + nb + nc .+ (1:nc))
+    # irst = [irst1; irst2; irst3]
+    # ialt = irst1
     idyn, irst, ibil, ialt = linearization_term_index(model)
+
     # Vars
+    off = 0
+    # ix  = off .+ Vector(1:nq); off += nq
+    # iy1 = off .+ Vector(1:ny); off += ny
+    # iy2 = off .+ [Vector(nb .+ (1:nc)); Vector(1:nb); Vector(nb+nc .+ (1:nc))]; off += ny
     ix, iy1, iy2 = linearization_var_index(model)
     iθ = Vector(1:nθ)
 
@@ -108,7 +125,7 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
     y2 = zeros(SVector{ny,T})
     θ  = zeros(SVector{nθ,T})
 
-    return RLin{T,nx,ny,nθ,nx^2,nx*ny,ny*ny,nx*nθ,ny*nθ,nc,nc + nb}(
+    return RLin{T,nx,ny,nθ,nx^2,nx*ny,ny*ny,nx*nθ,ny*nθ,nc,nb}(
         rdyn0,
         rrst0,
         rbil0,
@@ -145,7 +162,8 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
         SVector{ny,Int}(ibil),
         SVector{nc,Int}(ialt),
         zeros(SVector{nc,T}),
-        zeros(SVector{nc + nb,T}))
+        zeros(SVector{nb,T}),
+        zeros(SVector{nc,T}))
 end
 
 """
@@ -196,8 +214,23 @@ function RZLin(model::ContactDynamicsModel, rz0::AbstractMatrix{T}) where {T}
     ny = 2nc + nb
 
     # Terms
+    off = 0
+    # ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
+    # ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
+    # ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
+    # ibil = [ibil1; ibil2; ibil3]
+    # idyn = Vector(1:nq)
+    # irst2 = Vector(nq .+ (1:nb))
+    # irst1 = Vector(nq + nb .+ (1:nc))
+    # irst3 = Vector(nq + nb + nc .+ (1:nc))
+    # irst = [irst1; irst2; irst3]
     idyn, irst, ibil, ialt = linearization_term_index(model)
+
     # Vars
+    off = 0
+    # ix  = off .+ Vector(1:nq); off += nq
+    # iy1 = off .+ Vector(1:ny); off += ny
+    # iy2 = off .+ [Vector(nb .+ (1:nc)); Vector(1:nb); Vector(nb+nc .+ (1:nc))]; off += ny
     ix, iy1, iy2 = linearization_var_index(model)
 
     # Fill the matrix blocks rz0s
@@ -292,19 +325,9 @@ function r!(r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, z::Vector{T}, θ::
     r.y2 = z[r.iy2]
     r.θ  = θ[r.iθ]
     r.rdyn = r.rdyn0 + r.Dx*(r.x - r.x0) + r.Dy1*(r.y1 - r.y10)                         + r.rθdyn*(r.θ - r.θ0)
-    r.rrst = r.rrst0 + r.Rx*(r.x - r.x0) + r.Ry1*(r.y1 - r.y10) + r.Ry2.*(r.y2 - r.y20) + r.rθrst*(r.θ - r.θ0) + SVector{ny}([r.alt; r.alt_zeros])
+    r.rrst = r.rrst0 + r.Rx*(r.x - r.x0) + r.Ry1*(r.y1 - r.y10) + r.Ry2.*(r.y2 - r.y20) + r.rθrst*(r.θ - r.θ0) + SVector{ny}([r.alt; r.alt_zeros1; r.alt_zeros2])
     r.rbil = r.y1 .* r.y2 .- κ
     return nothing
-end
-
-function r_update!(r::RLin, r̄::RLin)
-    r.x  = r̄.x
-    r.y1 = r̄.y1
-    r.y2 = r̄.y2
-    r.θ  = r̄.θ
-    r.rdyn = r̄.rdyn
-    r.rrst = r̄.rrst
-    r.rbil = r̄.rbil
 end
 
 """

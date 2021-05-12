@@ -48,6 +48,7 @@ function skew(x)
 				   -x[2] x[1] 0.0])
 end
 
+# rotation matrix rotating unit vector a onto unit vector b
 function rot(a, b)
 	v = cross(a, b)
 	s = sqrt(transpose(v) * v)
@@ -129,7 +130,6 @@ function verify_2D_surface(env::Environment{R2}, x;
 	return plt
 end
 
-# NOTE: not verified
 function verify_3D_surface(env::Environment{R3}, xl;
 	x_range = range(0.0, stop = 5.0, length = 1000))
 

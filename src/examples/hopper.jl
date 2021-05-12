@@ -23,7 +23,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1000
+H_sim = 4000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -65,6 +65,7 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
 
 @time status = ContactControl.simulate!(sim)
 
+anim = visualize_robot!(vis, model, sim.traj, sample=10)
 
 
 
