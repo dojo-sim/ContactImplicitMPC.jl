@@ -111,9 +111,11 @@ q1 = @SVector [0.02, 0.02, 0.3, 0.0, 0.11, 0.21, 0.0]
 # model.res.r!(r0, z0, θ0, κ0)
 # model.res.r!(r0, z0, θ0, κ0)
 
+p = open_loop_policy(fill(SVector{nu}(zeros(nu)), H_sim), N_sample=N_sample)
 
 # simulator
 sim = ContactControl.simulator(model, q0, q1, h, H,
+	p = p,
 	ip_opts = ContactControl.InteriorPointOptions(
 		r_tol = 1.0e-6, κ_tol = 1.0e-5),
 	sim_opts = ContactControl.SimulatorOptions(warmstart = false))

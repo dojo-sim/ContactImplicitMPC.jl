@@ -66,7 +66,7 @@ function lagrangian(model::PlanarPush13, q, q̇)
 	L += 0.5 * model.J * q̇[4]^2
 	# potential energy
 	L -= model.m * model.g * q[3]
-	# L -= model.mp * model.g * q[7]
+	# L -= model.mp * model.g * q[7] # the pusher floats in the air, not subject to gravity
 	return L
 end
 
@@ -106,12 +106,12 @@ function kinematics_1(model::PlanarPush13, q; body = :floor)
 end
 
 function kinematics(model::PlanarPush13, q)
-	# p_floor = kinematics_1(model, q; body = :floor)
-	# p_object = kinematics_1(model, q; body = :object)
-	# p_pusher= kinematics_1(model, q; body = :pusher)
-	# SVector{9}([p_floor; p_object; p_pusher])
 	p_floor = kinematics_1(model, q; body = :floor)
-	SVector{3}([p_floor; ])
+	p_object = kinematics_1(model, q; body = :object)
+	p_pusher= kinematics_1(model, q; body = :pusher)
+	SVector{9}([p_floor; p_object; p_pusher])
+	# p_floor = kinematics_1(model, q; body = :floor)
+	# SVector{3}([p_floor; ])
 end
 
 # Methods
@@ -125,14 +125,14 @@ function ϕ_func(model::PlanarPush13, q)
 	x = [q[1], q[2], 0.0]
 	xp = [q[5], q[6], 0.0]
 	Δ = x - xp
-	# SVector{3}([q[3] - model.env.surf(x[1:2]),
-	# 			norm(Δ) - (model.r + model.rp),
-	# 			norm(Δ) - (model.r + model.rp),
-	# 			])
-	SVector{1}([q[3] - model.env.surf(x[1:2]),
-				# norm(Δ) - (model.r + model.rp),
-				# norm(Δ) - (model.r + model.rp),
+	SVector{3}([q[3] - model.env.surf(x[1:2]),
+				norm(Δ) - (model.r + model.rp),
+				norm(Δ) - (model.r + model.rp),
 				])
+	# SVector{1}([q[3] - model.env.surf(x[1:2]),
+	# 			# norm(Δ) - (model.r + model.rp),
+	# 			# norm(Δ) - (model.r + model.rp),
+	# 			])
 end
 
 function B_func(model::PlanarPush13, q)
@@ -174,11 +174,11 @@ function J_func(model::PlanarPush13, q)
 			    0.0  0.0  0.0  0.0  0.0  1.0  0.0;
 				# 0.0  0.0  0.0  0.0  0.0  0.0  0.0]
 			    0.0  0.0  0.0  0.0  0.0  0.0  1.0]
-	# return [J_floor;
-	# 		J_object;
-	# 		J_pusher] # (nc*np) x nq  = 9x7
 	return [J_floor;
-			] # (nc*np) x nq  = 9x7
+			J_object;
+			J_pusher] # (nc*np) x nq  = 9x7
+	# return [J_floor;
+	# 		] # (nc*np) x nq  = 9x7
 end
 
 function contact_forces(model::PlanarPush13, γ1, b1, q2, k)
