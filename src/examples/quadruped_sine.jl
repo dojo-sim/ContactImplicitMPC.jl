@@ -105,7 +105,7 @@ end
 
 
 
-# filename = "quadruped_fixed"
+# filename = "quadruped_not_smooth"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
