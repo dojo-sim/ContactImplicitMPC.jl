@@ -24,7 +24,7 @@ function plot_lines!(vis::Visualizer, model::PlanarPush13, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::PlanarPush13; name::Symbol=:PlanarPush13, height=0.10, α=1.0)
+function build_robot!(vis::Visualizer, model::PlanarPush13; name::Symbol=:PlanarPush13, height=0.20, α=1.0)
 	height = convert(Float32, height)
 	r = convert(Float32, model.r)
 	rp = convert(Float32, model.rp)
@@ -35,7 +35,8 @@ function build_robot!(vis::Visualizer, model::PlanarPush13; name::Symbol=:Planar
 
 	Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height), r)
 	obj_p = Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height), rp)
-	setobject!(vis[name][:robot]["object"], Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height/2), r), body_mat)
+	setobject!(vis[name][:robot]["object"]["cyl"], Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height/5), r), body_mat)
+	setobject!(vis[name][:robot]["object"]["rect"], Rect(Vec(0.0, 0.0, 0.0), Vec(r/3, r/3, height/4)), contact_mat)
     setobject!(vis[name][:robot]["pusher"], Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height), rp), contact_mat)
 	return nothing
 end

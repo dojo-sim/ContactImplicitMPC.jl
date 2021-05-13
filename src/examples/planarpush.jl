@@ -16,12 +16,12 @@ nf = 4
 
 # time
 # h = 0.04
-h = 0.003
-H = 100
+h = 0.002
+H = 600
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 400
+H_sim = 3000
 
 # # reference trajectory
 # ref_traj = contact_trajectory(H, h, model)
@@ -47,8 +47,10 @@ H_sim = 400
 # end
 
 # initial conditions
-q0 = @SVector [0.22, 0.20, 0.3, 0.0, -0.15, 0.22, 0.10]
-q1 = @SVector [0.20, 0.20, 0.3, 0.0, -0.14, 0.22, 0.10]
+q0 = @SVector [0.201, 0.20, 0.03, 0.0, -0.150, 0.21, 0.00]
+q1 = @SVector [0.200, 0.20, 0.03, 0.0, -0.149, 0.21, 0.00]
+q0 = @SVector [0.20, 0.20, 0.0, 0.0, -0.15, 0.28, 0.00]
+q1 = @SVector [0.20, 0.20, 0.0, 0.0, -0.15, 0.28, 0.00]
 # q2 = @SVector [0.02, 0.02, 0.3, 0.0, 0.11, 0.21, 0.6]
 
 
@@ -111,15 +113,16 @@ q1 = @SVector [0.20, 0.20, 0.3, 0.0, -0.14, 0.22, 0.10]
 # model.res.r!(r0, z0, θ0, κ0)
 # model.res.r!(r0, z0, θ0, κ0)
 
-p = open_loop_policy(fill(SVector{nu}([0.0, 0.0]), H_sim), N_sample=N_sample)
+# p = open_loop_policy(fill(SVector{nu}([0.0, -0.125]), H_sim), N_sample=N_sample)
+# p = open_loop_policy(fill(SVector{nu}([0.01, -0.0]), H_sim*10), N_sample=N_sample)
+p = open_loop_policy(fill(SVector{nu}([0.033, -0.0]), H_sim*10), N_sample=N_sample)
 
 # simulator
 sim = ContactControl.simulator(model, q0, q1, h, H,
 	p = p,
 	ip_opts = ContactControl.InteriorPointOptions(
-		r_tol = 1.0e-6, κ_tol = 1.0e-5),
-	sim_opts = ContactControl.SimulatorOptions(warmstart = false))
-
+		r_tol = 1.0e-8, κ_init=1e-6, κ_tol = 2.0e-6),
+	sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 # simulate
 status = ContactControl.simulate!(sim)
