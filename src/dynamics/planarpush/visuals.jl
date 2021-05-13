@@ -36,7 +36,7 @@ function build_robot!(vis::Visualizer, model::PlanarPush13; name::Symbol=:Planar
 	Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height), r)
 	obj_p = Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height), rp)
 	setobject!(vis[name][:robot]["object"]["cyl"], Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height/5), r), body_mat)
-	setobject!(vis[name][:robot]["object"]["rect"], Rect(Vec(0.0, 0.0, 0.0), Vec(r/3, r/3, height/4)), contact_mat)
+	setobject!(vis[name][:robot]["object"]["rect"], Cylinder(Point3f0(r/2, 0, 0), Point3f0(r/2, 0.0, height/4), r/5), contact_mat)
     setobject!(vis[name][:robot]["pusher"], Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height), rp), contact_mat)
 	return nothing
 end
