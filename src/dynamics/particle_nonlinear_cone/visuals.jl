@@ -13,7 +13,7 @@ function visualize!(vis, model::Particle, q;
     setobject!(vis["particle"],
 		GeometryBasics.Sphere(GeometryBasics.Point3f0(0),
 		convert(Float32, r)),
-		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
+		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
     anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
 
@@ -22,9 +22,6 @@ function visualize!(vis, model::Particle, q;
             settransform!(vis["particle"], MeshCat.Translation(q[t][1:3]...))
         end
     end
-
-	# settransform!(vis["/Cameras/default"],
-	#     compose(Translation(-2.5, 7.5, 1.0),LinearMap(RotZ(0.0))))
 
     MeshCat.setanimation!(vis, anim)
 end

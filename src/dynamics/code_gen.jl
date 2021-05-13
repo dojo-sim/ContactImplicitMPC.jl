@@ -3,7 +3,9 @@
 Generate fast base methods using Symbolics symbolic computing tools.
 """
 function generate_base_expressions(model::ContactDynamicsModel;
-	M_analytical = true)
+	M_analytical = true,
+	mapping = x -> I,
+	nv = model.dim.q)
 
 	nq = model.dim.q
 	nu = model.dim.u
@@ -14,16 +16,16 @@ function generate_base_expressions(model::ContactDynamicsModel;
 
 	# Declare variables
 	@variables q[1:nq]
-	@variables q̇[1:nq]
+	@variables q̇[1:nv]
 
 	# Lagrangian
 	L = lagrangian(model, q, q̇)
 	L = Symbolics.simplify.(L)
 
-	dLq = Symbolics.gradient(L, q, simplify=true)
+	dLq = mapping(q)' * Symbolics.gradient(L, q, simplify=true) # including mapping for orientation (e.g., attitude Jacobian)
 	dLq̇ = Symbolics.gradient(L, q̇, simplify=true)
-	ddL = Symbolics.sparsehessian(L, [q; q̇], simplify=true)
-	ddLq̇q = ddL[nq .+ (1:nq), 1:nq]
+	ddL = Symbolics.hessian(L, [q; q̇], simplify=true)
+	ddLq̇q = ddL[nq .+ (1:nv), 1:nq] * mapping(q)
 
 	# Mass Matrix
 	if M_analytical
@@ -31,7 +33,7 @@ function generate_base_expressions(model::ContactDynamicsModel;
 		M = reshape(M, (nq, nq))
 		M = Symbolics.simplify.(M)
 	else
-		M = ddL[nq .+ (1:nq), nq .+ (1:nq)]
+		M = ddL[nq .+ (1:nv), nq .+ (1:nv)]
 	end
 
 	# Control input Jacobian
