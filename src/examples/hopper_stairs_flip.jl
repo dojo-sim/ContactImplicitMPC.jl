@@ -81,11 +81,11 @@ sim_stair = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 
 # plot_surface!(vis, model_sim.env, n=400)
-# anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0)
+anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0)
 
 # ghost
 ref_traj_full = get_trajectory(model,
-    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stairs_3_flip_v3.jld2"),
+    joinpath(pwd(),"src", "dynamics", "hopper_2D", "parkour", "hopper_stairs_3_v3.jld2"),
     load_type=:split_traj_alt)
 ref_traj_full = deepcopy(ref_traj_full)
 

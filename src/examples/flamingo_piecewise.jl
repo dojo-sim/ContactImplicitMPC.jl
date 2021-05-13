@@ -21,7 +21,6 @@ flamingo_piecewise = Flamingo(Dimensions(nq, nu, nw, nc, nb),
 			  ResidualMethods(), ResidualMethods(),
 			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
-			  # environment_2D_flat()
 			  Environment{R2}(piecewise_smoothed, d_piecewise_smoothed),
 			  )
 
@@ -70,7 +69,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 5000#15000
+H_sim = 2500#15000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -103,13 +102,8 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-
-# u = vcat([fill(ref_traj.u[t], N_sample) for t=1:H]...)
-# p = open_loop_policy(u; N_sample=N_sample)
-w_amp = [+0.02, -0.20]
 sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-    # d = open_loop_disturbances([rand(model.dim.w) .* w_amp for i=1:H_sim]),
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
         κ_init = 1.0e-8,
@@ -139,7 +133,7 @@ plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', colo
 
 plot_lines!(vis, model, sim.traj.q[1:N_sample:end], offset=-0.01)
 plot_surface!(vis, model_sim.env, xlims=[-1, 9])
-anim = visualize_robot!(vis, model_sim, sim.traj, sample=10)
+anim = visualize_meshrobot!(vis, model_sim, sim.traj, sample=10)
 anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=10)
 open(vis)
 

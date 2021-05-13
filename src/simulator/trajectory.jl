@@ -53,6 +53,7 @@ function contact_trajectory(H::Int, h::T, model::ContactDynamicsModel) where {T}
 	iq2 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q2
     iγ1 = SizedVector{nc}(off .+ (1:nc)); off += nc # index of the impact γ1
     ib1 = SizedVector{nb}(off .+ (1:nb)); off += nb # index of the linear friction b1
+
 	return ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}(H,h,κ,q,u,w,γ,b,z,θ,iq0,iq1,iu1,iw1,iq2,iγ1,ib1)
 end
 

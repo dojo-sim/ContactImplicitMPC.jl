@@ -1,15 +1,5 @@
 abstract type LinearSolver end
 
-# check that inequality constraints are satisfied
-function inequality_check(x, idx_ineq)
-    for i in idx_ineq
-        if x[i] <= 0.0
-            return true
-        end
-    end
-    return false
-end
-
 # residual
 function r!(r, z, θ, κ)
     @warn "residual not defined"
@@ -75,6 +65,7 @@ mutable struct InteriorPoint{T}
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
     idx_ineq::Vector{Int}      # indices for inequality constraints
+    idx_soc::Vector{Vector{Int}} # indices for second-order cone constraints
     idx_pr::Vector{Int}        # indices for primal variables
     idx_du::Vector{Int}        # indices for dual variables
     δz::Matrix{T}              # solution gradients (this is always dense)
@@ -94,6 +85,7 @@ function interior_point(z, θ;
         num_var = length(z),
         num_data = length(θ),
         idx_ineq = collect(1:0),
+        idx_soc = Vector{Int}[],
         idx_pr = collect(1:num_var),
         idx_du = collect(1:0),
         r! = r!, rz! = rz!, rθ! = rθ!,
@@ -119,6 +111,7 @@ function interior_point(z, θ;
         rθ,
         zeros(num_var),
         idx_ineq,
+        idx_soc,
         idx_pr,
         idx_du,
         zeros(num_var, num_data),
@@ -166,6 +159,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
     rz = ip.rz
     Δ = ip.Δ
     idx_ineq = ip.idx_ineq
+    idx_soc = ip.idx_soc
     θ = ip.θ
     κ = ip.κ
     v_pr = ip.v_pr
@@ -212,9 +206,10 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 # candidate point
                 z̄ .= z - α * Δ
 
-                # check inequality constraints
+                # check cones
                 iter = 0
-                while inequality_check(z̄, idx_ineq)
+                # while inequality_check(z̄, idx_ineq)
+                while cone_check(z̄, idx_ineq, idx_soc)
                     α *= ls_scale
                     z̄ .= z - α * Δ
                     iter += 1

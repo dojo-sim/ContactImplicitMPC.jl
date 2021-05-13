@@ -71,10 +71,14 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
     nθ = num_data(model)
     nx = nq
     ny = 2nc + nb
+    nn = nc + nb
 
     # Terms
+    off = 0
     idyn, irst, ibil, ialt = linearization_term_index(model)
+
     # Vars
+    off = 0
     ix, iy1, iy2 = linearization_var_index(model)
     iθ = Vector(1:nθ)
 
@@ -108,7 +112,7 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
     y2 = zeros(SVector{ny,T})
     θ  = zeros(SVector{nθ,T})
 
-    return RLin{T,nx,ny,nθ,nx^2,nx*ny,ny*ny,nx*nθ,ny*nθ,nc,nc + nb}(
+    return RLin{T,nx,ny,nθ,nx^2,nx*ny,ny*ny,nx*nθ,ny*nθ,nc,nn}(
         rdyn0,
         rrst0,
         rbil0,
@@ -196,8 +200,23 @@ function RZLin(model::ContactDynamicsModel, rz0::AbstractMatrix{T}) where {T}
     ny = 2nc + nb
 
     # Terms
+    off = 0
+    # ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
+    # ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
+    # ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
+    # ibil = [ibil1; ibil2; ibil3]
+    # idyn = Vector(1:nq)
+    # irst2 = Vector(nq .+ (1:nb))
+    # irst1 = Vector(nq + nb .+ (1:nc))
+    # irst3 = Vector(nq + nb + nc .+ (1:nc))
+    # irst = [irst1; irst2; irst3]
     idyn, irst, ibil, ialt = linearization_term_index(model)
+
     # Vars
+    off = 0
+    # ix  = off .+ Vector(1:nq); off += nq
+    # iy1 = off .+ Vector(1:ny); off += ny
+    # iy2 = off .+ [Vector(nb .+ (1:nc)); Vector(1:nb); Vector(nb+nc .+ (1:nc))]; off += ny
     ix, iy1, iy2 = linearization_var_index(model)
 
     # Fill the matrix blocks rz0s
@@ -305,6 +324,7 @@ function r_update!(r::RLin, r̄::RLin)
     r.rdyn = r̄.rdyn
     r.rrst = r̄.rrst
     r.rbil = r̄.rbil
+    return nothing
 end
 
 """

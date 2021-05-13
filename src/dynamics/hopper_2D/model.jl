@@ -87,7 +87,7 @@ function velocity_stack(model::Hopper2D, q1, q2, k, h)
 
 	v1_surf = rotation(model.env, k) * v
 
-	SVector{2}([friction_mapping(model.env)' * v1_surf[1]])
+	SVector{2}([v1_surf[1]; -v1_surf[1]])
 end
 
 # # Parameters
@@ -148,7 +148,6 @@ hopper_2D_sinusoidal = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   environment_2D(x -> 0.10 * sin(2π * x[1])),
 			   )
 
-include(joinpath(pwd(), "src/simulator/terrain/stairs.jl"))
 hopper_2D_stairs = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, g,
@@ -158,7 +157,7 @@ hopper_2D_stairs = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   SVector{4}(zeros(4)),
 			   # environment_2D(x -> 0.1 * x[1]),
 			   # environment_2D(x -> 0.10 * sin(2π * x[1])),
-			   # Environment{R2}(x -> 0.1*x[1], x -> 0.0),
+			   Environment{R2}(x -> 0.1*x[1], x -> 0.0),
 			   # Environment{R2}(x -> 0.1, x -> 0.0),
-			   Environment{R2}(stairs3steps, d_stairs3steps),
+			   # Environment{R2}(stairs3steps, d_stairs3steps),
 			   )

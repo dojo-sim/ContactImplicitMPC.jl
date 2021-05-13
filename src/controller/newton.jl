@@ -215,8 +215,7 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel,
 
     # precompute Jacobian for pre-factorization
     implicit_dynamics!(im_traj, model, traj, κ = traj.κ)
-    initialize_jacobian!(jac, obj, H)
-    update_jacobian!(jac, im_traj, obj, H, opts.β_init)
+    jacobian!(jac, im_traj, obj, H, opts.β_init)
 
     res = NewtonResidual(H, dim)
     res_cand = NewtonResidual(H, dim)
@@ -246,7 +245,8 @@ function Newton(H::Int, h::T, model::ContactDynamicsModel,
 end
 
 function initialize_jacobian!(jac::NewtonJacobian, obj::Objective, H::Int)
-    fill!(jac.R, 0.0) # TODO: modify
+
+    fill!(jac.R, 0.0)
 
     # Objective
     hessian!(jac, obj)
@@ -263,17 +263,26 @@ end
 function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objective,
     H::Int, β::T) where T
 
-    # fill!(jac.R, 0.0) # TODO: modify
+    # reset
+    for t = 1:H
+        if t >= 3
+            fill!(jac.q0[t-2], 0.0)
+            fill!(jac.q0T[t-2], 0.0)
+        end
 
-    # Objective
-    # hessian!(jac, obj)
+        if t >= 2
+            fill!(jac.q1[t-1], 0.0)
+            fill!(jac.q1T[t-1], 0.0)
+        end
+
+        fill!(jac.u1[t], 0.0)
+        fill!(jac.u1T[t], 0.0)
+
+        # Dual regularization
+        fill!(jac.reg[t], 0.0)
+    end
 
     for t = 1:H
-        # Implicit dynamics
-        # jac.IV[t] .-= 1.0
-        # jac.ITV[t] .-= 1.0
-
-        # TODO: ^ perform only once
         if t >= 3
             jac.q0[t-2]  .+= im_traj.δq0[t]
             jac.q0T[t-2] .+= im_traj.δq0[t]'
@@ -288,8 +297,49 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objec
         jac.u1T[t] .+= im_traj.δu1[t]'
 
         # Dual regularization
-        jac.reg[t] .-= β * im_traj.lin[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+        jac.reg[t] .-= 1.0 * β * im_traj.lin[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
     end
+
+    return nothing
+end
+
+function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objective,
+    H::Int, β::T) where T
+
+    initialize_jacobian!(jac, obj, H)
+    update_jacobian!(jac, im_traj, obj, H, β)
+    # fill!(jac.R, 0.0) # TODO: remove
+    #
+    # # Objective
+    # hessian!(jac, obj)
+    # for t = 1:H
+    #     # # Cost function
+    #     # jac.obj_q2[t] .+= obj.q[t]
+    #     # jac.obj_u1[t] .+= obj.u[t]
+    #     # jac.obj_γ1[t] .+= obj.γ[t]
+    #     # jac.obj_b1[t] .+= obj.b[t]
+    #
+    #     # Implicit dynamics
+    #     jac.IV[t] .-= 1.0
+    #     jac.ITV[t] .-= 1.0
+    #
+    #     # TODO: ^ perform only once
+    #     if t >= 3
+    #         jac.q0[t-2]  .+= im_traj.δq0[t]
+    #         jac.q0T[t-2] .+= im_traj.δq0[t]'
+    #     end
+    #
+    #     if t >= 2
+    #         jac.q1[t-1]  .+= im_traj.δq1[t]
+    #         jac.q1T[t-1] .+= im_traj.δq1[t]'
+    #     end
+    #
+    #     jac.u1[t]  .+= im_traj.δu1[t]
+    #     jac.u1T[t] .+= im_traj.δu1[t]'
+    #
+    #     # Dual regularization
+    #     jac.reg[t] .-= β * im_traj.lin[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+    # end
 
     return nothing
 end
@@ -304,7 +354,6 @@ function residual!(res::NewtonResidual, model::ContactDynamicsModel, core::Newto
 
     # Objective
     gradient!(res, obj, core, traj, ref_traj)
-
     for t in eachindex(ν)
         # Implicit dynamics
         res.rd[t] .+= im_traj.d[t]
@@ -402,18 +451,17 @@ function reset!(core::Newton, ref_traj::ContactTraj;
 			update_θ!(core.traj, 2)
 		end
 	end
-
     core.traj.q[1] .= deepcopy(q0)
     core.traj.q[2] .= deepcopy(q1)
 
     update_θ!(core.traj, 1)
     update_θ!(core.traj, 2)
 
+    # initialized residual Jacobian
+    initialize_jacobian!(core.jac, core.obj, core.traj.H)
+
 	# Set up traj cand
 	core.traj_cand = deepcopy(core.traj)
-
-    # Initialize Jacobian
-    initialize_jacobian!(core.jac, core.obj, core.traj.H)
 
 	return nothing
 end

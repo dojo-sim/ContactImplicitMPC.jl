@@ -17,12 +17,14 @@ include("solver/random_qp.jl")
 include("solver/lu.jl")
 include("solver/gs.jl")
 include("solver/schur.jl")
+include("solver/soc.jl")
 
 # Dynamics
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
 
 # Simulator
+include("simulator/rotations.jl")
 include("simulator/environment.jl")
 include("simulator/particle.jl")
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model

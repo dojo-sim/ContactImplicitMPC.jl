@@ -36,10 +36,10 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
 
     # initialize trajectories
     traj = contact_trajectory(H, h, model)
-    traj.q[1] .= q0
-    traj.q[2] .= q1
-    traj.u[1] .= control_saturation(policy(p, traj.q[2], traj, 1), uL, uU)
-    traj.w[1] .= disturbances(d, traj.q[2], 1)
+    traj.q[1] = q0
+    traj.q[2] = q1
+    traj.u[1] = control_saturation(policy(p, traj.q[2], traj, 1), uL, uU)
+    traj.w[1] = disturbances(d, traj.q[2], 1)
 
     # initialize interior point solver (for pre-factorization)
     z = zeros(num_var(model))
@@ -56,7 +56,7 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
         rθ = rθ,
         opts = ip_opts)
 
-    # allocate gradients
+    # pre-allocate for gradients
     traj_deriv = contact_derivative_trajectory(ip.δz, H, model)
 
     Simulator(
@@ -102,12 +102,12 @@ function step!(sim::Simulator, t)
     if status
         # parse result
         q2, γ, b, _ = unpack_z(model, z)
-        sim.traj.z[t] = z
+        sim.traj.z[t] = z # TODO: maybe not use copy
         sim.traj.θ[t] = θ
         sim.traj.q[t+2] = q2
         sim.traj.γ[t] = γ
         sim.traj.b[t] = b
-        sim.traj.κ[1] = ip.κ[1]
+        sim.traj.κ[1] = ip.κ[1] # the last κ used in the solve.
 
         if sim.ip.opts.diff_sol
             sim.deriv_traj.dq2dq0[t] = sim.deriv_traj.vqq
