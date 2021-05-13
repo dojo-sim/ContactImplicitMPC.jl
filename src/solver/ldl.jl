@@ -108,7 +108,7 @@ end
     LDL solver
 """
 mutable struct LDLSolver{T} <: LinearSolver
-    F::ContactControl.QDLDLFactorisationAF{T,Int}
+    F::QDLDLFactorisationAF{T,Int}
 end
 
 function ldl_solver(A::SparseMatrixCSC{T,Int}) where T

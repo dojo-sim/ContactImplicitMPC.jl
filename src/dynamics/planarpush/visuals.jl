@@ -1,6 +1,6 @@
 
-function plot_lines!(vis::Visualizer, model::PlanarPush13, q::AbstractVector;
-		offset=0.15, size=10, name::Symbol=:PlanarPush13, col::Bool=true)
+function plot_lines!(vis::Visualizer, model::PlanarPush, q::AbstractVector;
+		offset=0.15, size=10, name::Symbol=:PlanarPush, col::Bool=true)
 	p_shift = [0.0, 0.0, offset]
 
 	# Point Traj
@@ -24,25 +24,27 @@ function plot_lines!(vis::Visualizer, model::PlanarPush13, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::PlanarPush13; name::Symbol=:PlanarPush13, height=0.20, α=1.0)
+function build_robot!(vis::Visualizer, model::PlanarPush; name::Symbol=:PlanarPush, height=0.20, α=1.0)
 	height = convert(Float32, height)
 	r = convert(Float32, model.r)
 	rp = convert(Float32, model.rp)
+	rc = convert(Float32, model.r/sqrt(2))
 	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, α))
-	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, α))
+	contact_mat = MeshPhongMaterial(color = RGBA(51/255, 1.0, 1.0, α))
 
 	default_background!(vis)
 
 	Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height), r)
 	obj_p = Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height), rp)
 	setobject!(vis[name][:robot]["object"]["cyl"], Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height/5), r), body_mat)
-	setobject!(vis[name][:robot]["object"]["rect"], Cylinder(Point3f0(r/2, 0, 0), Point3f0(r/2, 0.0, height/4), r/5), contact_mat)
+	setobject!(vis[name][:robot]["object"]["point1"], Cylinder(Point3f0(rc/2, 0, 0), Point3f0(rc/2, 0.0, height/4), r/10), contact_mat)
+	setobject!(vis[name][:robot]["object"]["point2"], Cylinder(Point3f0(-rc/2, 0, 0), Point3f0(-rc/2, 0.0, height/4), r/10), contact_mat)
     setobject!(vis[name][:robot]["pusher"], Cylinder(Point3f0(0.0), Point3f0(0.0, 0.0, height), rp), contact_mat)
 	return nothing
 end
 
-function set_robot!(vis::Visualizer, model::PlanarPush13, q::AbstractVector;
-		name::Symbol=:PlanarPush13)
+function set_robot!(vis::Visualizer, model::PlanarPush, q::AbstractVector;
+		name::Symbol=:PlanarPush)
 	r = convert(Float32, model.r)
 	rp = convert(Float32, model.rp)
 
@@ -54,7 +56,7 @@ function set_robot!(vis::Visualizer, model::PlanarPush13, q::AbstractVector;
 	return nothing
 end
 
-function contact_point(model::PlanarPush13, q::AbstractVector)
+function contact_point(model::PlanarPush, q::AbstractVector)
 	p_floor = kinematics_1(model, q, body = :floor)
 	p_object = kinematics_1(model, q, body = :object)
 	p_pusher = kinematics_1(model, q, body = :pusher)
