@@ -38,17 +38,17 @@ function generate_base_expressions(model::ContactDynamicsModel;
 
 	# Control input Jacobian
 	B = B_func(model, q)
-	B = reshape(B, (nu, nq))
+	B = reshape(B, (nu, nv))
 	B = Symbolics.simplify.(B)
 
 	# Disturbance input Jacobian
 	A = A_func(model, q)
-	A = reshape(A, (nw, nq))
+	A = reshape(A, (nw, nv))
 	A = Symbolics.simplify.(A)
 
 	# Contact Jacobian
 	J = J_func(model, q)
-	J = reshape(J, (np * nc, nq))
+	J = reshape(J, (np * nc, nv))
 	J = Symbolics.simplify.(J)
 
 	# Coriolis and Centrifugal forces Jacobians
