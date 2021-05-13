@@ -27,8 +27,9 @@ plot(hcat(sim.traj.q[1:3:T]...)', label = ["x" "y" "z"], legend = :bottomleft)
 
 include(joinpath(pwd(), "src/dynamics/particle/visuals.jl"))
 
-vis = Visualizer()
-render(vis)
+# vis = Visualizer()
+# render(vis)
+# open(vis)
 visualize!(vis, model, sim.traj.q,
 	Δt = h, r = 0.1)
 plot_surface!(vis, model.env)

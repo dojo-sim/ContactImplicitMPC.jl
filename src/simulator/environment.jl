@@ -66,6 +66,7 @@ function rotation(env::Environment{R3}, q)
 	nw = @SVector [0.0, 0.0, 1.0]
 
 	rot(ns, nw)
+	# rot(nw, ns)
 end
 
 function rotation(env::Environment{R2}, q)
@@ -79,7 +80,8 @@ function rotation(env::Environment{R2}, q)
 
 	ang = atan(nw[2], nw[1]) - atan(ns[2], ns[1])
 
-	SMatrix{2,2}([cos(ang) -sin(ang); sin(ang) cos(ang)])
+	# Rw->s
+	SMatrix{2,2}([cos(ang) -sin(ang); sin(ang) cos(ang)]) # this the rotation from world frame to surface frame
 end
 
 function rotation_3d(env::Environment{R3}, q)

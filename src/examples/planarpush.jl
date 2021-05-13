@@ -49,8 +49,8 @@ H_sim = 3000
 # initial conditions
 q0 = @SVector [0.201, 0.20, 0.03, 0.0, -0.150, 0.21, 0.00]
 q1 = @SVector [0.200, 0.20, 0.03, 0.0, -0.149, 0.21, 0.00]
-q0 = @SVector [0.20, 0.20, 0.0, 0.0, -0.15, 0.28, 0.00]
-q1 = @SVector [0.20, 0.20, 0.0, 0.0, -0.15, 0.28, 0.00]
+q0 = @SVector [0.20, 0.20, 0.0, 0.0, -0.15, 0.205, 0.00]
+q1 = @SVector [0.20, 0.20, 0.0, 0.0, -0.15, 0.205, 0.00]
 # q2 = @SVector [0.02, 0.02, 0.3, 0.0, 0.11, 0.21, 0.6]
 
 
@@ -221,3 +221,13 @@ plot!([q[1] for q in sim.traj.q[3:end]])
 t_highlights = [20,23,35,216]
 α_highlights = ones(4)
 α_pusher = [1.0, 0.0, 0.0, 0.0]
+
+
+filename = "planarpush_torque_friction"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)
