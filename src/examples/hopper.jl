@@ -74,7 +74,6 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 @time status = simulate!(sim)
 
-
 plt = plot(layout=(3,1), legend=false)
 plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)

@@ -49,6 +49,7 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
 
     ip = interior_point(z, θ,
         idx_ineq = inequality_indices(model),
+        idx_soc = soc_indices(model),
         r! = r!,
         rz! = rz!,
         rθ! = rθ!,

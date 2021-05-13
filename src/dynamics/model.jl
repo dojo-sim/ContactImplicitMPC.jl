@@ -107,6 +107,7 @@ function num_data(dim::Dimensions)
 end
 
 inequality_indices(model::ContactDynamicsModel) = collect(model.dim.q .+ (1:(num_var(model) - model.dim.q)))
+soc_indices(model::ContactDynamicsModel) = Vector{Int}[]
 
 function E_func(model::ContactDynamicsModel)
 	SMatrix{model.dim.c, model.dim.b}(kron(Diagonal(ones(model.dim.c)), ones(1, Int(model.dim.b / model.dim.c))))
@@ -143,16 +144,16 @@ function contact_forces(model::ContactDynamicsModel, γ1, b1, q2, k)
 	nf = Int(nb / nc)
 	ne = dim(model.env)
 	# k = kinematics(model, q2)
-	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * ne .+ (1:ne)])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
+	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * (ne - 1) .+ (1:ne)])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
 end
 
 function velocity_stack(model::ContactDynamicsModel, q1, q2, k, h)
 	nc = model.dim.c
-	np = dim(model.env)
+	ne = dim(model.env)
 	# k = kinematics(model, q2)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
-	v_surf = [rotation(model.env, k[(i-1) * np .+ (1:np)]) * v[(i-1) * np .+ (1:np)] for i = 1:nc]
-	vT_stack = vcat([[v_surf[i][1:np-1]; -v_surf[i][1:np-1]] for i = 1:nc]...)
+	v_surf = [rotation(model.env, k[(i-1) * (ne - 1) .+ (1:ne)]) * v[(i-1) * ne .+ (1:ne)] for i = 1:nc]
+	vT_stack = vcat([[v_surf[i][1:ne-1]; -v_surf[i][1:ne-1]] for i = 1:nc]...)
 end
 
 function residual(model::ContactDynamicsModel, z, θ, κ)
