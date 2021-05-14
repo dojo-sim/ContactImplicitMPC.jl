@@ -327,7 +327,6 @@ function generate_linearized_expressions(model::ContactDynamicsModel; T = Float6
 
 	r = zeros(eltype(z), nz)
 	r .= r0 + rz0 * (z-z0) + rθ0 * (θ-θ0)
-    # r .= rz0 * (z-z0) + rθ0 * (θ-θ0) # wrong
 	for i = 1:length(bil_terms)
 		t = bil_terms[i]
 		v1 = bil_vars[i][1]
