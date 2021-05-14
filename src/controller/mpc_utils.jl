@@ -98,8 +98,8 @@ function live_plotting(model::ContactDynamicsModel, ref_traj::ContactTraj,
 	nq = model.dim.q
 	nu = model.dim.u
 
-	ql = 5
-	qu = ql
+	ql = 1
+	qu = nq
 	ul = 1
 	uu = nu
 	plt = plot(layout=grid(2,1,heights=[0.7, 0.3], figsize=[(1000, 1000),(400,400)]), legend=false, xlims=(0,20))
