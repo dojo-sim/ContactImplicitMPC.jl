@@ -7,24 +7,30 @@ open(vis)
 model = get_model("quadrupedlinear")
 
 # get trajectory
-ref_traj = get_trajectory("quadrupedlinear", "gait0", load_type = :split_traj_alt)
+ref_traj = get_trajectory("quadrupedlinear", "gait1", load_type = :split_traj_alt)
 ref_traj_copy = deepcopy(ref_traj)
 
 
 function check_traj(model::ContactDynamicsModel, traj::ContactTraj)
     nq = model.dim.q
+    nz = num_var(model)
     d = [zeros(nq) for t=1:traj.H]
-    for t = 1:H
+    r = [zeros(nz) for t=1:traj.H]
+    for t = 1:ref_traj.H
         k = kinematics(model, traj.q[t+2])
         λ = contact_forces(model, traj.γ[t], traj.b[t], traj.q[t+2], k)
         d[t] = dynamics(model, traj.h, traj.q[t], traj.q[t+1], traj.u[t], traj.w[t], λ, traj.q[t+2])
+        r[t] = residual(model, traj.z[t], traj.θ[t], [1e-8])
     end
-    return d
+    return d, r
 end
 ref_traj
-vio = check_traj(model, ref_traj)
-plot(hcat([v[1:end] for v in vio]...)')
-plot(hcat([v[1:1] for v in vio]...)')
+nz = num_var(model)
+dvio, rvio = check_traj(model, ref_traj)
+plot(hcat([v[1:end] for v in dvio]...)')
+plot(hcat([v[1:1] for v in dvio]...)')
+plot(hcat([v[1:66] for v in rvio]...)')
+plot(hcat([v[1:18] for v in rvio]...)')
 
 # time
 H = ref_traj.H
@@ -42,6 +48,94 @@ obj = TrackingObjective(H_mpc, model.dim,
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
+
+nz = num_var(model)
+nθ = num_data(model)
+
+rz0 = zeros(nz,nz)
+rθ0 = zeros(nz,nθ)
+model.res.rz!(rz0, ref_traj.z[1], ref_traj.θ[1])
+model.res.rθ!(rθ0, ref_traj.z[1], ref_traj.θ[1])
+
+ix, iy1, iy2 = linearization_var_index(model)
+idyn, irst, ibil, ialt = linearization_term_index(model)
+plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [ix; iy1; iy2]])))
+plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [ix;  ]])))
+plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [iy1; ]])))
+plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [iy2; ]])))
+plot(Gray.(1e10*abs.(rz0[[idyn;], [ix; iy1; iy2]])))
+plot(Gray.(1e10*abs.(rz0[[irst;], [ix; iy1; iy2]])))
+plot(Gray.(1e10*abs.(rz0[[ibil;], [ix; iy1; iy2]])))
+
+
+plot(Gray.(1e10*abs.(rθ0[[idyn; irst; ibil], :])))
+plot(Gray.(1e10*abs.(rθ0[idyn,:])))
+plot(Gray.(1e10*abs.(rθ0[irst,:])))
+plot(Gray.(1e10*abs.(rθ0[ibil,:])))
+
+
+
+# # get model
+# model_hopper = get_model("hopper_2D")
+#
+# # get trajectory
+# ref_traj_hopper = get_trajectory("hopper_2D", "gait_in_place", load_type = :joint_traj)
+#
+# nz = num_var(model_hopper)
+# nθ = num_data(model_hopper)
+#
+# rz0 = zeros(nz,nz)
+# rθ0 = zeros(nz,nθ)
+# model_hopper.res.rz!(rz0, ref_traj_hopper.z[1], ref_traj_hopper.θ[1])
+# model_hopper.res.rθ!(rθ0, ref_traj_hopper.z[1], ref_traj_hopper.θ[1])
+#
+# ix, iy1, iy2 = linearization_var_index(model_hopper)
+# idyn, irst, ibil, ialt = linearization_term_index(model_hopper)
+# plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [ix; iy1; iy2]])))
+# plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [ix;  ]])))
+# plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [iy1; ]])))
+# plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [iy2; ]])))
+# plot(Gray.(1e10*abs.(rz0[[idyn;], [ix; iy1; iy2]])))
+# plot(Gray.(1e10*abs.(rz0[[irst;], [ix; iy1; iy2]])))
+# plot(Gray.(1e10*abs.(rz0[[ibil;], [ix; iy1; iy2]])))
+#
+#
+# plot(Gray.(1e10*abs.(rθ0[[idyn; irst; ibil], :])))
+# plot(Gray.(1e10*abs.(rθ0[idyn,:])))
+# plot(Gray.(1e10*abs.(rθ0[irst,:])))
+# plot(Gray.(1e10*abs.(rθ0[ibil,:])))
+
+
+
+
+function rz!_(model, z, θ, k)
+    f(z) = residual(model, z, θ, [k])
+    return ForwardDiff.jacobian(f, z)
+end
+
+
+rz0 = rz!_(model, ref_traj.z[1], ref_traj.θ[1], 1e-4)
+ix, iy1, iy2 = linearization_var_index(model)
+idyn, irst, ibil, ialt = linearization_term_index(model)
+plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [ix; iy1; iy2]])))
+plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [ix;  ]])))
+plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [iy1; ]])))
+plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [iy2; ]])))
+plot(Gray.(1e10*abs.(rz0[[idyn;], [ix; iy1; iy2]])))
+plot(Gray.(1e10*abs.(rz0[[irst;], [ix; iy1; iy2]])))
+plot(Gray.(1e10*abs.(rz0[[ibil;], [ix; iy1; iy2]])))
+
+
+plot(Gray.(1e10*abs.(rθ0[[idyn; irst; ibil], :])))
+plot(Gray.(1e10*abs.(rθ0[idyn,:])))
+plot(Gray.(1e10*abs.(rθ0[irst,:])))
+plot(Gray.(1e10*abs.(rθ0[ibil,:])))
+
+
+
+
+
+
 
 p = linearized_mpc_policy(ref_traj, model, obj,
     H_mpc = H_mpc,
