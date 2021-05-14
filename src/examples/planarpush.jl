@@ -15,14 +15,9 @@ nb = model.dim.b
 nf = 4
 
 # time
-# h = 0.04
-h = 0.002
-H = 600
-N_sample = 5
-H_mpc = 10
-h_sim = h / N_sample
-H_sim = 3000
-
+h = 0.01
+H = 300
+N_sample = 1
 # # reference trajectory
 # ref_traj = contact_trajectory(H, h, model)
 # ref_traj.h
@@ -47,119 +42,54 @@ H_sim = 3000
 # end
 
 # initial conditions
-q0 = @SVector [0.201, 0.20, 0.03, 0.0, -0.150, 0.21, 0.00]
-q1 = @SVector [0.200, 0.20, 0.03, 0.0, -0.149, 0.21, 0.00]
-q0 = @SVector [0.20, 0.20, 0.0, 0.0, -0.15, 0.205, 0.00]
-q1 = @SVector [0.20, 0.20, 0.0, 0.0, -0.15, 0.205, 0.00]
-# q2 = @SVector [0.02, 0.02, 0.3, 0.0, 0.11, 0.21, 0.6]
+q0 = @SVector [0.00, 0.00, 0.0, 0.0, -0.15, 5e-4, 0.00]
+q1 = @SVector [0.00, 0.00, 0.0, 0.0, -0.15, 5e-4, 0.00]
 
-
-# C_fast(model, q0, (q1-q0)/h_sim)
-#
-# #
-# h0 = [h_sim]
-# d0 = zeros(nq)
-# # q0 = zeros(nq)
-# # q1 = zeros(nq)
-# u1 = zeros(nu)
-# w1 = zeros(nw)
-# λ1 = zeros(nc+nc*nf)
-# # q2 = zeros(nq)
-#
-# q0 = [0.0, 0.0, 0.3, 0.0, 0.1, 0.2, 0.6]
-# q1 = [0.02, 0.02, 0.3, 0.0, 0.1, 0.2, 0.6]
-# q2 = [0.0, 0.0, 0.3, 0.0, 0.1, 0.2, 0.6]
-#
-# d0 = model.dyn.d(h0, q0, q1, u1, w1, λ1, q2)
-#
-#
-# a = 10
-# a = 10
-# a = 10
-# model.
-#
-# nc = model.dim.c
-# nb = model.dim.b
-# nf = Int(nb / nc)
-# np = dim(model.env)
-#
-# q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
-# q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
-#
-# ϕ = ϕ_func(model, q2)
-#
-# k = kinematics(model, q2)
-# λ1 = contact_forces(model, γ1, b1, q2, k)
-# vT_stack = velocity_stack(model, q1, q2, k, h)
-# ψ_stack = transpose(E_func(model)) * ψ1
-#
-# [model.dyn.d(h, q0, q1, u1, w1, λ1, q2);
-#  s1 - ϕ;
-#  vT_stack + ψ_stack - η1;
-#  s2 .- (μ[1] * γ1 .- E_func(model) * b1);
-#  γ1 .* s1 .- κ;
-#  b1 .* η1 .- κ;
-#  ψ1 .* s2 .- κ]
-
-
-#
-# model.con.ϕ(q0)
-# model.con.ϕ(q0)
-#
-# r0 = rand(num_var(model))
-# z0 = rand(num_var(model))
-# θ0 = rand(num_data(model))
-# κ0 = [1e-4]
-# model.res.r!(r0, z0, θ0, κ0)
-# model.res.r!(r0, z0, θ0, κ0)
-
-# p = open_loop_policy(fill(SVector{nu}([0.0, -0.125]), H_sim), N_sample=N_sample)
-# p = open_loop_policy(fill(SVector{nu}([0.01, -0.0]), H_sim*10), N_sample=N_sample)
-p = open_loop_policy(fill(SVector{nu}([0.033, -0.0]), H_sim*10), N_sample=N_sample)
+# p = open_loop_policy(fill(SVector{nu}([10.0*h, -0.0]), H*2), N_sample=N_sample)
+p = open_loop_policy(fill(SVector{nu}([1*h, -0.0]), H*2), N_sample=N_sample)
 
 # simulator
-sim = ContactControl.simulator(model, q0, q1, h, H,
+sim0 = ContactControl.simulator(model, q0, q1, h, H,
 	p = p,
 	ip_opts = ContactControl.InteriorPointOptions(
 		r_tol = 1.0e-8, κ_init=1e-6, κ_tol = 2.0e-6),
 	sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 # simulate
-status = ContactControl.simulate!(sim)
+status = ContactControl.simulate!(sim0)
 @test status
 
-visualize_robot!(vis, model, sim.traj.q[1:2])
-visualize_robot!(vis, model, sim.traj)
+visualize_robot!(vis, model, sim0.traj.q[1:2])
+visualize_robot!(vis, model, sim0.traj)
 
-plot(hcat([q[1:7] for q in sim.traj.q]...)')
-sim.traj.q
-[q[1] for q in sim.traj.q]
+plot(hcat([x[1:nq] for x in sim0.traj.q]...)')
+plot(hcat([x[1:nu] for x in sim0.traj.u]...)')
+plot(hcat([x[1:nw] for x in sim0.traj.w]...)')
+plot(hcat([x[1:nc] for x in sim0.traj.γ]...)')
+plot(hcat([x[1:nb] for x in sim0.traj.b]...)')
 
 
+
+
+ref_traj = deepcopy(sim0.traj)
+ref_traj.H
 
 # MPC
-N_sample = 2
+N_sample = 1
 H_mpc = 40
 h_sim = h / N_sample
-H_sim = 1000
+H_sim = 250
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
-# SLOW RECOVERY
 obj = TrackingVelocityObjective(H_mpc, model.dim,
-	q = [Diagonal([12*(t/H_mpc)^2; 2.0*(t/H_mpc)^4]) for t = 1:H_mpc-0],
-	v = [Diagonal([1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
-	u = [Diagonal([100; 1]) for t = 1:H_mpc-0],
-	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc-0],
+	# q = [Diagonal(1.0e+2 * [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e0, 1e0,]) for t = 1:H_mpc],
+	q = [Diagonal(1.0e-4 * [1e2, 1e2, 1e-1, 1e-1, 1e-1, 1e-1, 1e-1,]) for t = 1:H_mpc],
+	v = [Diagonal(1.0e-4 * ones(model.dim.q)) for t = 1:H_mpc],
+	u = [Diagonal(1.0e-2 * ones(model.dim.u)) for t = 1:H_mpc],
+	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
 	b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
-# FAST RECOVERY
-obj = TrackingVelocityObjective(H_mpc, model.dim,
-    q = [Diagonal([12*(t/H_mpc)^2; 12*(t/H_mpc)^2]) for t = 1:H_mpc-0],
-	v = [Diagonal([1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
-    u = [Diagonal([100; 1]) for t = 1:H_mpc-0],
-    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc-0],
-    b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
 p = linearized_mpc_policy(ref_traj, model, obj,
     H_mpc = H_mpc,
@@ -168,8 +98,12 @@ p = linearized_mpc_policy(ref_traj, model, obj,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         solver = :ldl_solver,
-        max_iter = 10),
-    mpc_opts = LinearizedMPCOptions())
+        max_iter = 5),
+    mpc_opts = LinearizedMPCOptions(
+		live_plotting=true
+		))
+
+# p = open_loop_policy([SVector{nu}(zeros(nu)) for i=1:2H_sim])
 
 idx_d1 = 20
 idx_d2 = idx_d1 + 200
@@ -177,12 +111,13 @@ idx_d3 = idx_d2 + 80
 idx_d4 = idx_d3 + 200
 idx_d5 = idx_d4 + 30
 idx = [idx_d1, idx_d2, idx_d3, idx_d4, idx_d5]
-impulses = [[-5.5; 0.0], [+5.5; 0.0], [+5.5; 0.0], [-1.5; 0.0], [-4.5; 0.0]]
+# impulses = [[-5.5;0;0], [+5.5;0;0], [+5.5;0;0], [-1.5;0;0], [-4.5;0;0]]
+impulses = [[-0.0;0;0], [0.0;0;0], [0.0;0;0], [0.0;0;0], [0.0;0;0]]
 d = impulse_disturbances(impulses, idx)
 
 
-q1_sim = SVector{model.dim.q}([0.0, 0.0])
-q0_sim = SVector{model.dim.q}([0.0, 0.0])
+q0_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.15, 0.005, 0.00]
+q1_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.15, 0.005, 0.00]
 
 sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
@@ -190,44 +125,30 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
     ip_opts = ContactControl.InteriorPointOptions(
         r_tol = 1.0e-8,
         κ_init = 1.0e-6,
-        κ_tol = 2.0e-6),
-    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
+        κ_tol = 2.0e-6,
+		diff_sol=true),
+    sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
 @time status = ContactControl.simulate!(sim)
 
-sample = 1
-anim = visualize_robot!(vis, model, sim.traj, sample = sample, α=0.5)
-pθ_right = generate_pusher_traj(d, sim.traj, side=:right)
-pθ_left  = generate_pusher_traj(d, sim.traj, side=:left)
-visualize_disturbance!(vis, model, pθ_right, anim=anim, sample=sample, offset=0.05, name=:PusherRight)
-visualize_disturbance!(vis, model, pθ_left,  anim=anim, sample=sample, offset=0.05, name=:PusherLeft)
+anim = visualize_robot!(vis, model, sim.traj, name=:sim, sample = N_sample, α=1.0)
+anim = visualize_robot!(vis, model, ref_traj, name=:ref, anim=anim, sample = 1, α=0.5)
+
+plot(hcat([x[1:2] for x in sim.traj.u]...)')
+plot!(hcat([x[1:2] ./ N_sample for x in ref_traj.u]...)')
+
+# filename = "planarpush_torque_friction"
+# MeshCat.convert_frames_to_video(
+#     "/home/simon/Downloads/$filename.tar",
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+#
+# convert_video_to_gif(
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)
 
 
-γ_max = maximum(hcat(sim.traj.γ...))
-u_max = maximum(hcat(sim.traj.u...))
-
-plot((hcat(sim.traj.γ...) ./ γ_max)', linetype = :steppost)
-plot!((hcat(sim.traj.u...) ./ u_max)[2:2, :]', linetype = :steppost)
-plot((hcat(sim.traj.u...) ./ u_max)[1:1, :]', linetype = :steppost)
-plot(hcat(sim.traj.q...)')
-
-plot([pθ[1] for pθ in pθ_right])
-plot!([pθ[1] for pθ in pθ_left])
-plot!([q[1] for q in sim.traj.q[3:end]])
-
-
-
-# Display highlights
-t_highlights = [20,23,35,216]
-α_highlights = ones(4)
-α_pusher = [1.0, 0.0, 0.0, 0.0]
-
-
-filename = "planarpush_torque_friction"
-MeshCat.convert_frames_to_video(
-    "/home/simon/Downloads/$filename.tar",
-    "/home/simon/Documents/$filename.mp4", overwrite=true)
-
-convert_video_to_gif(
-    "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
+q = UnitQuaternion(1.,2.,3., 4)
+q2 = UnitQuaternion(1.2,2.,3., 4)
+exp(q)
+log(q)
+qmid = q*

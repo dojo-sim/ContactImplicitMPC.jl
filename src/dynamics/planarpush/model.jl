@@ -25,7 +25,7 @@
 #
 #          XXX     XXX
 
-mutable struct PlanarPush13{T} <: ContactDynamicsModel
+mutable struct PlanarPush{T} <: ContactDynamicsModel
     dim::Dimensions
 
 	μ_world::T  # coefficient of friction
@@ -55,7 +55,7 @@ mutable struct PlanarPush13{T} <: ContactDynamicsModel
 end
 
 # Lagrangian
-function lagrangian(model::PlanarPush13, q, q̇)
+function lagrangian(model::PlanarPush, q, q̇)
 	v_object = [q̇[1], q̇[2], q̇[3]]
 	v_pusher = [q̇[5], q̇[6], q̇[7]]
 
@@ -70,24 +70,24 @@ function lagrangian(model::PlanarPush13, q, q̇)
 	return L
 end
 
-function _dLdq(model::PlanarPush13, q, q̇)
+function _dLdq(model::PlanarPush, q, q̇)
 	Lq(x) = lagrangian(model, x, q̇)
 	ForwardDiff.gradient(Lq, q)
 end
 
-function _dLdq̇(model::PlanarPush13, q, q̇)
+function _dLdq̇(model::PlanarPush, q, q̇)
 	Lq̇(x) = lagrangian(model, q, x)
 	ForwardDiff.gradient(Lq̇, q̇)
 end
 
-function _C_func(model::PlanarPush13, q, q̇)
+function _C_func(model::PlanarPush, q, q̇)
 	tmp_q(z) = _dLdq̇(model, z, q̇)
 	tmp_q̇(z) = _dLdq̇(model, q, z)
 
 	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
 end
 
-function kinematics_1(model::PlanarPush13, q; body = :floor)
+function kinematics_1(model::PlanarPush, q; body = :floor)
 	# Contact 1 is between object and floor: :floor
 	# Contact 2 is between object and pusher: :object, :pusher
 	x = [q[1], q[2], 0.0]
@@ -113,7 +113,7 @@ function kinematics_1(model::PlanarPush13, q; body = :floor)
 	end
 end
 
-function kinematics(model::PlanarPush13, q)
+function kinematics(model::PlanarPush, q)
 	p_floor = kinematics_1(model, q; body = :floor)
 	p_floor1 = kinematics_1(model, q; body = :floor1)
 	p_floor2 = kinematics_1(model, q; body = :floor2)
@@ -123,13 +123,13 @@ function kinematics(model::PlanarPush13, q)
 end
 
 # Methods
-function M_func(model::PlanarPush13, q)
+function M_func(model::PlanarPush, q)
 	Diagonal(@SVector [model.m, model.m, model.m,
 					   model.J,
 					   model.mp, model.mp, model.mp,])
 end
 
-function ϕ_func(model::PlanarPush13, q)
+function ϕ_func(model::PlanarPush, q)
 	x = kinematics_1(model, q, body=:floor)
 	x1 = kinematics_1(model, q, body=:floor1)
 	x2 = kinematics_1(model, q, body=:floor2)
@@ -141,18 +141,18 @@ function ϕ_func(model::PlanarPush13, q)
 				])
 end
 
-function B_func(model::PlanarPush13, q)
+function B_func(model::PlanarPush, q)
 	@SMatrix [0.0  0.0  0.0  0.0  1.0  0.0  0.0;
 			  0.0  0.0  0.0  0.0  0.0  1.0  0.0]
 end
 
-function A_func(model::PlanarPush13, q)
+function A_func(model::PlanarPush, q)
 	@SMatrix [1.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 1.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 1.0 0.0 0.0 0.0 0.0]
 end
 
-function contact_angle(model::PlanarPush13, q)
+function contact_angle(model::PlanarPush, q)
 	# Angle of the contact normal
 	x = q[1]
 	y = q[2]
@@ -162,7 +162,7 @@ function contact_angle(model::PlanarPush13, q)
 	return α
 end
 
-function rotation_s_to_w(model::PlanarPush13, q2)
+function rotation_s_to_w(model::PlanarPush, q2)
 	# rotation matrix from frame attached to the contact point on the object
 	# (b1, and b2 are orthogonal to the object, b2 points in the z direction, γ points inside the object)
 	# to the world frame (x,y,z)
@@ -175,7 +175,7 @@ function rotation_s_to_w(model::PlanarPush13, q2)
 	return R
 end
 
-function J_func(model::PlanarPush13, q)
+function J_func(model::PlanarPush, q)
 	r = model.r
 	rc = model.r/sqrt(2)
 	α = contact_angle(model, q)
@@ -197,7 +197,7 @@ function J_func(model::PlanarPush13, q)
 	return [J_floor1; J_floor2; J_object;] # (nc*np) x nq  = 6x7
 end
 
-function contact_forces(model::PlanarPush13, γ1, b1, q2, k)
+function contact_forces(model::PlanarPush, γ1, b1, q2, k)
 	# Express the contact forces in the world frame.
 	# returns λ1
 	# which will be used in dynamics: transpose(J_fast(model, q2)) * λ1
@@ -213,7 +213,7 @@ function contact_forces(model::PlanarPush13, γ1, b1, q2, k)
 	SVector{9}([λ_floor1; λ_floor2; λ_object])
 end
 
-function velocity_stack(model::PlanarPush13, q1, q2, k, h)
+function velocity_stack(model::PlanarPush, q1, q2, k, h)
 	# In the world frame
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
@@ -240,19 +240,19 @@ nb = nc * nf              # number of friction parameters
 nw = 3                    # disturbance dimension
 
 # World parameters
-μ_world = 0.9      # coefficient of friction
+μ_world = 0.10      # coefficient of friction
 μ_joint = 0.0
 g = 9.81     # gravity
 
 # Model parameters
-m = 0.2
-J = 0.0025
-mp = 2.0
-r = 0.1
-rp = 0.01
+m = 1.0
+J = m * 0.05^2
+mp = 10.0
+r = 0.02
+rp = 0.004
 
 
-planarpush = PlanarPush13(Dimensions(nq, nu, nw, nc, nb),
+planarpush = PlanarPush(Dimensions(nq, nu, nw, nc, nb),
 			  μ_world, μ_joint, g,
 			  m, J, mp, r, rp,
 			  zeros(nc),
