@@ -390,8 +390,8 @@ instantiate_linearized!(model, path_linearized)
 ################################################################################
 # Quadruped (Linear)
 ################################################################################
-dir = joinpath(@__DIR__, "quadruped")
-model = deepcopy(quadruped)
+dir = joinpath(@__DIR__, "quadrupedlinear")
+model = deepcopy(quadrupedlinear)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")

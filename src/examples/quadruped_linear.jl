@@ -56,6 +56,9 @@ rz0 = zeros(nz,nz)
 rθ0 = zeros(nz,nθ)
 model.res.rz!(rz0, ref_traj.z[1], ref_traj.θ[1])
 model.res.rθ!(rθ0, ref_traj.z[1], ref_traj.θ[1])
+sum(1e10*abs.(rz0) .> 1e5)
+rz0
+
 
 ix, iy1, iy2 = linearization_var_index(model)
 idyn, irst, ibil, ialt = linearization_term_index(model)
@@ -115,6 +118,9 @@ end
 
 
 rz0 = rz!_(model, ref_traj.z[1], ref_traj.θ[1], 1e-4)
+sum(1e10*abs.(rz0) .> 1e0)
+
+
 ix, iy1, iy2 = linearization_var_index(model)
 idyn, irst, ibil, ialt = linearization_term_index(model)
 plot(Gray.(1e10*abs.(rz0[[idyn; irst; ibil;], [ix; iy1; iy2]])))
