@@ -97,9 +97,14 @@ function live_plotting(model::ContactDynamicsModel, ref_traj::ContactTraj,
 		q1::AbstractVector{T}, t::Int) where {T}
 	nq = model.dim.q
 	nu = model.dim.u
+
+	ql = 1
+	qu = nq
+	ul = 1
+	uu = nu
 	plt = plot(layout=grid(2,1,heights=[0.7, 0.3], figsize=[(1000, 1000),(400,400)]), legend=false, xlims=(0,20))
-	plot!(plt[1,1], hcat(Vector.(newton.traj.q)...)', color=:blue, linewidth=1.0)
-	plot!(plt[1,1], hcat(Vector.(ref_traj.q)...)', linestyle=:dot, color=:red, linewidth=3.0)
+	plot!(plt[1,1], hcat([Vector(x[ql:qu]) for x in newton.traj.q]...)', color=:blue, linewidth=1.0)
+	plot!(plt[1,1], hcat([Vector(x[ql:qu]) for x in ref_traj.q]...)', linestyle=:dot, color=:red, linewidth=3.0)
 
 	scatter!((2-1/N_sample)ones(nq), sim_traj.q[t+0], markersize=8.0, color=:lightgreen)
 	scatter!(2*ones(nq), sim_traj.q[t+1], markersize=8.0, color=:lightgreen)
@@ -113,7 +118,7 @@ function live_plotting(model::ContactDynamicsModel, ref_traj::ContactTraj,
 	scatter!(plt[1,1], 2*ones(nq), ref_traj.q[2], markersize=4.0, color=:red)
 	scatter!(plt[1,1], 3*ones(nq), ref_traj.q[3], markersize=4.0, color=:red)
 
-	plot!(plt[2,1], hcat(Vector.(newton.traj.u)...)', color=:blue, linewidth=1.0)
-	plot!(plt[2,1], hcat(Vector.(ref_traj.u[1:end])...)', linestyle=:dot, color=:red, linewidth=3.0)
+	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in newton.traj.u]...)', color=:blue, linewidth=1.0)
+	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in ref_traj.u[1:end]]...)', linestyle=:dot, color=:red, linewidth=3.0)
 	display(plt)
 end
