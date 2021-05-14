@@ -22,10 +22,10 @@ end
 model = get_model("quadrupedlinear")
 
 # get trajectory
-ref_traj = get_trajectory("quadrupedlinear", "gait1", load_type = :split_traj_alt)
+ref_traj = get_trajectory("quadrupedlinear", "gait3", load_type = :split_traj_alt)
 ref_traj_copy = deepcopy(ref_traj)
 
-#
+
 # function check_traj(model::ContactDynamicsModel, traj::ContactTraj)
 #     nq = model.dim.q
 #     nz = num_var(model)
@@ -51,16 +51,16 @@ ref_traj_copy = deepcopy(ref_traj)
 H = ref_traj.H
 h = ref_traj.h
 N_sample = 1
-H_mpc = 10
+H_mpc = 20
 h_sim = h / N_sample
-H_sim = 300 #4000 #3000
+H_sim = 30 #4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 obj = TrackingObjective(H_mpc, model.dim,
-    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
+    q = [Diagonal(1e-2 * [1.0; 1.0; 1e1; 1e1*ones(3); 1.0 * ones(model.dim.q-6)]) for t = 1:H_mpc],
+    u = [Diagonal(1e+4 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
@@ -155,7 +155,8 @@ p = linearized_mpc_policy(ref_traj, model, obj,
         r_tol = 3e-4,
         solver = :ldl_solver,
         max_iter = 5),
-    mpc_opts = LinearizedMPCOptions())
+    mpc_opts = LinearizedMPCOptions(live_plotting=true))
+
 
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])
@@ -170,7 +171,8 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
         κ_init = 1.0e-6,
         κ_tol = 2.0e-6,
         diff_sol = true),
-    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
+    sim_opts = ContactControl.SimulatorOptions(
+		warmstart = true))
 
 time = @elapsed status = ContactControl.simulate!(sim)
 # @elapsed status = ContactControl.simulate!(sim)
@@ -199,7 +201,7 @@ for (i,t) in enumerate(t_ghosts)
 end
 
 
-filename = "tablebot_ref"
+filename = "tablebot_unstable"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
     "/home/simon/Documents/$filename.mp4", overwrite=true)

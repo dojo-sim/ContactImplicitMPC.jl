@@ -137,14 +137,14 @@ anim = visualize_robot!(vis, model, ref_traj, name=:ref, anim=anim, sample = 1, 
 plot(hcat([x[1:2] for x in sim.traj.u]...)')
 plot!(hcat([x[1:2] ./ N_sample for x in ref_traj.u]...)')
 
-# filename = "planarpush_torque_friction"
-# MeshCat.convert_frames_to_video(
-#     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/$filename.mp4", overwrite=true)
-#
-# convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)
+filename = "planarpush_clean"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)
 
 
 q = UnitQuaternion(1.,2.,3., 4)
