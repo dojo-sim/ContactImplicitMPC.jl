@@ -42,16 +42,6 @@ function lagrangian(model::QuadrupedLinear12, q, q̇)
 	return 0.0
 end
 
-function _dLdq(model::QuadrupedLinear12, q, q̇)
-	Lq(x) = lagrangian(model, x, q̇)
-	ForwardDiff.gradient(Lq, q)
-end
-
-function _dLdq̇(model::QuadrupedLinear12, q, q̇)
-	Lq̇(x) = lagrangian(model, q, x)
-	ForwardDiff.gradient(Lq̇, q̇)
-end
-
 function kinematics(model::QuadrupedLinear12, q)
 	pw1 = q[6 .+ (1:3)]
 	pw2 = q[9 .+ (1:3)]
@@ -89,12 +79,7 @@ function B_func(model::QuadrupedLinear12, q)
 
 	z3 = zeros(3, 3)
 
-<<<<<<< HEAD
 	transpose(SMatrix{18, 12}([I I I I;
-=======
-	transpose(SMatrix{18, 12}([
-					I I I I;
->>>>>>> 3c7d49c355b8ae40910f9d9c0bbc2ae2999b76a8
 	                transpose(rot) * skew(r1) transpose(rot) * skew(r2) transpose(rot) * skew(r3) transpose(rot) * skew(r4);
 					-I z3 z3 z3;
 					z3 -I z3 z3;
@@ -120,7 +105,7 @@ end
 
 function C_func(model::QuadrupedLinear12, q, q̇)
 	SVector{18}([0.0, 0.0, model.g * model.mb,
-				 cross(q̇[4:6], Diagonal([model.Ix, model.Iy, model.Iz]) * q̇[4:6])...,
+				 0.0 * cross(q̇[4:6], Diagonal([model.Ix, model.Iy, model.Iz]) * q̇[4:6])...,
 				 0.0, 0.0, model.g * model.mf,
 				 0.0, 0.0, model.g * model.mf,
 				 0.0, 0.0, model.g * model.mf,
@@ -129,18 +114,10 @@ end
 
 function contact_forces(model::QuadrupedLinear12, γ1, b1, q2, k)
 	m = friction_mapping(model.env)
-<<<<<<< HEAD
 	SVector{12}([transpose(rotation(model.env, k[1:2]))  * [m * b1[1:4];   γ1[1]];
 				transpose(rotation(model.env, k[4:5]))   * [m * b1[5:8];   γ1[2]];
 				transpose(rotation(model.env, k[7:8]))   * [m * b1[9:12];  γ1[3]];
 				transpose(rotation(model.env, k[10:11])) * [m * b1[13:16]; γ1[4]]])
-=======
-
-	SVector{12}([transpose(rotation(model.env, k[1:2]))   * [m * b1[1:4];   γ1[1]];
-			     transpose(rotation(model.env, k[4:5]))   * [m * b1[5:8];   γ1[2]];
-				 transpose(rotation(model.env, k[7:8]))   * [m * b1[9:12];  γ1[3]];
-				 transpose(rotation(model.env, k[10:11])) * [m * b1[13:16]; γ1[4]]])
->>>>>>> 3c7d49c355b8ae40910f9d9c0bbc2ae2999b76a8
 end
 
 function velocity_stack(model::QuadrupedLinear12, q1, q2, k, h)
@@ -173,17 +150,27 @@ g = 9.81      # gravity
 μ_world = 0.5 # coefficient of friction
 μ_joint = 0.0 # coefficient of torque friction at the joints
 
-# ~Unitree A1
-mf = 0.01
+# # ~Unitree A1
+# mf = 0.01
+#
+# # TRUCK ONLY TODO: parallel axis theorem to add shoulders
+# mb = 4.713
+# Ix = 0.01683993
+# Iy = 0.056579028
+# Iz = 0.064713601
+#
+# l_torso = 0.5 * 0.267 # dimension from com
+# w_torso = 0.5 * 0.194 # dimension from com
 
-# TRUCK ONLY TODO: parallel axis theorem to add shoulders
-mb = 4.713
-Ix = 0.01683993
-Iy = 0.056579028
-Iz = 0.064713601
+## Mini Cheetah
+mb = 9.0
+mf = 0.1 * mb
+Ix = 0.07
+Iy = 0.26
+Iz = 0.242
 
-l_torso = 0.5 * 0.267 # dimension from com
-w_torso = 0.5 * 0.194 # dimension from com
+l_torso = 0.5 * 0.38 # dimension from com
+w_torso = 0.5 * 0.203 # dimension from com
 
 quadrupedlinear = QuadrupedLinear12(Dimensions(nq, nu, nw, nc, nb),
 				g, μ_world, μ_joint,

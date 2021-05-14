@@ -407,6 +407,8 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
+model.spa.rz_sp = rz_sp
+model.spa.rθ_sp = rθ_sp
 
 expr_linearized = generate_linearized_expressions(model)
 save_expressions(expr_linearized, path_linearized, overwrite=true)

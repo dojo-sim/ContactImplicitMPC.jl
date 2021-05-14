@@ -35,7 +35,7 @@ end
 model = deepcopy(ContactControl.get_model("quadrupedlinear", surf = "flat"))
 model.μ_world = 0.5
 
-ref_traj = deepcopy(ContactControl.get_trajectory("quadrupedlinear", "gait3", load_type = :split_traj_alt))
+ref_traj = deepcopy(ContactControl.get_trajectory("quadrupedlinear", "gait5", load_type = :split_traj_alt))
 ContactControl.update_friction_coefficient!(ref_traj, model)
 
 T = ref_traj.H
@@ -46,9 +46,109 @@ for t = 1:T
     @test norm(r) < 1.0e-5
 end
 
-plot(hcat(ref_traj.q...)')
+plot(hcat(ref_traj.q...)[4:6, :]')
+
+H_sim = ref_traj.H
+h_sim = ref_traj.h
+N_sample = 1
+q1_ref = copy(ref_traj.q[2])
+q0_ref = copy(ref_traj.q[1])
+q1_sim = SVector{model.dim.q}(q1_ref)
+q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
+
+trim = zeros(model.dim.u)
+# trim[1] = 0.1
+# trim[2] = 0.1
+trim[3] = 0.25 * model.mb * model.g
+# trim[4] = 0.1
+trim[5] = -0.1
+trim[6] = 0.25 * model.mb * model.g
+trim[9] = 0.25 * model.mb * model.g
+trim[12] = 0.25 * model.mb * model.g
+
+sim = ContactControl.simulator(model, q1_sim, q1_sim, h_sim, H_sim,
+	p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u]),
+	# p = ContactControl.open_loop_policy([SVector{model.dim.u}(trim * h_sim) for ut in ref_traj.u]),
+    ip_opts = ContactControl.InteriorPointOptions(
+        r_tol = 1.0e-8,
+        κ_init = 1.0e-6,
+        κ_tol = 2.0e-6,
+        diff_sol = false),
+    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
+
+time = @elapsed status = ContactControl.simulate!(sim)
+# @elapsed status = ContactControl.simulate!(sim)
+# @profiler status = ContactControl.simulate!(sim)
+visualize!(vis, model, sim.traj.q, Δt = h_sim)
+
+sim.traj.q[1][6 .+ (1:3)]
+plot(hcat(sim.traj.q...)[1:3,:]')
+plot(hcat(sim.traj.q...)[6 .+ (1:3),:]')
+
+vis = Visualizer()
+open(vis)
+
+function visualize!(vis, model, q;
+      r = 0.025, Δt = 0.1)
+
+	default_background!(vis)
+
+	setobject!(vis["torso"],
+    	Rect(Vec(-model.l_torso, -model.w_torso, -0.05),Vec(2.0 * model.l_torso, 2.0 * model.w_torso, 0.05)),
+    	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
+
+	feet1 = setobject!(vis["feet1"], Sphere(Point3f0(0),
+        convert(Float32, r)),
+        MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
+
+	feet2 = setobject!(vis["feet2"], Sphere(Point3f0(0),
+		convert(Float32, r)),
+		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
+
+	feet3 = setobject!(vis["feet3"], Sphere(Point3f0(0),
+		convert(Float32, r)),
+		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
+
+	feet4 = setobject!(vis["feet4"], Sphere(Point3f0(0),
+        convert(Float32, r)),
+        MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
+
+	anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
+
+	T = length(q)
+	p_shift = [0.0, 0.0, r]
+
+	for t = 1:T
+		MeshCat.atframe(anim, t) do
+			rot = MRP(q[t][4:6]...)
+
+			p_torso = [q[t][1]; q[t][2]; q[t][3]] + p_shift
+			p_foot1 = q[t][6 .+ (1:3)] + p_shift
+			p_foot2 = q[t][9 .+ (1:3)] + p_shift
+			p_foot3 = q[t][12 .+ (1:3)] + p_shift
+			p_foot4 = q[t][15 .+ (1:3)] + p_shift
+
+			settransform!(vis["torso"], compose(Translation(p_torso), LinearMap(MRP(q[t][4:6]...))))
+			settransform!(vis["feet1"], Translation(p_foot1))
+			settransform!(vis["feet2"], Translation(p_foot2))
+			settransform!(vis["feet3"], Translation(p_foot3))
+			settransform!(vis["feet4"], Translation(p_foot4))
+		end
+	end
+
+	# settransform!(vis["/Cameras/default"],
+	#     compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
+
+	MeshCat.setanimation!(vis, anim)
+end
 
 
-model.res.rz!(model.spa.rz_sp, ref_traj.z[1], ref_traj.θ[1])
+plot_lines!(vis, model, sim.traj.q[1:25:end])
+plot_surface!(vis, model.env, ylims=[0.3, -0.05])
+anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
 
-show(sparse(model.spa.rz_sp))
+#
+# model.res.rz!(model.spa.rz_sp, ref_traj.z[1], ref_traj.θ[1])
+#
+# show(sparse(model.spa.rz_sp))
