@@ -31,22 +31,22 @@
     @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 0.025
 end
 
-# # Reference trajectory
-# model = deepcopy(ContactControl.get_model("quadrupedlinear", surf = "flat"))
-# model.μ_world = 0.5
-#
-# ref_traj = deepcopy(ContactControl.get_trajectory("quadrupedlinear", "gait2", load_type = :split_traj_alt))
-# ContactControl.update_friction_coefficient!(ref_traj, model)
-#
-# T = ref_traj.H
-# h = ref_traj.h
-#
-# for t = 1:T
-#     r = ContactControl.residual(model, ref_traj.z[t], ref_traj.θ[t], 0.0)
-#     @test norm(r) < 1.0e-5
-# end
-#
-# plot(hcat(ref_traj.q...)')
+# Reference trajectory
+model = deepcopy(ContactControl.get_model("quadrupedlinear", surf = "flat"))
+model.μ_world = 0.5
+
+ref_traj = deepcopy(ContactControl.get_trajectory("quadrupedlinear", "gait3", load_type = :split_traj_alt))
+ContactControl.update_friction_coefficient!(ref_traj, model)
+
+T = ref_traj.H
+h = ref_traj.h
+
+for t = 1:T
+    r = ContactControl.residual(model, ref_traj.z[t], ref_traj.θ[t], 0.0)
+    @test norm(r) < 1.0e-5
+end
+
+plot(hcat(ref_traj.q...)')
 
 
 model.res.rz!(model.spa.rz_sp, ref_traj.z[1], ref_traj.θ[1])
