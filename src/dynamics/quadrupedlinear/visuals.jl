@@ -44,55 +44,6 @@ function plot_lines!(vis::Visualizer, model::QuadrupedLinear12, q::AbstractVecto
 	return nothing
 end
 
-	setobject!(vis["torso"],
-    	Rect(Vec(-model.l_torso, -model.w_torso, -0.05),Vec(2.0 * model.l_torso, 2.0 * model.w_torso, 0.05)),
-    	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-
-	feet1 = setobject!(vis["feet1"], Sphere(Point3f0(0),
-        convert(Float32, r)),
-        MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
-
-	feet2 = setobject!(vis["feet2"], Sphere(Point3f0(0),
-		convert(Float32, r)),
-		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
-
-	feet3 = setobject!(vis["feet3"], Sphere(Point3f0(0),
-		convert(Float32, r)),
-		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
-
-	feet4 = setobject!(vis["feet4"], Sphere(Point3f0(0),
-        convert(Float32, r)),
-        MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
-
-	anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
-
-	T = length(q)
-	p_shift = [0.0, 0.0, r]
-
-	for t = 1:T
-		MeshCat.atframe(anim, t) do
-			rot = MRP(q[t][4:6]...)
-
-			p_torso = [q[t][1]; q[t][2]; q[t][3]] + p_shift
-			p_foot1 = q[t][6 .+ (1:3)] + p_shift
-			p_foot2 = q[t][9 .+ (1:3)] + p_shift
-			p_foot3 = q[t][12 .+ (1:3)] + p_shift
-			p_foot4 = q[t][15 .+ (1:3)] + p_shift
-
-			settransform!(vis["torso"], Translation(p_torso))
-			settransform!(vis["feet1"], Translation(p_foot1))
-			settransform!(vis["feet2"], Translation(p_foot2))
-			settransform!(vis["feet3"], Translation(p_foot3))
-			settransform!(vis["feet4"], Translation(p_foot4))
-		end
-	end
-
-	settransform!(vis["/Cameras/default"],
-	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
-
-	MeshCat.setanimation!(vis, anim)
-
-
 
 function build_robot!(vis::Visualizer, model::QuadrupedLinear12; name::Symbol=:QuadrupedLinear12, r=0.0205, α=1.0)
 	r = convert(Float32, r)
