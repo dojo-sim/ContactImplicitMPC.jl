@@ -178,7 +178,10 @@ g = 9.81      # gravity
 
 ## Mini Cheetah
 mb = 9.0
+<<<<<<< HEAD
+=======
 # mf = 0.1 * mb
+>>>>>>> b1530c91a1f7f843ffe5732e5dbee1bc9f1060db
 mf = 0.025 * mb
 Ix = 0.07
 Iy = 0.26

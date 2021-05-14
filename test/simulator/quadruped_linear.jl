@@ -34,8 +34,9 @@ end
 # Reference trajectory
 model = deepcopy(ContactControl.get_model("quadrupedlinear", surf = "flat"))
 model.μ_world = 0.5
-
-ref_traj = deepcopy(ContactControl.get_trajectory("quadrupedlinear", "gait5", load_type = :split_traj_alt))
+model.mb
+model.mf
+ref_traj = deepcopy(ContactControl.get_trajectory("quadrupedlinear", "gait1_mit_2.5percent", load_type = :split_traj_alt))
 ContactControl.update_friction_coefficient!(ref_traj, model)
 
 T = ref_traj.H
@@ -46,63 +47,25 @@ for t = 1:T
     @test norm(r) < 1.0e-5
 end
 
-
-
 plot(hcat(ref_traj.q...)[4:6, :]')
 
 # time
-H = 25
-h = 0.005
+H = ref_traj.H
+h = ref_traj.h
 N_sample = 1
 h_sim = h / N_sample
-H_sim = 25 #4000 #3000
-
-q1_ref = copy(ref_traj.q[2])
-q0_ref = copy(ref_traj.q[1])
-q1_sim = SVector{model.dim.q}(q1_ref)
-q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
-@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
-
-trim = zeros(model.dim.u)
-# trim[1] = 0.1
-# trim[2] = 0.1
-trim[3] = 0.25 * model.mb * model.g
-# trim[4] = 0.1
-# trim[5] = -0.1
-trim[6] = 0.25 * model.mb * model.g
-trim[9] = 0.25 * model.mb * model.g
-trim[12] = 0.25 * model.mb * model.g
-
-sim = ContactControl.simulator(model, q1_sim, q1_sim, h_sim, H_sim,
-	# p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) .* [zeros(3); zeros(3); zeros(3); zeros(3)] for ut  in ref_traj.u]),
-	p = ContactControl.open_loop_policy([SVector{model.dim.u}(trim * h_sim) for ut in ref_traj.u]),
-    ip_opts = ContactControl.InteriorPointOptions(
-        r_tol = 1.0e-8,
-        κ_init = 1.0e-6,
-        κ_tol = 2.0e-6,
-        diff_sol = false),
-    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
-
-time = @elapsed status = ContactControl.simulate!(sim)
-# @elapsed status = ContactControl.simulate!(sim)
-# @profiler status = ContactControl.simulate!(sim)
-visualize!(vis, model, sim.traj.q, Δt = h_sim)
-
-
-
-
+H_sim = H #4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
-
-H_mpc = 25
+H_mpc = 10
 
 obj = TrackingVelocityObjective(H_mpc, model.dim,
-    q = [Diagonal([1.0 * ones(6); 10.0 * ones(12)]) for t = 1:H_mpc],
+    q = [Diagonal([[1.0; 0.1; 1.0]; [0.1; 0.1; 0.1]; 1.0e-3 * ones(12)]) for t = 1:H_mpc],
     u = [Diagonal(1.0e-3 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-8 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-8 * ones(model.dim.b)) for t = 1:H_mpc],
-	v = [Diagonal(10.0 * ones(model.dim.q)) for t = 1:H_mpc])
+	v = [Diagonal(1.0e-5 * ones(model.dim.q)) ./ h^2 for t = 1:H_mpc])
 
 p = linearized_mpc_policy(sim.traj, model, obj,
     H_mpc = H_mpc,
@@ -116,14 +79,14 @@ p = linearized_mpc_policy(sim.traj, model, obj,
 
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])
-mrp = MRP(RotX(0.1 * π))
-q1_ref[4:6] = [mrp.x; mrp.y; mrp.z]
-q0_ref[4:6] = [mrp.x; mrp.y; mrp.z]
+# mrp = MRP(RotX(0.1 * π))
+# q1_ref[4:6] = [mrp.x; mrp.y; mrp.z]
+# q0_ref[4:6] = [mrp.x; mrp.y; mrp.z]
 q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-sim_p = ContactControl.simulator(model, q1_sim, q1_sim, h_sim / 5, 5 * H_sim,
+sim_p = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
 	# p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) .* [zeros(3); zeros(3); zeros(3); zeros(3)] for ut  in ref_traj.u]),
 	# p = ContactControl.open_loop_policy([SVector{model.dim.u}(trim * h_sim) for ut in ref_traj.u]),
 	p = p,
@@ -132,12 +95,13 @@ sim_p = ContactControl.simulator(model, q1_sim, q1_sim, h_sim / 5, 5 * H_sim,
         κ_init = 1.0e-6,
         κ_tol = 2.0e-6,
         diff_sol = false),
-    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
+    sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
 time = @elapsed status = ContactControl.simulate!(sim_p)
 # @elapsed status = ContactControl.simulate!(sim)
 # @profiler status = ContactControl.simulate!(sim)
 visualize!(vis, model, sim_p.traj.q, Δt = h_sim)
+visualize!(vis, model, ref_traj.q, Δt = h_sim)
 
 plot(hcat(ref_traj.q...)[1:3, :]', color = :black, width = 2.0)
 plot!(hcat(sim.traj.q...)[1:3,:]', color = :red, width = 1.0)
