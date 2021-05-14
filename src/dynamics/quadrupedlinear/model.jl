@@ -543,14 +543,16 @@ g = 9.81      # gravity
 μ_joint = 0.0 # coefficient of torque friction at the joints
 
 # ~Unitree A1
-mb = 1.0
 mf = 0.01
-Ix = 0.1
-Iy = 0.1
-Iz = 0.1
 
-l_torso = 0.5
-w_torso = 0.25
+# TRUCK ONLY TODO: parallel axis theorem to add shoulders
+mb = 4.713
+Ix = 0.01683993
+Iy = 0.056579028
+Iz = 0.064713601
+
+l_torso = 0.5 * 0.267 # dimension from com
+w_torso = 0.5 * 0.194 # dimension from com
 
 # # ~Unitree A1
 # # Model parameters
