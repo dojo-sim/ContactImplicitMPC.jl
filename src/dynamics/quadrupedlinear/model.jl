@@ -164,7 +164,7 @@ g = 9.81      # gravity
 
 ## Mini Cheetah
 mb = 9.0
-mf = 0.1 * mb
+mf = 0.025 * mb
 Ix = 0.07
 Iy = 0.26
 Iz = 0.242

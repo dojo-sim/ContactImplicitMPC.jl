@@ -46,14 +46,16 @@ for t = 1:T
     @test norm(r) < 1.0e-5
 end
 
+
+
 plot(hcat(ref_traj.q...)[4:6, :]')
 
 # time
-H = 50
-h = 0.01
+H = 25
+h = 0.005
 N_sample = 1
 h_sim = h / N_sample
-H_sim = 50 #4000 #3000
+H_sim = 25 #4000 #3000
 
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])
@@ -96,7 +98,7 @@ visualize!(vis, model, sim.traj.q, Δt = h_sim)
 H_mpc = 25
 
 obj = TrackingVelocityObjective(H_mpc, model.dim,
-    q = [Diagonal(1.0 * ones(model.dim.q)) for t = 1:H_mpc],
+    q = [Diagonal([1.0 * ones(6); 10.0 * ones(12)]) for t = 1:H_mpc],
     u = [Diagonal(1.0e-3 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-8 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-8 * ones(model.dim.b)) for t = 1:H_mpc],
