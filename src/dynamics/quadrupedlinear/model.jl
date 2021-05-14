@@ -408,15 +408,6 @@ end
 function ϕ_func(model::QuadrupedLinear12, q)
 	k = kinematics(model, q)
 	@SVector [k[3], k[6], k[9], k[12]]
-	# p_calf_1 = kinematics_2(model, q, body = :calf_1, mode = :ee)
-	# p_calf_2 = kinematics_2(model, q, body = :calf_2, mode = :ee)
-	# p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
-	# p_calf_4 = kinematics_3(model, q, body = :calf_4, mode = :ee)
-	#
-	# SVector{4}([p_calf_1[2] - model.env.surf(p_calf_1[1:1]);
-	# 			p_calf_2[2] - model.env.surf(p_calf_2[1:1]);
-	# 			p_calf_3[2] - model.env.surf(p_calf_3[1:1]);
-	# 			p_calf_4[2] - model.env.surf(p_calf_4[1:1])])
 end
 
 function B_func(model::QuadrupedLinear12, q)
@@ -431,20 +422,13 @@ function B_func(model::QuadrupedLinear12, q)
 
 	z3 = zeros(3, 3)
 
-	SMatrix{18, 12}([I I I I;
+	transpose(SMatrix{18, 12}([
+					I I I I;
 	                transpose(rot) * skew(r1) transpose(rot) * skew(r2) transpose(rot) * skew(r3) transpose(rot) * skew(r4);
 					-I z3 z3 z3;
 					z3 -I z3 z3;
 					z3 z3 -I z3;
-					z3 z3 z3 -I])
-	# @SMatrix [0.0  0.0 -1.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0;
-	# 		  0.0  0.0  0.0 -1.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0;
-	# 		  0.0  0.0 -1.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0;
-	# 		  0.0  0.0  0.0  0.0  0.0 -1.0  1.0  0.0  0.0  0.0  0.0;
-	# 		  0.0  0.0 -1.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0;
-	# 		  0.0  0.0  0.0  0.0  0.0  0.0  0.0 -1.0  1.0  0.0  0.0;
-	# 		  0.0  0.0 -1.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0;
-	# 		  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0 -1.0  1.0]
+					z3 z3 z3 -I]))
 end
 
 function A_func(model::QuadrupedLinear12, q)
@@ -454,15 +438,6 @@ function A_func(model::QuadrupedLinear12, q)
 end
 
 function J_func(model::QuadrupedLinear12, q)
-	p_torso = q[1:3]
-	rot = MRP(q[4:6]...)
-
-	# r in world frame
-	r1 = q[6 .+ (1:3)] - p_torso
-	r2 = q[9 .+ (1:3)] - p_torso
-	r3 = q[12 .+ (1:3)] - p_torso
-	r4 = q[15 .+ (1:3)] - p_torso
-
 	z3 = zeros(3, 3)
 	J = transpose([
 		 zeros(6, 12);
@@ -490,20 +465,16 @@ function C_func(model::QuadrupedLinear12, q, q̇)
 				 0.0, 0.0, model.g * model.mf,
 				 0.0, 0.0, model.g * model.mf,
 				 0.0, 0.0, model.g * model.mf])
-	# tmp_q(z) = _dLdq̇(model, z, q̇)
-	# tmp_q̇(z) = _dLdq̇(model, q, z)
-	#
-	# ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
 end
 
 function contact_forces(model::QuadrupedLinear12, γ1, b1, q2, k)
 	k = kinematics(model, q2)
 	m = friction_mapping(model.env)
 
-	SVector{12}([transpose(rotation(model.env, k[1:2]))  * [m * b1[1:4];   γ1[1]];
-				transpose(rotation(model.env, k[4:5]))   * [m * b1[5:8];   γ1[2]];
-				transpose(rotation(model.env, k[7:8]))   * [m * b1[9:12];  γ1[3]];
-				transpose(rotation(model.env, k[10:11])) * [m * b1[13:16]; γ1[4]]])
+	SVector{12}([transpose(rotation(model.env, k[1:2]))   * [m * b1[1:4];   γ1[1]];
+			     transpose(rotation(model.env, k[4:5]))   * [m * b1[5:8];   γ1[2]];
+				 transpose(rotation(model.env, k[7:8]))   * [m * b1[9:12];  γ1[3]];
+				 transpose(rotation(model.env, k[10:11])) * [m * b1[13:16]; γ1[4]]])
 end
 
 function velocity_stack(model::QuadrupedLinear12, q1, q2, k, h)
@@ -521,9 +492,9 @@ function velocity_stack(model::QuadrupedLinear12, q1, q2, k, h)
 	# v4_surf = v[7:8]
 
 	SVector{16}([friction_mapping(model.env)' * v1_surf[1:2];
-				friction_mapping(model.env)' * v2_surf[1:2];
-				friction_mapping(model.env)' * v3_surf[1:2];
-				friction_mapping(model.env)' * v4_surf[1:2]])
+				 friction_mapping(model.env)' * v2_surf[1:2];
+				 friction_mapping(model.env)' * v3_surf[1:2];
+				 friction_mapping(model.env)' * v4_surf[1:2]])
 end
 
 ################################################################################
