@@ -24,7 +24,7 @@ model = get_model("quadrupedlinear")
 # get trajectory
 # ref_traj = get_trajectory("quadrupedlinear", "quadruped_v2_mirror_gait_fast2", load_type = :split_traj_alt)
 # ref_traj = get_trajectory("quadrupedlinear", "quadruped_v2_mirror_gait_fast", load_type = :split_traj_alt)
-ref_traj = get_trajectory("quadrupedlinear", "gait1_mit_2.5percent", load_type = :split_traj_alt)
+ref_traj = get_trajectory("quadrupedlinear", "gait2_mit_2.5percent", load_type = :split_traj_alt)
 # ref_traj = get_trajectory("quadrupedlinear", "gait0_mit_10percent", load_type = :split_traj_alt)
 ref_traj_copy = deepcopy(ref_traj)
 
@@ -64,14 +64,14 @@ h = ref_traj.h
 N_sample = 1
 H_mpc = 20
 h_sim = h / N_sample
-H_sim = 300 #4000 #3000
+H_sim = 3000 #4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 obj = TrackingVelocityObjective(H_mpc, model.dim,
-    q = [Diagonal(1e-1 * [1e-1; 1e0; 1e0; 1e0*ones(3); 1.0 * ones(model.dim.q-6)]) for t = 1:H_mpc],
-	v = [Diagonal(1e-2 * [1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0 * ones(model.dim.q-6)]) for t = 1:H_mpc],
+    q = [Diagonal(1e-1 * [1e-1; 1e0; 1e0; 1e0*ones(3); 3.0 * ones(model.dim.q-6)]) for t = 1:H_mpc],
+	v = [Diagonal(1e-2 * [1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 100.0 * ones(model.dim.q-6)]) for t = 1:H_mpc],
     u = [Diagonal(1e-2 * [1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
@@ -195,7 +195,7 @@ time = @elapsed status = ContactControl.simulate!(sim)
 # @profiler status = ContactControl.simulate!(sim)
 
 # plot_lines!(vis, model, sim.traj.q[1:25:end])
-plot_surface!(vis, model.env, ylims=[0.3, -0.3])
+plot_surface!(vis, model.env, ylims=[0.15, -0.15], xlims=[-1.0, 6.0])
 anim = visualize_robot!(vis, model, ref_traj, name=:Ref, sample=1, α=0.5)
 anim = visualize_robot!(vis, model, sim.traj, anim=anim, sample=1)
 # anim = visualize_robot!(vis, model, sim.traj, anim=anim)
@@ -217,7 +217,7 @@ for (i,t) in enumerate(t_ghosts)
 end
 
 
-filename = "tablebot_working"
+filename = "tablebot_demo"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
     "/home/simon/Documents/$filename.mp4", overwrite=true)
