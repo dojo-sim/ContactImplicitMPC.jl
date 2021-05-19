@@ -240,16 +240,16 @@ nb = nc * nf              # number of friction parameters
 nw = 3                    # disturbance dimension
 
 # World parameters
-μ_world = 0.10      # coefficient of friction
+μ_world = 0.50      # coefficient of friction
 μ_joint = 0.0
 g = 9.81     # gravity
 
 # Model parameters
-m = 1.0
+m = 10.0
 J = m * 0.05^2
-mp = 10.0
-r = 0.02
-rp = 0.004
+mp = 100.0
+r = 0.2
+rp = 0.04
 
 
 planarpush = PlanarPush(Dimensions(nq, nu, nw, nc, nb),

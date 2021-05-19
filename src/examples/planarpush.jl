@@ -16,7 +16,7 @@ nf = 4
 
 # time
 h = 0.01
-H = 300
+H = 400
 N_sample = 1
 # # reference trajectory
 # ref_traj = contact_trajectory(H, h, model)
@@ -42,11 +42,11 @@ N_sample = 1
 # end
 
 # initial conditions
-q0 = @SVector [0.00, 0.00, 0.0, 0.0, -0.15, 5e-4, 0.00]
-q1 = @SVector [0.00, 0.00, 0.0, 0.0, -0.15, 5e-4, 0.00]
+q0 = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
+q1 = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
 
 # p = open_loop_policy(fill(SVector{nu}([10.0*h, -0.0]), H*2), N_sample=N_sample)
-p = open_loop_policy(fill(SVector{nu}([1*h, -0.0]), H*2), N_sample=N_sample)
+p = open_loop_policy(fill(SVector{nu}([40*h, -0.0]), H*2), N_sample=N_sample)
 
 # simulator
 sim0 = ContactControl.simulator(model, q0, q1, h, H,
@@ -69,8 +69,6 @@ plot(hcat([x[1:nc] for x in sim0.traj.γ]...)')
 plot(hcat([x[1:nb] for x in sim0.traj.b]...)')
 
 
-
-
 ref_traj = deepcopy(sim0.traj)
 ref_traj.H
 
@@ -78,7 +76,7 @@ ref_traj.H
 N_sample = 1
 H_mpc = 40
 h_sim = h / N_sample
-H_sim = 250
+H_sim = 350
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -87,7 +85,7 @@ obj = TrackingVelocityObjective(H_mpc, model.dim,
 	# q = [Diagonal(1.0e+2 * [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e0, 1e0,]) for t = 1:H_mpc],
 	q = [Diagonal(1.0e-4 * [1e2, 1e2, 1e-1, 1e-1, 1e-1, 1e-1, 1e-1,]) for t = 1:H_mpc],
 	v = [Diagonal(1.0e-4 * ones(model.dim.q)) for t = 1:H_mpc],
-	u = [Diagonal(1.0e-2 * ones(model.dim.u)) for t = 1:H_mpc],
+	u = [Diagonal(1.0e-5 * ones(model.dim.u)) for t = 1:H_mpc],
 	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
 	b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
 
@@ -103,7 +101,7 @@ p = linearized_mpc_policy(ref_traj, model, obj,
 		live_plotting=true
 		))
 
-# p = open_loop_policy([SVector{nu}(zeros(nu)) for i=1:2H_sim])
+# p = open_loop_policy(fill(SVector{nu}([40*h, -0.0]), H*2), N_sample=N_sample)
 
 idx_d1 = 20
 idx_d2 = idx_d1 + 200
@@ -111,13 +109,12 @@ idx_d3 = idx_d2 + 80
 idx_d4 = idx_d3 + 200
 idx_d5 = idx_d4 + 30
 idx = [idx_d1, idx_d2, idx_d3, idx_d4, idx_d5]
-# impulses = [[-5.5;0;0], [+5.5;0;0], [+5.5;0;0], [-1.5;0;0], [-4.5;0;0]]
-impulses = [[-0.0;0;0], [0.0;0;0], [0.0;0;0], [0.0;0;0], [0.0;0;0]]
+impulses = [[0;3;0], [0.0;0;0], [0.0;0;0], [0.0;0;0], [0.0;0;0]]
 d = impulse_disturbances(impulses, idx)
+d = open_loop_disturbances([[0.0, 0.0, 0.4*rand()] for t=1:H_sim])
 
-
-q0_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.15, 0.005, 0.00]
-q1_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.15, 0.005, 0.00]
+q0_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
+q1_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
 
 sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
@@ -137,14 +134,14 @@ anim = visualize_robot!(vis, model, ref_traj, name=:ref, anim=anim, sample = 1, 
 plot(hcat([x[1:2] for x in sim.traj.u]...)')
 plot!(hcat([x[1:2] ./ N_sample for x in ref_traj.u]...)')
 
-filename = "planarpush_clean"
-MeshCat.convert_frames_to_video(
-    "/home/simon/Downloads/$filename.tar",
-    "/home/simon/Documents/$filename.mp4", overwrite=true)
-
-convert_video_to_gif(
-    "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
+# filename = "planarpush_open_loop"
+# MeshCat.convert_frames_to_video(
+#     "/home/simon/Downloads/$filename.tar",
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+#
+# convert_video_to_gif(
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)
 
 
 q = UnitQuaternion(1.,2.,3., 4)
