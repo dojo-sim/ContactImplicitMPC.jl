@@ -1,4 +1,4 @@
-mutable struct QuadrupedLinear12{T} <: ContactDynamicsModel
+mutable struct QuadrupedSimple{T} <: ContactDynamicsModel
 	dim::Dimensions
 
 	g::T
@@ -38,11 +38,11 @@ end
 #                    183 mm                    183mm
 
 # Lagrangian
-function lagrangian(model::QuadrupedLinear12, q, q̇)
+function lagrangian(model::QuadrupedSimple, q, q̇)
 	return 0.0
 end
 
-function kinematics(model::QuadrupedLinear12, q)
+function kinematics(model::QuadrupedSimple, q)
 	pw1 = q[6 .+ (1:3)]
 	pw2 = q[9 .+ (1:3)]
 	pw3 = q[12 .+ (1:3)]
@@ -51,7 +51,7 @@ function kinematics(model::QuadrupedLinear12, q)
 end
 
 # Methods
-function M_func(model::QuadrupedLinear12, q)
+function M_func(model::QuadrupedSimple, q)
 	Diagonal(@SVector [model.mb,
 					   model.mb,
 					   model.mb,
@@ -62,12 +62,12 @@ function M_func(model::QuadrupedLinear12, q)
 					   model.mf, model.mf, model.mf])
 end
 
-function ϕ_func(model::QuadrupedLinear12, q)
+function ϕ_func(model::QuadrupedSimple, q)
 	k = kinematics(model, q)
 	@SVector [k[3], k[6], k[9], k[12]]
 end
 
-function B_func(model::QuadrupedLinear12, q)
+function B_func(model::QuadrupedSimple, q)
 	p_torso = q[1:3]
 	rot = MRP(q[4:6]...)
 
@@ -92,13 +92,13 @@ function B_func(model::QuadrupedLinear12, q)
 					z3 z3 z3 -I]))
 end
 
-function A_func(model::QuadrupedLinear12, q)
+function A_func(model::QuadrupedSimple, q)
 	@SMatrix [1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::QuadrupedLinear12, q)
+function J_func(model::QuadrupedSimple, q)
 	z3 = zeros(3, 3)
 	J = transpose([
 		 zeros(6, 12);
@@ -108,7 +108,7 @@ function J_func(model::QuadrupedLinear12, q)
 	     z3 z3 z3 I])
 end
 
-function C_func(model::QuadrupedLinear12, q, q̇)
+function C_func(model::QuadrupedSimple, q, q̇)
 	SVector{18}([0.0, 0.0, model.g * model.mb,
 				 0.0 * cross(q̇[4:6], Diagonal([model.Ix, model.Iy, model.Iz]) * q̇[4:6])...,
 				 0.0, 0.0, model.g * model.mf,
@@ -117,7 +117,7 @@ function C_func(model::QuadrupedLinear12, q, q̇)
 				 0.0, 0.0, model.g * model.mf])
 end
 
-function contact_forces(model::QuadrupedLinear12, γ1, b1, q2, k)
+function contact_forces(model::QuadrupedSimple, γ1, b1, q2, k)
 	m = friction_mapping(model.env)
 	SVector{12}([transpose(rotation(model.env, k[1:2]))   * [m * b1[1:4];   γ1[1]];
 			     transpose(rotation(model.env, k[4:5]))   * [m * b1[5:8];   γ1[2]];
@@ -125,7 +125,7 @@ function contact_forces(model::QuadrupedLinear12, γ1, b1, q2, k)
 				 transpose(rotation(model.env, k[10:11])) * [m * b1[13:16]; γ1[4]]])
 end
 
-function velocity_stack(model::QuadrupedLinear12, q1, q2, k, h)
+function velocity_stack(model::QuadrupedSimple, q1, q2, k, h)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(model.env, k[1:2]) * v[1:3]
@@ -139,7 +139,7 @@ function velocity_stack(model::QuadrupedLinear12, q1, q2, k, h)
 				 friction_mapping(model.env)' * v4_surf[1:2]])
 end
 
-function get_stride(model::QuadrupedLinear12, traj::ContactTraj)
+function get_stride(model::QuadrupedSimple, traj::ContactTraj)
     stride = zeros(SizedVector{model.dim.q})
 	idx = [1,7,10,13,16]
 	stride[idx] = traj.q[end-1][idx] - traj.q[1][idx]
@@ -166,7 +166,7 @@ g = 9.81      # gravity
 # mf = 0.4
 
 #
-# # TRUCK ONLY TODO: parallel axis theorem to add shoulders
+# # TRUNK ONLY TODO: parallel axis theorem to add shoulders
 # mb = 4.713
 # Ix = 0.01683993
 # Iy = 0.056579028
@@ -178,10 +178,6 @@ g = 9.81      # gravity
 
 ## Mini Cheetah
 mb = 9.0
-<<<<<<< HEAD
-=======
-# mf = 0.1 * mb
->>>>>>> b1530c91a1f7f843ffe5732e5dbee1bc9f1060db
 mf = 0.025 * mb
 Ix = 0.07
 Iy = 0.26
@@ -190,7 +186,7 @@ Iz = 0.242
 l_torso = 0.5 * 0.38 # dimension from com
 w_torso = 0.5 * 0.203 # dimension from com
 
-quadrupedlinear = QuadrupedLinear12(Dimensions(nq, nu, nw, nc, nb),
+quadrupedlinear = QuadrupedSimple(Dimensions(nq, nu, nw, nc, nb),
 				g, μ_world, μ_joint,
 				mb, mf, Ix, Iy, Iz, l_torso, w_torso,
 				zeros(nc),

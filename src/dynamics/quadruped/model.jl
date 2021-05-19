@@ -602,3 +602,22 @@ quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				# environment_2D(x -> 0.05*sin.(π*x[1:1])),
 				# environment_2D(x -> 0.025*(cos.(pi*x[1:1]) .- 1.0)),
 				environment_2D(x -> 0.05 * (cos(pi * x[1]) - 1.0)))
+
+include(joinpath(pwd(), "src/simulator/terrain/piecewise_2.jl"))
+quadruped_piecewise = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+				g, μ_world, μ_joint,
+				l_torso, d_torso, m_torso, J_torso,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				zeros(nc),
+				BaseMethods(), DynamicsMethods(), ContactMethods(),
+				ResidualMethods(), ResidualMethods(),
+				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
+				Environment{R2,LinearizedCone}(terrain, d_terrain))

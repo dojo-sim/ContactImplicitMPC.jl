@@ -1,5 +1,5 @@
-function plot_lines!(vis::Visualizer, model::QuadrupedLinear12, q::AbstractVector;
-		r=0.0205, offset=0.05, size=10, name::Symbol=:QuadrupedLinear12, col::Bool=true, α::Real=1.0)
+function plot_lines!(vis::Visualizer, model::QuadrupedSimple, q::AbstractVector;
+		r=0.0205, offset=0.05, size=10, name::Symbol=:QuadrupedSimple, col::Bool=true, α::Real=1.0)
 	p_shift = [0.0, 0.0, r]
 	orange_mat, blue_mat, black_mat = get_line_material(size, α=α)
 	black_mat.color = RGBA(0.0,153/256,153/256,α)
@@ -45,7 +45,7 @@ function plot_lines!(vis::Visualizer, model::QuadrupedLinear12, q::AbstractVecto
 end
 
 
-function build_robot!(vis::Visualizer, model::QuadrupedLinear12; name::Symbol=:QuadrupedLinear12, r=0.0205, α=1.0)
+function build_robot!(vis::Visualizer, model::QuadrupedSimple; name::Symbol=:QuadrupedSimple, r=0.0205, α=1.0)
 	r = convert(Float32, r)
 	body_mat = MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, α))
 	contact_mat = MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, α))
@@ -64,8 +64,8 @@ function build_robot!(vis::Visualizer, model::QuadrupedLinear12; name::Symbol=:Q
 	return nothing
 end
 
-function set_robot!(vis::Visualizer, model::QuadrupedLinear12, q::AbstractVector;
-		name::Symbol=:QuadrupedLinear12, r=0.0205, offset=0.00)
+function set_robot!(vis::Visualizer, model::QuadrupedSimple, q::AbstractVector;
+		name::Symbol=:QuadrupedSimple, r=0.0205, offset=0.00)
 
 	r = convert(Float32, r)
 	p_shift = [0.0; offset; r]
@@ -86,7 +86,7 @@ function set_robot!(vis::Visualizer, model::QuadrupedLinear12, q::AbstractVector
 	return nothing
 end
 
-function contact_point(model::QuadrupedLinear12, q::AbstractVector)
+function contact_point(model::QuadrupedSimple, q::AbstractVector)
 	p_foot_1 = q[6  .+ [1:3]]
 	p_foot_2 = q[9  .+ [1:3]]
 	p_foot_3 = q[12 .+ [1:3]]
@@ -96,7 +96,7 @@ function contact_point(model::QuadrupedLinear12, q::AbstractVector)
 	return pc
 end
 
-function build_meshrobot!(vis::Visualizer, model::QuadrupedLinear12; name::Symbol=:QuadrupedLinear12, α=1.0)
+function build_meshrobot!(vis::Visualizer, model::QuadrupedSimple; name::Symbol=:QuadrupedSimple, α=1.0)
 	default_background!(vis)
 
 	urdf = joinpath(@__DIR__, "mesh", "a1.urdf")
@@ -104,8 +104,8 @@ function build_meshrobot!(vis::Visualizer, model::QuadrupedLinear12; name::Symbo
 	build_meshrobot!(vis, model, urdf, package_path; name=name, α=α)
 end
 
-function convert_config(model::QuadrupedLinear12, q::AbstractVector)
-    # QuadrupedLinear12 configuration
+function convert_config(model::QuadrupedSimple, q::AbstractVector)
+    # QuadrupedSimple configuration
     # 1.  position long axis +x
     # 2.  position long axis +z
     # 3.  trunk rotation along -y

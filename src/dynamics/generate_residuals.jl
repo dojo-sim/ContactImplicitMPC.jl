@@ -22,10 +22,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Particle (quadratic)
 ################################################################################
@@ -45,10 +41,6 @@ expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Particle (sinusoidal)
@@ -70,10 +62,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Particle 2D (flat)
 ################################################################################
@@ -93,10 +81,6 @@ expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Particle 2D (slope)
@@ -118,10 +102,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Hopper (2D)
 ################################################################################
@@ -141,10 +121,6 @@ expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Hopper (2D) vertical hop
@@ -166,10 +142,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Hopper (2D) (sinusoidal)
 ################################################################################
@@ -189,10 +161,6 @@ expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Hopper (2D) (stairs)
@@ -214,10 +182,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Hopper (3D)
 ################################################################################
@@ -238,10 +202,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Hopper (3D) (sinusoidal)
 ################################################################################
@@ -261,10 +221,6 @@ expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Quadruped
@@ -287,10 +243,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Quadruped Payload
 ################################################################################
@@ -311,10 +263,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Quadruped Sinusoidal
@@ -337,10 +285,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Quadruped (Piecewise)
 ################################################################################
@@ -353,14 +297,16 @@ path_res = joinpath(dir, "piecewise/residual.jld2")
 path_jac = joinpath(dir, "piecewise/sparse_jacobians.jld2")
 path_linearized = joinpath(dir, "piecewise/linearized.jld2")
 
-instantiate_base!(model, path_base)
-instantiate_dynamics!(model, path_dyn)
+instantiate_base!(model_sim, path_base)
 
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
+expr_dyn = generate_dynamics_expressions(model_sim, derivs = true)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model_sim, path_dyn, derivs = true)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(model_sim, jacobians = :approx)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
-@load path_jac rz_sp rθ_sp
-instantiate_residual!(model, path_res)
+instantiate_residual!(model_sim, path_res, jacobians = :approx)
 
 ################################################################################
 # Quadruped (3D)
@@ -382,10 +328,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Quadruped (Linear)
@@ -410,10 +352,6 @@ instantiate_residual!(model, path_res)
 model.spa.rz_sp = rz_sp
 model.spa.rθ_sp = rθ_sp
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Biped
 ################################################################################
@@ -434,10 +372,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Biped (sinusoidal)
@@ -460,35 +394,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
-################################################################################
-# Biped (5-link)
-################################################################################
-dir = joinpath(@__DIR__, "biped5")
-model = deepcopy(biped5)
-
-path_base = joinpath(dir, "dynamics/base.jld2")
-path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-path_res = joinpath(dir, "flat/residual.jld2")
-path_jac = joinpath(dir, "flat/sparse_jacobians.jld2")
-path_linearized = joinpath(dir, "flat/linearized.jld2")
-
-instantiate_base!(model, path_base)
-instantiate_dynamics!(model, path_dyn)
-
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
-save_expressions(expr_res, path_res, overwrite=true)
-@save path_jac rz_sp rθ_sp
-@load path_jac rz_sp rθ_sp
-instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Flamingo (flat)
 ################################################################################
@@ -509,10 +414,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
 
 ################################################################################
 # Flamingo (sinusoidal)
@@ -535,10 +436,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # Flamingo (smooth slope)
 ################################################################################
@@ -560,10 +457,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @load path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # PushBot
 ################################################################################
@@ -584,10 +477,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
 
-expr_linearized = generate_linearized_expressions(model)
-save_expressions(expr_linearized, path_linearized, overwrite=true)
-instantiate_linearized!(model, path_linearized)
-
 ################################################################################
 # PlanarPush
 ################################################################################
@@ -607,7 +496,3 @@ expr_res, rz_sp, rθ_sp = generate_residual_expressions(model)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(model, path_res)
-
-# expr_linearized = generate_linearized_expressions(model)
-# save_expressions(expr_linearized, path_linearized, overwrite=true)
-# instantiate_linearized!(model, path_linearized)
