@@ -7,7 +7,7 @@
 			t - body orientation
 			r - leg length
 """
-mutable struct Hopper2D{T} <: ContactDynamicsModel
+mutable struct Hopper2D{T} <: ContactModel
     dim::Dimensions
 
     mb::T # mass of body
@@ -21,15 +21,8 @@ mutable struct Hopper2D{T} <: ContactDynamicsModel
 
 	base::BaseMethods
 	dyn::DynamicsMethods
-	con::ContactMethods
-	res::ResidualMethods
-	linearized::ResidualMethods
-
-	spa::SparseStructure
 
 	joint_friction::SVector
-
-	env::Environment
 end
 
 lagrangian(model::Hopper2D, q, q̇) = 0.0
@@ -55,8 +48,8 @@ function C_func(model::Hopper2D, q, q̇)
 			  0.0]
 end
 
-function ϕ_func(model::Hopper2D, q)
-    SVector{1}(q[2] - q[4] * cos(q[3]) - model.env.surf(q[1] + q[4] * sin(q[3])))
+function ϕ_func(model::Hopper2D, env::Environment, q)
+    SVector{1}(q[2] - q[4] * cos(q[3]) - env.surf(q[1] + q[4] * sin(q[3])))
 end
 
 function J_func(::Hopper2D, q)
@@ -90,18 +83,6 @@ function velocity_stack(model::Hopper2D, q1, q2, k, h)
 	SVector{2}([v1_surf[1]; -v1_surf[1]])
 end
 
-# # Parameters
-# g = 9.81 # gravity
-# μ_world = 1.0  # coefficient of friction
-# μ_joint = 1.0
-#
-# # TODO: change to Raibert parameters
-# mb = 1.0 # body mass
-# ml = 0.1  # leg mass
-# Jb = 0.25 # body inertia
-# Jl = 0.025 # leg inertia
-
-
 # Working Parameters
 g = 9.81 # gravity
 μ_world = 0.8 # coefficient of friction
@@ -123,41 +104,5 @@ nb = 2
 hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, g,
-			   BaseMethods(), DynamicsMethods(), ContactMethods(),
-			   ResidualMethods(), ResidualMethods(),
-			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			   SVector{4}(zeros(4)),
-			   environment_2D_flat())
-
-# hopper_2D_vertical = Hopper2D(Dimensions(4, 2, 2, 1, 2),
-# 			   1.0, 0.1, 0.25, 0.025,
-# 			   1.0, 0.0, 9.81,
-# 			   BaseMethods(), DynamicsMethods(), ContactMethods(),
-#              ResidualMethods(), ResidualMethods(),
-# 			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-# 			   SVector{4}(zeros(4)),
-# 			   environment_2D_flat())
-
-hopper_2D_sinusoidal = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
-			   mb, ml, Jb, Jl,
-			   μ_world, μ_joint, g,
-			   BaseMethods(), DynamicsMethods(), ContactMethods(),
-			   ResidualMethods(), ResidualMethods(),
-			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			   SVector{4}(zeros(4)),
-			   environment_2D(x -> 0.10 * sin(2π * x[1])),
-			   )
-
-hopper_2D_stairs = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
-			   mb, ml, Jb, Jl,
-			   μ_world, μ_joint, g,
-			   BaseMethods(), DynamicsMethods(), ContactMethods(),
-			   ResidualMethods(), ResidualMethods(),
-			   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			   SVector{4}(zeros(4)),
-			   # environment_2D(x -> 0.1 * x[1]),
-			   # environment_2D(x -> 0.10 * sin(2π * x[1])),
-			   Environment{R2,LinearizedCone}(x -> 0.1*x[1], x -> 0.0),
-			   # Environment{R2}(x -> 0.1, x -> 0.0),
-			   # Environment{R2}(stairs3steps, d_stairs3steps),
-			   )
+			   BaseMethods(), DynamicsMethods(),
+			   SVector{4}(zeros(4)))

@@ -1,4 +1,4 @@
-function unpack_z(model::ContactDynamicsModel, z)
+function unpack_z(model::ContactModel, z)
 	nq = model.dim.q
 	nu = model.dim.u
 	nc = model.dim.c
@@ -23,13 +23,13 @@ function unpack_z(model::ContactDynamicsModel, z)
 	return q2, γ1, b1, η1, s1, s2
 end
 
-function pack_z(model::ContactDynamicsModel, q2, γ1, b1, η1)
+function pack_z(model::ContactModel, q2, γ1, b1, η1)
 	s1 = ϕ_func(model, q2)
 	s2 = model.μ_world .* γ1
 	return [q2; γ1; b1; η1; s1; s2]
 end
 
-function z_initialize!(z, model::ContactDynamicsModel, q1)
+function z_initialize!(z, model::ContactModel, q1)
 	nq = model.dim.q
 	nc = model.dim.c
 	nb = model.dim.b
@@ -45,22 +45,22 @@ function z_initialize!(z, model::ContactDynamicsModel, q1)
 	return z
 end
 
-function num_var(model::ContactDynamicsModel)
+function num_var(model::ContactModel)
 	dim = model.dim
 	dim.q + dim.c + dim.b + (dim.b + dim.c) + 2 * dim.c
 end
 
-function num_data(model::ContactDynamicsModel)
+function num_data(model::ContactModel)
 	dim = model.dim
 	dim.q + dim.q + dim.u + dim.w + 1 + 1
 end
 
-function inequality_indices(model::ContactDynamicsModel)
+function inequality_indices(model::ContactModel)
 	collect([(model.dim.q .+ (1:model.dim.c))...,
 	         (model.dim.q + model.dim.c + model.dim.b + model.dim.b + model.dim.c .+ (1:model.dim.c))...])
 end
 
-function soc_indices(model::ContactDynamicsModel)
+function soc_indices(model::ContactModel)
 	nq = model.dim.q
 	nc = model.dim.c
 	nb = model.dim.b
@@ -76,14 +76,14 @@ function soc_indices(model::ContactDynamicsModel)
 	[pr_idx..., du_idx...]
 end
 
-function contact_forces(model::ContactDynamicsModel, γ1, b1, q2, k)
+function contact_forces(model::ContactModel, γ1, b1, q2, k)
 	nc = model.dim.c
 	nb = model.dim.b
 	ne = dim(model.env)
 	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * (ne - 1) .+ (1:ne)])) * [b1[(i-1) * (ne-1) .+ (1:(ne-1))]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
 end
 
-function velocity_stack(model::ContactDynamicsModel, q1, q2, k, h)
+function velocity_stack(model::ContactModel, q1, q2, k, h)
 	nc = model.dim.c
 	ne = dim(model.env)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
@@ -91,7 +91,7 @@ function velocity_stack(model::ContactDynamicsModel, q1, q2, k, h)
 	vT_stack = vcat([[v_surf[i][1:ne-1]] for i = 1:nc]...)
 end
 
-function residual(model::ContactDynamicsModel, z, θ, κ)
+function residual(model::ContactModel, z, θ, κ)
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 	q2, γ1, b1, η1, s1, s2 = unpack_z(model, z)
 
@@ -110,7 +110,7 @@ function residual(model::ContactDynamicsModel, z, θ, κ)
 	 vcat([second_order_cone_product(η1[(i - 1) * ne .+ (1:ne)], [s2[i]; b1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]) - [κ; zeros(ne - 1)] for i = 1:model.dim.c]...)]
 end
 #
-# function residual(model::ContactDynamicsModel, z, θ, κ)
+# function residual(model::ContactModel, z, θ, κ)
 # 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 # 	q2, γ1, b1, η1, s1, s2 = unpack_z(model, z)
 #

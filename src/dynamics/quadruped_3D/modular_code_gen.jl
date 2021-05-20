@@ -147,7 +147,7 @@ function Quad36Modules(dims::Dimensions, env::Environment, T::DataType=Float64)
 	return tmp
 end
 
-struct Quad36{T} <: ContactDynamicsModel
+struct Quad36{T} <: ContactModel
 	dim::Dimensions          # dimensions
 	g::T                     # parameters
 	μ_world::T
@@ -255,7 +255,7 @@ function generate_modular_expression(model::Quad36, fct::Any, fct_name::Symbol,
 	return expr, expr_alloc
 end
 
-function instantiate_expression(model::ContactDynamicsModel, expr::Dict{Symbol, Expr},
+function instantiate_expression(model::ContactModel, expr::Dict{Symbol, Expr},
 		expr_alloc::Dict{Symbol, Expr})
 
 	ks = keys(expr)

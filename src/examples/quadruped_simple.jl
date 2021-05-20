@@ -29,7 +29,7 @@ ref_traj = get_trajectory("quadrupedlinear", "gait2_mit_2.5percent", load_type =
 ref_traj_copy = deepcopy(ref_traj)
 
 
-function check_traj(model::ContactDynamicsModel, traj::ContactTraj)
+function check_traj(model::ContactModel, traj::ContactTraj)
     nq = model.dim.q
     nz = num_var(model)
     d = [zeros(nq) for t=1:traj.H]

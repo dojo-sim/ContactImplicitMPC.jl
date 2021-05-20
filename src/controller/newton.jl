@@ -22,11 +22,13 @@ struct NewtonResidual{T,vq2,vu1,vγ1,vb1,vd,vI,vq0,vq1}
     q1::Vector{vq1}                        # rsd dynamics q1 views
 end
 
-function NewtonResidual(H::Int, dim::Dimensions)
+function NewtonResidual(model::ContactModel, env::Environment, H::Int)
+    dim = model.dim
+
     nq = dim.q # configuration
     nu = dim.u # control
     nc = dim.c # contact
-    nb = dim.b # linear friction
+    nb = nc * friction_dim(env) # linear friction
     nd = nq + nc + nb # implicit dynamics constraint
     nr = nq + nu + nc + nb + nd # size of a one-time-step block
 
@@ -78,12 +80,14 @@ struct NewtonJacobian{T,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vreg}
     reg::Vector{Vreg}                       # dual regularization views
 end
 
-function NewtonJacobian(H::Int, dim::Dimensions)
+function NewtonJacobian(model::ContactModel, env::Environment, H::Int)
+    dim = model.dim
+
     nq = dim.q # configuration
     nu = dim.u # control
     nw = dim.w # disturbance
     nc = dim.c # contact
-    nb = dim.b # linear friction
+    nb = nc * friction_dim(env) # linear friction
     nd = nq + nc + nb # implicit dynamics constraint
     nr = nq + nu + nc + nb + nd # size of a one-time-step block
 
@@ -142,12 +146,13 @@ mutable struct NewtonIndices{nq,nu,nc,nb,n1,n2,n3}
     Iθ::Vector{SizedArray{Tuple{n3},Int,1,1}} # IP solver data [q0, q1, u1]
 end
 
-function NewtonIndices(H::Int, dim::Dimensions)
+function NewtonIndices(model::ContactModel, env::Environment, H::Int)
+    dim = model.dim
     nq = dim.q # configuration
     nu = dim.u # control
     nw = dim.w # disturbance
     nc = dim.c # contact
-    nb = dim.b # linear friction
+    nb = nc * friction_dim(env) # linear friction
     nd = nq + nc + nb # implicit dynamics constraint
     nr = nq + nu + nc + nb + nd # size of a one-time-step block
 
@@ -194,39 +199,42 @@ mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3}
     opts::NewtonOptions{T}                          # Newton solver options
 end
 
-function Newton(H::Int, h::T, model::ContactDynamicsModel,
+function Newton(s::Simulation, H::Int, h::T,
     traj::ContactTraj, im_traj::ImplicitTraj;
-    obj::Objective = TrackingObjective(H, model.dim),
+    obj::Objective = TrackingObjective(s.model, s.env, H),
     opts::NewtonOptions = NewtonOptions()) where T
 
+    model = s.model
+    env = s.env
+
     dim = model.dim
-    ind = NewtonIndices(H, dim)
+    ind = NewtonIndices(model, env, H)
 
     nq = dim.q
     nu = dim.u
     nw = dim.w
     nc = dim.c
-    nb = dim.b
-    nz = num_var(model)
+    nb = nc * friction_dim(env)
+    nz = num_var(model, env)
     nθ = num_data(model)
     nd = ind.nd
 
-    jac = NewtonJacobian(H, dim)
+    jac = NewtonJacobian(model, env, H)
 
     # precompute Jacobian for pre-factorization
-    implicit_dynamics!(im_traj, model, traj, κ = traj.κ)
+    implicit_dynamics!(im_traj, s, traj, κ = traj.κ)
     jacobian!(jac, im_traj, obj, H, opts.β_init)
 
-    res = NewtonResidual(H, dim)
-    res_cand = NewtonResidual(H, dim)
+    res = NewtonResidual(model, env, H)
+    res_cand = NewtonResidual(model, env, H)
 
-    Δ = NewtonResidual(H, dim)
+    Δ = NewtonResidual(model, env, H)
 
     ν = [zeros(SizedVector{ind.nd,T}) for t = 1:H]
     ν_cand = deepcopy(ν)
 
-    traj = contact_trajectory(H, h, model)
-    traj_cand = contact_trajectory(H, h, model)
+    traj = contact_trajectory(model, env, H, h)
+    traj_cand = contact_trajectory(model, env, H, h)
 
     Δq  = [zeros(SizedVector{nq,T}) for t = 1:H]
     Δu  = [zeros(SizedVector{nu,T}) for t = 1:H]
@@ -344,7 +352,7 @@ function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objective,
     return nothing
 end
 
-function residual!(res::NewtonResidual, model::ContactDynamicsModel, core::Newton,
+function residual!(res::NewtonResidual, core::Newton,
     ν::Vector, im_traj::ImplicitTraj, traj::ContactTraj, ref_traj::ContactTraj)
 
     # unpack
@@ -466,7 +474,7 @@ function reset!(core::Newton, ref_traj::ContactTraj;
 	return nothing
 end
 
-function newton_solve!(core::Newton, model::ContactDynamicsModel,
+function newton_solve!(core::Newton, s::Simulation,
     im_traj::ImplicitTraj, ref_traj::ContactTraj;
     warm_start::Bool = false, initial_offset::Bool = false,
     q0 = ref_traj.q[1], q1 = ref_traj.q[2], verbose::Bool=false)
@@ -475,10 +483,10 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
 
     # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, model, core.traj, κ = core.traj.κ)
+	implicit_dynamics!(im_traj, s, core.traj, κ = core.traj.κ)
 
     # Compute residual
-    residual!(core.res, model, core, core.ν, im_traj, core.traj, ref_traj)
+    residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
 
     r_norm = norm(core.res.r, 1)
 
@@ -500,10 +508,10 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
         update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
         # Compute implicit dynamics for candidate
-		implicit_dynamics!(im_traj, model, core.traj_cand, κ = core.traj_cand.κ)
+		implicit_dynamics!(im_traj, s, core.traj_cand, κ = core.traj_cand.κ)
 
         # Compute residual for candidate
-        residual!(core.res_cand, model, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
+        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
         r_cand_norm = norm(core.res_cand.r)
 
         while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
@@ -517,9 +525,9 @@ function newton_solve!(core::Newton, model::ContactDynamicsModel,
             update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
             # Compute implicit dynamics about trial_traj
-			implicit_dynamics!(im_traj, model, core.traj_cand, κ = core.traj_cand.κ)
+			implicit_dynamics!(im_traj, s, core.traj_cand, κ = core.traj_cand.κ)
 
-            residual!(core.res_cand, model, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
+            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
             r_cand_norm = norm(core.res_cand.r)
         end
 

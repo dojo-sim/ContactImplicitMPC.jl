@@ -61,13 +61,16 @@ mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
     alt_zeros::SVector{nn,T}
 end
 
-function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractVector{T},
+function RLin(s::Simulation, z0::AbstractVector{T}, θ0::AbstractVector{T},
         r0::AbstractVector{T}, rz0::AbstractMatrix{T}, rθ0::AbstractMatrix{T}) where {T}
+
+    model = s.model
+    env = s.env
 
     nq = model.dim.q
     nc = model.dim.c
-    nb = model.dim.b
-    nz = num_var(model)
+    nb = nc * friction_dim(env)
+    nz = num_var(model, env)
     nθ = num_data(model)
     nx = nq
     ny = 2nc + nb
@@ -75,11 +78,11 @@ function RLin(model::ContactDynamicsModel, z0::AbstractVector{T}, θ0::AbstractV
 
     # Terms
     off = 0
-    idyn, irst, ibil, ialt = linearization_term_index(model)
+    idyn, irst, ibil, ialt = linearization_term_index(model, env)
 
     # Vars
     off = 0
-    ix, iy1, iy2 = linearization_var_index(model)
+    ix, iy1, iy2 = linearization_var_index(model, env)
     iθ = Vector(1:nθ)
 
     # Residual
@@ -191,33 +194,25 @@ mutable struct RZLin{T,nx,ny,nxx,nxy,nyy}
     ibil::SVector{ny,Int}
 end
 
-function RZLin(model::ContactDynamicsModel, rz0::AbstractMatrix{T}) where {T}
+function RZLin(s::Simulation, rz0::AbstractMatrix{T}) where {T}
+    model = s.model
+    env = s.env
+
     nq = model.dim.q
     nc = model.dim.c
-    nb = model.dim.b
-    nz = num_var(model)
+    nb = nc * friction_dim(env)
+
+    nz = num_var(model, env)
     nx = nq
     ny = 2nc + nb
 
     # Terms
     off = 0
-    # ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
-    # ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
-    # ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
-    # ibil = [ibil1; ibil2; ibil3]
-    # idyn = Vector(1:nq)
-    # irst2 = Vector(nq .+ (1:nb))
-    # irst1 = Vector(nq + nb .+ (1:nc))
-    # irst3 = Vector(nq + nb + nc .+ (1:nc))
-    # irst = [irst1; irst2; irst3]
-    idyn, irst, ibil, ialt = linearization_term_index(model)
+    idyn, irst, ibil, ialt = linearization_term_index(model, env)
 
     # Vars
     off = 0
-    # ix  = off .+ Vector(1:nq); off += nq
-    # iy1 = off .+ Vector(1:ny); off += ny
-    # iy2 = off .+ [Vector(nb .+ (1:nc)); Vector(1:nb); Vector(nb+nc .+ (1:nc))]; off += ny
-    ix, iy1, iy2 = linearization_var_index(model)
+    ix, iy1, iy2 = linearization_var_index(model, env)
 
     # Fill the matrix blocks rz0s
     Dx = SMatrix{nx,nx,T,nx^2}(rz0[idyn,ix])
@@ -271,11 +266,15 @@ mutable struct RθLin{T,nx,ny,nθ,nxθ,nyθ}
     ibil::SVector{ny,Int}
 end
 
-function RθLin(model::ContactDynamicsModel, rθ0::AbstractMatrix{T}) where {T}
+function RθLin(s::Simulation, rθ0::AbstractMatrix{T}) where {T}
+    model = s.model
+    env = s.env
+
     nq = model.dim.q
     nc = model.dim.c
-    nb = model.dim.b
-	nz = num_var(model)
+    nb = nc * friction_dim(env)
+
+	nz = num_var(model, env)
     nθ = num_data(model)
     nx = nq
     ny = 2nc + nb
@@ -283,7 +282,7 @@ function RθLin(model::ContactDynamicsModel, rθ0::AbstractMatrix{T}) where {T}
     # Terms
     off = 0
 
-    idyn, irst, ibil, ialt = linearization_term_index(model)
+    idyn, irst, ibil, ialt = linearization_term_index(model, env)
 
     # Fill the matrix blocks rθ0s
 	rθdyn0 = SMatrix{nx,nθ,T,nx*nθ}(rθ0[idyn,:])

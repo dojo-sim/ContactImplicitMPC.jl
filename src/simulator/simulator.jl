@@ -5,7 +5,7 @@
 end
 
 struct Simulator{T}
-    model::ContactDynamicsModel
+    s::Simulation
 
     traj::ContactTraj
     deriv_traj::ContactDerivTraj
@@ -21,35 +21,38 @@ struct Simulator{T}
     opts::SimulatorOptions{T}
 end
 
-function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
-    p = no_policy(model),
-    uL = -Inf * ones(model.dim.u),
-    uU = Inf * ones(model.dim.u),
-    d = no_disturbances(model),
-    r! = model.res.r!,
-    rz! = model.res.rz!,
-    rθ! = model.res.rθ!,
-    rz = model.spa.rz_sp,
-    rθ = model.spa.rθ_sp,
+function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
+    p = no_policy(s.model),
+    uL = -Inf * ones(s.model.dim.u),
+    uU = Inf * ones(s.model.dim.u),
+    d = no_disturbances(s.model),
+    r! = s.res.r!,
+    rz! = s.res.rz!,
+    rθ! = s.res.rθ!,
+    rz = s.rz,
+    rθ = s.rθ,
     ip_opts = InteriorPointOptions{S}(),
     sim_opts = SimulatorOptions{S}()) where S
 
+    model = s.model
+    env = s.env
+
     # initialize trajectories
-    traj = contact_trajectory(H, h, model)
+    traj = contact_trajectory(model, env, H, h)
     traj.q[1] = q0
     traj.q[2] = q1
     traj.u[1] = control_saturation(policy(p, traj.q[2], traj, 1), uL, uU)
     traj.w[1] = disturbances(d, traj.q[2], 1)
 
     # initialize interior point solver (for pre-factorization)
-    z = zeros(num_var(model))
+    z = zeros(num_var(model, s.env))
     θ = zeros(num_data(model))
-    z_initialize!(z, model, traj.q[2])
+    z_initialize!(z, model, env, traj.q[2])
     θ_initialize!(θ, model, traj.q[1], traj.q[2], traj.u[1], traj.w[1], model.μ_world, h)
 
     ip = interior_point(z, θ,
-        idx_ineq = inequality_indices(model),
-        idx_soc = soc_indices(model),
+        idx_ineq = inequality_indices(model, env),
+        idx_soc = soc_indices(model, env),
         r! = r!,
         rz! = rz!,
         rθ! = rθ!,
@@ -58,10 +61,10 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
         opts = ip_opts)
 
     # pre-allocate for gradients
-    traj_deriv = contact_derivative_trajectory(ip.δz, H, model)
+    traj_deriv = contact_derivative_trajectory(model, env, ip.δz, H)
 
     Simulator(
-        model,
+        s,
         traj,
         traj_deriv,
         p, uL, uU,
@@ -70,10 +73,12 @@ function simulator(model, q0::SVector, q1::SVector, h::S, H::Int;
         sim_opts)
 end
 
-
 function step!(sim::Simulator, t)
+    # simulation
+    model = sim.s.model
+    env = sim.s.env
+
     # unpack
-    model = sim.model
     q = sim.traj.q
     u = sim.traj.u
     w = sim.traj.w
@@ -93,7 +98,7 @@ function step!(sim::Simulator, t)
         z .+= sim.opts.z_warmstart * rand(ip.num_var)
         sim.ip.opts.κ_init = sim.opts.κ_warmstart
     else
-        z_initialize!(z, model, q[t+1])
+        z_initialize!(z, model, env, q[t+1])
     end
     θ_initialize!(θ, model, q[t], q[t+1], u[t], w[t], model.μ_world, h)
 
@@ -102,7 +107,7 @@ function step!(sim::Simulator, t)
 
     if status
         # parse result
-        q2, γ, b, _ = unpack_z(model, z)
+        q2, γ, b, _ = unpack_z(model, env, z)
         sim.traj.z[t] = z # TODO: maybe not use copy
         sim.traj.θ[t] = θ
         sim.traj.q[t+2] = q2
@@ -137,7 +142,7 @@ function simulate!(sim::Simulator; verbose = false)
     verbose && println("\nSimulation")
 
     # initialize configurations for first step
-    z_initialize!(sim.ip.z, sim.model, sim.traj.q[2])
+    z_initialize!(sim.ip.z, sim.s.model, sim.s.env, sim.traj.q[2])
 
     status = true
 

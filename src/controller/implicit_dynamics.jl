@@ -19,7 +19,7 @@ mutable struct ImplicitTraj{T}
 end
 
 
-function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
+function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 60.0,
 	opts = InteriorPointOptions(
@@ -30,26 +30,29 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 			solver=:empty_solver,
 			max_time=max_time))
 
+	model = s.model
+	env = s.env
+
 	H = ref_traj.H
 
 	nq = model.dim.q
 	nu = model.dim.u
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
-	nz = num_var(model)
+	nz = num_var(model, env)
 	nθ = num_data(model)
 
-	lin = [LinearizedStep(model, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
+	lin = [LinearizedStep(s, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
 
-	ip =  [interior_point(zeros(num_var(model)), zeros(num_data(model)),
-			 idx_ineq = inequality_indices(model),
+	ip =  [interior_point(zeros(num_var(model, env)), zeros(num_data(model)),
+			 idx_ineq = inequality_indices(model, env),
 			 r! = r!,
 			 rz! = rz!,
 			 rθ! = rθ!,
-			 r  = RLin(model, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
-			 rz = RZLin(model, lin[t].rz),
-			 rθ = RθLin(model, lin[t].rθ),
+			 r  = RLin(s, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
+			 rz = RZLin(s, lin[t].rz),
+			 rθ = RθLin(s, lin[t].rθ),
 			 v_pr = view(zeros(1,1), 1,1),
 			 v_du = view(zeros(1,1), 1,1),
 			 opts = opts) for t = 1:H]
@@ -69,7 +72,7 @@ function ImplicitTraj(ref_traj::ContactTraj, model::ContactDynamicsModel;
 end
 
 function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
-	model::ContactDynamicsModel, alt::Vector; κ = ref_traj.κ[1])
+	s::Simulation, alt::Vector; κ = ref_traj.κ[1])
 
 	H = ref_traj.H
 	for t = 1:H
@@ -86,12 +89,15 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 		im_traj.ip[t].r.alt = alt
 		im_traj.ip[t].r̄.alt = alt
 	end
-	update!(im_traj.lin[H], model, ref_traj.z[H], ref_traj.θ[H])
+
+	update!(im_traj.lin[H], s, ref_traj.z[H], ref_traj.θ[H])
+
 	z0  = im_traj.lin[H].z
 	θ0  = im_traj.lin[H].θ
 	r0  = im_traj.lin[H].r
 	rz0 = im_traj.lin[H].rz
 	rθ0 = im_traj.lin[H].rθ
+
 	update!(im_traj.ip[H].r,  z0, θ0, r0, rz0, rθ0)
 	update!(im_traj.ip[H].r̄,  z0, θ0, r0, rz0, rθ0)
 	update!(im_traj.ip[H].rz, rz0)
@@ -104,19 +110,23 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 end
 
 """
-	implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
+	implicit_dynamics!(im_traj::ImplicitTraj, model::ContactModel,
 		traj::ContactTraj; κ = traj.κ)
 Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
 linearizedimated since it relies on a linearization about a reference trajectory.
 """
-function implicit_dynamics!(im_traj::ImplicitTraj, model::ContactDynamicsModel,
+function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
 	traj; κ = traj.κ) where {T, D}
+
+	model = s.model
+	env = s.env
 
 	# Threads.@threads for t = 1:traj.H
 	for t = 1:traj.H
 		# initialized solver
-		z_initialize!(im_traj.ip[t].z, model, copy(traj.q[t+2])) #TODO: try alt. schemes
+		z_initialize!(im_traj.ip[t].z, model, env, copy(traj.q[t+2])) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
+
 		# solve
 		status = interior_point!(im_traj.ip[t])
 		!status && (@warn "implicit dynamics failure (t = $t)")

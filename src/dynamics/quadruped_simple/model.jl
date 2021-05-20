@@ -1,4 +1,4 @@
-mutable struct QuadrupedSimple{T} <: ContactDynamicsModel
+mutable struct QuadrupedSimple{T} <: ContactModel
 	dim::Dimensions
 
 	g::T
@@ -18,15 +18,8 @@ mutable struct QuadrupedSimple{T} <: ContactDynamicsModel
 	# fast methods
 	base
 	dyn
-	con
-	res
-	linearized
-
-	spa::SparseStructure
 
 	joint_friction
-
-	env::Environment
 end
 
 # Trunk model
@@ -62,7 +55,7 @@ function M_func(model::QuadrupedSimple, q)
 					   model.mf, model.mf, model.mf])
 end
 
-function ϕ_func(model::QuadrupedSimple, q)
+function ϕ_func(model::QuadrupedSimple, env::Environment, q)
 	k = kinematics(model, q)
 	@SVector [k[3], k[6], k[9], k[12]]
 end
@@ -190,8 +183,5 @@ quadrupedlinear = QuadrupedSimple(Dimensions(nq, nu, nw, nc, nb),
 				g, μ_world, μ_joint,
 				mb, mf, Ix, Iy, Iz, l_torso, w_torso,
 				zeros(nc),
-				BaseMethods(), DynamicsMethods(), ContactMethods(),
-				ResidualMethods(), ResidualMethods(),
-				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
-				environment_3D_flat())
+				BaseMethods(), DynamicsMethods(),
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))

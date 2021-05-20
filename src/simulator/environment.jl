@@ -65,7 +65,7 @@ function rot(a, b)
 	R = Diagonal(@SVector ones(3)) + skew(v) + 1.0 / (1.0 + c) * skew(v) * skew(v)
 end
 
-function rotation(env::Environment{R3,FrictionCone}, q)
+function rotation(env::Environment{R3,<:FrictionCone}, q)
 	# unit surface normal (3D)
 	n = [-1.0 * env.surf_grad(q[1:2]); 1.0]
 	ns = n ./ sqrt(transpose(n) * n)
@@ -76,7 +76,7 @@ function rotation(env::Environment{R3,FrictionCone}, q)
 	rot(ns, nw)
 end
 
-function rotation(env::Environment{R2,FrictionCone}, q)
+function rotation(env::Environment{R2,<:FrictionCone}, q)
 	# unit surface normal (3D)
 	sg = env.surf_grad(q[1:1])[1]
 	n = [-1.0 * sg; 1.0]
@@ -91,11 +91,11 @@ function rotation(env::Environment{R2,FrictionCone}, q)
 	SMatrix{2,2}([cos(ang) -sin(ang); sin(ang) cos(ang)]) # this the rotation from world frame to surface frame
 end
 
-function rotation_3d(env::Environment{R3,FrictionCone}, q)
+function rotation_3d(env::Environment{R3,<:FrictionCone}, q)
 	r = rotation(env, q)
 end
 
-function rotation_3d(env::Environment{R2,FrictionCone}, q)
+function rotation_3d(env::Environment{R2,<:FrictionCone}, q)
 	r = rotation(env, q)
 	r3d = [r[1,1] 0 r[1,2];
 		     0    1   0   ;
@@ -120,8 +120,8 @@ function friction_mapping(env::Environment{R3,NonlinearCone})
                    0.0 1.0])
 end
 
-dim(env::Environment{R2,FrictionCone}) = 2
-dim(env::Environment{R3,FrictionCone}) = 3
+dim(env::Environment{R2,<:FrictionCone}) = 2
+dim(env::Environment{R3,<:FrictionCone}) = 3
 
 friction_dim(env::Environment{R2,LinearizedCone}) = 2
 friction_dim(env::Environment{R3,LinearizedCone}) = 4
@@ -129,7 +129,7 @@ friction_dim(env::Environment{R3,LinearizedCone}) = 4
 friction_dim(env::Environment{R2,NonlinearCone}) = 1
 friction_dim(env::Environment{R3,NonlinearCone}) = 2
 
-function verify_2D_surface(env::Environment{R2,FrictionCone}, x;
+function verify_2D_surface(env::Environment{R2,<:FrictionCone}, x;
 	x_range = range(0.0, stop = 5.0, length = 1000))
 
 	nw = [0.0; 1.0]
@@ -154,7 +154,7 @@ function verify_2D_surface(env::Environment{R2,FrictionCone}, x;
 end
 
 # TODO: verify this method
-function verify_3D_surface(env::Environment{R3,FrictionCone}, xl;
+function verify_3D_surface(env::Environment{R3,<:FrictionCone}, xl;
 	x_range = range(0.0, stop = 5.0, length = 1000))
 
 	nw = [0.0; 0.0; 1.0]

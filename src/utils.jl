@@ -107,3 +107,23 @@ function content_line(c::AbstractVector)
 	end
 	return out
 end
+
+function save_expressions(expr::Dict{Symbol,Expr},
+	path::AbstractString="expr.jld2"; overwrite::Bool=false)
+	path = abspath(path)
+    if isfile(path) && !overwrite
+        error("The output path $path already exists. To overwrite that file, you can pass `overwrite=true` to this function")
+    end
+	@save path expr
+	@info("Saved output as $path")
+	return nothing
+end
+
+function load_expressions(path::AbstractString="expr.jld2")
+	path = abspath(path)
+	if !isfile(path)
+		error("Could not find the input file $path")
+	end
+	@load path expr
+	return expr
+end

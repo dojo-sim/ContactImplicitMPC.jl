@@ -5,20 +5,15 @@ vis = Visualizer()
 open(vis)
 render(vis)
 
-# get hopper model
-model_sim = get_model("quadruped", surf="sinusoidal")
-# model_sim = get_model("quadruped", surf="flat")
+s_sim = get_simulation("quadruped", "sine1_2D_lc", "flat")
+s = get_simulation("quadruped", "flat_2D_lc", "flat")
+model = s.model
+env = s.env
 
-model = get_model("quadruped", surf="flat")
-nq = model.dim.q
-nu = model.dim.u
-nc = model.dim.c
-nb = model.dim.b
-nd = nq + nc + nb
-nr = nq + nu + nc + nb + nd
+ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
+    joinpath(pwd(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+    load_type = :split_traj_alt))
 
-# get trajectory
-ref_traj = get_trajectory("quadruped", "gait2", load_type=:split_traj_alt, model=model)
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
@@ -32,13 +27,13 @@ H_sim = 1000 #4000 #5000
 # barrier parameter
 κ_mpc = 1.0e-4
 
-obj = TrackingObjective(H_mpc, model.dim,
+obj = TrackingObjective(model, env, H_mpc,
     q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
+    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-p = linearized_mpc_policy(ref_traj, model, obj,
+p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
@@ -61,7 +56,7 @@ q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
 w_amp = [+0.02, -0.20]
-sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
+sim = simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     # d = open_loop_disturbances([rand(model.dim.w) .* w_amp for i=1:H_sim]),
     ip_opts = InteriorPointOptions(
@@ -82,7 +77,7 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 # plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
-plot_surface!(vis, model_sim.env, ylims=[0.3, -0.05])
+plot_surface!(vis, s_sim.env, ylims=[0.3, -0.05])
 plot_lines!(vis, model, sim.traj.q[1:25:end])
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
 # anim = visualize_robot!(vis, model, sim.traj, anim=anim)
@@ -102,14 +97,3 @@ for (i,t) in enumerate(t_ghosts)
     name = Symbol("ghost$i")
     set_meshrobot!(vis, mvis_ghosts[i], model, sim.traj.q[t], name=name)
 end
-
-
-
-# filename = "quadruped_not_smooth"
-# MeshCat.convert_frames_to_video(
-#     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/$filename.mp4", overwrite=true)
-#
-# convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)

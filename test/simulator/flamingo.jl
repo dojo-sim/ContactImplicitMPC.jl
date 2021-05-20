@@ -22,7 +22,7 @@ model.μ_world = 0.9
     PD tracking policy
 """
 mutable struct PD2 <: Policy
-	model::ContactDynamicsModel
+	model::ContactModel
     traj::ContactTraj
 	q0::AbstractVector
     idx::Int

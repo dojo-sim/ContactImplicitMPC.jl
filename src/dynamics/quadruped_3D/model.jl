@@ -17,7 +17,7 @@
 		The body frame defined by 3 vectors expressed in the world frame:
 			R = MRP(rot) = [xb | yb | zb]_W
 """
-mutable struct Quadruped3D11{T} <: ContactDynamicsModel
+mutable struct Quadruped3D11{T} <: ContactModel
 	dim::Dimensions
 
 	g::T

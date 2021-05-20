@@ -1,7 +1,3 @@
-include("model.jl")
-include("code_gen.jl")
-include("fast_methods.jl")
-
 ################################################################################
 # Particle
 ################################################################################
@@ -120,9 +116,9 @@ save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
 ################################################################################
-# Quadruped (Linear)
+# Quadruped (Simple)
 ################################################################################
-dir = joinpath(@__DIR__, "quadrupedlinear")
+dir = joinpath(@__DIR__, "quadruped_simple")
 model = deepcopy(quadrupedlinear)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
@@ -141,22 +137,6 @@ instantiate_dynamics!(model, path_dyn)
 ################################################################################
 dir = joinpath(@__DIR__, "biped")
 model = deepcopy(biped)
-path_base = joinpath(dir, "dynamics/base.jld2")
-path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-
-expr_base = generate_base_expressions(model)
-save_expressions(expr_base, path_base, overwrite=true)
-instantiate_base!(model, path_base)
-
-expr_dyn = generate_dynamics_expressions(model)
-save_expressions(expr_dyn, path_dyn, overwrite=true)
-instantiate_dynamics!(model, path_dyn)
-
-################################################################################
-# Biped (5-link)
-################################################################################
-dir = joinpath(@__DIR__, "biped5")
-model = deepcopy(biped5)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 

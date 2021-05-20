@@ -5,7 +5,7 @@ mutable struct TimingGain{T}
 	t_efficient::T
 end
 
-function linearized_solver_timing_gain(model::ContactDynamicsModel)
+function linearized_solver_timing_gain(model::ContactModel)
 	# Sizes
 	nq = model.dim.q
 	nc = model.dim.c

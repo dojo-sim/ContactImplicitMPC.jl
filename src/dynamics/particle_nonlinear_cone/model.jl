@@ -10,7 +10,7 @@
     Discrete Mechanics and Variational Integrators
         pg. 363
 """
-mutable struct Particle{T} <: ContactDynamicsModel
+mutable struct Particle{T} <: ContactModel
     dim::Dimensions
     m::T # mass
     g::T # gravity
@@ -19,15 +19,8 @@ mutable struct Particle{T} <: ContactDynamicsModel
 
 	base::BaseMethods
 	dyn::DynamicsMethods
-	con::ContactMethods
-	res::ResidualMethods
-	linearized::ResidualMethods
-
-	spa::SparseStructure
 
 	joint_friction::SVector
-
-	env::Environment
 end
 
 function lagrangian(model::Particle, q, q̇)
@@ -105,9 +98,7 @@ particle_nonlinear = Particle(Dimensions(3, 3, 3, 1, 2), 1.0, 9.81, 1.0, 0.0,
 	SVector{3}(zeros(3)),
 	environment_3D_flat())
 
-particle_nonlinear_quadratic = Particle(Dimensions(3, 3, 3, 1, 2), 1.0, 9.81, 0.1, 0.0,
-	BaseMethods(), DynamicsMethods(), ContactMethods(),
-	ResidualMethods(), ResidualMethods(),
-	SparseStructure(spzeros(0,0),spzeros(0,0)),
-	SVector{3}(zeros(3)),
-	environment_3D(x -> transpose(x[1:2]) * x[1:2]))
+particle_nonlinear_quadratic = Particle(Dimensions(3, 3, 3, 1, 2),
+	1.0, 9.81, 0.1, 0.0,
+	BaseMethods(), DynamicsMethods(),
+	SVector{3}(zeros(3)))

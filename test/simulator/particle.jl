@@ -1,5 +1,8 @@
 @testset "Simulation: Particle (3D)" begin
-    model = ContactControl.get_model("particle")
+    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
+    model = s.model
+
+    @show model.μ_world
 
     # time
     h = 0.01
@@ -11,7 +14,7 @@
     q1 = @SVector [0.0, 0.0, 1.0]
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
@@ -23,7 +26,7 @@
 
     ## DROP (warmstart)
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -44,7 +47,7 @@
     q0 = q1 - h * v1
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
@@ -57,7 +60,7 @@
 
     ## DROP (warmstart)
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -74,7 +77,8 @@
 end
 
 @testset "Simulation: Particle (3D), Code-Gen Solver" begin
-    model = ContactControl.get_model("particle")
+    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
+    model = s.model
 
     # time
     h = 0.01
@@ -86,7 +90,7 @@ end
     q1 = @SVector [0.0, 0.0, 1.0]
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :mgs_solver),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
@@ -103,7 +107,7 @@ end
     q0 = q1 - h * v1
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :mgs_solver),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
@@ -116,43 +120,44 @@ end
 end
 
 @testset "Simulation: Particle (3D), Approximate Residual Jacobian" begin
-    model = ContactControl.get_model("particle")
+    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
+    model = s.model
 
-    dir = joinpath(pwd(), "src/dynamics/particle")
+    dir_dyn = joinpath(pwd(), "src/dynamics/particle")
+    dir_sim = joinpath(pwd(), "src/simulation/particle")
     model2 = deepcopy(particle)
+    env2 = deepcopy(flat_3D_lc)
+    s2 = Simulation(model2, env2)
 
-    path_base = joinpath(dir, "dynamics/base.jld2")
-    path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-    path_res = joinpath(dir, "quadratic_approx/residual.jld2")
-    path_jac = joinpath(dir, "quadratic_approx/sparse_jacobians.jld2")
-    path_linearized = joinpath(dir, "quadratic_approx/linearized.jld2")
+    path_base = joinpath(dir_dyn, "dynamics/base.jld2")
+    path_dyn = joinpath(dir_dyn, "dynamics/dynamics.jld2")
+    path_res = joinpath(dir_sim, "quadratic_approx/residual.jld2")
+    path_jac = joinpath(dir_sim, "quadratic_approx/sparse_jacobians.jld2")
 
-    instantiate_base!(model2, path_base)
+    instantiate_base!(s2.model, path_base)
 
-    expr_dyn = generate_dynamics_expressions(model2, derivs = true)
+    expr_dyn = generate_dynamics_expressions(s2.model, derivs = true)
     save_expressions(expr_dyn, path_dyn, overwrite=true)
-    instantiate_dynamics!(model2, path_dyn, derivs = true)
+    instantiate_dynamics!(s2.model, path_dyn, derivs = true)
 
-    expr_res, rz_sp, rθ_sp = generate_residual_expressions(model2, jacobians = :approx)
+    expr_res, rz_sp, rθ_sp = generate_residual_expressions(s2.model, s2.env, jacobians = :approx)
     save_expressions(expr_res, path_res, overwrite=true)
     @save path_jac rz_sp rθ_sp
-    instantiate_residual!(model2, path_res, jacobians = :approx)
-    model2.spa.rz_sp = copy(rz_sp)
-    model2.spa.rθ_sp = copy(rθ_sp)
+    instantiate_residual!(s2, path_res, path_jac, jacobians = :approx)
 
-    r0 = zeros(num_var(model))
-    model.res.r!(r0, 5.0 * ones(num_var(model)), 0.1 * ones(num_data(model)), 1.0)
-    model.res.rz!(model.spa.rz_sp, 5.0 * ones(num_var(model)), 0.1 * ones(num_data(model)))
-    model.res.rθ!(model.spa.rθ_sp, ones(num_var(model)), ones(num_data(model)))
+    r0 = zeros(num_var(s.model, s.env))
+    s.res.r!(r0, 5.0 * ones(num_var(s.model, s.env)), 0.1 * ones(num_data(model)), 1.0)
+    s.res.rz!(s.rz, 5.0 * ones(num_var(s.model, s.env)), 0.1 * ones(num_data(model)))
+    s.res.rθ!(s.rθ, ones(num_var(s.model, s.env)), ones(num_data(model)))
 
-    r1 = zeros(num_var(model2))
-    model2.res.r!(r1, 5.0 * ones(num_var(model2)), 0.1 * ones(num_data(model2)), 1.0)
-    model2.res.rz!(model2.spa.rz_sp, 5.0 * ones(num_var(model2)), 0.1 * ones(num_data(model2)))
-    model2.res.rθ!(model2.spa.rθ_sp, ones(num_var(model2)), ones(num_data(model2)))
+    r1 = zeros(num_var(s2.model, s2.env))
+    s2.res.r!(r1, 5.0 * ones(num_var(s2.model, s2.env)), 0.1 * ones(num_data(s2.model)), 1.0)
+    s2.res.rz!(s2.rz, 5.0 * ones(num_var(s2.model, s2.env)), 0.1 * ones(num_data(s2.model)))
+    s2.res.rθ!(s2.rθ, ones(num_var(s2.model, s2.env)), ones(num_data(s2.model)))
 
-    norm(r0 - r1) < 1.0e-8
-    norm(model.spa.rz_sp - model2.spa.rz_sp) < 1.0e-8
-    norm(model.spa.rθ_sp - model2.spa.rθ_sp) < 1.0e-8
+    @test norm(r0 - r1) < 1.0e-8
+    @test norm(s.rz - s2.rz) < 1.0e-8
+    @test norm(s.rθ - s2.rθ) < 1.0e-8
 
     # time
     h = 0.01
@@ -164,7 +169,7 @@ end
     q1 = @SVector [0.0, 0.0, 1.0]
 
     # simulator
-    sim = ContactControl.simulator(model2, q0, q1, h, T,
+    sim = ContactControl.simulator(s2, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
@@ -176,43 +181,26 @@ end
 end
 
 @testset "Simulation: Particle (3D) in Quadratic Bowl" begin
-    model = get_model("particle", surf = "quadratic")
+    s = get_simulation("particle", "quadratic_bowl_3D_lc", "quadratic")
+    s.model.μ_world = 0.1
 
     # time
     h = 0.01
     T = 1000
 
-    ## Forwward Velocity
     # initial conditions
     q1 = @SVector [1.0, 0.5, 2.0]
     q0 = @SVector [1.1, 0.5, 2.0]
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
-        ip_opts = ContactControl.InteriorPointOptions(
-            r_tol = 1.0e-8, κ_tol = 1.0e-8),
-        sim_opts = ContactControl.SimulatorOptions(warmstart = false))
+    sim = ContactControl.simulator(s, q0, q1, h, T,
+    	ip_opts = ContactControl.InteriorPointOptions(
+    		r_tol = 1.0e-6, κ_tol = 1.0e-6,
+    		diff_sol = true),
+    	sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
     # simulate
-    status = ContactControl.simulate!(sim)
-    @test status
-    @test abs(sim.traj.q[end][1]) < 0.05
-    @test abs(sim.traj.q[end][2]) < 0.05
-    @test abs(sim.traj.q[end][3]) < 0.001
-
-    ## Forward Velocity (warmstart)
-    # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
-        ip_opts = ContactControl.InteriorPointOptions(
-            r_tol = 1.0e-8,
-            κ_tol = 1.0e-8),
-        sim_opts = ContactControl.SimulatorOptions(
-            warmstart = true,
-            z_warmstart = 0.001,
-            κ_warmstart = 0.001))
-
-    # simulate
-    status = ContactControl.simulate!(sim)
+    @time status = ContactControl.simulate!(sim)
     @test status
     @test abs(sim.traj.q[end][1]) < 0.05
     @test abs(sim.traj.q[end][2]) < 0.05
@@ -224,7 +212,7 @@ end
     q0 = @SVector [1.0, 0.5, 2.0]
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
@@ -238,7 +226,7 @@ end
 
     ## DROP (warmstart)
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -256,27 +244,27 @@ end
 end
 
 @testset "Simulation: Particle (3D) Quadratic Bowl, Approximate Residual Jacobian" begin
-    dir = joinpath(pwd(), "src/dynamics/particle")
-    model = deepcopy(particle_quadratic)
+    dir_dyn = joinpath(pwd(), "src/dynamics/particle")
+    dir_sim = joinpath(pwd(), "src/simulation/particle")
+    model2 = deepcopy(particle)
+    env2 = deepcopy(quadratic_bowl_3D_lc)
+    s2 = Simulation(model2, env2)
 
-    path_base = joinpath(dir, "dynamics/base.jld2")
-    path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-    path_res = joinpath(dir, "quadratic_approx/residual.jld2")
-    path_jac = joinpath(dir, "quadratic_approx/sparse_jacobians.jld2")
-    path_linearized = joinpath(dir, "quadratic_approx/linearized.jld2")
+    path_base = joinpath(dir_dyn, "dynamics/base.jld2")
+    path_dyn = joinpath(dir_dyn, "dynamics/dynamics.jld2")
+    path_res = joinpath(dir_sim, "quadratic_approx/residual.jld2")
+    path_jac = joinpath(dir_sim, "quadratic_approx/sparse_jacobians.jld2")
 
-    instantiate_base!(model, path_base)
+    instantiate_base!(s2.model, path_base)
 
-    expr_dyn = generate_dynamics_expressions(model, derivs = true)
+    expr_dyn = generate_dynamics_expressions(s2.model, derivs = true)
     save_expressions(expr_dyn, path_dyn, overwrite=true)
-    instantiate_dynamics!(model, path_dyn, derivs = true)
+    instantiate_dynamics!(s2.model, path_dyn, derivs = true)
 
-    expr_res, rz_sp, rθ_sp = generate_residual_expressions(model, jacobians = :approx)
+    expr_res, rz_sp, rθ_sp = generate_residual_expressions(s2.model, s2.env, jacobians = :approx)
     save_expressions(expr_res, path_res, overwrite=true)
     @save path_jac rz_sp rθ_sp
-    instantiate_residual!(model, path_res, jacobians = :approx)
-    model.spa.rz_sp = copy(rz_sp)
-    model.spa.rθ_sp = copy(rθ_sp)
+    instantiate_residual!(s2, path_res, path_jac, jacobians = :approx)
 
     # time
     h = 0.01
@@ -288,7 +276,7 @@ end
     q0 = @SVector [1.1, 0.5, 2.0]
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s2, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
@@ -302,37 +290,8 @@ end
 
 end
 
-model = ContactControl.get_model("particle_2D", surf = "slope")
-
-# time
-h = 0.01
-T = 100
-
-## DROP
-# initial conditions
-q0 = @SVector [-0.01, 1.0]
-q1 = @SVector [0.0, 1.0]
-
-# simulator
-sim = ContactControl.simulator(model, q0, q1, h, T,
-    ip_opts = ContactControl.InteriorPointOptions(
-        r_tol = 1.0e-8, κ_tol = 1.0e-8),
-    sim_opts = ContactControl.SimulatorOptions(warmstart = false))
-
-# simulate
-status = ContactControl.simulate!(sim)
-@test status
-# @test all(isapprox.(sim.traj.q[end], 0.0, atol = 1.0e-6))
-
-include(joinpath(pwd(), "src/dynamics/particle_2D/visuals.jl"))
-
-vis = Visualizer()
-render(vis)
-visualize!(vis, model, sim.traj.q, Δt = h)
-plot_surface!(vis, model.env)
-
 @testset "Simulation: Particle (2D)" begin
-    model = ContactControl.get_model("particle_2D")
+    s = get_simulation("particle_2D", "flat_2D_lc", "flat")
 
     # time
     h = 0.01
@@ -344,7 +303,7 @@ plot_surface!(vis, model.env)
     q1 = @SVector [0.0, 1.0]
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
@@ -356,7 +315,7 @@ plot_surface!(vis, model.env)
 
     ## DROP (warmstart)
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -377,7 +336,7 @@ plot_surface!(vis, model.env)
     q0 = q1 - h * v1
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
@@ -390,7 +349,7 @@ plot_surface!(vis, model.env)
 
     ## DROP (warmstart)
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
             κ_tol = 1.0e-8),
@@ -407,7 +366,8 @@ plot_surface!(vis, model.env)
 end
 
 @testset "Simulation: Particle (2D) On Slope" begin
-    model = get_model("particle_2D", surf = "slope")
+    s = get_simulation("particle_2D", "slope1_2D_lc", "slope")
+    s.model.μ_world = 0.1
 
     # time
     h = 0.01
@@ -419,7 +379,7 @@ end
     q1 = @SVector [0.0, 1.0]
 
     # simulator
-    sim = ContactControl.simulator(model, q0, q1, h, T,
+    sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8, κ_tol = 1.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))

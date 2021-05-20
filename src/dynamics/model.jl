@@ -1,19 +1,18 @@
-abstract type ContactDynamicsModel end
+abstract type ContactModel end
 
 struct Dimensions
     q::Int         # configuration
     u::Int         # control
 	w::Int         # disturbance
 	c::Int         # contact points
-	b::Int         # linear friction components
+	p::Int         # planar -> 2, 3D -> 3
 end
 
-function unpack_θ(model::ContactDynamicsModel, θ)
+function unpack_θ(model::ContactModel, θ)
 	nq = model.dim.q
 	nu = model.dim.u
 	nw = model.dim.w
 	nc = model.dim.c
-	nb = model.dim.b
 
 	# Parameters
 	off = 0
@@ -31,15 +30,15 @@ function unpack_θ(model::ContactDynamicsModel, θ)
 	return q0, q1, u1, w1, μ, h
 end
 
-function pack_θ(model::ContactDynamicsModel, q0, q1, u1, w1, μ, h)
+function pack_θ(model::ContactModel, q0, q1, u1, w1, μ, h)
 	return [q0; q1; u1; w1; μ; h]
 end
 
-function unpack_z(model::ContactDynamicsModel, z)
+function unpack_z(model::ContactModel, env::Environment, z)
 	nq = model.dim.q
 	nu = model.dim.u
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 
 	# system variables
 	off = 0
@@ -60,19 +59,19 @@ function unpack_z(model::ContactDynamicsModel, z)
 	return q2, γ1, b1, ψ1, η1, s1, s2
 end
 
-function pack_z(model::ContactDynamicsModel, q2, γ1, b1, ψ1, η1)
-	s1 = ϕ_func(model, q2)
-	s2 = model.μ_world * γ1 .- E_func(model) * b1
+function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, η1)
+	s1 = ϕ_func(model, env, q2)
+	s2 = model.μ_world * γ1 .- E_func(model, env) * b1
 	return [q2; γ1; b1; ψ1; η1; s1; s2]
 end
 
-function z_initialize!(z, model::ContactDynamicsModel, q1)
+function z_initialize!(z, model::ContactModel, env::Environment, q1)
 	nq = model.dim.q
     z .= 1.0
     z[1:nq] = q1
 end
 
-function θ_initialize!(θ, model::ContactDynamicsModel, q0, q1, u, w, μ, h)
+function θ_initialize!(θ, model::ContactModel, q0, q1, u, w, μ, h)
 	nq = model.dim.q
 	nu = model.dim.u
 	nw = model.dim.w
@@ -90,37 +89,34 @@ function θ_initialize!(θ, model::ContactDynamicsModel, q0, q1, u, w, μ, h)
     θ[off .+ (1:1)] .= h
 end
 
-function num_var(model::ContactDynamicsModel)
-	num_var(model.dim)
+function num_var(model::ContactModel, env::Environment)
+	dim = model.dim
+	nb = dim.c * friction_dim(env)
+	dim.q + dim.c + nb + dim.c + nb + 2 * dim.c
 end
 
-function num_data(model::ContactDynamicsModel)
-	num_data(model.dim)
+function num_data(model::ContactModel)
+	dim = model.dim
+	dim.q + dim.q + dim.u + dim.w + 1 + 1
 end
 
-function num_var(dim::Dimensions)
-    dim.q + dim.c + dim.b + dim.c + dim.b + 2 * dim.c
-end
+inequality_indices(model::ContactModel, env::Environment) = collect(model.dim.q .+ (1:(num_var(model, env) - model.dim.q)))
+soc_indices(model::ContactModel, env::Environment) = Vector{Int}[]
 
-function num_data(dim::Dimensions)
-    dim.q + dim.q + dim.u + dim.w + 1 + 1
-end
-
-inequality_indices(model::ContactDynamicsModel) = collect(model.dim.q .+ (1:(num_var(model) - model.dim.q)))
-soc_indices(model::ContactDynamicsModel) = Vector{Int}[]
-
-function E_func(model::ContactDynamicsModel)
-	SMatrix{model.dim.c, model.dim.b}(kron(Diagonal(ones(model.dim.c)), ones(1, Int(model.dim.b / model.dim.c))))
+function E_func(model::ContactModel, env)
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	SMatrix{nc, nb}(kron(Diagonal(ones(nc)), ones(1, Int(nb / nc))))
 end
 
 # https://github.com/HarvardAgileRoboticsLab/drake/blob/75b260c9eb250d08ffbbf3daa80758e4fe558d7f/drake/matlab/solvers/trajectoryOptimization/VariationalTrajectoryOptimization.m
-function lagrangian_derivatives(model::ContactDynamicsModel, q, v)
+function lagrangian_derivatives(model::ContactModel, q, v)
 	D1L = -1.0 * C_fast(model, q, v)
     D2L = M_fast(model, q) * v
 	return D1L, D2L
 end
 
-function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, λ1, q2)
+function dynamics(model::ContactModel, h, q0, q1, u1, w1, λ1, q2)
 
 	# evalutate at midpoint
 	qm1 = 0.5 * (q0 + q1)
@@ -138,91 +134,100 @@ function dynamics(model::ContactDynamicsModel, h, q0, q1, u1, w1, λ1, q2)
 		- h[1] * model.joint_friction .* vm2)
 end
 
-function contact_forces(model::ContactDynamicsModel, γ1, b1, q2, k)
+function contact_forces(model::ContactModel, env::Environment, γ1, b1, q2, k)
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 	nf = Int(nb / nc)
-	ne = dim(model.env)
-	# k = kinematics(model, q2)
-	λ1 = vcat([transpose(rotation(model.env, k[(i-1) * (ne - 1) .+ (1:ne)])) * [friction_mapping(model.env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
+	ne = dim(env)
+	λ1 = vcat([transpose(rotation(env, k[(i-1) * (ne - 1) .+ (1:ne)])) * [friction_mapping(env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
 end
 
-function velocity_stack(model::ContactDynamicsModel, q1, q2, k, h)
+function velocity_stack(model::ContactModel, env::Environment, q1, q2, k, h)
 	nc = model.dim.c
-	ne = dim(model.env)
-	# k = kinematics(model, q2)
+	ne = dim(env)
 	v = J_fast(model, q2) * (q2 - q1) / h[1]
-	v_surf = [rotation(model.env, k[(i-1) * (ne - 1) .+ (1:ne)]) * v[(i-1) * ne .+ (1:ne)] for i = 1:nc]
+	v_surf = [rotation(env, k[(i-1) * (ne - 1) .+ (1:ne)]) * v[(i-1) * ne .+ (1:ne)] for i = 1:nc]
 	vT_stack = vcat([[v_surf[i][1:ne-1]; -v_surf[i][1:ne-1]] for i = 1:nc]...)
 end
 
-function residual(model::ContactDynamicsModel, z, θ, κ)
+function residual(model::ContactModel, env::Environment, z, θ, κ)
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 	nf = Int(nb / nc)
-	np = dim(model.env)
+	np = dim(env)
 
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
-	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
+	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, env, z)
 
-	ϕ = ϕ_func(model, q2)
+	ϕ = ϕ_func(model, env, q2)
 
 	k = kinematics(model, q2)
-	λ1 = contact_forces(model, γ1, b1, q2, k)
-	vT_stack = velocity_stack(model, q1, q2, k, h)
-	ψ_stack = transpose(E_func(model)) * ψ1
+	λ1 = contact_forces(model, env, γ1, b1, q2, k)
+	vT_stack = velocity_stack(model, env, q1, q2, k, h)
+	ψ_stack = transpose(E_func(model, env)) * ψ1
 
 	[model.dyn.d(h, q0, q1, u1, w1, λ1, q2);
 	 s1 - ϕ;
 	 vT_stack + ψ_stack - η1;
-	 s2 .- (μ[1] * γ1 .- E_func(model) * b1);
+	 s2 .- (μ[1] * γ1 .- E_func(model, env) * b1);
 	 γ1 .* s1 .- κ;
 	 b1 .* η1 .- κ;
 	 ψ1 .* s2 .- κ]
 end
 
-function res_con(model::ContactDynamicsModel, z, θ, κ)
+function res_con(model::ContactModel, env::Environment, z, θ, κ)
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
-	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
+	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, env, z)
 
-	[s1 .- ϕ_func(model, q2);
-	 s2 .- (μ[1] * γ1 .- E_func(model) * b1);
+	[s1 .- ϕ_func(model, env, q2);
+	 s2 .- (μ[1] * γ1 .- E_func(model, env) * b1);
 	 γ1 .* s1 .- κ;
 	 b1 .* η1 .- κ;
 	 ψ1 .* s2 .- κ]
 end
 
-function rz_approx!(model, rz, z, θ)
+function rz_approx!(s, rz, z, θ)
 	rz .= 0.0
 
+	model = s.model
+	env = s.env
+
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
-	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
+	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, env, z)
 
 	k = kinematics(model, q2)
-	λ1 = contact_forces(model, γ1, b1, q2, k)
-	vT = velocity_stack(model, q1, q2, k, h)
+	λ1 = contact_forces(model, env, γ1, b1, q2, k)
+	vT = velocity_stack(model, env, q1, q2, k, h)
+
+	nb = model.dim.c * friction_dim(env)
 
 	# Dynamics
 	rz[1:model.dim.q, 1:model.dim.q] = model.dyn.dq2(h, q0, q1, u1, w1, λ1, q2)
-	rz[1:model.dim.q, 1:(model.dim.q + model.dim.c + model.dim.b)] += model.dyn.dλ1(h, q0, q1, u1, w1, λ1, q2) * model.con.dcf(γ1, b1, q2, k)
+	rz[1:model.dim.q, 1:(model.dim.q + model.dim.c + nb)] += model.dyn.dλ1(h, q0, q1, u1, w1, λ1, q2) * s.con.dcf(γ1, b1, q2, k)
 
 	# Maximum dissipation
-	rz[model.dim.q + model.dim.c .+ (1:model.dim.b), model.dim.q + model.dim.c + model.dim.b .+ (1:model.dim.c + model.dim.b)] = model.con.mdψη(vT, ψ1, η1)
-	rz[model.dim.q + model.dim.c .+ (1:model.dim.b), 1:model.dim.q] += model.con.mdvs(vT, ψ1, η1) * model.con.vsq2(q1, q2, k, h)
+	rz[model.dim.q + model.dim.c .+ (1:nb), model.dim.q + model.dim.c + nb .+ (1:model.dim.c + nb)] = s.con.mdψη(vT, ψ1, η1)
+	rz[model.dim.q + model.dim.c .+ (1:nb), 1:model.dim.q] += s.con.mdvs(vT, ψ1, η1) * s.con.vsq2(q1, q2, k, h)
 
 	# Other constraints
-	model.con.rcz(view(rz, collect([(model.dim.q .+ (1:model.dim.c))..., ((model.dim.q + model.dim.c + model.dim.b + 1):num_var(model))...]), :), z, θ)
+	s.con.rcz(view(rz, collect([(model.dim.q .+ (1:model.dim.c))..., ((model.dim.q + model.dim.c + nb + 1):num_var(model, env))...]), :), z, θ)
 end
 
-function rθ_approx!(model, rθ, z, θ)
+function rθ_approx!(s, rθ, z, θ)
 	rθ .= 0.0
 
+	model = s.model
+	env = s.env
+
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
-	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
+	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, env, z)
 
 	k = kinematics(model, q2)
-	λ1 = contact_forces(model, γ1, b1, q2, k)
-	vT = velocity_stack(model, q1, q2, k, h)
+	λ1 = contact_forces(model, env, γ1, b1, q2, k)
+	vT = velocity_stack(model, env, q1, q2, k, h)
+
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
 
 	# Dynamics
 	idx = collect([(1:2model.dim.q + model.dim.u + model.dim.w)..., num_data(model)])
@@ -230,20 +235,19 @@ function rθ_approx!(model, rθ, z, θ)
 
 	# Maximum dissipation
 	idx = collect([(model.dim.q .+ (1:model.dim.q))..., num_data(model)])
-	rθ[model.dim.q + model.dim.c .+ (1:model.dim.b), idx] = model.con.vsq1h(q1, q2, k, h)
+	rθ[model.dim.q + model.dim.c .+ (1:nb), idx] = s.con.vsq1h(q1, q2, k, h)
 
 	# Other constraints
-	model.con.rcθ(view(rθ, collect([(model.dim.q .+ (1:model.dim.c))..., ((model.dim.q + model.dim.c + model.dim.b + 1):num_var(model))...]), :), z, θ)
+	s.con.rcθ(view(rθ, collect([(model.dim.q .+ (1:model.dim.c))..., ((model.dim.q + model.dim.c + nb + 1):num_var(model, env))...]), :), z, θ)
 end
 
-function linearization_var_index(model::ContactDynamicsModel)
+function linearization_var_index(model::ContactModel, env::Environment)
 	nq = model.dim.q
-	nb = model.dim.b
 	nc = model.dim.c
+	nb = nc * friction_dim(env)
+
 	ny = 2nc + nb
-	# x = [q2]
-	# y1 = [γ1, b1, ψ1]
-	# y2 = [s1, η1, s2]
+
 	off = 0
 	ix  = off .+ Vector(1:nq); off += nq
 	iy1 = off .+ Vector(1:ny); off += ny
@@ -251,10 +255,11 @@ function linearization_var_index(model::ContactDynamicsModel)
 	return ix, iy1, iy2
 end
 
-function linearization_term_index(model::ContactDynamicsModel)
+function linearization_term_index(model::ContactModel, env::Environment)
 	nq = model.dim.q
-	nb = model.dim.b
 	nc = model.dim.c
+	nb = nc * friction_dim(env)
+
 	ny = 2nc + nb
 	# dyn = [dyn]
 	# rst = [s1  - ..., ≡ ialt
@@ -276,10 +281,10 @@ function linearization_term_index(model::ContactDynamicsModel)
 	return idyn, irst, ibil, ialt
 end
 
-function get_bilinear_indices(model::ContactDynamicsModel)
+function get_bilinear_indices(model::ContactModel, env::Environment)
 	nq = model.dim.q
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 
 	terms = [SVector{nc,Int}(nq + nb + 2nc .+ (1:nc)),
 			 SVector{nb,Int}(nq + nb + 3nc .+ (1:nb)),
@@ -400,7 +405,7 @@ function get_gait(name::String, gait::String)
 end
 
 function get_trajectory(name::String, gait::String; model_name = name, load_type::Symbol=:split_traj,
-	model::ContactDynamicsModel=eval(Symbol(model_name)))
+	model::ContactModel=eval(Symbol(model_name)))
 	#TODO: assert model exists
 	path = joinpath(@__DIR__, name)
 	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
@@ -408,7 +413,7 @@ function get_trajectory(name::String, gait::String; model_name = name, load_type
 	return traj
 end
 
-function get_trajectory(model::ContactDynamicsModel, gait_path::String;
+function get_trajectory(model::ContactModel, env::Environment, gait_path::String;
 		load_type::Symbol=:split_traj)
 	#TODO: assert model exists
 
@@ -416,7 +421,7 @@ function get_trajectory(model::ContactDynamicsModel, gait_path::String;
 	nu = model.dim.u
 	nw = model.dim.w
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 	res = JLD2.jldopen(gait_path)
 
 	if load_type == :split_traj
@@ -427,24 +432,24 @@ function get_trajectory(model::ContactDynamicsModel, gait_path::String;
 
 		T = length(u)
 
-		traj = contact_trajectory(T, h, model)
+		traj = contact_trajectory(T, h, model, env)
 		traj.q .= deepcopy(q)
 		traj.u .= deepcopy(u)
 		traj.γ .= deepcopy(γ)
 		traj.b .= deepcopy(b)
-		traj.z .= [pack_z(model, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
+		traj.z .= [pack_z(model, env, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
 		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), model.μ_world, h) for t = 1:T]
 	elseif load_type == :split_traj_alt
 		q, u, γ, b, ψ, η, μ, h = res["qm"], res["um"], res["γm"], res["bm"], res["ψm"], res["ηm"], res["μm"], res["hm"]
 
 		T = length(u)
 
-		traj = contact_trajectory(T, h, model)
+		traj = contact_trajectory(model, env, T, h)
 		traj.q .= deepcopy(q)
 		traj.u .= deepcopy(u)
 		traj.γ .= deepcopy(γ)
 		traj.b .= deepcopy(b)
-		traj.z .= [pack_z(model, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
+		traj.z .= [pack_z(model, env, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
 		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), μ, h) for t = 1:T]
 	elseif load_type == :joint_traj
 		traj = res["traj"]
@@ -453,7 +458,7 @@ function get_trajectory(model::ContactDynamicsModel, gait_path::String;
 	return traj
 end
 
-function model_name(model::ContactDynamicsModel)
+function model_name(model::ContactModel)
     name = Symbol(string(typeof(model).name)[10:end-1])
     return name
 end

@@ -1,15 +1,17 @@
 @testset "Newton: copy_traj!" begin
 	# test copy_traj!
-	model = ContactControl.get_model("quadruped")
+	s = get_simulation("quadruped", "flat_2D_lc", "flat")
+	model = s.model
+	env = s.env
+
 	H = 59
 	h = 0.1
 	nq = model.dim.q
 
-	traj0 = ContactControl.contact_trajectory(H, h, model)
-	traj1 = ContactControl.contact_trajectory(H, h, model)
+	traj0 = ContactControl.contact_trajectory(model, env, H, h)
+	traj1 = ContactControl.contact_trajectory(model, env, H, h)
 	traj1.q[1] .+= 10.0
 
-	traj1.q
 	ContactControl.copy_traj!(traj0, traj1, 1)
 
 	@test traj0.q[1] == 10.0 * ones(nq)
@@ -19,18 +21,21 @@
 end
 
 @testset "Newton: Residual and Jacobian" begin
-	model = ContactControl.get_model("quadruped")
+	s = get_simulation("quadruped", "flat_2D_lc", "flat")
+	model = s.model
+	env = s.env
+
 	H = 2
 	h = 0.1
 	nq = model.dim.q
 	nu = model.dim.u
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
 	nr = nq + nu + nc + nb + nd
 
 	# Test Residual
-	r0 = ContactControl.NewtonResidual(H, model.dim)
+	r0 = ContactControl.NewtonResidual(model, env, H)
 	@test length(r0.r) == H * nr
 
 	# Test views
@@ -47,7 +52,7 @@ end
 	@test all(r0.b1[1] .== -1.0)
 
 	# Test Jacobian
-	j0 = ContactControl.NewtonJacobian(H, model.dim)
+	j0 = ContactControl.NewtonJacobian(model, env, H)
 	@test size(j0.R) == (H * nr, H * nr)
 
 	# Test views
@@ -65,10 +70,17 @@ end
 end
 
 @testset "Newton: jacobian!" begin
-	model = ContactControl.get_model("quadruped")
-	κ = 1.0e-4
+	s = get_simulation("quadruped", "flat_2D_lc", "flat")
+	model = s.model
+	env = s.env
+	s.model.μ_world = 0.5
 
-	ref_traj = get_trajectory("quadruped", "gait2", load_type = :split_traj_alt)
+	ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
+		joinpath(pwd(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+		load_type = :split_traj_alt))
+	ContactControl.update_friction_coefficient!(ref_traj, s.model, s.env)
+
+	κ = 1.0e-4
 	ref_traj.κ .= κ
 	H = ref_traj.H
 	h = 0.1
@@ -76,18 +88,19 @@ end
 	nq = model.dim.q
 	nu = model.dim.u
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
 	nr = nq + nu + nc + nb + nd
 
 	# Test Jacobian!
-	obj = TrackingObjective(H, model.dim,
+	obj = TrackingObjective(s.model, s.env, H,
 	    q = [Diagonal(1.0 * ones(nq)) for t = 1:H],
 	    u = [Diagonal(1.0e-1 * ones(nu)) for t = 1:H],
 	    γ = [Diagonal(1.0e-2 * ones(nc)) for t = 1:H],
 	    b = [Diagonal(1.0e-3 * ones(nb)) for t = 1:H])
-	im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
-	core = ContactControl.Newton(H, h, model, ref_traj, im_traj0, obj = obj)
+
+	im_traj0 = ContactControl.ImplicitTraj(ref_traj, s)
+	core = ContactControl.Newton(s, H, h, ref_traj, im_traj0, obj = obj)
 	ContactControl.initialize_jacobian!(core.jac, obj, ref_traj.H)
 	ContactControl.update_jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
 
@@ -121,9 +134,17 @@ end
 end
 
 @testset "Newton: residual!" begin
-	model = ContactControl.get_model("quadruped")
+	s = get_simulation("quadruped", "flat_2D_lc", "flat")
+	model = s.model
+	env = s.env
+	s.model.μ_world = 0.5
+
+	ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
+		joinpath(pwd(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+		load_type = :split_traj_alt))
+	ContactControl.update_friction_coefficient!(ref_traj, s.model, s.env)
+
 	κ = 1.0e-4
-	ref_traj = get_trajectory("quadruped", "gait2", load_type = :split_traj_alt)
 	ref_traj.κ .= κ
 	H = ref_traj.H
 	h = 0.1
@@ -131,19 +152,20 @@ end
 	nq = model.dim.q
 	nu = model.dim.u
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
 	nr = nq + nu + nc + nb + nd
 
 	# Test Jacobian!
-	obj = TrackingObjective(H, model.dim,
+	obj = TrackingObjective(model, env, H,
 	    q = [Diagonal(1.0 * ones(nq)) for t = 1:H],
 	    u = [Diagonal(1.0 * ones(nu)) for t = 1:H],
 	    γ = [Diagonal(1.0e-6 * ones(nc)) for t = 1:H],
 	    b = [Diagonal(1.0e-6 * ones(nb)) for t = 1:H])
-	im_traj0 = ContactControl.ImplicitTraj(ref_traj, model)
-	core = ContactControl.Newton(H, h, model, ref_traj, im_traj0, obj = obj)
-	ContactControl.implicit_dynamics!(im_traj0, model, ref_traj)
+
+	im_traj0 = ContactControl.ImplicitTraj(ref_traj, s)
+	core = ContactControl.Newton(s, H, h, ref_traj, im_traj0, obj = obj)
+	ContactControl.implicit_dynamics!(im_traj0, s, ref_traj)
 
 	# Offset the trajectory and the dual variables to get a residual
 	traj1 = deepcopy(ref_traj)
@@ -161,7 +183,7 @@ end
 	    traj1.q[t] .+= 0.1
 	end
 
-	ContactControl.residual!(core.res, model, core, core.ν, im_traj0, traj1, ref_traj)
+	ContactControl.residual!(core.res, core, core.ν, im_traj0, traj1, ref_traj)
 
 	@test norm(core.Δq[1] .- 0.1, Inf) < 1.0e-8
 	@test norm(core.Δu[1] .- 0.1, Inf) < 1.0e-8
