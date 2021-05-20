@@ -101,7 +101,7 @@ nw = 2
 nc = 1
 nb = 2
 
-hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
+hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),

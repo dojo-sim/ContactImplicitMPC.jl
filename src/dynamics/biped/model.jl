@@ -49,8 +49,6 @@ mutable struct Biped{T} <: ContactModel
 	m_foot2::T
 	J_foot2::T
 
-	alt
-
 	# fast methods
 	base
 	dyn
@@ -486,7 +484,7 @@ J_calf = 0.00398
 J_foot = 0.4 * J_calf # 1.0 / 12.0 * m_foot * (l_foot + d_foot)^2.0
 
 
-biped = Biped(Dimensions(nq, nu, nw, nc, nb),
+biped = Biped(Dimensions(nq, nu, nw, nc),
 			  g, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
@@ -495,6 +493,5 @@ biped = Biped(Dimensions(nq, nu, nw, nc, nb),
 			  l_thigh, d_thigh, m_thigh, J_thigh,
 			  l_calf, d_calf, m_calf, J_calf,
 			  l_foot, d_foot, m_foot, J_foot,
-			  zeros(nc),
 			  BaseMethods(), DynamicsMethods(),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]))

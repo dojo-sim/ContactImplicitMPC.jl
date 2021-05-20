@@ -1,6 +1,8 @@
 Manifest.toml
 /src/simulation/hopper_2D/piecewise/
 /src/simulation/hopper_2D/sinusoidal/
+/src/simulation/hopper_2D/stairs/
+/src/simulation/hopper_2D/parkour/
 /src/simulation/hopper_3D/sinusoidal/
 /src/simulation/biped/sinusoidal/
 /src/simulation/quadruped/piecewise/
@@ -8,4 +10,4 @@ Manifest.toml
 /src/simulation/flamingo/sinusoidal/
 /src/simulation/flamingo/smooth_slope/
 /src/simulation/flamingo/piecewise/
-/src/simulation/flamingo/simulations/
+/src/simulation/flamingo/slope/

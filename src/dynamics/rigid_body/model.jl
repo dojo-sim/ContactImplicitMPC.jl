@@ -147,7 +147,8 @@ function G_func(x)
 end
 
 # Model (flat surface)
-model = RigidBody(Dimensions(7, 6, 3, 1, 4), 1.0, [1.0, 1.0, 1.0], 0.0 * 9.81, 0.5, 0.25,
+model = RigidBody(Dimensions(7, 6, 3, 1),
+	1.0, [1.0, 1.0, 1.0], 0.0 * 9.81, 0.5, 0.25,
 	BaseMethods(), DynamicsMethods(),
 	SVector{6}(zeros(6)))
 

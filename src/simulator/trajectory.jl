@@ -210,3 +210,57 @@ function update_friction_coefficient!(traj::ContactTraj, model::ContactModel, en
 	end
 	nothing
 end
+
+function get_trajectory(name::String, gait::String; model_name = name, load_type::Symbol=:split_traj,
+	model::ContactModel=eval(Symbol(model_name)))
+	#TODO: assert model exists
+	path = joinpath(@__DIR__, name)
+	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
+	traj = get_trajectory(model, gait_path; load_type=load_type)
+	return traj
+end
+
+function get_trajectory(model::ContactModel, env::Environment, gait_path::String;
+		load_type::Symbol=:split_traj)
+	#TODO: assert model exists
+
+	nq = model.dim.q
+	nu = model.dim.u
+	nw = model.dim.w
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	res = JLD2.jldopen(gait_path)
+
+	if load_type == :split_traj
+		q, u, γ, b, h = res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
+		ū = res["ū"]
+		ψ = [ut[nu + nc + nb .+ (1:nc)] for ut in ū]
+		η = [ut[nu + nc + nb + nc .+ (1:nb)] for ut in ū]
+
+		T = length(u)
+
+		traj = contact_trajectory(T, h, model, env)
+		traj.q .= deepcopy(q)
+		traj.u .= deepcopy(u)
+		traj.γ .= deepcopy(γ)
+		traj.b .= deepcopy(b)
+		traj.z .= [pack_z(model, env, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
+		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), model.μ_world, h) for t = 1:T]
+	elseif load_type == :split_traj_alt
+		q, u, γ, b, ψ, η, μ, h = res["qm"], res["um"], res["γm"], res["bm"], res["ψm"], res["ηm"], res["μm"], res["hm"]
+
+		T = length(u)
+
+		traj = contact_trajectory(model, env, T, h)
+		traj.q .= deepcopy(q)
+		traj.u .= deepcopy(u)
+		traj.γ .= deepcopy(γ)
+		traj.b .= deepcopy(b)
+		traj.z .= [pack_z(model, env, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
+		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), μ, h) for t = 1:T]
+	elseif load_type == :joint_traj
+		traj = res["traj"]
+	end
+
+	return traj
+end

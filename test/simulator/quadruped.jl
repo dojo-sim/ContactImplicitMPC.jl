@@ -31,6 +31,6 @@
 
     # simulate
     @test status = ContactControl.simulate!(sim, verbose = false)
-    @show sim.traj.q[end][1:3]
+    # @show sim.traj.q[end][1:3]
     @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 0.025
 end

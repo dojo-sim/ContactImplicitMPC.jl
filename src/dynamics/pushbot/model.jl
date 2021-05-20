@@ -127,7 +127,7 @@ nc = 2
 nf = 2
 nb = nc * nf
 
-pushbot = PushBot(Dimensions(nq, nu, nw, nc, nb),
+pushbot = PushBot(Dimensions(nq, nu, nw, nc),
 			   mb, ma, l,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),

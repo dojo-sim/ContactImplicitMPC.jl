@@ -49,8 +49,6 @@ mutable struct Flamingo{T} <: ContactModel
 	m_foot2::T
 	J_foot2::T
 
-	alt
-
 	# fast methods
 	base
 	dyn
@@ -484,7 +482,7 @@ J_thigh = 0.01256
 J_calf = 0.00952
 J_foot = 0.0015
 
-flamingo = Flamingo(Dimensions(nq, nu, nw, nc, nb),
+flamingo = Flamingo(Dimensions(nq, nu, nw, nc),
 			  g, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
@@ -493,6 +491,5 @@ flamingo = Flamingo(Dimensions(nq, nu, nw, nc, nb),
 			  l_thigh, d_thigh, m_thigh, J_thigh,
 			  l_calf, d_calf, m_calf, J_calf,
 			  l_foot, d_foot, m_foot, J_foot,
-			  zeros(nc),
 			  BaseMethods(), DynamicsMethods(),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]))

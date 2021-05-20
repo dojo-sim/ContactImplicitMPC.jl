@@ -95,7 +95,8 @@ function step!(sim::Simulator, t)
 
     # initialize
     if sim.opts.warmstart
-        z .+= sim.opts.z_warmstart * rand(ip.num_var)
+        # z .+= sim.opts.z_warmstart * rand(ip.num_var)
+        z_warmstart!(z, model, env, q[t+1], sim.opts.z_warmstart, ip.idx_ineq)
         sim.ip.opts.κ_init = sim.opts.κ_warmstart
     else
         z_initialize!(z, model, env, q[t+1])

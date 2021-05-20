@@ -110,7 +110,7 @@ ml = 0.3  # leg mass
 Jb = 0.75 # body inertia
 Jl = 0.075 # leg inertia
 
-hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
+hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc),
 			mb, ml, Jb, Jl,
 			μ_world, μ_joint, g,
 			:MRP,

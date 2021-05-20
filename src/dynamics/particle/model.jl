@@ -95,6 +95,6 @@ function velocity_stack(model::Particle, q1, q2, k, h)
 end
 
 # Model (flat surface)
-particle = Particle(Dimensions(3, 3, 3, 1, 4), 1.0, 9.81, 1.0, 0.0,
+particle = Particle(Dimensions(3, 3, 3, 1), 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(),
 	SVector{3}(zeros(3)))

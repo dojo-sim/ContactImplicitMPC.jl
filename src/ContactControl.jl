@@ -44,6 +44,7 @@ include("simulator/environment.jl")
 include("dynamics/model.jl")
 
 # Simulator
+include("simulation/contact_methods.jl")
 include("simulation/simulation.jl")
 include("simulator/trajectory.jl")
 
@@ -80,6 +81,7 @@ include("simulation/environments/slope.jl")
 include("simulation/environments/sinusoidal.jl")
 include("simulation/environments/stairs.jl")
 
+include("simulation/residual_approx.jl")
 include("simulation/code_gen_simulation.jl")
 
 # Controller

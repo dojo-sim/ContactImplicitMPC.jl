@@ -1,4 +1,4 @@
-###############################################################################
+################################################################################
 # Particle (flat)
 ################################################################################
 dir_model = joinpath(pwd(), "src/dynamics/particle")
@@ -19,6 +19,28 @@ expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(sim, path_res, path_jac)
+
+################################################################################
+# Particle (flat + nonlinear cone)
+################################################################################
+dir_model = joinpath(pwd(), "src/dynamics/particle")
+dir_sim   = joinpath(pwd(), "src/simulation/particle")
+model = deepcopy(particle)
+env = deepcopy(flat_3D_nc)
+s = Simulation(model, env)
+
+path_base = joinpath(dir_model, "dynamics/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+path_res = joinpath(dir_sim, "flat_nc/residual.jld2")
+path_jac = joinpath(dir_sim, "flat_nc/jacobians.jld2")
+
+instantiate_base!(s.model, path_base)
+instantiate_dynamics!(s.model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(s.model, s.env)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(s, path_res, path_jac)
 
 ################################################################################
 # Particle (quadratic)

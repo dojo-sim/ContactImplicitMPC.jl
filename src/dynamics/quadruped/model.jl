@@ -59,8 +59,6 @@ mutable struct Quadruped{T} <: ContactModel
     m_calf4::T
     J_calf4::T
 
-	alt
-
 	# fast methods
 	base
 	dyn
@@ -557,7 +555,7 @@ J_payload = 0.05
 # m_payload = 5.0
 # J_payload = 0.05
 
-quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+quadruped = Quadruped(Dimensions(nq, nu, nw, nc),
 				g, μ_world, μ_joint,
 				l_torso, d_torso, m_torso, J_torso,
 				l_thigh, d_thigh, m_thigh, J_thigh,
@@ -568,11 +566,10 @@ quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				l_leg, d_leg, m_leg, J_leg,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
-				zeros(nc),
 				BaseMethods(), DynamicsMethods(),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
-quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc),
 				g, μ_world, μ_joint,
 				l_torso, d_torso,
 				m_torso + m_payload,
@@ -585,6 +582,5 @@ quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				l_leg, d_leg, m_leg, J_leg,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
-				zeros(nc),
 				BaseMethods(), DynamicsMethods(),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))

@@ -1,3 +1,59 @@
+function linearization_var_index(model::ContactModel, env::Environment)
+	nq = model.dim.q
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+
+	ny = 2nc + nb
+
+	off = 0
+	ix  = off .+ Vector(1:nq); off += nq
+	iy1 = off .+ Vector(1:ny); off += ny
+	iy2 = off .+ [Vector(nb .+ (1:nc)); Vector(1:nb); Vector(nb+nc .+ (1:nc))]; off += ny
+	return ix, iy1, iy2
+end
+
+function linearization_term_index(model::ContactModel, env::Environment)
+	nq = model.dim.q
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+
+	ny = 2nc + nb
+	# dyn = [dyn]
+	# rst = [s1  - ..., ≡ ialt
+	#        ... - η1 ,
+	#        s2  - ...,]
+	# bil = [γ1 .* s1 .- κ;
+	#        b1 .* η1 .- κ;
+	#        ψ1 .* s2 .- κ]
+	idyn  = Vector(1:nq)
+	irst1 = Vector(nq .+ (1:nc))
+	irst2 = Vector(nq + nc .+ (1:nb))
+	irst3 = Vector(nq + nc + nb .+ (1:nc))
+	irst  = [irst1; irst2; irst3]
+	ialt  = irst1
+	ibil1 = Vector(nq + nb + 2nc .+ (1:nc))
+	ibil2 = Vector(nq + nb + 3nc .+ (1:nb))
+	ibil3 = Vector(nq + nb + 3nc + nb .+ (1:nc))
+	ibil  = [ibil1; ibil2; ibil3]
+	return idyn, irst, ibil, ialt
+end
+
+function get_bilinear_indices(model::ContactModel, env::Environment)
+	nq = model.dim.q
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+
+	terms = [SVector{nc,Int}(nq + nb + 2nc .+ (1:nc)),
+			 SVector{nb,Int}(nq + nb + 3nc .+ (1:nb)),
+			 SVector{nc,Int}(nq + nb + 3nc + nb .+ (1:nc))]
+
+	vars = [[SVector{nc,Int}(nq .+ (1:nc)),           SVector{nc}(nq + 2nc + 2nb .+ (1:nc))], # γ1, s1
+			[SVector{nb,Int}(nq + nc .+ (1:nb)),      SVector{nb}(nq + 2nc +  nb .+ (1:nb))], # b1, η
+			[SVector{nc,Int}(nq + nc + nb .+ (1:nc)), SVector{nc}(nq + 3nc + 2nb .+ (1:nc))], # ψ, s2
+			]
+	return terms, vars
+end
+
 """
     Structure holding the residual of the linearized residual r. This residual linearization is computed at
     a linearization point z0, θ0.

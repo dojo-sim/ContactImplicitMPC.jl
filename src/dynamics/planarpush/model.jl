@@ -39,8 +39,6 @@ mutable struct PlanarPush{T} <: ContactModel
 	r::T  # radius of object
 	rp::T # radius of pusher
 
-	alt
-
 	base::BaseMethods
 	dyn::DynamicsMethods
 
@@ -245,9 +243,8 @@ r = 0.2
 rp = 0.04
 
 
-planarpush = PlanarPush(Dimensions(nq, nu, nw, nc, nb),
+planarpush = PlanarPush(Dimensions(nq, nu, nw, nc),
 			  μ_world, μ_joint, g,
 			  m, J, mp, r, rp,
-			  zeros(nc),
 			  BaseMethods(), DynamicsMethods(),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]))

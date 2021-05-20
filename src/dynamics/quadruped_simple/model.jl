@@ -13,8 +13,6 @@ mutable struct QuadrupedSimple{T} <: ContactModel
 	l_torso::T
 	w_torso::T
 
-	alt
-
 	# fast methods
 	base
 	dyn
@@ -179,9 +177,8 @@ Iz = 0.242
 l_torso = 0.5 * 0.38 # dimension from com
 w_torso = 0.5 * 0.203 # dimension from com
 
-quadrupedlinear = QuadrupedSimple(Dimensions(nq, nu, nw, nc, nb),
+quadrupedlinear = QuadrupedSimple(Dimensions(nq, nu, nw, nc),
 				g, μ_world, μ_joint,
 				mb, mf, Ix, Iy, Iz, l_torso, w_torso,
-				zeros(nc),
 				BaseMethods(), DynamicsMethods(),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))

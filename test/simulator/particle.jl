@@ -2,8 +2,6 @@
     s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
     model = s.model
 
-    @show model.μ_world
-
     # time
     h = 0.01
     T = 100
@@ -247,6 +245,7 @@ end
     dir_dyn = joinpath(pwd(), "src/dynamics/particle")
     dir_sim = joinpath(pwd(), "src/simulation/particle")
     model2 = deepcopy(particle)
+    model2.μ_world = 0.1
     env2 = deepcopy(quadratic_bowl_3D_lc)
     s2 = Simulation(model2, env2)
 
@@ -389,4 +388,80 @@ end
     @test status
     @test sim.traj.q[end][1] < 0.0
     @test sim.traj.q[end][2] < 0.0
+end
+
+@testset "Simulation: Particle (3D nonlinear cone)" begin
+    s = ContactControl.get_simulation("particle", "flat_3D_nc", "flat_nc")
+    model = s.model
+
+    # time
+    h = 0.01
+    T = 100
+
+    ## DROP
+    # initial conditions
+    q0 = @SVector [0.0, 0.0, 1.0]
+    q1 = @SVector [0.0, 0.0, 1.0]
+
+    # simulator
+    sim = ContactControl.simulator(s, q0, q1, h, T,
+        ip_opts = ContactControl.InteriorPointOptions(
+            r_tol = 1.0e-8, κ_tol = 1.0e-8),
+        sim_opts = ContactControl.SimulatorOptions(warmstart = false))
+
+    # simulate
+    status = ContactControl.simulate!(sim)
+    @test status
+    @test all(isapprox.(sim.traj.q[end], 0.0, atol = 1.0e-6))
+
+    ## DROP (warmstart)
+    # simulator
+    sim = ContactControl.simulator(s, q0, q1, h, T,
+        ip_opts = ContactControl.InteriorPointOptions(
+            r_tol = 1.0e-8,
+            κ_tol = 1.0e-8),
+        sim_opts = ContactControl.SimulatorOptions(
+            warmstart = true,
+            z_warmstart = 0.001,
+            κ_warmstart = 0.001))
+
+    # simulate
+    status = ContactControl.simulate!(sim)
+    @test status
+    @test all(isapprox.(sim.traj.q[end], 0.0, atol = 1.0e-6))
+
+    ## SLIDE
+    # initial conditions
+    v1 = @SVector [1.0, 2.0, 0.0]
+    q1 = @SVector [0.0, 0.0, 1.0]
+    q0 = q1 - h * v1
+
+    # simulator
+    sim = ContactControl.simulator(s, q0, q1, h, T,
+        ip_opts = ContactControl.InteriorPointOptions(
+            r_tol = 1.0e-8, κ_tol = 1.0e-8),
+        sim_opts = ContactControl.SimulatorOptions(warmstart = false))
+
+    # simulate
+    status = ContactControl.simulate!(sim)
+    @test status
+    @test isapprox.(sim.traj.q[end][3], 0.0, atol = 1.0e-6)
+    @test all(isapprox.((sim.traj.q[end] - sim.traj.q[end-1]) ./ h, 0.0, atol = 1.0e-6))
+
+    ## DROP (warmstart)
+    # simulator
+    sim = ContactControl.simulator(s, q0, q1, h, T,
+        ip_opts = ContactControl.InteriorPointOptions(
+            r_tol = 1.0e-8,
+            κ_tol = 1.0e-8),
+        sim_opts = ContactControl.SimulatorOptions(
+            warmstart = true,
+            z_warmstart = 0.001,
+            κ_warmstart = 0.001))
+
+    # simulate
+    status = ContactControl.simulate!(sim)
+    @test status
+    @test isapprox.(sim.traj.q[end][3], 0.0, atol = 1.0e-6)
+    @test all(isapprox.((sim.traj.q[end] - sim.traj.q[end-1]) ./ h, 0.0, atol = 1.0e-6))
 end
