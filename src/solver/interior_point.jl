@@ -183,13 +183,16 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
     for i = 1:max_iter_outer
         elapsed_time >= max_time && break
+        println("1")
         for j = 1:max_iter_inner
             elapsed_time >= max_time && break
             elapsed_time += @elapsed begin
                 # check for converged residual
                 if r_norm < r_tol
+                    println("3")
                     break
                 end
+                println(r_norm)
 
                 # compute residual Jacobian
                 rz!(rz, z, θ)
@@ -210,6 +213,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 iter = 0
                 # while inequality_check(z̄, idx_ineq)
                 while cone_check(z̄, idx_ineq, idx_soc)
+                    println("α = $α")
                     α *= ls_scale
                     z̄ .= z - α * Δ
                     iter += 1
@@ -224,6 +228,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 r̄_norm = norm(r̄, res_norm)
 
                 while r̄_norm >= (1.0 - 0.001 * α) * r_norm
+                    # println("α = $(α)")
                     α *= ls_scale
                     z̄ .= z - α * Δ
 
@@ -245,6 +250,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
         end
 
         if κ[1] <= κ_tol
+            println("SOLVED!")
             # differentiate solution
             diff_sol && differentiate_solution!(ip)
             return true

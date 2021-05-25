@@ -5,8 +5,9 @@ open(vis)
 # Reference trajectory
 model = deepcopy(ContactControl.get_model("quadruped", surf = "flat"))
 model.μ_world = 0.1
-
-ref_traj = deepcopy(ContactControl.get_trajectory("quadruped", "backflip_v1", load_type = :split_traj_alt))
+model = deepcopy(quadruped)
+ref_traj = deepcopy(ContactControl.get_trajectory(model, flat_2D_lc,
+	joinpath(pwd(), "src/dynamics/quadruped/gaits/backflip_v1.jld2"), load_type = :split_traj_alt))
 ContactControl.update_friction_coefficient!(ref_traj, model)
 
 H = ref_traj.H
@@ -37,8 +38,8 @@ status = ContactControl.simulate!(sim, verbose = false)
 
 anim = visualize_robot!(vis, model, ref_traj)
 anim = visualize_robot!(vis, model, sim.traj)
-
-anim = visualize_meshrobot!(vis, model, ref_traj)
+ref_traj.q
+anim = visualize_meshrobot!(vis, model, [[ref_traj.q[1] for t = 1:15]..., ref_traj.q..., [ref_traj.q[end] for t = 1:15]...], h = ref_traj.h)
 anim = visualize_force!(vis, model, ref_traj, anim=anim, h=h_sim)
 
 plot(hcat(ref_traj.γ...)', linetype = :steppost)
@@ -48,3 +49,7 @@ plot(hcat(ref_traj.u...)', linetype = :steppost)
 plot(hcat(ref_traj.q...)', labels = "")
 
 # const ContactControl = Main
+
+settransform!(vis["/Cameras/default"],
+		compose(Translation(0.0, -40.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)

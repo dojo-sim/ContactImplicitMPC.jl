@@ -7,7 +7,8 @@ T = 250
 
 # initial conditions
 q0 = @SVector [0.0, 0.0, 1.0]
-q1 = @SVector [0.075, 0.05, 1.0]
+# q1 = @SVector [0.075, 0.05, 1.0]
+q1 = @SVector [0.0, 0.085, 1.0]
 
 ip_opts = ContactControl.InteriorPointOptions(
 	r_tol = 1.0e-8, κ_tol = 1.0e-8)
