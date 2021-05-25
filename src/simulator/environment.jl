@@ -6,7 +6,7 @@ abstract type R3 <: World end
 # friction cone
 abstract type FrictionCone end
 abstract type LinearizedCone <: FrictionCone end
-abstract type NonlinearCone <:FrictionCone end
+abstract type NonlinearCone <: FrictionCone end
 
 # environment
 struct Environment{W <: World, F <: FrictionCone}

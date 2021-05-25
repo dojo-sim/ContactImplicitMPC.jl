@@ -219,7 +219,7 @@ end
     rz = |Rx  Ry1       Diag(Ry2)| -> Rest of the linearized constraints -> size = ny
          [0   Diag(y2)  Diag(y1) ] -> Bilinear complementarity constraints -> size = ny
           |      |         |
-		  |		 |	   -> 1st set of variables associated with the bilinear constraints [γ1, b1, ψ] -> size = ny
+		  |		 |	       -> 1st set of variables associated with the bilinear constraints [γ1, b1, ψ] -> size = ny
           |      -> 2nd set of variables associated with the bilinear constraints [s1, η, s2] -> size = ny
 		  -> Rest of the variables [q2] -> size = nx
     The constant parts are the ones that remains equals to the blocks in rz0:
@@ -416,8 +416,6 @@ function linear_solve!(Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
     Ry2 = rz.Ry2
     y1 = rz.y1
     y2 = rz.y2
-
-    # @show "WWWW"
 
     u = rdyn
     v = rrst - Ry2 .*rbil ./ y1
