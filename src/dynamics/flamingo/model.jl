@@ -1,4 +1,4 @@
-mutable struct Flamingo{T} <: ContactDynamicsModel
+mutable struct Flamingo{T} <: ContactModel
     dim::Dimensions
 
     g::T
@@ -49,20 +49,11 @@ mutable struct Flamingo{T} <: ContactDynamicsModel
 	m_foot2::T
 	J_foot2::T
 
-	alt
-
 	# fast methods
 	base
 	dyn
-	con
-	res
-	linearized
-
-	spa::SparseStructure
 
 	joint_friction
-
-	env::Environment
 end
 
 function kinematics_1(model::Flamingo, q; body = :torso, mode = :ee)
@@ -394,16 +385,16 @@ function M_func(model::Flamingo, q)
 	return M
 end
 
-function ϕ_func(model::Flamingo, q)
+function ϕ_func(model::Flamingo, env::Environment, q)
 	p_toe_1 = kinematics_3(model, q, body = :foot_1, mode = :toe)
 	p_heel_1 = kinematics_3(model, q, body = :foot_1, mode = :heel)
 	p_toe_2 = kinematics_3(model, q, body = :foot_2, mode = :toe)
 	p_heel_2 = kinematics_3(model, q, body = :foot_2, mode = :heel)
 
-	SVector{4}([p_toe_1[2] - model.env.surf(p_toe_1[1:1]),
-				p_heel_1[2] - model.env.surf(p_heel_1[1:1]),
-				p_toe_2[2] - model.env.surf(p_toe_2[1:1]),
-				p_heel_2[2] - model.env.surf(p_heel_2[1:1])])
+	SVector{4}([p_toe_1[2] - env.surf(p_toe_1[1:1]),
+				p_heel_1[2] - env.surf(p_heel_1[1:1]),
+				p_toe_2[2] - env.surf(p_toe_2[1:1]),
+				p_heel_2[2] - env.surf(p_heel_2[1:1])])
 end
 
 function B_func(model::Flamingo, q)
@@ -491,7 +482,7 @@ J_thigh = 0.01256
 J_calf = 0.00952
 J_foot = 0.0015
 
-flamingo = Flamingo(Dimensions(nq, nu, nw, nc, nb),
+flamingo = Flamingo(Dimensions(nq, nu, nw, nc),
 			  g, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
@@ -500,44 +491,5 @@ flamingo = Flamingo(Dimensions(nq, nu, nw, nc, nb),
 			  l_thigh, d_thigh, m_thigh, J_thigh,
 			  l_calf, d_calf, m_calf, J_calf,
 			  l_foot, d_foot, m_foot, J_foot,
-			  zeros(nc),
-			  BaseMethods(), DynamicsMethods(), ContactMethods(),
-			  ResidualMethods(), ResidualMethods(),
-			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
-			  environment_2D_flat())
-
-flamingo_sinusoidal = Flamingo(Dimensions(nq, nu, nw, nc, nb),
-			  g, μ_world, μ_joint,
-			  l_torso, d_torso, m_torso, J_torso,
-			  l_thigh, d_thigh, m_thigh, J_thigh,
-			  l_calf, d_calf, m_calf, J_calf,
-			  l_foot, d_foot, m_foot, J_foot,
-			  l_thigh, d_thigh, m_thigh, J_thigh,
-			  l_calf, d_calf, m_calf, J_calf,
-			  l_foot, d_foot, m_foot, J_foot,
-			  zeros(nc),
-			  BaseMethods(), DynamicsMethods(), ContactMethods(),
-			  ResidualMethods(), ResidualMethods(),
-			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
-			  environment_2D(x -> 0.03 * (cos(pi * x[1]) - 1.0)),
-			  )
-
-include(joinpath(pwd(), "src/simulator/terrain/smooth_slope.jl"))
-flamingo_smooth_slope = Flamingo(Dimensions(nq, nu, nw, nc, nb),
-			  g, μ_world, μ_joint,
-			  l_torso, d_torso, m_torso, J_torso,
-			  l_thigh, d_thigh, m_thigh, J_thigh,
-			  l_calf, d_calf, m_calf, J_calf,
-			  l_foot, d_foot, m_foot, J_foot,
-			  l_thigh, d_thigh, m_thigh, J_thigh,
-			  l_calf, d_calf, m_calf, J_calf,
-			  l_foot, d_foot, m_foot, J_foot,
-			  zeros(nc),
-			  BaseMethods(), DynamicsMethods(), ContactMethods(),
-			  ResidualMethods(), ResidualMethods(),
-			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
-			  environment_2D(ss),
-			  )
+			  BaseMethods(), DynamicsMethods(),
+			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]))

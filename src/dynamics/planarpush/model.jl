@@ -25,7 +25,7 @@
 #
 #          XXX     XXX
 
-mutable struct PlanarPush{T} <: ContactDynamicsModel
+mutable struct PlanarPush{T} <: ContactModel
     dim::Dimensions
 
 	μ_world::T  # coefficient of friction
@@ -39,19 +39,10 @@ mutable struct PlanarPush{T} <: ContactDynamicsModel
 	r::T  # radius of object
 	rp::T # radius of pusher
 
-	alt
-
 	base::BaseMethods
 	dyn::DynamicsMethods
-	con::ContactMethods
-	res::ResidualMethods
-	linearized::ResidualMethods
-
-	spa::SparseStructure
 
 	joint_friction::SVector
-
-	env::Environment
 end
 
 # Lagrangian
@@ -129,14 +120,14 @@ function M_func(model::PlanarPush, q)
 					   model.mp, model.mp, model.mp,])
 end
 
-function ϕ_func(model::PlanarPush, q)
+function ϕ_func(model::PlanarPush, env::Environment, q)
 	x = kinematics_1(model, q, body=:floor)
 	x1 = kinematics_1(model, q, body=:floor1)
 	x2 = kinematics_1(model, q, body=:floor2)
 	xp = [q[5], q[6], 0.0]
 	Δ = x - xp
-	SVector{3}([q[3] - model.env.surf(x1[1:2]),
-				q[3] - model.env.surf(x2[1:2]),
+	SVector{3}([q[3] - surf(x1[1:2]),
+				q[3] - surf(x2[1:2]),
 				norm(Δ) - (model.r + model.rp),
 				])
 end
@@ -252,12 +243,8 @@ r = 0.2
 rp = 0.04
 
 
-planarpush = PlanarPush(Dimensions(nq, nu, nw, nc, nb),
+planarpush = PlanarPush(Dimensions(nq, nu, nw, nc),
 			  μ_world, μ_joint, g,
 			  m, J, mp, r, rp,
-			  zeros(nc),
-			  BaseMethods(), DynamicsMethods(), ContactMethods(),
-			  ResidualMethods(), ResidualMethods(),
-			  SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]),
-			  environment_3D_flat())
+			  BaseMethods(), DynamicsMethods(),
+			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]))

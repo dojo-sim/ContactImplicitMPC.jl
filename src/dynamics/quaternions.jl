@@ -36,9 +36,9 @@ function attitude_jacobian(q)
 	 s * I + skew(v)]
 end
 
-# eq. 24 http://roboticexplorationlab.org/papers/Variational_Integrator.pdf
+# eq. 16 http://roboticexplorationlab.org/papers/maximal_coordinate_dynamics.pdf
 function ω_finite_difference(q1, q2, h)
-	2.0 * transpose(attitude_jacobian(q1)) * multiply(conjugate(q1), (q2 - q1) ./ h)
+	2.0 * multiply(conjugate(q1), (q2 - q1) ./ h)[2:4]
 end
 
 # https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation#Quaternion-derived_rotation_matrix
@@ -60,4 +60,9 @@ function quaternion_rotation_matrix(q)
 	SMatrix{3,3}([r11 r12 r13;
 	              r21 r22 r23;
 				  r31 r32 r33])
+end
+
+# Cayley map
+function φ(ϕ)
+	1.0 / sqrt(1.0 + norm(ϕ)^2.0) * [1.0; ϕ]
 end

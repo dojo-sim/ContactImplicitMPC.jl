@@ -7,8 +7,11 @@ mutable struct LinearizedStep{T}
 	rθ::AbstractMatrix{T}
 end
 
-function LinearizedStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where T
-	nz = num_var(model)
+function LinearizedStep(s::Simulation, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where T
+	model = s.model
+	env = s.env
+
+	nz = num_var(model, env)
 	nθ = num_data(model)
 
 	z0 = SizedVector{nz,T}(z)
@@ -18,29 +21,34 @@ function LinearizedStep(model::ContactDynamicsModel, z::AbstractVector{T}, θ::A
 	rz0 = zeros(nz, nz)
 	rθ0 = zeros(nz, nθ)
 
-	model.res.r!(r0, z0, θ0, κ0)
-	model.res.rz!(rz0, z0, θ0)
-	model.res.rθ!(rθ0, z0, θ0)
+	s.res.r!(r0, z0, θ0, κ0)
+	s.res.rz!(rz0, z0, θ0)
+	s.res.rθ!(rθ0, z0, θ0)
+
 	return LinearizedStep(z0, θ0, κ0, r0, rz0, rθ0)
 end
 
 """
 	Create LinearizedStep.
 """
-function LinearizedStep(model::ContactDynamicsModel)
-	nz = num_var(model)
+function LinearizedStep(s::Simulation)
+	model = s.model
+	env = s.env
+
+	nz = num_var(model, env)
 	nθ = num_data(model)
 	z0 = zeros(SizedVector{nz})
 	θ0 = zeros(SizedVector{nθ})
 	κ0 = 0.0
-	return LinearizedStep(model, z0, θ0, κ0)
+
+	return LinearizedStep(s, z0, θ0, κ0)
 end
 
-function update!(lin::LinearizedStep, model::ContactDynamicsModel, z, θ)
+function update!(lin::LinearizedStep, s::Simulation, z, θ)
 	lin.z .= z
 	lin.θ .= θ
-	model.res.r!(lin.r, z, θ, lin.κ)
-	model.res.rz!(lin.rz, z, θ)
-	model.res.rθ!(lin.rθ, z, θ)
+	s.res.r!(lin.r, z, θ, lin.κ)
+	s.res.rz!(lin.rz, z, θ)
+	s.res.rθ!(lin.rθ, z, θ)
 	return nothing
 end

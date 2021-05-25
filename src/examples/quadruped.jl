@@ -3,11 +3,14 @@ vis = Visualizer()
 open(vis)
 # render(vis)
 
-# get model
-model = get_model("quadruped")
+s = get_simulation("quadruped", "flat_2D_lc", "flat")
+model = s.model
+env = s.env
 
-# get trajectory
-ref_traj = get_trajectory("quadruped", "gait2", load_type = :split_traj_alt)
+ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
+    joinpath(pwd(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+    load_type = :split_traj_alt))
+
 ref_traj_copy = deepcopy(ref_traj)
 
 # time
@@ -21,13 +24,13 @@ H_sim = 3000 #4000 #3000
 # barrier parameter
 κ_mpc = 1.0e-4
 
-obj = TrackingObjective(H_mpc, model.dim,
+obj = TrackingObjective(model, env, H_mpc,
     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
+    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-p = linearized_mpc_policy(ref_traj, model, obj,
+p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
@@ -43,7 +46,7 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
+sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = ContactControl.InteriorPointOptions(
         r_tol = 1.0e-8,
@@ -57,7 +60,7 @@ time = @elapsed status = ContactControl.simulate!(sim)
 # @profiler status = ContactControl.simulate!(sim)
 
 plot_lines!(vis, model, sim.traj.q[1:25:end])
-plot_surface!(vis, model.env, ylims=[0.3, -0.05])
+plot_surface!(vis, env, ylims=[0.3, -0.05])
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
 # anim = visualize_robot!(vis, model, sim.traj, anim=anim)
 anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim)

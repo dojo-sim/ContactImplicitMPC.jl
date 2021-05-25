@@ -10,7 +10,7 @@
     Discrete Mechanics and Variational Integrators
         pg. 363
 """
-mutable struct Particle2D{T} <: ContactDynamicsModel
+mutable struct Particle2D{T} <: ContactModel
     dim::Dimensions
     m::T # mass
     g::T # gravity
@@ -19,15 +19,8 @@ mutable struct Particle2D{T} <: ContactDynamicsModel
 
 	base::BaseMethods
 	dyn::DynamicsMethods
-	con::ContactMethods
-	res::ResidualMethods
-	linearized::ResidualMethods
-
-	spa::SparseStructure
 
 	joint_friction::SVector
-
-	env::Environment
 end
 
 function lagrangian(model::Particle2D, q, q̇)
@@ -59,8 +52,8 @@ function C_func(model::Particle2D, q, q̇)
 end
 
 # signed distance function
-function ϕ_func(model::Particle2D, q)
-	SVector{1}(q[2] - model.env.surf(q[1:1]))
+function ϕ_func(model::Particle2D, env::Environment, q)
+	SVector{1}(q[2] - env.surf(q[1:1]))
 end
 
 # control Jacobian
@@ -98,17 +91,6 @@ function velocity_stack(model::Particle2D, q1, q2, k, h)
 end
 
 # Model (flat surface)
-particle_2D = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 1.0, 0.0,
-	BaseMethods(), DynamicsMethods(), ContactMethods(),
-	ResidualMethods(), ResidualMethods(),
-	SparseStructure(spzeros(0,0),spzeros(0,0)),
-	SVector{2}(zeros(2)),
-	environment_2D_flat())
-
-# Model (slope)
-particle_2D_slope = Particle2D(Dimensions(2, 2, 2, 1, 2), 1.0, 9.81, 0.1, 0.0,
-	BaseMethods(), DynamicsMethods(), ContactMethods(),
-	ResidualMethods(), ResidualMethods(),
-	SparseStructure(spzeros(0,0),spzeros(0,0)),
-	SVector{2}(zeros(2)),
-	environment_2D(x -> 0.5 * x[1]))
+particle_2D = Particle2D(Dimensions(2, 2, 2, 1), 1.0, 9.81, 1.0, 0.0,
+	BaseMethods(), DynamicsMethods(),
+	SVector{2}(zeros(2)))

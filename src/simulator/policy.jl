@@ -12,7 +12,7 @@ struct NoPolicy{T} <: Policy
     u::Vector{T}
 end
 
-function no_policy(model::ContactDynamicsModel)
+function no_policy(model::ContactModel)
     NoPolicy(zeros(model.dim.u))
 end
 

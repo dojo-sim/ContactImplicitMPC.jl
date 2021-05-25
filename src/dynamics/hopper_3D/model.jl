@@ -4,7 +4,7 @@
 		similar to Raibert hopper, all mass is located at the body
 		s = (px, py, pz, tx, ty, tz, r) = (3d_position, MRP(m1, m2, 0.0), leg_length)
 """
-struct Hopper3D{T} <: ContactDynamicsModel where T
+struct Hopper3D{T} <: ContactModel where T
     dim::Dimensions
 
 	mb::T # mass of body
@@ -20,15 +20,8 @@ struct Hopper3D{T} <: ContactDynamicsModel where T
 
 	base::BaseMethods
 	dyn::DynamicsMethods
-	con::ContactMethods
-	res::ResidualMethods
-	linearized::ResidualMethods
-
-	spa::SparseStructure
 
 	joint_friction::SVector
-
-	env::Environment
 end
 
 lagrangian(model::Hopper3D, q, q̇) = 0.0
@@ -51,8 +44,8 @@ function C_func(model::Hopper3D, q, q̇)
 	@SVector [0.0, 0.0, (model.mb + model.ml) * model.g, 0.0, 0.0, 0.0, 0.0]
 end
 
-function ϕ_func(model::Hopper3D, q)
-	SVector{1}(kinematics(model, q)[3] - model.env.surf(kinematics(model, q)[1:2]))
+function ϕ_func(model::Hopper3D, env::Environment, q)
+	SVector{1}(kinematics(model, q)[3] - env.surf(kinematics(model, q)[1:2]))
 end
 
 function B_func(::Hopper3D, q)
@@ -106,14 +99,6 @@ nc = 1 # number of contact points
 nf = 4 # number of faces for friction cone pyramid
 nb = nc * nf
 
-# # Parameters
-# g = 9.81 # gravity
-# μ = 1.0  # coefficient of friction
-# mb = 1.0 # body mass
-# ml = 0.1  # leg mass
-# Jb = 0.25 # body inertia
-# Jl = 0.025 # leg inertia
-
 # Parameters
 g = 9.81 # gravity
 μ_world = 1.5 # coefficient of friction
@@ -125,35 +110,9 @@ ml = 0.3  # leg mass
 Jb = 0.75 # body inertia
 Jl = 0.075 # leg inertia
 
-
-hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
+hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc),
 			mb, ml, Jb, Jl,
 			μ_world, μ_joint, g,
 			:MRP,
-			BaseMethods(), DynamicsMethods(), ContactMethods(),
-			ResidualMethods(), ResidualMethods(),
-			SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			SVector{7}(zeros(7)),
-			environment_3D_flat())
-
-hopper_3D_sinusoidal = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
-			mb, ml, Jb, Jl,
-			μ_world, μ_joint, g,
-			:MRP,
-			BaseMethods(), DynamicsMethods(), ContactMethods(),
-			ResidualMethods(), ResidualMethods(),
-			SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-			SVector{7}(zeros(7)),
-			environment_3D(x -> 0.075 * sin(2π * x[1])),
-		    )
-
-hopper_3D_euler = Hopper3D(Dimensions(nq, nu, nw, nc, nb),
-		mb, ml, Jb, Jl,
-		μ_world, μ_joint, g,
-		:RotXYX, # Euler angles
-		BaseMethods(), DynamicsMethods(), ContactMethods(),
-		ResidualMethods(), ResidualMethods(),
-		SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-		SVector{7}(zeros(7)),
-		environment_3D(x -> 0.075 * sin(2π * x[1])),
-	    )
+			BaseMethods(), DynamicsMethods(),
+			SVector{7}(zeros(7)))

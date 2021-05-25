@@ -1,4 +1,4 @@
-mutable struct Quadruped{T} <: ContactDynamicsModel
+mutable struct Quadruped{T} <: ContactModel
 	dim::Dimensions
 
 	g::T
@@ -59,20 +59,11 @@ mutable struct Quadruped{T} <: ContactDynamicsModel
     m_calf4::T
     J_calf4::T
 
-	alt
-
 	# fast methods
 	base
 	dyn
-	con
-	res
-	linearized
-
-	spa::SparseStructure
 
 	joint_friction
-
-	env::Environment
 end
 
 # Trunk model
@@ -428,16 +419,16 @@ function M_func(model::Quadruped, q)
 	return M
 end
 
-function ϕ_func(model::Quadruped, q)
+function ϕ_func(model::Quadruped, env::Environment, q)
 	p_calf_1 = kinematics_2(model, q, body = :calf_1, mode = :ee)
 	p_calf_2 = kinematics_2(model, q, body = :calf_2, mode = :ee)
 	p_calf_3 = kinematics_3(model, q, body = :calf_3, mode = :ee)
 	p_calf_4 = kinematics_3(model, q, body = :calf_4, mode = :ee)
 
-	SVector{4}([p_calf_1[2] - model.env.surf(p_calf_1[1:1]);
-				p_calf_2[2] - model.env.surf(p_calf_2[1:1]);
-				p_calf_3[2] - model.env.surf(p_calf_3[1:1]);
-				p_calf_4[2] - model.env.surf(p_calf_4[1:1])])
+	SVector{4}([p_calf_1[2] - env.surf(p_calf_1[1:1]);
+				p_calf_2[2] - env.surf(p_calf_2[1:1]);
+				p_calf_3[2] - env.surf(p_calf_3[1:1]);
+				p_calf_4[2] - env.surf(p_calf_4[1:1])])
 end
 
 function B_func(model::Quadruped, q)
@@ -529,12 +520,11 @@ m_torso = 4.713 + 4 * 0.696
 m_thigh = 1.013
 m_leg = 0.166
 
-J_torso = 0.056579028 + 4 * 0.696 * 0.183^2.0
-J_thigh = 0.005139339
-J_leg = 0.003014022
+J_torso = 0.01683 + 4 * 0.696 * 0.183^2.0
+J_thigh = 0.00552
+J_leg = 0.00299
 
-# l_torso = 0.267
-l_torso = 0.267
+l_torso = 0.183*2
 l_thigh = 0.2
 l_leg = 0.2
 
@@ -544,8 +534,28 @@ d_leg = 0.5 * l_leg - 0.006435
 
 m_payload = 5.0
 J_payload = 0.05
+# Model parameters
+# m_torso = 4.713 + 4 * 0.696
+# m_thigh = 1.013
+# m_leg = 0.166
+#
+# J_torso = 0.056579028 + 4 * 0.696 * 0.183^2.0
+# J_thigh = 0.005139339
+# J_leg = 0.003014022
+#
+# # l_torso = 0.267
+# l_torso = 0.267
+# l_thigh = 0.2
+# l_leg = 0.2
+#
+# d_torso = 0.5 * l_torso + 0.0127
+# d_thigh = 0.5 * l_thigh - 0.00323
+# d_leg = 0.5 * l_leg - 0.006435
+#
+# m_payload = 5.0
+# J_payload = 0.05
 
-quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+quadruped = Quadruped(Dimensions(nq, nu, nw, nc),
 				g, μ_world, μ_joint,
 				l_torso, d_torso, m_torso, J_torso,
 				l_thigh, d_thigh, m_thigh, J_thigh,
@@ -556,14 +566,10 @@ quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				l_leg, d_leg, m_leg, J_leg,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
-				zeros(nc),
-				BaseMethods(), DynamicsMethods(), ContactMethods(),
-				ResidualMethods(), ResidualMethods(),
-				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
-				environment_2D_flat())
+				BaseMethods(), DynamicsMethods(),
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
-quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc, nb),
+quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc),
 				g, μ_world, μ_joint,
 				l_torso, d_torso,
 				m_torso + m_payload,
@@ -576,29 +582,5 @@ quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc, nb),
 				l_leg, d_leg, m_leg, J_leg,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
-				zeros(nc),
-				BaseMethods(), DynamicsMethods(), ContactMethods(),
-				ResidualMethods(), ResidualMethods(),
-				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
-				environment_2D_flat())
-
-quadruped_sinusoidal = Quadruped(Dimensions(nq, nu, nw, nc, nb),
-				g, μ_world, μ_joint,
-				l_torso, d_torso, m_torso, J_torso,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				zeros(nc),
-				BaseMethods(), DynamicsMethods(), ContactMethods(),
-				ResidualMethods(), ResidualMethods(),
-				SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
-				# environment_2D(x -> 0.05*sin.(π*x[1:1])),
-				# environment_2D(x -> 0.025*(cos.(pi*x[1:1]) .- 1.0)),
-				environment_2D(x -> 0.05 * (cos(pi * x[1]) - 1.0)))
+				BaseMethods(), DynamicsMethods(),
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))

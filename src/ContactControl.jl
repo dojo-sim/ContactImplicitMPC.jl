@@ -33,6 +33,7 @@ include("utils.jl")
 include("solver/cones.jl")
 include("solver/interior_point.jl")
 include("solver/lu.jl")
+include("solver/gn.jl") 
 include("solver/ldl.jl")
 include("solver/qr.jl")
 include("solver/schur.jl")
@@ -42,13 +43,16 @@ include("simulator/environment.jl")
 
 # Dynamics
 include("dynamics/model.jl")
-include("dynamics/code_gen.jl")
-include("dynamics/fast_methods.jl")
 
 # Simulator
+include("simulation/contact_methods.jl")
+include("simulation/simulation.jl")
 include("simulator/trajectory.jl")
 
-export ContactDynamicsModel, Dimensions, BaseMethods, DynamicsMethods,
+include("dynamics/code_gen_dynamics.jl")
+include("dynamics/fast_methods_dynamics.jl")
+
+export ContactModel, Dimensions, BaseMethods, DynamicsMethods,
     ResidualMethods, Environment
 export environment_2D, environment_3D, environment_2D_flat,
     environment_3D_flat, get_model
@@ -59,7 +63,7 @@ include("dynamics/particle/model.jl")
 include("dynamics/hopper_2D/model.jl")
 include("dynamics/hopper_3D/model.jl")
 include("dynamics/quadruped/model.jl")
-include("dynamics/quadrupedlinear/model.jl")
+include("dynamics/quadruped_simple/model.jl")
 include("dynamics/biped/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
@@ -69,6 +73,17 @@ include("dynamics/planarpush/model.jl")
 include("simulator/policy.jl")
 include("simulator/disturbances.jl")
 include("simulator/simulator.jl")
+
+# Simulation
+include("simulation/environments/flat.jl")
+include("simulation/environments/piecewise.jl")
+include("simulation/environments/quadratic.jl")
+include("simulation/environments/slope.jl")
+include("simulation/environments/sinusoidal.jl")
+include("simulation/environments/stairs.jl")
+
+include("simulation/residual_approx.jl")
+include("simulation/code_gen_simulation.jl")
 
 # Controller
 include("controller/linearized_step.jl")

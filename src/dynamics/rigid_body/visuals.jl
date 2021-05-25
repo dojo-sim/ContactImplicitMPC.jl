@@ -1,5 +1,5 @@
 # visuals
-function visualize!(vis, p::RigidBody, q; Δt = 0.1)
+function visualize!(vis, p, q; Δt = 0.1)
 	setvisible!(vis["/Background"], true)
 	setprop!(vis["/Background"], "top_color", RGBA(1.0, 1.0, 1.0, 1.0))
 	setprop!(vis["/Background"], "bottom_color", RGBA(1.0, 1.0, 1.0, 1.0))
@@ -39,14 +39,22 @@ function visualize!(vis, p::RigidBody, q; Δt = 0.1)
 
     anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
 
-     for t = 1:length(q)
-    	 MeshCat.atframe(anim, t) do
-    		 settransform!(vis["satellite"],
-    			   compose(Translation((q[t][1:3] + [-0.25; -0.25; -0.25])...),
-    					 LinearMap(UnitQuaternion(q[t][4:7]...))))
-    	 end
-     end
+     # for t = 1:length(q)
+    	#  MeshCat.atframe(anim, t) do
+    	# 	 settransform!(vis["satellite"],
+    	# 		   compose(Translation((q[t][1:3] + [-0.25; -0.25; -0.25])...),
+    	# 				 LinearMap(UnitQuaternion(q[t][4:7]...))))
+    	#  end
+     # end
 
-
-     MeshCat.setanimation!(vis, anim)
+	 for t = 1:length(q)
+		MeshCat.atframe(anim, t) do
+			settransform!(vis["satellite"],
+				  compose(Translation(([-0.0; -0.0; -0.0])...),
+						LinearMap(UnitQuaternion(q[t][1:4]...))))
+		end
+	 end
+	#
+	#
+    MeshCat.setanimation!(vis, anim)
 end

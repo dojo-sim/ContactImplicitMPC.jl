@@ -150,10 +150,10 @@ end
 
 
 """
-	generate_C_func(model::ContactDynamicsModel)
+	generate_C_func(model::ContactModel)
 Generate a fast method for Coriolis and Centrifugal Dynamics terms computation using Symbolics symbolic computing tools.
 """
-function generate_C_func(model::ContactDynamicsModel)
+function generate_C_func(model::ContactModel)
 	# Declare variables
 	@variables q[1:model.dim.q]
 	@variables q̇[1:model.dim.q]
@@ -350,7 +350,7 @@ kin1_expr
 
 
 
-function dynamics_eval(model::ContactDynamicsModel, h::T, q0::Vq_1, q1::Vq, uk::Vu,
+function dynamics_eval(model::ContactModel, h::T, q0::Vq_1, q1::Vq, uk::Vu,
 	γk::Vγ, bk::Vb, q2::Vq) where {T,Vq_1,Vq,Vu,Vγ,Vb,Vq1}
 
 	v = Vector((q2 - q1) / h)

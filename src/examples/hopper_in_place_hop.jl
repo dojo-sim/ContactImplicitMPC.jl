@@ -3,12 +3,12 @@ T = Float64
 vis = Visualizer()
 open(vis)
 
-# qet hopper model
-model = get_model("hopper_2D")
-nq = model.dim.q
+# qet hopper simulation
+s = get_simulation("hopper_2D", "flat_2D_lc", "flat")
+nq = s.model.dim.q
 nu = model.dim.u
 nc = model.dim.c
-nb = model.dim.b
+nb = nc * friction_dim(env)
 nd = nq + nc + nb
 nr = nq + nu + nc + nb + nd
 
@@ -21,14 +21,8 @@ h = 0.01
 # Design open-loop control trajectory
 q0_ref = SVector{nq,T}([0.0, 0.50, 0.0, 0.5])
 q1_ref = SVector{nq,T}([0.0, 0.50, 0.0, 0.5])
-# α = 0.02937 # N=45 h=0.04
-# α = 0.01468 # N=45 h=0.02
+
 α = 0.0077 # N=46 h=0.01
-# u_ref = []
-# push!(u_ref,  [[0.0,  5.0*α*model.g*(model.mb+model.ml)/2] for k=1:6]...);
-# push!(u_ref,  [[0.0, -0.9*α*model.g*(model.mb+model.ml)/2] for k=1:8]...);
-# push!(u_ref,  [[0.0,  0.2*α*model.g*(model.mb+model.ml)/2] for k=1:14]...);
-# push!(u_ref,  [[0.0,  2.1*α*model.g*(model.mb+model.ml)/2] for k=1:H-1-length(u_ref)]...);
 
 u_ref = []
 push!(u_ref,  [[0.0,  5.0*α*model.g*(model.mb+model.ml)/2] for k=1:2*6]...);
@@ -37,23 +31,20 @@ push!(u_ref,  [[0.0,  0.14*α*model.g*(model.mb+model.ml)/2] for k=1:2*15]...);
 push!(u_ref,  [[0.0,  2.19*α*model.g*(model.mb+model.ml)/2] for k=1:H-length(u_ref)]...);
 
 # Simulate
-sim = simulator(model, q0_ref, q1_ref, h, H;
+sim = simulator(s, q0_ref, q1_ref, h, H;
     p = open_loop_policy(u_ref),
-    d = no_disturbances(model),
-    r! = model.res.r!,
-    rz! = model.res.rz!,
-    rθ! = model.res.rθ!,
-    rz = model.spa.rz_sp,
-    rθ = model.spa.rθ_sp,
+    d = no_disturbances(s.model),
     ip_opts = InteriorPointOptions(r_tol=1e-9, κ_tol=2κ),
     sim_opts = SimulatorOptions())
+
 simulate!(sim)
+
 plot(hcat(Vector.(sim.traj.u)...)')
 plot(hcat(Vector.(sim.traj.q)...)')
-visualize_robot!(vis, model, sim.traj.q)
+visualize_robot!(vis, s.model, sim.traj.q)
 
 for t = 1:10
-    @show norm(residual(model, sim.traj.z[t], sim.traj.θ[t], [κ]))
+    @show norm(residual(s.model, s.env, sim.traj.z[t], sim.traj.θ[t], [κ]))
 end
 
 # Check ~perfect loop

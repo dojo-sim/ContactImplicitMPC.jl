@@ -18,23 +18,15 @@ struct ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}
 	ib1::SizedArray{Tuple{nb},Int,1,1,Vector{Int}}
 end
 
-function contact_trajectory(H::Int, h::T, model::ContactDynamicsModel) where {T}
+function contact_trajectory(model::ContactModel, env::Environment, H::Int, h::T) where {T}
 	dim = model.dim
 	nq = dim.q
     nu = dim.u
     nw = dim.w
     nc = dim.c
-    nb = dim.b
-	nz = num_var(dim)
-	nθ = num_data(dim)
-
-	# q = [zeros(SizedVector{nq,T}) for k=1:H+2]
-	# u = [zeros(SizedVector{nu,T}) for k=1:H]
-	# w = [zeros(SizedVector{nw,T}) for k=1:H]
-	# γ = [zeros(SizedVector{nc,T}) for k=1:H]
-	# b = [zeros(SizedVector{nb,T}) for k=1:H]
-	# z = [zeros(SizedVector{nz,T}) for k=1:H]
-	# θ = [zeros(SizedVector{nθ,T}) for k=1:H]
+    nb = nc * friction_dim(env)
+	nz = num_var(model, env)
+	nθ = num_data(model)
 
 	q = [zeros(nq) for k=1:H+2]
 	u = [zeros(nu) for k=1:H]
@@ -79,12 +71,12 @@ struct ContactDerivTraj{S,nq,nu,nc,nb}
 	vbu
 end
 
-function contact_derivative_trajectory(δz::AbstractArray, H::Int, model::ContactDynamicsModel)
+function contact_derivative_trajectory(model::ContactModel, env::Environment, δz::AbstractArray, H::Int)
 	nq = model.dim.q
     nu = model.dim.u
     nw = model.dim.w
     nc = model.dim.c
-    nb = model.dim.b
+    nb = nc * friction_dim(env)
 
 	dq2dq0 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:H]
 	dq2dq1 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:H]
@@ -160,7 +152,7 @@ function update_θ!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,n
 	return nothing
 end
 
-function repeat_ref_traj(traj::ContactTraj, model::ContactDynamicsModel, N::Int;
+function repeat_ref_traj(traj::ContactTraj, model::ContactModel, N::Int;
        idx_shift = (1:0))
 
     shift = (traj.q[end] - traj.q[2])[idx_shift]
@@ -193,7 +185,7 @@ function repeat_ref_traj(traj::ContactTraj, model::ContactDynamicsModel, N::Int;
 		traj.iq0, traj.iq1, traj.iu1, traj.iw1, traj.iq2, traj.iγ1, traj.ib1)
 end
 
-function sub_ref_traj(traj::ContactTraj, model::ContactDynamicsModel, idx)
+function sub_ref_traj(traj::ContactTraj, model::ContactModel, idx)
 
     q = deepcopy(traj.q[collect([[idx..., idx[1][end] + 1, idx[1][end] + 2]]...)])
     u = deepcopy(traj.u[idx])
@@ -209,12 +201,66 @@ function sub_ref_traj(traj::ContactTraj, model::ContactDynamicsModel, idx)
 		traj.iq0, traj.iq1, traj.iu1, traj.iw1, traj.iq2, traj.iγ1, traj.ib1)
 end
 
-function update_friction_coefficient!(traj::ContactTraj, model::ContactDynamicsModel)
+function update_friction_coefficient!(traj::ContactTraj, model::ContactModel, env::Environment)
 	for t = 1:traj.H
-		q2, γ1, b1, ψ1, η1, __ = unpack_z(model, traj.z[t])
+		q2, γ1, b1, ψ1, η1, __ = unpack_z(model, env, traj.z[t])
 		q0, q1, u1, w1, _, h = unpack_θ(model, traj.θ[t])
-		traj.z[t] .= pack_z(model, q2, γ1, b1, ψ1, η1)
+		traj.z[t] .= pack_z(model, env, q2, γ1, b1, ψ1, η1)
 		traj.θ[t] .= pack_θ(model, q0, q1, u1, w1, copy(model.μ_world), h)
 	end
 	nothing
+end
+
+function get_trajectory(name::String, gait::String; model_name = name, load_type::Symbol=:split_traj,
+	model::ContactModel=eval(Symbol(model_name)))
+	#TODO: assert model exists
+	path = joinpath(@__DIR__, name)
+	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
+	traj = get_trajectory(model, gait_path; load_type=load_type)
+	return traj
+end
+
+function get_trajectory(model::ContactModel, env::Environment, gait_path::String;
+		load_type::Symbol=:split_traj)
+	#TODO: assert model exists
+
+	nq = model.dim.q
+	nu = model.dim.u
+	nw = model.dim.w
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	res = JLD2.jldopen(gait_path)
+
+	if load_type == :split_traj
+		q, u, γ, b, h = res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
+		ū = res["ū"]
+		ψ = [ut[nu + nc + nb .+ (1:nc)] for ut in ū]
+		η = [ut[nu + nc + nb + nc .+ (1:nb)] for ut in ū]
+
+		T = length(u)
+
+		traj = contact_trajectory(T, h, model, env)
+		traj.q .= deepcopy(q)
+		traj.u .= deepcopy(u)
+		traj.γ .= deepcopy(γ)
+		traj.b .= deepcopy(b)
+		traj.z .= [pack_z(model, env, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
+		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), model.μ_world, h) for t = 1:T]
+	elseif load_type == :split_traj_alt
+		q, u, γ, b, ψ, η, μ, h = res["qm"], res["um"], res["γm"], res["bm"], res["ψm"], res["ηm"], res["μm"], res["hm"]
+
+		T = length(u)
+
+		traj = contact_trajectory(model, env, T, h)
+		traj.q .= deepcopy(q)
+		traj.u .= deepcopy(u)
+		traj.γ .= deepcopy(γ)
+		traj.b .= deepcopy(b)
+		traj.z .= [pack_z(model, env, q[t+2], γ[t], b[t], ψ[t], η[t]) for t = 1:T]
+		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), μ, h) for t = 1:T]
+	elseif load_type == :joint_traj
+		traj = res["traj"]
+	end
+
+	return traj
 end

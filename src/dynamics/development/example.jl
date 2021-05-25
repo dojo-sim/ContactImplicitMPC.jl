@@ -140,7 +140,7 @@ a = 10
 # rθ_fast!(model, ∇θs, zs, θs, κs)
 #
 #
-# function line_search_eval3!(model::ContactDynamicsModel, out::Vector{SizedArray{Tuple{nz},T,1,1}},
+# function line_search_eval3!(model::ContactModel, out::Vector{SizedArray{Tuple{nz},T,1,1}},
 #     z::SizedVector{nz,T}, δz::SizedVector{nz,T}, θ::SizedVector{nθ,T}, κ::T, N::Int) where {nz,nθ,T}
 #     for k = 1:N
 #         r_fast!(model, out[k], z+1/2^k*δz, θ, κ)
@@ -148,7 +148,7 @@ a = 10
 #     return nothing
 # end
 #
-# function multi_line_search_eval3!(model::ContactDynamicsModel, out::Vector{SizedArray{Tuple{nz},T,1,1}},
+# function multi_line_search_eval3!(model::ContactModel, out::Vector{SizedArray{Tuple{nz},T,1,1}},
 #     z::SizedVector{nz,T}, δz::SizedVector{nz,T}, θ::SizedVector{nθ,T}, κ::T, N::Int) where {nz,nθ,T}
 #     Threads.@threads for k = 1:N
 #         r_fast!(model, out[k], z+1/2^k*δz, θ, κ)

@@ -122,7 +122,7 @@ rθmd[:, idx] = cf_methods.vsq1h(_q1, _q2, _h)
 
 @test norm(model.spa.rθ_sp[model.dim.q .+ (1:model.dim.b), :] - rθmd) < 1.0e-8
 
-# function res_con(model::ContactDynamicsModel, z, θ, κ)
+# function res_con(model::ContactModel, z, θ, κ)
 # 	nc = model.dim.c
 # 	nb = model.dim.b
 # 	nf = Int(nb / nc)

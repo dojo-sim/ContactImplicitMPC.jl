@@ -1,7 +1,7 @@
 """
     PushBot
 """
-mutable struct PushBot{T} <: ContactDynamicsModel
+mutable struct PushBot{T} <: ContactModel
     dim::Dimensions
 
     mb::T # mass
@@ -14,15 +14,8 @@ mutable struct PushBot{T} <: ContactDynamicsModel
 
 	base::BaseMethods
 	dyn::DynamicsMethods
-	con::ContactMethods
-	res::ResidualMethods
-	linearized::ResidualMethods
-
-	spa::SparseStructure
 
 	joint_friction::SVector
-
-	env::Environment
 end
 
 
@@ -88,7 +81,7 @@ function M_func(model::PushBot, q)
 	return model.mb * transpose(Jθ) * Jθ + model.ma * transpose(Jd) * Jd
 end
 
-function ϕ_func(model::PushBot, q)
+function ϕ_func(model::PushBot, env::Environment, q)
 	# walls at x = -0.5, x = 0.5
     SVector{2}([_kinematics(model, q, mode = :d)[1] + 0.5;
 	            0.5 - _kinematics(model, q, mode = :d)[1]])
@@ -106,11 +99,6 @@ function J_func(model::PushBot, q)
     SMatrix{4, 2}([r1 * _jacobian(model, q, mode = :d);
 		           r2 * _jacobian(model, q, mode = :d)])
 end
-
-# function control_switch(model, x, ϵ = 1.0e-6)
-# 	ϕ = ϕ_func(model, x)
-# 	IfElse.ifelse(ϕ[1] > 1.0e-3, IfElse.ifelse(ϕ[2] > 1.0e-3, 0.0, 1.0), 1.0)
-# end
 
 function B_func(model::PushBot, q)
 	@SMatrix [1.0 * model.l 1.0;
@@ -139,11 +127,8 @@ nc = 2
 nf = 2
 nb = nc * nf
 
-pushbot = PushBot(Dimensions(nq, nu, nw, nc, nb),
-					   mb, ma, l,
-					   μ_world, μ_joint, g,
-					   BaseMethods(), DynamicsMethods(), ContactMethods(),
-					   ResidualMethods(), ResidualMethods(),
-					   SparseStructure(spzeros(0, 0), spzeros(0, 0)),
-					   SVector{2}(μ_joint * [1.0; 1.0]),
-					   environment_2D_flat())
+pushbot = PushBot(Dimensions(nq, nu, nw, nc),
+			   mb, ma, l,
+			   μ_world, μ_joint, g,
+			   BaseMethods(), DynamicsMethods(),
+			   SVector{2}(μ_joint * [1.0; 1.0]))

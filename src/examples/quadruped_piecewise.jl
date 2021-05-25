@@ -6,50 +6,6 @@ render(vis)
 
 ## quadruped on piecewise surface
 
-function terrain(x)
-	IfElse.ifelse(x[1] < 1.0, 0.0,
-		IfElse.ifelse(x[1] < 2.0, -0.125 * x[1] + 0.125,
-			IfElse.ifelse(x[1] < 3.0, -0.075 * x[1] + 0.025,
-				IfElse.ifelse(x[1] < 4.0, 0.3 * x[1] - 1.1,
-					0.1))))
-	# IfElse.ifelse(x[1] < 10.0, 0.0, 1.0 * x[1] - 1.0)
-	# [0.0]
-end
-
-function d_terrain(x)
-	IfElse.ifelse(x[1] < 1.0, 0.0,
-		IfElse.ifelse(x[1] < 2.0, -0.125,
-			IfElse.ifelse(x[1] < 3.0, -0.075,
-				IfElse.ifelse(x[1] < 4.0, 0.3,
-					0.0))))
-	# IfElse.ifelse(x[1] < 10.0, 0.0, 1.0)
-	# [0.0]
-end
-
-model_sim = deepcopy(quadruped)
-dir = joinpath(pwd(), "src/dynamics/quadruped")
-model_sim.env = Environment{R2}(terrain, d_terrain)
-
-path_base = joinpath(dir, "dynamics/base.jld2")
-path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-path_res = joinpath(dir, "piecewise/residual.jld2")
-path_jac = joinpath(dir, "piecewise/sparse_jacobians.jld2")
-path_linearized = joinpath(dir, "piecewise/linearized.jld2")
-
-instantiate_base!(model_sim, path_base)
-
-expr_dyn = generate_dynamics_expressions(model_sim, derivs = true)
-save_expressions(expr_dyn, path_dyn, overwrite=true)
-instantiate_dynamics!(model_sim, path_dyn, derivs = true)
-
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(model_sim, jacobians = :approx)
-save_expressions(expr_res, path_res, overwrite=true)
-@save path_jac rz_sp rθ_sp
-instantiate_residual!(model_sim, path_res, jacobians = :approx)
-model_sim.spa.rz_sp = copy(rz_sp)
-model_sim.spa.rθ_sp = copy(rθ_sp)
-##
-
 model = get_model("quadruped", surf="flat")
 nq = model.dim.q
 nu = model.dim.u

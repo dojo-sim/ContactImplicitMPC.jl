@@ -20,6 +20,7 @@ include("solver/schur.jl")
 include("solver/soc.jl")
 
 # Dynamics
+include("dynamics/model.jl")
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
 
@@ -28,9 +29,10 @@ include("simulator/rotations.jl")
 include("simulator/environment.jl")
 include("simulator/particle.jl")
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
-include("simulator/hopper_3D.jl")
+# include("simulator/hopper_3D.jl")
 include("simulator/quadruped.jl")
 # include("simulator/biped.jl") #TODO: improve this test
+# include("simulator/flamingo.jl") #TODO: add this test
 
 # Controller
 include("controller/objective.jl")
@@ -38,4 +40,7 @@ include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
-include("controller/mpc.jl")
+
+# MPC examples
+include("controller/mpc_quadruped.jl")
+include("controller/mpc_flamingo.jl")

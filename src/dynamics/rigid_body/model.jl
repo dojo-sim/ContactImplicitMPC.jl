@@ -1,7 +1,7 @@
 include(joinpath(pwd(), "src/dynamics/quaternions.jl"))
 
 # rigid body with quaternion representation (sphere w/ radius r)
-mutable struct RigidBody{T} <: ContactDynamicsModel
+mutable struct RigidBody{T} <: ContactModel
     dim::Dimensions
     m::T # mass
 	J::Vector{T} # inertia
@@ -11,15 +11,8 @@ mutable struct RigidBody{T} <: ContactDynamicsModel
 
 	base::BaseMethods
 	dyn::DynamicsMethods
-	con::ContactMethods
-	res::ResidualMethods
-	linearized::ResidualMethods
-
-	spa::SparseStructure
 
 	joint_friction::SVector
-
-	env::Environment
 end
 
 function kinematics(model::RigidBody, q)
@@ -63,8 +56,8 @@ function C_func(model::RigidBody, q, q̇)
 end
 
 # signed distance function
-function ϕ_func(model::RigidBody, q)
-	SVector{1}(q[3] - model.r - model.env.surf(q[1:2]))
+function ϕ_func(model::RigidBody, env::Environment, q)
+	SVector{1}(q[3] - model.r - env.surf(q[1:2]))
 end
 
 
@@ -154,12 +147,10 @@ function G_func(x)
 end
 
 # Model (flat surface)
-model = RigidBody(Dimensions(7, 6, 3, 1, 4), 1.0, [1.0, 1.0, 1.0], 0.0 * 9.81, 0.5, 0.25,
-	BaseMethods(), DynamicsMethods(), ContactMethods(),
-	ResidualMethods(), ResidualMethods(),
-	SparseStructure(spzeros(0,0),spzeros(0,0)),
-	SVector{6}(zeros(6)),
-	environment_3D_flat())
+model = RigidBody(Dimensions(7, 6, 3, 1),
+	1.0, [1.0, 1.0, 1.0], 0.0 * 9.81, 0.5, 0.25,
+	BaseMethods(), DynamicsMethods(),
+	SVector{6}(zeros(6)))
 
 # # Symbolics
 # @variables q[1:nq]

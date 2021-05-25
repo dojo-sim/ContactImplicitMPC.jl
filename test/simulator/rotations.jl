@@ -1,7 +1,7 @@
 @testset "Simulator: Rotations" begin
 	# 3D
 	a = cos(0.25 * π)
-	env = ContactControl.Environment{R3}(x -> 1.0 * x[1], x -> [1.0; 0.0])
+	env = ContactControl.Environment{R3,FrictionCone}(x -> 1.0 * x[1], x -> [1.0; 0.0])
 
 	R = rotation(env, [0.0; 0.0])
 	λ = [0.0; 0.0; 1.0]
@@ -13,7 +13,7 @@
 	λ = [0.0; 1.0; 0.0]
 	@test norm(R' * λ - [0.0; 1.0; 0.0]) < 1.0e-8
 
-	env = ContactControl.Environment{R3}(x -> x' * x, x -> 2.0 * x)
+	env = ContactControl.Environment{R3,FrictionCone}(x -> x' * x, x -> 2.0 * x)
 
 	R = rotation(env, [0.0; 0.0])
 	λ = [0.0; 0.0; 1.0]
@@ -42,8 +42,7 @@
 	a = cos(0.25 * π)
 	x1 = [1.0; 0.0]
 	x2 = [0.0; 1.0]
-	env = ContactControl.Environment{R2}(x -> 1.0 * x[1], x -> 1.0)
-	# env = ContactControl.Environment{R2}(x -> 0.0, x -> 0.0)
+	env = ContactControl.Environment{R2,FrictionCone}(x -> 1.0 * x[1], x -> 1.0)
 
 	R = rotation(env, [0.0])
 	λ = [0.0; 1.0]

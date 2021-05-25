@@ -1,27 +1,16 @@
 include(joinpath(@__DIR__, "..", "dynamics", "flamingo", "visuals.jl"))
 T = Float64
 vis = Visualizer()
-render(vis)
+# render(vis)
 open(vis)
 
-# get hopper model
-# model_sim = get_model("flamingo", surf="sinusoidal")
-model_sim = get_model("flamingo", surf="flat")
-model = get_model("flamingo", surf="flat")
-nq = model.dim.q
-nu = model.dim.u
-nc = model.dim.c
-nb = model.dim.b
-nd = nq + nc + nb
-nr = nq + nu + nc + nb + nd
-nz = num_var(model)
-nθ = num_data(model)
+s = get_simulation("flamingo", "flat_2D_lc", "flat")
+model = s.model
+env = s.env
 
-# get trajectory
-# ref_traj = get_trajectory("flamingo", "gait1", load_type=:split_traj_alt, model=model)
-# ref_traj = get_trajectory("flamingo", "gait_forward_36_3", load_type=:split_traj_alt, model=model)
-ref_traj = get_trajectory("flamingo", "gait_forward_36_4", load_type=:split_traj_alt, model=model)
-
+ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
+    joinpath(pwd(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
+    load_type = :split_traj_alt))
 
 H = ref_traj.H
 h = ref_traj.h
@@ -33,14 +22,14 @@ H_sim = 1000#35000
 # barrier parameter
 κ_mpc = 1.0e-4
 
-obj = TrackingVelocityObjective(H_mpc, model.dim,
+obj = TrackingVelocityObjective(model, env, H_mpc,
     v = [Diagonal(1e-3 * [1e0,1,1e4,1,1,1,1,1e4,1e4]) for t = 1:H_mpc],
     q = [Diagonal(1e-1 * [3e2, 1e-6, 3e2, 1, 1, 1, 1, 0.1, 0.1]) for t = 1:H_mpc],
-    u = [Diagonal(3e-1 * [0.1; 0.1; 0.3; 0.3; ones(nu-6); 2; 2]) for t = 1:H_mpc],
+    u = [Diagonal(3e-1 * [0.1; 0.1; 0.3; 0.3; ones(model.dim.u-6); 2; 2]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
+    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-p = linearized_mpc_policy(ref_traj, model, obj,
+p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
@@ -61,7 +50,7 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
+sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
@@ -90,9 +79,9 @@ plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', colo
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 # plot!(plt[3,1], hcat(Vector.([b[1:nb] for b in sim.traj.b]*N_sample)...)', color=:red, linewidth=1.0)
 
-plot_surface!(vis, sim.model.env, xlims=[-1, 7.5], ylims = [-0.5, 0.5])
-anim = visualize_robot!(vis, sim.model, sim.traj, sample=10)
-anim = visualize_force!(vis, model_sim, sim.traj, anim=anim, h=h_sim, sample=10)
+plot_surface!(vis, env, xlims=[-1, 7.5], ylims = [-0.5, 0.5])
+anim = visualize_robot!(vis, model, sim.traj, sample=10)
+anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim, sample=10)
 
 convert_config(model_sim, sim.traj.q[1])
 

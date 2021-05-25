@@ -151,7 +151,7 @@ function animate_disturbance!(vis::Visualizer, anim::MeshCat.Animation, model::P
 	return anim
 end
 
-function visualize_disturbance!(vis::Visualizer, model::ContactDynamicsModel, pθ::AbstractVector;
+function visualize_disturbance!(vis::Visualizer, model::ContactModel, pθ::AbstractVector;
 		h=0.01, α=1.0,
 		sample=max(1, Int(floor(length(pθ) / 100))),
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),

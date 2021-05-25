@@ -89,7 +89,7 @@ function ϕ_func(model::Quadruped, q)
 				p_calf_4[2] - alt[4] - model.env.surf(p_calf_4[1:1])])
 end
 
-function res_con(model::ContactDynamicsModel, z, θ, κ)
+function res_con(model::ContactModel, z, θ, κ)
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 	q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, z)
 
