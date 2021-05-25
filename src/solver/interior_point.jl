@@ -22,6 +22,21 @@ function r_update!(r, r̄)
     r .= r̄
 end
 
+# optimization spaces
+abstract type Space end
+
+# Euclidean
+struct Euclidean <: Space end
+
+function candidate_point!(z̄::Vector{T}, ::Euclidean, z::Vector{T}, Δ::Vector{T}, α::T) where T
+    z̄ .= z - α .* Δ
+end
+
+function update_point!(z::Vector{T}, ::Euclidean, z̄::Vector{T}) where T
+    z .= z̄
+end
+
+Euclidean
 # interior-point solver options
 @with_kw mutable struct InteriorPointOptions{T}
     r_tol::T = 1.0e-5
@@ -54,6 +69,7 @@ function regularize!(v_pr, v_du, reg_pr, reg_du)
 end
 
 mutable struct InteriorPoint{T}
+    s::Space
     methods::ResidualMethods
     z::Vector{T}               # current point
     z̄::Vector{T}               # candidate point
@@ -82,6 +98,7 @@ mutable struct InteriorPoint{T}
 end
 
 function interior_point(z, θ;
+        s = Euclidean(),
         num_var = length(z),
         num_data = length(θ),
         idx_ineq = collect(1:0),
@@ -100,6 +117,7 @@ function interior_point(z, θ;
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
     InteriorPoint(
+        s,
         ResidualMethods(r!, rz!, rθ!),
         z,
         zeros(num_var),
@@ -128,6 +146,9 @@ end
 
 # interior point solver
 function interior_point!(ip::InteriorPoint{T}) where T
+
+    # space
+    s = ip.s
 
     # methods
     r! = ip.methods.r!
@@ -183,16 +204,13 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
     for i = 1:max_iter_outer
         elapsed_time >= max_time && break
-        println("1")
         for j = 1:max_iter_inner
             elapsed_time >= max_time && break
             elapsed_time += @elapsed begin
                 # check for converged residual
                 if r_norm < r_tol
-                    println("3")
                     break
                 end
-                println(r_norm)
 
                 # compute residual Jacobian
                 rz!(rz, z, θ)
@@ -207,15 +225,14 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 α = 1.0
 
                 # candidate point
-                z̄ .= z - α * Δ
+                candidate_point!(z̄, s, z, Δ, α)
 
                 # check cones
                 iter = 0
-                # while inequality_check(z̄, idx_ineq)
                 while cone_check(z̄, idx_ineq, idx_soc)
-                    println("α = $α")
                     α *= ls_scale
-                    z̄ .= z - α * Δ
+                    candidate_point!(z̄, s, z, Δ, α)
+
                     iter += 1
                     if iter > max_ls
                         @error "backtracking line search fail"
@@ -228,9 +245,8 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 r̄_norm = norm(r̄, res_norm)
 
                 while r̄_norm >= (1.0 - 0.001 * α) * r_norm
-                    # println("α = $(α)")
                     α *= ls_scale
-                    z̄ .= z - α * Δ
+                    candidate_point!(z̄, s, z, Δ, α)
 
                     r!(r̄, z̄, θ, κ[1])
                     r̄_norm = norm(r̄, Inf)
@@ -243,14 +259,13 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 end
 
                 # update
-                z .= z̄
+                update_point!(z, s, z̄)
                 r_update!(r, r̄)
                 r_norm = r̄_norm
             end
         end
 
         if κ[1] <= κ_tol
-            println("SOLVED!")
             # differentiate solution
             diff_sol && differentiate_solution!(ip)
             return true
