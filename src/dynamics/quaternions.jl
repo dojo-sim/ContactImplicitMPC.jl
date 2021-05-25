@@ -86,6 +86,6 @@ function midpoint(q0, q1)
 	# Divide delta in two
 	sqψ = sqrt_quat(qψ)
 	# Apply small rotation
-	q_mid = L_multiply(sqψ) * q0
+	qmid = L_multiply(sqψ) * q0
 	return qmid
 end

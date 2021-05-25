@@ -65,7 +65,19 @@ norm(q1R - q1L) < 1e-10
 
 @variables q[1:4]
 sq = sqrt_quat(q)
-expr = build_function(sq, q)[1]
+dsq = Symbolics.jacobian(sq, q)
+expr = build_function(dsq, q)[1]
 fct = eval(expr)
 q_ = rand(4)
 @benchmark fct(q_)
+
+@variables q0[1:4]
+@variables q1[1:4]
+qmid = midpoint(q0, q1)
+dqmid = Symbolics.jacobian(qmid, q0)
+expr = build_function(dqmid, [q0; q1])[1]
+expr = build_function(qmid, [q0; q1])[1]
+fct = eval(expr)
+q0_ = rand(4)
+q1_ = rand(4)
+@benchmark fct([q0_; q1_])
