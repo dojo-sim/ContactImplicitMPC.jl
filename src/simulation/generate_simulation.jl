@@ -560,6 +560,10 @@ model = deepcopy(rigidbody)
 env = deepcopy(quadratic_bowl_3D_nc)
 sim = Simulation(model, env)
 
+function ϕ_func(model::RigidBody, env::Environment, q)
+	SVector{1}(q[3] - q[1]^2.0 - q[2]^2.0 - model.r)
+end
+
 path_base = joinpath(dir_model, "dynamics/base.jld2")
 path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
 path_res = joinpath(dir_sim, "quadratic_bowl_nc/residual.jld2")

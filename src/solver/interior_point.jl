@@ -38,6 +38,11 @@ function update_point!(z::Vector{T}, ::Space, z̄::Vector{T}) where T
     z .= z̄
 end
 
+function mapping!(δz, s::Euclidean, δzs, z) # TODO: make allocation free
+    δz .= δzs
+end
+
+
 # interior-point solver options
 @with_kw mutable struct InteriorPointOptions{T}
     r_tol::T = 1.0e-5
@@ -86,6 +91,7 @@ mutable struct InteriorPoint{T}
     idx_pr::Vector{Int}        # indices for primal variables
     idx_du::Vector{Int}        # indices for dual variables
     δz::Matrix{T}              # solution gradients (this is always dense)
+    δzs::Matrix{T}             # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}               # problem data
     κ::Vector{T}               # barrier parameter
     num_var::Int
@@ -133,6 +139,7 @@ function interior_point(z, θ;
         idx_soc,
         idx_pr,
         idx_du,
+        zeros(length(z), num_data),
         zeros(s.n, num_data),
         θ,
         zeros(1),
@@ -294,18 +301,23 @@ function interior_point!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::Abstrac
 end
 
 function differentiate_solution!(ip::InteriorPoint)
+    s = ip.s
     z = ip.z
     θ = ip.θ
     rz = ip.rz
     rθ = ip.rθ
     δz = ip.δz
+    δzs = ip.δzs
+
     κ = ip.κ
 
     # ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
     ip.methods.rθ!(rθ, z, θ)
 
-    linear_solve!(ip.solver, δz, rz, rθ)
-    @inbounds @views @. ip.δz .*= -1.0
+    linear_solve!(ip.solver, δzs, rz, rθ)
+    @inbounds @views @. δzs .*= -1.0
+    mapping!(δz, s, δzs, z)
+
     nothing
 end
 
