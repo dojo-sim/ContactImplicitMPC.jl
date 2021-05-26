@@ -92,7 +92,7 @@ end
 Generate fast residual methods using Symbolics symbolic computing tools.
 """
 function generate_residual_expressions(model::ContactModel, env::Environment;
-		jacobians = :full, T = Float64)
+		mapping = (a,b,c) -> Diagonal(ones(num_var(model, env))), jacobians = :full, T = Float64)
 
 	nq = model.dim.q
 	nu = model.dim.u
@@ -119,7 +119,13 @@ function generate_residual_expressions(model::ContactModel, env::Environment;
 		expr_contact = generate_contact_expressions(model, env,
 			T = T, jacobians = false)
 
+		m = mapping(model, env, z)
+		m = simplify.(m)
+
 		rz = Symbolics.jacobian(r, z, simplify = true)
+		rz = rz * m
+		rz = simplify.(rz)
+
 		rθ = Symbolics.jacobian(r, θ, simplify = true) # TODO: sparse version
 
 		rz_sp = similar(rz, T)

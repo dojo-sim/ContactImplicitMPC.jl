@@ -66,3 +66,22 @@ end
 function φ(ϕ)
 	1.0 / sqrt(1.0 + norm(ϕ)^2.0) * [1.0; ϕ]
 end
+
+
+struct RnQuaternion <: Space
+	n::Int
+	r_idx
+	Δr_idx
+	quat_idx
+	Δquat_idx
+end
+
+function rn_quaternion_space(dim, r_idx, Δr_idx, quat_idx, Δquat_idx)
+	RnQuaternion(dim, r_idx, Δr_idx, quat_idx, Δquat_idx)
+end
+
+function candidate_point!(z̄::Vector{T}, s::RnQuaternion, z::Vector{T}, Δ::Vector{T}, α::T) where T
+    z̄[s.r_idx] .= z[s.r_idx] - α .* Δ[s.Δr_idx]
+	z̄[s.quat_idx] .= L_multiply(z[s.quat_idx]) * φ(-1.0 * α .* Δ[s.Δquat_idx])
+	return nothing
+end

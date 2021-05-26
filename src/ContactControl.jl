@@ -33,7 +33,7 @@ include("utils.jl")
 include("solver/cones.jl")
 include("solver/interior_point.jl")
 include("solver/lu.jl")
-include("solver/gn.jl") 
+include("solver/gn.jl")
 include("solver/ldl.jl")
 include("solver/qr.jl")
 include("solver/schur.jl")
@@ -58,6 +58,8 @@ export environment_2D, environment_3D, environment_2D_flat,
     environment_3D_flat, get_model
 
 # Models
+include("dynamics/quaternions.jl")
+
 include("dynamics/particle_2D/model.jl")
 include("dynamics/particle/model.jl")
 include("dynamics/hopper_2D/model.jl")
@@ -68,6 +70,7 @@ include("dynamics/biped/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/planarpush/model.jl")
+include("dynamics/rigidbody/model.jl")
 
 # Simulator
 include("simulator/policy.jl")

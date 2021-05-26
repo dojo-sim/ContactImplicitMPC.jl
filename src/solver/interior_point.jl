@@ -26,17 +26,18 @@ end
 abstract type Space end
 
 # Euclidean
-struct Euclidean <: Space end
+struct Euclidean <: Space
+    n::Int
+end
 
 function candidate_point!(z̄::Vector{T}, ::Euclidean, z::Vector{T}, Δ::Vector{T}, α::T) where T
     z̄ .= z - α .* Δ
 end
 
-function update_point!(z::Vector{T}, ::Euclidean, z̄::Vector{T}) where T
+function update_point!(z::Vector{T}, ::Space, z̄::Vector{T}) where T
     z .= z̄
 end
 
-Euclidean
 # interior-point solver options
 @with_kw mutable struct InteriorPointOptions{T}
     r_tol::T = 1.0e-5
@@ -98,17 +99,17 @@ mutable struct InteriorPoint{T}
 end
 
 function interior_point(z, θ;
-        s = Euclidean(),
+        s = Euclidean(length(z)),
         num_var = length(z),
         num_data = length(θ),
         idx_ineq = collect(1:0),
         idx_soc = Vector{Int}[],
-        idx_pr = collect(1:num_var),
+        idx_pr = collect(1:s.n),
         idx_du = collect(1:0),
         r! = r!, rz! = rz!, rθ! = rθ!,
-        r  = zeros(num_var),
-        rz = spzeros(num_var, num_var),
-        rθ = spzeros(num_var, num_data),
+        r  = zeros(s.n),
+        rz = spzeros(s.n, s.n),
+        rθ = spzeros(s.n, num_data),
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
@@ -120,19 +121,19 @@ function interior_point(z, θ;
         s,
         ResidualMethods(r!, rz!, rθ!),
         z,
-        zeros(num_var),
+        zeros(length(z)),
         r,
         0.0,
         deepcopy(r),
         0.0,
         rz,
         rθ,
-        zeros(num_var),
+        zeros(s.n),
         idx_ineq,
         idx_soc,
         idx_pr,
         idx_du,
-        zeros(num_var, num_data),
+        zeros(s.n, num_data),
         θ,
         zeros(1),
         num_var,
@@ -211,6 +212,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 if r_norm < r_tol
                     break
                 end
+                # @show r_norm
 
                 # compute residual Jacobian
                 rz!(rz, z, θ)
@@ -221,12 +223,14 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 # compute step
                 linear_solve!(solver, Δ, rz, r)
 
+                # @show Δ
                 # initialize step length
                 α = 1.0
 
                 # candidate point
                 candidate_point!(z̄, s, z, Δ, α)
 
+                # @show z̄
                 # check cones
                 iter = 0
                 while cone_check(z̄, idx_ineq, idx_soc)
@@ -243,6 +247,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 # reduce norm of residual
                 r!(r̄, z̄, θ, κ[1])
                 r̄_norm = norm(r̄, res_norm)
+                # @show r̄_norm
 
                 while r̄_norm >= (1.0 - 0.001 * α) * r_norm
                     α *= ls_scale
@@ -250,6 +255,8 @@ function interior_point!(ip::InteriorPoint{T}) where T
 
                     r!(r̄, z̄, θ, κ[1])
                     r̄_norm = norm(r̄, Inf)
+                    # @show r̄
+                    # @show r̄_norm
 
                     iter += 1
                     if iter > max_ls

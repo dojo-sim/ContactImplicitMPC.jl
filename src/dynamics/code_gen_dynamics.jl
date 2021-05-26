@@ -4,7 +4,7 @@ Generate fast base methods using Symbolics symbolic computing tools.
 """
 function generate_base_expressions(model::ContactModel;
 	M_analytical = true,
-	mapping = x -> I,
+	mapping = (a, x) -> I,
 	nv = model.dim.q)
 
 	nq = model.dim.q
@@ -20,18 +20,25 @@ function generate_base_expressions(model::ContactModel;
 	L = lagrangian(model, q, q̇)
 	L = Symbolics.simplify.(L)
 
-	dLq = mapping(q)' * Symbolics.gradient(L, q, simplify=true) # including mapping for orientation (e.g., attitude Jacobian)
-	dLq̇ = Symbolics.gradient(L, q̇, simplify=true)
-	ddL = Symbolics.hessian(L, [q; q̇], simplify=true)
-	ddLq̇q = ddL[nq .+ (1:nv), 1:nq] * mapping(q)
-
 	# Mass Matrix
 	if M_analytical
 		M = M_func(model, q)
-		M = reshape(M, (nq, nq))
+		M = reshape(M, (nv, nv))
 		M = Symbolics.simplify.(M)
+
+		C = C_func(model, q, q̇)
+		C = simplify.(C)
 	else
+		dLq = mapping(model, q)' * Symbolics.gradient(L, q, simplify=true) # including mapping for orientation (e.g., attitude Jacobian)
+		dLq̇ = Symbolics.gradient(L, q̇, simplify=true)
+		ddL = Symbolics.hessian(L, [q; q̇], simplify=true)
+		ddLq̇q = ddL[nq .+ (1:nv), 1:nq] * mapping(q)
+
 		M = ddL[nq .+ (1:nv), nq .+ (1:nv)]
+
+		# Coriolis and Centrifugal forces Jacobians
+		C = ddLq̇q * q̇ - dLq
+		C = Symbolics.simplify.(C)
 	end
 
 	# Control input Jacobian
@@ -46,12 +53,8 @@ function generate_base_expressions(model::ContactModel;
 
 	# Contact Jacobian
 	J = J_func(model, q)
-	J = reshape(J, size(J_func(model, zeros(nq))))
+	J = reshape(J, size(J_func(model, zeros(nv))))
 	J = Symbolics.simplify.(J)
-
-	# Coriolis and Centrifugal forces Jacobians
-	C = ddLq̇q * q̇ - dLq
-	C = Symbolics.simplify.(C)
 
 	# Kinematics
 	k = kinematics(model, q)

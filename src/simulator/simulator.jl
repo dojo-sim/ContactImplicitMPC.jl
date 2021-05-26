@@ -31,6 +31,7 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
     rθ! = s.res.rθ!,
     rz = s.rz,
     rθ = s.rθ,
+    space = Euclidean(num_var(s.model, s.env)),
     ip_opts = InteriorPointOptions{S}(),
     sim_opts = SimulatorOptions{S}()) where S
 
@@ -51,6 +52,7 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
     θ_initialize!(θ, model, traj.q[1], traj.q[2], traj.u[1], traj.w[1], model.μ_world, h)
 
     ip = interior_point(z, θ,
+        s = space,
         idx_ineq = inequality_indices(model, env),
         idx_soc = soc_indices(model, env),
         r! = r!,
