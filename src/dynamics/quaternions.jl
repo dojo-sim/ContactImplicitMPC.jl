@@ -9,7 +9,6 @@ function L_multiply(q)
 	s = q[1]
 	v = q[2:4]
 
-
 	SMatrix{4,4}([s -transpose(v);
 	              v s * I + skew(v)])
 end
@@ -17,7 +16,6 @@ end
 function R_multiply(q)
 	s = q[1]
 	v = q[2:4]
-
 
 	SMatrix{4,4}([s -transpose(v);
 	              v s * I - skew(v)])
@@ -67,6 +65,30 @@ function φ(ϕ)
 	1.0 / sqrt(1.0 + norm(ϕ)^2.0) * [1.0; ϕ]
 end
 
+# Square root of quaternion: https://www.johndcook.com/blog/2021/01/06/quaternion-square-roots/
+function sqrt_quat(q; ϵ=1e-16)
+	r = norm(q)
+	# Angle
+	theta = acos(q[1]/r)
+	# Axis
+	u = q[2:4]
+	u ./= norm(u) + ϵ
+	# Half axis-angle rotation
+	x = [cos(theta/2);  sin(theta/2)*u]
+	# Sqrt on the norm of the quaternion
+	x .*= r^0.5 # useless for unit quaternion
+	return x
+end
+
+function midpoint(q0, q1)
+	# Small delta rotation
+	qψ = R_multiply(q0)' * q1
+	# Divide delta in two
+	sqψ = sqrt_quat(qψ)
+	# Apply small rotation
+	qmid = L_multiply(sqψ) * q0
+	return qmid
+end
 
 struct RnQuaternion <: Space
 	n::Int

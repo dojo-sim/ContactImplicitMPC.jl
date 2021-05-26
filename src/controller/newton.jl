@@ -479,6 +479,7 @@ function newton_solve!(core::Newton, s::Simulation,
     warm_start::Bool = false, initial_offset::Bool = false,
     q0 = ref_traj.q[1], q1 = ref_traj.q[2], verbose::Bool=false)
 
+    # @show "newton_solve!" #simon
 	reset!(core, ref_traj, warm_start = warm_start,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
 
@@ -492,8 +493,8 @@ function newton_solve!(core::Newton, s::Simulation,
 
     for l = 1:core.opts.max_iter
         # check convergence
+        # println("l = ", l, "  norm = ", r_norm / length(core.res.r)) #simon
         r_norm / length(core.res.r) < core.opts.r_tol && break
-
         # Compute NewtonJacobian
         update_jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
 
