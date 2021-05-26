@@ -1,4 +1,3 @@
-
 s = get_simulation("rigidbody", "flat_3D_lc", "flat")
 
 # time
@@ -14,10 +13,10 @@ rq_space = rn_quaternion_space(num_var(model, env) - 1,
 
 # initial conditions
 r0 = [0.0; 0.0; 1.0]
-v0 = [7.5; 7.5; 0.0]
+v0 = [7.5; 5.0; 0.0]
 
 quat0 = [1.0; 0.0; 0.0; 0.0]
-ω0 = [5.0; -5.0; 0.0]
+ω0 = [0.0; 0.0; 0.0]
 
 q0 = SVector{model.dim.q}([r0; quat0])
 q1 = SVector{model.dim.q}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2.0 / h)^2.0 - ω0' * ω0); ω0]])

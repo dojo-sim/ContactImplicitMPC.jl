@@ -201,7 +201,7 @@ instantiate_dynamics!(model, path_dyn)
 ################################################################################
 # Rigid body
 ################################################################################
-dir = joinpath(@__DIR__, "rigid_body")
+dir = joinpath(@__DIR__, "rigidbody")
 model = deepcopy(rigidbody)
 
 path_base = joinpath(dir, "dynamics/base.jld2")

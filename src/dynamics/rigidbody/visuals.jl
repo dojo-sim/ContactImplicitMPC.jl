@@ -9,7 +9,8 @@ function visualize!(vis, p, q; Δt = 0.1)
 	# GeometryBasics.Sphere(Point3f0(0), r)
 
     setobject!(vis[:satellite],
-    	Rect(Vec(-0.25, -0.25, -0.25),Vec(0.5, 0.5, 0.5)),
+    	# Rect(Vec(-0.25, -0.25, -0.25),Vec(0.5, 0.5, 0.5)),
+		GeometryBasics.Sphere(Point3f0(0), 0.25),
     	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
     arrow_x = ArrowVisualizer(vis[:satellite][:arrow_x])
@@ -44,7 +45,9 @@ function visualize!(vis, p, q; Δt = 0.1)
 	for t = 1:length(q)
 		MeshCat.atframe(anim, t) do
 			settransform!(vis["satellite"],
-			compose(Translation((q[t][1:3] + [-0.25; -0.25; -0.25])...),
+			# compose(Translation((q[t][1:3] + [-0.25; -0.25; -0.25])...),
+			# 	LinearMap(UnitQuaternion(q[t][4:7]...))))
+			compose(Translation((q[t][1:3])...),
 				LinearMap(UnitQuaternion(q[t][4:7]...))))
 		end
 	end
