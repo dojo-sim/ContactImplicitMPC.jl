@@ -47,9 +47,15 @@ sim.ip.s.mapping(sim.ip.z)
 @test status
 
 include(joinpath(module_dir(), "src/dynamics/rigidbody/visuals.jl"))
-vis = Visualizer()
-render(vis)
-open(vis)
+# vis = Visualizer()
+# render(vis)
+# open(vis)
 visualize!(vis, s.model, sim.traj.q, Δt = h)
 
 @assert all([norm(q[4:7]) ≈ 1.0 for q in sim.traj.q])
+
+
+
+q̇0 = rand(s.model.dim.q-1)
+M_fast(s.model, q0)
+C_fast(s.model, q0, q̇0)
