@@ -40,7 +40,7 @@ sim = ContactControl.simulator(s, q0, q1, h, T,
 @time status = ContactControl.simulate!(sim)
 @test status
 
-include(joinpath(pwd(), "src/dynamics/rigidbody/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/rigidbody/visuals.jl"))
 vis = Visualizer()
 render(vis)
 open(vis)

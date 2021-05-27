@@ -78,8 +78,8 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 @time status = simulate!(sim)
 
 # save trajectory
-@save joinpath(pwd(), "src/dynamics/flamingo/simulations/sine.jld2") sim
-@load joinpath(pwd(), "src/dynamics/flamingo/simulations/sine.jld2") sim
+@save joinpath(module_dir(), "src/dynamics/flamingo/simulations/sine.jld2") sim
+@load joinpath(module_dir(), "src/dynamics/flamingo/simulations/sine.jld2") sim
 
 l = 9
 lu = 1

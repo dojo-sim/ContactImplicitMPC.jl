@@ -203,7 +203,6 @@ instantiate_dynamics!(model, path_dyn)
 ################################################################################
 dir = joinpath(@__DIR__, "rigidbody")
 model = deepcopy(rigidbody)
-env = deepcopy(flat_3D_nc)
 include(joinpath(pwd(), "src/dynamics/rigidbody/model.jl"))
 
 path_base = joinpath(dir, "dynamics/base.jld2")

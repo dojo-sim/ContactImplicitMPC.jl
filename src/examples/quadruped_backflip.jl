@@ -7,7 +7,7 @@ model = deepcopy(ContactControl.get_model("quadruped", surf = "flat"))
 model.μ_world = 0.1
 model = deepcopy(quadruped)
 ref_traj = deepcopy(ContactControl.get_trajectory(model, flat_2D_lc,
-	joinpath(pwd(), "src/dynamics/quadruped/gaits/backflip_v1.jld2"), load_type = :split_traj_alt))
+	joinpath(module_dir(), "src/dynamics/quadruped/gaits/backflip_v1.jld2"), load_type = :split_traj_alt))
 ContactControl.update_friction_coefficient!(ref_traj, model)
 
 H = ref_traj.H

@@ -19,7 +19,7 @@ sim = ContactControl.simulator(model, q0, q1, h, T,
 status = ContactControl.simulate!(sim)
 @test status
 
-include(joinpath(pwd(), "src/dynamics/particle/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/particle/visuals.jl"))
 
 vis = Visualizer()
 render(vis)

@@ -1,7 +1,7 @@
 model = deepcopy(quadruped)
-dir = joinpath(pwd(), "src/dynamics/quadruped")
+dir = joinpath(module_dir(), "src/dynamics/quadruped")
 model = get_model("quadruped", surf="flat")
-include(joinpath(pwd(), "src/simulator/environment/piecewise.jl"))
+include(joinpath(module_dir(), "src/simulator/environment/piecewise.jl"))
 model.env = Environment{R2}(terrain_sym, d_terrain_sym)
 
 path_base = joinpath(dir, "dynamics/base.jld2")

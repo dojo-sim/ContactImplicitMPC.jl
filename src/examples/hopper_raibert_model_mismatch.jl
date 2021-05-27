@@ -4,7 +4,7 @@ vis = Visualizer()
 open(vis)
 
 # nominal model
-include(joinpath(pwd(), "src/dynamics/hopper_2D/model.jl"))
+include(joinpath(module_dir(), "src/dynamics/hopper_2D/model.jl"))
 model_nom = get_model("hopper_2D")
 
 model_sim = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
@@ -42,7 +42,7 @@ H_sim = 5000
 v0 = 0.2
 Tstance = 0.13 # measure using hop-in-place gait
 Tflight = 0.62 # measure using hop-in-place gait
-include(joinpath(pwd(), "src/controller/raibert_policy.jl"))
+include(joinpath(module_dir(), "src/controller/raibert_policy.jl"))
 p = raibert_policy(model_nom, v0=v0, Tstance=Tstance, Tflight=Tflight, h=h)
 
 off0 = SVector{nq,T}([0.0, 0.5, 0.0, 0.0])

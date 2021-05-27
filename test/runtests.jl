@@ -9,6 +9,7 @@ using LinearAlgebra
 using Random
 using SparseArrays
 using BenchmarkTools
+using Quaternions
 
 # Solver
 include("solver/gs.jl")
@@ -20,9 +21,11 @@ include("solver/schur.jl")
 include("solver/soc.jl")
 
 # Dynamics
+include("dynamics/lagrangian.jl")
 include("dynamics/model.jl")
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
+include("dynamics/quaternion.jl")
 
 # Simulator
 include("simulator/rotations.jl")

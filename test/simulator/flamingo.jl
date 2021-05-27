@@ -80,7 +80,7 @@ status = ContactControl.simulate!(sim, verbose = false)
 # @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 0.15
 # end
 
-# include(joinpath(pwd(), "src", "dynamics", "flamingo", "visuals.jl"))
+# include(joinpath(module_dir(), "src", "dynamics", "flamingo", "visuals.jl"))
 # vis = Visualizer()
 # render(vis)
 anim = visualize_robot!(vis, model, sim.traj)

@@ -28,7 +28,7 @@ sim_nc = ContactControl.simulator(s_nc, copy(q0), copy(q1), h, T,
 @test status_nc = ContactControl.simulate!(sim_nc)
 
 # visualize
-include(joinpath(pwd(), "src/dynamics/particle/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/particle/visuals.jl"))
 vis = Visualizer()
 open(vis)
 

@@ -8,7 +8,7 @@ open(vis)
 model_sim = deepcopy(flamingo_piecewise)
 
 plot(x, model_sim.env.surf.(x))
-dir = joinpath(pwd(), "src/dynamics/flamingo")
+dir = joinpath(module_dir(), "src/dynamics/flamingo")
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
@@ -95,8 +95,8 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 @time status = simulate!(sim)
 
 # save trajectory
-@save joinpath(pwd(), "src/dynamics/flamingo/simulations/piecewise.jld2") sim
-@load joinpath(pwd(), "src/dynamics/flamingo/simulations/piecewise.jld2") sim
+@save joinpath(module_dir(), "src/dynamics/flamingo/simulations/piecewise.jld2") sim
+@load joinpath(module_dir(), "src/dynamics/flamingo/simulations/piecewise.jld2") sim
 
 l = 9
 lu = 1

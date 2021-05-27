@@ -127,3 +127,7 @@ function load_expressions(path::AbstractString="expr.jld2")
 	@load path expr
 	return expr
 end
+
+function module_dir()
+	return joinpath(@__DIR__, "..")
+end

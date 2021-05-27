@@ -26,7 +26,7 @@ sim = ContactControl.simulator(model, q0, q1, h, T,
 # simulate
 @time status = ContactControl.simulate!(sim, verbose = false)
 
-include(joinpath(pwd(), "src/dynamics/quadruped/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/quadruped/visuals.jl"))
 vis = Visualizer()
 # open(vis)
 render(vis)
