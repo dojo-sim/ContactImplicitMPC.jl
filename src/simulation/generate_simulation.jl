@@ -535,7 +535,9 @@ instantiate_residual!(sim, path_res, path_jac)
 dir_model = joinpath(pwd(), "src/dynamics/rigidbody")
 dir_sim   = joinpath(pwd(), "src/simulation/rigidbody")
 model = deepcopy(rigidbody)
-env = deepcopy(flat_3D_nc)
+# env = deepcopy(flat_3D_nc)
+# env = deepcopy(circular_bowl_3D_nc)
+
 sim = Simulation(model, env)
 
 path_base = joinpath(dir_model, "dynamics/base.jld2")
@@ -557,17 +559,40 @@ instantiate_residual!(sim, path_res, path_jac)
 dir_model = joinpath(pwd(), "src/dynamics/rigidbody")
 dir_sim   = joinpath(pwd(), "src/simulation/rigidbody")
 model = deepcopy(rigidbody)
-env = deepcopy(quadratic_bowl_3D_nc)
+env = deepcopy(circular_bowl_3D_nc)
 sim = Simulation(model, env)
 
 function ϕ_func(model::RigidBody, env::Environment, q)
-	SVector{1}(q[3] - q[1]^2.0 - q[2]^2.0 - model.r)
+	SVector{1}((2.5 - model.r) - sqrt(q[1]^2.0 + q[2]^2.0 + (q[3] - 2.5)^2.0))
 end
+
+function J_func(model::RigidBody, q)
+	n = [env.surf_grad(q[1:2]); -1.0]
+	ns = n ./ sqrt(transpose(n) * n) * model.r
+	SMatrix{3, 6}([Diagonal(ones(3)) -1.0 * [0.0 -ns[3] ns[2];
+							                 ns[3] 0.0 -ns[1];
+										    -ns[2] ns[1] 0.0]])
+end
+
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+
+expr_base = generate_base_expressions(model,
+	M_analytical = true,
+	mapping = G_func,
+	nv = model.dim.q - 1)
+
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
 
 path_base = joinpath(dir_model, "dynamics/base.jld2")
 path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
-path_res = joinpath(dir_sim, "quadratic_bowl_nc/residual.jld2")
-path_jac = joinpath(dir_sim, "quadratic_bowl_nc/jacobians.jld2")
+path_res = joinpath(dir_sim, "bowl_nc/residual.jld2")
+path_jac = joinpath(dir_sim, "bowl_nc/jacobians.jld2")
 
 instantiate_base!(sim.model, path_base)
 instantiate_dynamics!(sim.model, path_dyn)

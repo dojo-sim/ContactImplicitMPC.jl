@@ -176,7 +176,7 @@ end
 
 # Model
 rigidbody = RigidBody(Dimensions(7, 6, 3, 1),
-	1.0, [1.0, 1.0, 1.0], 9.81, 1.0, 0.25,
+	10.0, [0.01, 0.01, 0.01], 9.81, 1.0, 0.25,
 	BaseMethods(), DynamicsMethods(),
 	SVector{6}(zeros(6)))
 

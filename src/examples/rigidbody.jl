@@ -13,7 +13,7 @@ rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model
 
 # initial conditions
 r0 = [0.0; 0.0; 1.0]
-v0 = [7.5; 5.0; 0.0]
+v0 = [0.0; 0.0; 0.0]
 
 quat0 = [1.0; 0.0; 0.0; 0.0]
 ω0 = [0.0; 0.0; 0.0]
@@ -33,14 +33,6 @@ sim = ContactControl.simulator(s, q0, q1, h, T,
 		solver = :lu_solver),
 	sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
-sim.ip.z
-sim.ip.r
-sim.ip.rz
-sim.ip.rθ
-sim.ip.δz
-sim.ip.δzs
-sim.ip.s.mapping(sim.ip.z)
-
 # simulate
 @time status = ContactControl.simulate!(sim)
 @test status
@@ -48,7 +40,7 @@ sim.ip.s.mapping(sim.ip.z)
 include(joinpath(pwd(), "src/dynamics/rigidbody/visuals.jl"))
 vis = Visualizer()
 render(vis)
-open(vis)
+# open(vis)
 visualize!(vis, s.model, sim.traj.q, Δt = h)
 
 @assert all([norm(q[4:7]) ≈ 1.0 for q in sim.traj.q])
