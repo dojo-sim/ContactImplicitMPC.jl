@@ -121,8 +121,8 @@ end
     s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
     model = s.model
 
-    dir_dyn = joinpath(pwd(), "src/dynamics/particle")
-    dir_sim = joinpath(pwd(), "src/simulation/particle")
+    dir_dyn = joinpath(module_dir(), "src/dynamics/particle")
+    dir_sim = joinpath(module_dir(), "src/simulation/particle")
     model2 = deepcopy(particle)
     env2 = deepcopy(flat_3D_lc)
     s2 = Simulation(model2, env2)
@@ -242,8 +242,8 @@ end
 end
 
 @testset "Simulation: Particle (3D) Quadratic Bowl, Approximate Residual Jacobian" begin
-    dir_dyn = joinpath(pwd(), "src/dynamics/particle")
-    dir_sim = joinpath(pwd(), "src/simulation/particle")
+    dir_dyn = joinpath(module_dir(), "src/dynamics/particle")
+    dir_sim = joinpath(module_dir(), "src/simulation/particle")
     model2 = deepcopy(particle)
     model2.μ_world = 0.1
     env2 = deepcopy(quadratic_bowl_3D_lc)

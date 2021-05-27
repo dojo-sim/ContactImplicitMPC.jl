@@ -11,7 +11,7 @@ model = s.model
 env = s.env
 
 ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
-    joinpath(pwd(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+    joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
     load_type = :split_traj_alt))
 
 ref_traj_copy = deepcopy(ref_traj)

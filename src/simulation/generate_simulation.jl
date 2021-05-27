@@ -1,8 +1,8 @@
 ################################################################################
 # Particle (flat)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/particle")
-dir_sim   = joinpath(pwd(), "src/simulation/particle")
+dir_model = joinpath(module_dir(), "src/dynamics/particle")
+dir_sim   = joinpath(module_dir(), "src/simulation/particle")
 model = deepcopy(particle)
 env = deepcopy(flat_3D_lc)
 sim = Simulation(model, env)
@@ -23,8 +23,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Particle (flat + nonlinear cone)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/particle")
-dir_sim   = joinpath(pwd(), "src/simulation/particle")
+dir_model = joinpath(module_dir(), "src/dynamics/particle")
+dir_sim   = joinpath(module_dir(), "src/simulation/particle")
 model = deepcopy(particle)
 env = deepcopy(flat_3D_nc)
 s = Simulation(model, env)
@@ -45,8 +45,8 @@ instantiate_residual!(s, path_res, path_jac)
 ################################################################################
 # Particle (quadratic)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/particle")
-dir_sim   = joinpath(pwd(), "src/simulation/particle")
+dir_model = joinpath(module_dir(), "src/dynamics/particle")
+dir_sim   = joinpath(module_dir(), "src/simulation/particle")
 model = deepcopy(particle)
 env = deepcopy(quadratic_bowl_3D_lc)
 sim = Simulation(model, env)
@@ -67,8 +67,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Particle 2D (flat)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/particle_2D")
-dir_sim   = joinpath(pwd(), "src/simulation/particle_2D")
+dir_model = joinpath(module_dir(), "src/dynamics/particle_2D")
+dir_sim   = joinpath(module_dir(), "src/simulation/particle_2D")
 model = deepcopy(particle_2D)
 env = deepcopy(flat_2D_lc)
 sim = Simulation(model, env)
@@ -89,8 +89,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Particle 2D (flat + nonlinear cone)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/particle_2D")
-dir_sim   = joinpath(pwd(), "src/simulation/particle_2D")
+dir_model = joinpath(module_dir(), "src/dynamics/particle_2D")
+dir_sim   = joinpath(module_dir(), "src/simulation/particle_2D")
 model = deepcopy(particle_2D)
 env = deepcopy(flat_2D_nc)
 sim = Simulation(model, env)
@@ -112,8 +112,8 @@ sim.rθ
 ################################################################################
 # Particle 2D (slope)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/particle_2D")
-dir_sim   = joinpath(pwd(), "src/simulation/particle_2D")
+dir_model = joinpath(module_dir(), "src/dynamics/particle_2D")
+dir_sim   = joinpath(module_dir(), "src/simulation/particle_2D")
 model = deepcopy(particle_2D)
 env = deepcopy(slope1_2D_lc)
 sim = Simulation(model, env)
@@ -134,8 +134,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Hopper (2D)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/hopper_2D")
-dir_sim   = joinpath(pwd(), "src/simulation/hopper_2D")
+dir_model = joinpath(module_dir(), "src/dynamics/hopper_2D")
+dir_sim   = joinpath(module_dir(), "src/simulation/hopper_2D")
 model = deepcopy(hopper_2D)
 env = deepcopy(flat_2D_lc)
 sim = Simulation(model, env)
@@ -156,8 +156,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Hopper (2D) (sinusoidal)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/hopper_2D")
-dir_sim   = joinpath(pwd(), "src/simulation/hopper_2D")
+dir_model = joinpath(module_dir(), "src/dynamics/hopper_2D")
+dir_sim   = joinpath(module_dir(), "src/simulation/hopper_2D")
 model = deepcopy(hopper_2D)
 env = deepcopy(sine2_2D_lc)
 sim = Simulation(model, env)
@@ -178,8 +178,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Hopper (3D)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/hopper_3D")
-dir_sim   = joinpath(pwd(), "src/simulation/hopper_3D")
+dir_model = joinpath(module_dir(), "src/dynamics/hopper_3D")
+dir_sim   = joinpath(module_dir(), "src/simulation/hopper_3D")
 model = deepcopy(hopper_3D)
 env = deepcopy(flat_3D_lc)
 sim = Simulation(model, env)
@@ -200,8 +200,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Hopper (3D) (sinusoidal)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/hopper_3D")
-dir_sim   = joinpath(pwd(), "src/simulation/hopper_3D")
+dir_model = joinpath(module_dir(), "src/dynamics/hopper_3D")
+dir_sim   = joinpath(module_dir(), "src/simulation/hopper_3D")
 model = deepcopy(hopper_3D)
 env = deepcopy(sine2_3D_lc)
 sim = Simulation(model, env)
@@ -222,8 +222,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Quadruped
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/quadruped")
-dir_sim   = joinpath(pwd(), "src/simulation/quadruped")
+dir_model = joinpath(module_dir(), "src/dynamics/quadruped")
+dir_sim   = joinpath(module_dir(), "src/simulation/quadruped")
 model = deepcopy(quadruped)
 env = deepcopy(flat_2D_lc)
 sim = Simulation(model, env)
@@ -244,8 +244,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Quadruped Payload
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/quadruped")
-dir_sim   = joinpath(pwd(), "src/simulation/quadruped")
+dir_model = joinpath(module_dir(), "src/dynamics/quadruped")
+dir_sim   = joinpath(module_dir(), "src/simulation/quadruped")
 model = deepcopy(quadruped_payload)
 env = deepcopy(flat_2D_lc)
 sim = Simulation(model, env)
@@ -266,8 +266,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Quadruped Sinusoidal
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/quadruped")
-dir_sim   = joinpath(pwd(), "src/simulation/quadruped")
+dir_model = joinpath(module_dir(), "src/dynamics/quadruped")
+dir_sim   = joinpath(module_dir(), "src/simulation/quadruped")
 model = deepcopy(quadruped)
 env = deepcopy(sine1_2D_lc)
 sim = Simulation(model, env)
@@ -288,8 +288,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Quadruped (Piecewise)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/quadruped")
-dir_sim   = joinpath(pwd(), "src/simulation/quadruped")
+dir_model = joinpath(module_dir(), "src/dynamics/quadruped")
+dir_sim   = joinpath(module_dir(), "src/simulation/quadruped")
 model = deepcopy(quadruped)
 env = deepcopy(piecewise1_2D_lc)
 sim = Simulation(model, env)
@@ -312,8 +312,8 @@ instantiate_residual!(sim, path_res, path_jac, jacobians = :approx)
 ################################################################################
 # Quadruped (3D)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/quadruped_3D")
-dir_sim   = joinpath(pwd(), "src/simulation/quadruped_3D")
+dir_model = joinpath(module_dir(), "src/dynamics/quadruped_3D")
+dir_sim   = joinpath(module_dir(), "src/simulation/quadruped_3D")
 model = deepcopy(quadruped_3D)
 env = deepcopy(flat_3D_lc)
 sim = Simulation(model, env)
@@ -334,8 +334,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Quadruped (simple)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/quadruped_simple")
-dir_sim   = joinpath(pwd(), "src/simulation/quadruped_simple")
+dir_model = joinpath(module_dir(), "src/dynamics/quadruped_simple")
+dir_sim   = joinpath(module_dir(), "src/simulation/quadruped_simple")
 model = deepcopy(quadruped_simple)
 env = deepcopy(flat_3D_lc)
 sim = Simulation(model, env)
@@ -356,8 +356,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Biped
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/biped")
-dir_sim   = joinpath(pwd(), "src/simulation/biped")
+dir_model = joinpath(module_dir(), "src/dynamics/biped")
+dir_sim   = joinpath(module_dir(), "src/simulation/biped")
 model = deepcopy(biped)
 env = deepcopy(flat_2D_lc)
 sim = Simulation(model, env)
@@ -378,8 +378,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Biped (sinusoidal)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/biped")
-dir_sim   = joinpath(pwd(), "src/simulation/biped")
+dir_model = joinpath(module_dir(), "src/dynamics/biped")
+dir_sim   = joinpath(module_dir(), "src/simulation/biped")
 model = deepcopy(biped)
 env = deepcopy(sine1_2D_lc)
 sim = Simulation(model, env)
@@ -400,8 +400,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Flamingo (flat)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/flamingo")
-dir_sim   = joinpath(pwd(), "src/simulation/flamingo")
+dir_model = joinpath(module_dir(), "src/dynamics/flamingo")
+dir_sim   = joinpath(module_dir(), "src/simulation/flamingo")
 model = deepcopy(flamingo)
 env = deepcopy(flat_2D_lc)
 sim = Simulation(model, env)
@@ -422,8 +422,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Flamingo (sinusoidal)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/flamingo")
-dir_sim   = joinpath(pwd(), "src/simulation/flamingo")
+dir_model = joinpath(module_dir(), "src/dynamics/flamingo")
+dir_sim   = joinpath(module_dir(), "src/simulation/flamingo")
 model = deepcopy(flamingo)
 env = deepcopy(sine3_2D_lc)
 sim = Simulation(model, env)
@@ -444,8 +444,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Flamingo (smooth slope)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/flamingo")
-dir_sim   = joinpath(pwd(), "src/simulation/flamingo")
+dir_model = joinpath(module_dir(), "src/dynamics/flamingo")
+dir_sim   = joinpath(module_dir(), "src/simulation/flamingo")
 model = deepcopy(flamingo)
 env = deepcopy(slope_smooth_2D_lc)
 sim = Simulation(model, env)
@@ -466,8 +466,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # PushBot
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/pushbot")
-dir_sim   = joinpath(pwd(), "src/simulation/pushbot")
+dir_model = joinpath(module_dir(), "src/dynamics/pushbot")
+dir_sim   = joinpath(module_dir(), "src/simulation/pushbot")
 model = deepcopy(pushbot)
 env = deepcopy(flat_2D_lc)
 sim = Simulation(model, env)
@@ -488,8 +488,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # PlanarPush
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/planarpush")
-dir_sim   = joinpath(pwd(), "src/simulation/planarpush")
+dir_model = joinpath(module_dir(), "src/dynamics/planarpush")
+dir_sim   = joinpath(module_dir(), "src/simulation/planarpush")
 model = deepcopy(planarpush)
 env = deepcopy(flat_3D_lc)
 sim = Simulation(model, env)
@@ -510,8 +510,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Rigid body
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/rigidbody")
-dir_sim   = joinpath(pwd(), "src/simulation/rigidbody")
+dir_model = joinpath(module_dir(), "src/dynamics/rigidbody")
+dir_sim   = joinpath(module_dir(), "src/simulation/rigidbody")
 model = deepcopy(rigidbody)
 env = deepcopy(flat_3D_lc)
 sim = Simulation(model, env)
@@ -532,8 +532,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Rigid body (nonlinear cone)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/rigidbody")
-dir_sim   = joinpath(pwd(), "src/simulation/rigidbody")
+dir_model = joinpath(module_dir(), "src/dynamics/rigidbody")
+dir_sim   = joinpath(module_dir(), "src/simulation/rigidbody")
 model = deepcopy(rigidbody)
 env = deepcopy(flat_3D_nc)
 sim = Simulation(model, env)
@@ -554,8 +554,8 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Rigid body (quadratic bowl nonlinear cone)
 ################################################################################
-dir_model = joinpath(pwd(), "src/dynamics/rigidbody")
-dir_sim   = joinpath(pwd(), "src/simulation/rigidbody")
+dir_model = joinpath(module_dir(), "src/dynamics/rigidbody")
+dir_sim   = joinpath(module_dir(), "src/simulation/rigidbody")
 model = deepcopy(rigidbody)
 env = deepcopy(quadratic_bowl_3D_nc)
 sim = Simulation(model, env)

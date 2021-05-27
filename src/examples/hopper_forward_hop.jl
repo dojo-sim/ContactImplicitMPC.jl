@@ -14,7 +14,7 @@ nr = nq + nu + nc + nb + nd
 
 # get trajectory
 ref_traj = get_trajectory(s.model, s.env,
-    joinpath(pwd(), "src/dynamics/hopper_2D/gaits/gait_in_place.jld2"),
+    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_in_place.jld2"),
     load_type=:joint_traj)
 
 H = ref_traj.H

@@ -6,7 +6,7 @@
     model.μ_world = 0.5
 
     ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
-		joinpath(pwd(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+		joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
 		load_type = :split_traj_alt))
     ContactControl.update_friction_coefficient!(ref_traj, model, env)
 

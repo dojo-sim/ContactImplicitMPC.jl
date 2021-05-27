@@ -19,8 +19,8 @@ function get_simulation(model::String, env::String, sim_name::String;
 
 	#TODO: assert model exists
 
-	dir_model = joinpath(pwd(), "src/dynamics/", model)
-	dir_sim   = joinpath(pwd(), "src/simulation", model, sim_name)
+	dir_model = joinpath(@__DIR__, "..", "dynamics", model)
+	dir_sim   = joinpath(@__DIR__, "..", "simulation", model, sim_name)
 
 	dir_base = joinpath(dir_model, "dynamics/base.jld2")
 	dir_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")

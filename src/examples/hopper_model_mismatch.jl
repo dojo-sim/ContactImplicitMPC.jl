@@ -4,7 +4,7 @@ vis = Visualizer()
 open(vis)
 
 # simulation model
-include(joinpath(pwd(), "src/dynamics/hopper_2D/model.jl"))
+include(joinpath(module_dir(), "src/dynamics/hopper_2D/model.jl"))
 
 model_sim = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   1.2 * mb, ml, 1.2 * Jb, Jl,

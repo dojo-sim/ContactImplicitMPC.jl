@@ -26,7 +26,7 @@ plot(hcat(sim.traj.q[1:3:T]...)', label = ["x" "y" "z"], legend = :bottomleft)
 @show s.env.surf(sim.traj.q[end])
 @show sim.traj.q[end]
 
-include(joinpath(pwd(), "src/dynamics/particle/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/particle/visuals.jl"))
 
 vis = Visualizer()
 render(vis)

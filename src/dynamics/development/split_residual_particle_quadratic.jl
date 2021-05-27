@@ -1,5 +1,5 @@
 model = deepcopy(particle_quadratic)
-dir = joinpath(pwd(), "src/dynamics/particle")
+dir = joinpath(module_dir(), "src/dynamics/particle")
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
@@ -23,7 +23,7 @@ model.spa.rθ_sp = copy(rθ_sp)
 
 ###
 model2 = deepcopy(particle_quadratic)
-dir = joinpath(pwd(), "src/dynamics/particle")
+dir = joinpath(module_dir(), "src/dynamics/particle")
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")

@@ -1,3 +1,4 @@
+const ContactControl = Main
 s = get_simulation("rigidbody", "flat_3D_lc", "flat")
 
 # time
@@ -45,7 +46,7 @@ sim.ip.s.mapping(sim.ip.z)
 @time status = ContactControl.simulate!(sim)
 @test status
 
-include(joinpath(pwd(), "src/dynamics/rigidbody/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/rigidbody/visuals.jl"))
 vis = Visualizer()
 render(vis)
 open(vis)

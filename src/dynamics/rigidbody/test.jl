@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/dynamics/quaternions.jl"))
+include(joinpath(@__DIR__, "..", "..", "dynamics/quaternions.jl"))
 
 function visualize!(vis, p, q; Δt = 0.1)
 	setvisible!(vis["/Background"], true)
@@ -61,7 +61,8 @@ function visualize!(vis, p, q; Δt = 0.1)
 end
 
 vis = Visualizer()
-render(vis)
+# render(vis)
+open(vis)
 
 nq = 4
 nv = 3
@@ -389,7 +390,7 @@ x = [[copy(p1); copy(q1)],
 for t = 1:100
 	push!(x, newton_variational_3(x[end-1], x[end], u1, h))
 end
-include(joinpath(pwd(), "src/dynamics/rigid_body/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/rigid_body/visuals.jl"))
 
 visualize!(vis, nothing, x, Δt = h)
 
@@ -500,6 +501,6 @@ for t = 1:T
 	push!(x, copy(ip.z))
 end
 
-include(joinpath(pwd(), "src/dynamics/rigid_body/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/rigid_body/visuals.jl"))
 
 visualize!(vis, nothing, x, Δt = h)

@@ -1,5 +1,5 @@
 model = deepcopy(quadruped_sinusoidal)
-dir = joinpath(pwd(), "src/dynamics/quadruped")
+dir = joinpath(module_dir(), "src/dynamics/quadruped")
 model = get_model("quadruped", surf="sinusoidal")
 
 path_base = joinpath(dir, "dynamics/base.jld2")

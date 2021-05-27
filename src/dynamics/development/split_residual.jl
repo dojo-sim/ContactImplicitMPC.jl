@@ -1,5 +1,5 @@
 model = deepcopy(hopper_2D_sinusoidal)
-dir = joinpath(pwd(), "src/dynamics/hopper_2D")
+dir = joinpath(module_dir(), "src/dynamics/hopper_2D")
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")

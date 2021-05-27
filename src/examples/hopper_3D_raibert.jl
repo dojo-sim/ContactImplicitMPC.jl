@@ -26,7 +26,7 @@ H_sim = 5000
 v0 = [0.0; 0.2]
 Tstance = 0.13 # measure using hop-in-place gait
 Tflight = 0.62 # measure using hop-in-place gait
-include(joinpath(pwd(), "src/controller/raibert_3D_policy.jl"))
+include(joinpath(module_dir(), "src/controller/raibert_3D_policy.jl"))
 p = raibert_policy(model_sim, v0=v0, Tstance=Tstance, Tflight=Tflight, h=h)
 
 off0 = SVector{nq,T}([0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5])

@@ -401,7 +401,7 @@ end
 
 # q_init = initial_configuration(model)
 #
-# include(joinpath(pwd(), "models/visualize.jl"))
+# include(joinpath(module_dir(), "models/visualize.jl"))
 # vis = Visualizer()
 # render(vis)
 # visualize!(vis, model, [q_init], Δt = 0.1)

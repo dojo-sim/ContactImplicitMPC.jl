@@ -1,6 +1,6 @@
 model = deepcopy(quadruped)
-dir = joinpath(pwd(), "src/dynamics/quadruped")
-include(joinpath(pwd(), "src/simulator/environment/piecewise.jl"))
+dir = joinpath(module_dir(), "src/dynamics/quadruped")
+include(joinpath(module_dir(), "src/simulator/environment/piecewise.jl"))
 model.env = Environment{R2}(terrain_sym, d_terrain_sym)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
@@ -25,7 +25,7 @@ model.spa.rθ_sp = copy(rθ_sp)
 
 # ###
 # model2 = deepcopy(quadruped)
-# dir = joinpath(pwd(), "src/dynamics/quadruped")
+# dir = joinpath(module_dir(), "src/dynamics/quadruped")
 #
 # model2.env = environment_2D(x -> sin(x[1]))
 #

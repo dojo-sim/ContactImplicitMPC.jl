@@ -9,7 +9,7 @@ model = s.model
 env = s.env
 
 ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
-    joinpath(pwd(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
+    joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
     load_type = :split_traj_alt))
 
 H = ref_traj.H
@@ -62,8 +62,8 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 @time status = simulate!(sim)
 
 # save trajectory
-@save joinpath(pwd(), "src/dynamics/flamingo/simulations/flat.jld2") sim
-@load joinpath(pwd(), "src/dynamics/flamingo/simulations/flat.jld2") sim
+@save joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
+@load joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
 
 l = 9
 lu = 1
