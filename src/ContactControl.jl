@@ -26,6 +26,9 @@ using Test
 using FileIO
 using MeshIO
 
+using Ipopt, MathOptInterface
+
+
 # Utilities
 include("utils.jl")
 
