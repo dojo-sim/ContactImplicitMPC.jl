@@ -268,6 +268,11 @@ for t = 1:T-2
 	zu[u_idx[t]] = [10.0; 10.0]
 end
 
+for t = 3:T-1
+	zl[q_idx[t][4]] = 0.0
+	zu[q_idx[t][4]] = 1.0
+end
+
 cl, cu = constraint_bounds(np)
 cl .= -slack
 cu .= slack
@@ -332,6 +337,7 @@ z_sol = solve(z_sol + 0.001 * randn(nz), prob,
 c0 = zeros(np)
 moi_con!(c0, z_sol)
 norm(c0, Inf)
+@show d.ip.κ
 
 x_traj = [z_sol[q_idx[t]] for t = 1:T]
 u_traj = [z_sol[u_idx[t]] for t = 1:T-2]
@@ -343,3 +349,5 @@ include(joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "visuals.jl"))
 vis = Visualizer()
 render(vis)
 anim = visualize_robot!(vis, s.model, x_traj, h = h)
+
+r_traj = [xt[4] for xt in x_traj]
