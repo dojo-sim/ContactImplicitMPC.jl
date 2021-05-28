@@ -1,17 +1,18 @@
 include(joinpath(pwd(), "src/trajectory_optimization/moi.jl"))
 include(joinpath(pwd(), "src/trajectory_optimization/utils.jl"))
 
-s = get_simulation("particle_2D", "flat_2D_lc", "flat")
+s = get_simulation("hopper_3D", "flat_3D_nc", "flat")
 
 n = s.model.dim.q
 m = s.model.dim.u
 
-T = 25
+T = 10
 h = 0.1
 
-q0 = [0.0; 1.0]
-q1 = [0.0; 1.0]
-qT = [1.0; 0.0]
+q0 = [0.0; 0.0; 0.5; 0.0; 0.0; 0.0; 0.5]
+q1 = [0.0; 0.0; 0.5; 0.0; 0.0; 0.0; 0.5]
+qT = [0.25; 0.25; 0.5; 0.0; 0.0; 0.0; 0.5]
+q_ref = [0.25; 0.25; 0.5; 0.0; 0.0; 0.0; 0.25]
 
 nz = n * T + m * (T - 2)
 np = n * (T - 2)
@@ -93,13 +94,13 @@ end
 fu1(d, q0, q1, zeros(m))
 
 function obj_config(q)
-	Qt = Diagonal(1.0 * ones(n))
-	return transpose(q - qT) * Qt * (q - qT)
+	Qt = Diagonal([1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 10.0])
+	return transpose(q - q_ref) * Qt * (q - q_ref)
 end
 
 function obj_configT(q)
-	QT = Diagonal(1.0 * ones(n))
-	return transpose(q - qT) * QT * (q - qT)
+	QT = Diagonal([1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 10.0])
+	return transpose(q - q_ref) * QT * (q - q_ref)
 end
 
 @variables q_sym[1:n]
@@ -154,6 +155,7 @@ function moi_obj(z)
 	return J
 end
 
+z0
 moi_obj(z0)
 
 function ∇moi_obj!(g, z)
@@ -173,6 +175,7 @@ end
 g0 = zeros(nz)
 ∇moi_obj!(g0, z0)
 g0
+
 function moi_con!(c, z)
 	for t = 1:T-2
 		q0 = z[q_idx[t]]
@@ -263,8 +266,13 @@ zl[end-n+1:end] = qT
 zu[end-n+1:end] = qT
 
 for t = 1:T-2
-	zl[u_idx[t]] = [-10.0; 0.0]
-	zu[u_idx[t]] = [10.0; 0.0]
+	zl[u_idx[t]] = [-10.0; -10.0; -10.0]
+	zu[u_idx[t]] = [10.0; 10.0; 10.0]
+end
+
+for t = 3:T-1
+	zl[q_idx[t][7]] = 0.0
+	zu[q_idx[t][7]] = 1.0
 end
 
 cl, cu = constraint_bounds(np)
@@ -272,7 +280,7 @@ cl .= -slack
 cu .= slack
 
 qq = linear_interpolation(q0, qT, T)
-u0 = [0.01 * randn(m) for t = 1:T-2]
+u0 = [0.1 * randn(m) for t = 1:T-2]
 z0 = vcat(qq[1], [[qq[t+1]; u0[t]] for t = 1:T-2]..., qq[T])
 
 
@@ -295,8 +303,8 @@ prob = ProblemMOI(nz, np,
 
 z_sol = solve(z0, prob,
         nlp=:ipopt,
-        tol=1.0e-3,
-        c_tol=1.0e-3,
+        tol=1.0e-2,
+        c_tol=1.0e-2,
         max_iter=1000)
 
 c0 = zeros(np)
@@ -331,6 +339,7 @@ z_sol = solve(z_sol + 0.001 * randn(nz), prob,
 c0 = zeros(np)
 moi_con!(c0, z_sol)
 norm(c0, Inf)
+@show d.ip.κ
 
 x_traj = [z_sol[q_idx[t]] for t = 1:T]
 u_traj = [z_sol[u_idx[t]] for t = 1:T-2]
@@ -338,5 +347,7 @@ u_traj = [z_sol[u_idx[t]] for t = 1:T-2]
 plot(hcat(x_traj...)')
 plot(hcat(u_traj...)', linetype = :steppost)
 
-# d.ip.opts.κ_tol *= 0.1
-# d.ip.opts.κ_init *= 0.1
+include(joinpath(@__DIR__, "..", "dynamics", "hopper_3D", "visuals.jl"))
+vis = Visualizer()
+render(vis)
+anim = visualize_robot!(vis, s.model, x_traj, h = h)

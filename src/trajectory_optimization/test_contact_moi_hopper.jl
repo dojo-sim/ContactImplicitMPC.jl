@@ -57,7 +57,7 @@ function f!(d::Dynamics, q0, q1, u1)
 	h = d.h
 
 	z_initialize!(ip.z, s.model, s.env, copy(q1))
-	θ_initialize!(ip.θ, s.model, copy(q0), copy(q1), copy(u1), zeros(s.model.dim.w), model.μ_world, h)
+	θ_initialize!(ip.θ, s.model, copy(q0), copy(q1), copy(u1), zeros(s.model.dim.w), s.model.μ_world, h)
 
 	ip.opts.diff_sol = true
 	status = interior_point!(ip)
