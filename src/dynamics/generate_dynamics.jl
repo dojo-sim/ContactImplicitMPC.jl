@@ -66,6 +66,8 @@ expr_dyn = generate_dynamics_expressions(model)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
+
+
 ################################################################################
 # Quadruped
 ################################################################################
@@ -204,6 +206,28 @@ instantiate_dynamics!(model, path_dyn)
 dir = joinpath(@__DIR__, "rigidbody")
 model = deepcopy(rigidbody)
 include(joinpath(pwd(), "src/dynamics/rigidbody/model.jl"))
+
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+
+expr_base = generate_base_expressions(model,
+	M_analytical = true,
+	mapping = G_func,
+	nv = model.dim.q - 1)
+
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
+
+################################################################################
+# Hopper 3D (quaternion)
+################################################################################
+dir = joinpath(@__DIR__, "hopper_3D_quaternion")
+model = deepcopy(hopper_3D_quaternion)
+include(joinpath(pwd(), "src/dynamics/hopper_3D_quaternion/model.jl"))
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")

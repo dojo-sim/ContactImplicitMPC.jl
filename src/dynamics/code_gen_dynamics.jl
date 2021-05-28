@@ -53,7 +53,7 @@ function generate_base_expressions(model::ContactModel;
 
 	# Contact Jacobian
 	J = J_func(model, q)
-	J = reshape(J, size(J_func(model, zeros(nv))))
+	J = reshape(J, size(J_func(model, zeros(nq))))
 	J = Symbolics.simplify.(J)
 
 	# Kinematics

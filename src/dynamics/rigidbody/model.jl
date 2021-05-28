@@ -104,7 +104,7 @@ function velocity_stack(model::RigidBody, env::Environment{<:World, LinearizedCo
 
 	v1_surf = rotation(env, k) * v
 
-	SVector{4}(friction_mapping(env)' * v1_surf[1:2])
+	SVector{4}(transpose(friction_mapping(env)) * v1_surf[1:2])
 end
 
 function velocity_stack(model::RigidBody, env::Environment{<:World,NonlinearCone}, q1, q2, k, h)
@@ -135,13 +135,13 @@ function dynamics(model::RigidBody, h, q0, q1, u1, w1, λ1, q2)
 	quat2 = q2[4:7]
 
 	# evalutate at midpoint
-	qm1 = [0.5 * (p0 + p1); zeros(4)]
-    vm1 = [(p1 - p0) / h[1]; zeros(3)]
-    qm2 = [0.5 * (p1 + p2); zeros(4)]
-    vm2 = [(p2 - p1) / h[1]; zeros(3)]
-
 	ω1 = ω_finite_difference(quat0, quat1, h)
 	ω2 = ω_finite_difference(quat1, quat2, h)
+
+	qm1 = [0.5 * (p0 + p1); zeros(4)]
+    vm1 = [(p1 - p0) / h[1]; ω1]
+    qm2 = [0.5 * (p1 + p2); zeros(4)]
+    vm2 = [(p2 - p1) / h[1]; ω2]
 
 	D1L1, D2L1 = lagrangian_derivatives(model, qm1, vm1)
 	D1L2, D2L2 = lagrangian_derivatives(model, qm2, vm2)

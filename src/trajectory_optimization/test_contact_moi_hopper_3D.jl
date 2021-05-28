@@ -1,7 +1,7 @@
 include(joinpath(pwd(), "src/trajectory_optimization/moi.jl"))
 include(joinpath(pwd(), "src/trajectory_optimization/utils.jl"))
 
-s = get_simulation("hopper_3D", "flat_3D_nc", "flat")
+s = get_simulation("hopper_3D", "flat_3D_nc", "flat_nc")
 
 n = s.model.dim.q
 m = s.model.dim.u

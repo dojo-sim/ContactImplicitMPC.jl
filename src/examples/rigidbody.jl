@@ -38,15 +38,9 @@ sim = ContactControl.simulator(s, q0, q1, h, T,
 @time status = ContactControl.simulate!(sim)
 @test status
 
-<<<<<<< HEAD
 include(joinpath(pwd(), "src/dynamics/rigidbody/visuals.jl"))
 vis = Visualizer()
 render(vis)
-=======
-include(joinpath(module_dir(), "src/dynamics/rigidbody/visuals.jl"))
-# vis = Visualizer()
-# render(vis)
->>>>>>> 6eee532d1403f100665e68973d2063ec8a3a6ca0
 # open(vis)
 visualize!(vis, s.model, sim.traj.q, Δt = h)
 
