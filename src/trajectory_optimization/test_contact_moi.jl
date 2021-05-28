@@ -6,7 +6,7 @@ s = get_simulation("particle_2D", "flat_2D_lc", "flat")
 n = s.model.dim.q
 m = s.model.dim.u
 
-T = 15
+T = 25
 h = 0.1
 
 q0 = [0.0; 0.0]
@@ -262,6 +262,11 @@ zu[n .+ (1:n)] = q1
 zl[end-n+1:end] = qT
 zu[end-n+1:end] = qT
 
+for t = 1:T-2
+	zl[u_idx[t]] = [-10.0; 0.0]
+	zu[u_idx[t]] = [10.0; 0.0]
+end
+
 cl, cu = constraint_bounds(np)
 cl .= -slack
 cu .= slack
@@ -290,8 +295,8 @@ prob = ProblemMOI(nz, np,
 
 z_sol = solve(z0, prob,
         nlp=:ipopt,
-        tol=1.0e-2,
-        c_tol=1.0e-2,
+        tol=1.0e-3,
+        c_tol=1.0e-3,
         max_iter=1000)
 
 c0 = zeros(np)
@@ -317,7 +322,7 @@ prob = ProblemMOI(nz, np,
     constraint_bounds=(cl, cu),
     hessian_lagrangian=false)
 
-z_sol = solve(z_sol, prob,
+z_sol = solve(z_sol + 0.001 * randn(nz), prob,
         nlp=:ipopt,
         tol=1.0e-5,
         c_tol=1.0e-5,
@@ -327,5 +332,11 @@ c0 = zeros(np)
 moi_con!(c0, z_sol)
 norm(c0, Inf)
 
+x_traj = [z_sol[q_idx[t]] for t = 1:T]
+u_traj = [z_sol[u_idx[t]] for t = 1:T-2]
+
 plot(hcat(x_traj...)')
 plot(hcat(u_traj...)', linetype = :steppost)
+
+d.ip.opts.κ_tol *= 0.1
+d.ip.opts.κ_init *= 0.1
