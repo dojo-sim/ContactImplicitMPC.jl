@@ -9,8 +9,8 @@ m = s.model.dim.u
 T = 25
 h = 0.1
 
-q0 = [0.0; 0.0]
-q1 = [0.0; 0.0]
+q0 = [0.0; 1.0]
+q1 = [0.0; 1.0]
 qT = [1.0; 0.0]
 
 nz = n * T + m * (T - 2)
@@ -324,8 +324,8 @@ prob = ProblemMOI(nz, np,
 
 z_sol = solve(z_sol + 0.001 * randn(nz), prob,
         nlp=:ipopt,
-        tol=1.0e-5,
-        c_tol=1.0e-5,
+        tol=1.0e-3,
+        c_tol=1.0e-3,
         max_iter=1000)
 
 c0 = zeros(np)
@@ -338,5 +338,5 @@ u_traj = [z_sol[u_idx[t]] for t = 1:T-2]
 plot(hcat(x_traj...)')
 plot(hcat(u_traj...)', linetype = :steppost)
 
-d.ip.opts.κ_tol *= 0.1
-d.ip.opts.κ_init *= 0.1
+# d.ip.opts.κ_tol *= 0.1
+# d.ip.opts.κ_init *= 0.1
