@@ -311,7 +311,7 @@ function differentiate_solution!(ip::InteriorPoint)
 
     κ = ip.κ
 
-    # ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
+    ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
     ip.methods.rθ!(rθ, z, θ)
 
     linear_solve!(ip.solver, δzs, rz, rθ)

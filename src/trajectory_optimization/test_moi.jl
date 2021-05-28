@@ -188,12 +188,12 @@ end
 
 sparsity_jacobian(nz, np)
 
-xl, xu = primal_bounds(nz)
-xl[1:n] = x1
-xu[1:n] = x1
+zl, zu = primal_bounds(nz)
+zl[1:n] = x1
+zu[1:n] = x1
 
-xl[end-n+1:end] = xT
-xu[end-n+1:end] = xT
+zl[end-n+1:end] = xT
+zu[end-n+1:end] = xT
 
 x0 = linear_interpolation(x1, xT, T)
 u0 = [randn(m) for t = 1:T-1]
@@ -201,7 +201,7 @@ z0 = vcat([[x0[t]; u0[t]] for t = 1:T-1]..., x0[T]...)
 
 prob = ProblemMOI(nz, np,
     sparsity_jac=sparsity_jacobian(nz, np),
-    primal_bounds=(xl, xu),
+    primal_bounds=(zl, zu),
     constraint_bounds=constraint_bounds(np),
     hessian_lagrangian=false)
 
