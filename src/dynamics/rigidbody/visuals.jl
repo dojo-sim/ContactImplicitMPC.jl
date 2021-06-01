@@ -46,9 +46,9 @@ function visualize!(vis, p, q; Δt = 0.1)
 		MeshCat.atframe(anim, t) do
 			settransform!(vis["satellite"],
 			# compose(Translation((q[t][1:3] + [-0.25; -0.25; -0.25])...),
-			# 	LinearMap(UnitQuaternion(q[t][4:7]...))))
+			# 	LinearMap(quaternion_rotation_matrix(q[t][4:7]))))
 			compose(Translation((q[t][1:3])...),
-				LinearMap(UnitQuaternion(q[t][4:7]...))))
+				LinearMap(quaternion_rotation_matrix(q[t][4:7]))))
 		end
 	end
 

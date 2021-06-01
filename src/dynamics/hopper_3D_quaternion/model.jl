@@ -16,8 +16,6 @@ struct Hopper3DQuaternion{T} <: ContactModel where T
 	μ_joint::T
     g::T # gravity
 
-	orientation::Symbol
-
 	base::BaseMethods
 	dyn::DynamicsMethods
 
@@ -199,6 +197,5 @@ Jl = 0.075 # leg inertia
 hopper_3D_quaternion = Hopper3DQuaternion(Dimensions(nq, nu, nw, nc),
 			mb, ml, Jb, Jl,
 			μ_world, μ_joint, g,
-			:UnitQuaternion,
 			BaseMethods(), DynamicsMethods(),
 			SVector{8}(zeros(8)))

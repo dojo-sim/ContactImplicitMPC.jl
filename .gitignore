@@ -11,3 +11,4 @@ Manifest.toml
 /src/simulation/flamingo/smooth_slope/
 /src/simulation/flamingo/piecewise/
 /src/simulation/flamingo/slope/
+/src/simulation/box/flat_nc/

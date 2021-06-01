@@ -210,14 +210,16 @@ soc_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}) = Vec
 function soc_indices(model::ContactModel, env::Environment{<:World,NonlinearCone})
 	nq = model.dim.q
 	nc = model.dim.c
-	nb = nc * friction_dim(env)
+	ne = dim(env)
+	nf = friction_dim(env)
+	nb = nc * nf
 
 	b_idx = nq + nc .+ (1:nb)
 	η_idx = nq + nc + nb .+ (1:(nb + nc))
 	s2_idx = nq + nc + nb + nb + nc + nc .+ (1:nc)
 
-	pr_idx = [[s2_idx[i]; b_idx[(i - 1) * nb .+ (1:nb)]] for i = 1:nc]
-	du_idx = [[η_idx[(i - 1) * (nb + 1) .+ (1:(nb + 1))]...] for i = 1:nc]
+	pr_idx = [[s2_idx[i]; b_idx[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
+	du_idx = [[η_idx[(i - 1) * ne .+ (1:ne)]...] for i = 1:nc]
 
 	[pr_idx..., du_idx...]
 end
@@ -265,7 +267,7 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	ne = dim(env)
 
 	# [
-	[model.dyn.d(h, q0, q1, u1, w1, λ1, q2);
+	[dynamics(model, h, q0, q1, u1, w1, λ1, q2);
 	 s1 - ϕ;
 	 vcat([η1[(i - 1) * ne .+ (2:ne)] - vT[(i - 1) * (ne - 1) .+ (1:(ne - 1))] for i = 1:model.dim.c]...);
 	 s2 - μ[1] * γ1;
