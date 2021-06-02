@@ -4,7 +4,6 @@ open(vis)
 # render(vis)
 
 
-
 include(joinpath(@__DIR__, "..", "dynamics", "planarpush", "visuals.jl"))
 
 s = get_simulation("planarpush", "flat_3D_lc", "flat")

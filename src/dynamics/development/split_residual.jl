@@ -7,7 +7,7 @@ path_res = joinpath(dir, "sinusoidal/residual.jld2")
 path_jac = joinpath(dir, "sinusoidal/sparse_jacobians.jld2")
 path_linearized = joinpath(dir, "sinusoidal/linearized.jld2")
 
-expr_base = generate_base_expressions_analytical(model)
+expr_base = generate_base_expressions(model, M_analytical=true)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 

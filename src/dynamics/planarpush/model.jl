@@ -166,7 +166,7 @@ function rotation_s_to_w(model::PlanarPush, q2)
 	return R
 end
 
-function J_func(model::PlanarPush, q)
+function J_func(model::PlanarPush, env::Environment{<:World,LinearizedCone}, q)
 	r = model.r
 	rc = model.r/sqrt(2)
 	α = contact_angle(model, q)

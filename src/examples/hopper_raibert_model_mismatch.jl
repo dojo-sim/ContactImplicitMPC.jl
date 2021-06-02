@@ -16,7 +16,7 @@ model_sim = Hopper2D(Dimensions(nq, nu, nw, nc, nb),
 			   SVector{4}(zeros(4)),
 			   environment_2D_flat())
 
-expr_base = generate_base_expressions_analytical(model_sim)
+expr_base = generate_base_expressions(model, M_analytical=true)
 instantiate_base!(model_sim.base, expr_base)
 expr_dyn = generate_dynamics_expressions(model_sim)
 instantiate_dynamics!(model_sim.dyn, expr_dyn)

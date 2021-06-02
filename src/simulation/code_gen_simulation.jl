@@ -1,3 +1,78 @@
+"""
+	generate_dynamics_expressions(model::ContactModel)
+Generate fast dynamics methods using Symbolics symbolic computing tools.
+"""
+function generate_dynamics_expressions(model::ContactModel, env::Environment; derivs = false)
+	nq = model.dim.q
+	nu = model.dim.u
+	nw = model.dim.w
+	nc = model.dim.c
+	ncf = nc * dim(env)
+
+	# Declare variables
+	@variables q0[1:nq]
+	@variables q1[1:nq]
+	@variables u1[1:nu]
+	@variables w1[1:nw]
+	@variables λ1[1:ncf]
+	@variables q2[1:nq]
+	@variables h[1:1]
+
+	# Expressions
+	expr = Dict{Symbol, Expr}()
+
+	# Dynamics
+	d = dynamics(model, h, q0, q1, u1, w1, λ1, q2)
+	d = Symbolics.simplify.(d)
+
+	# Functions
+	expr[:d] = build_function(d, h, q0, q1, u1, w1, λ1, q2)[1]
+
+	if derivs
+		dq2 = Symbolics.jacobian(d, q2, simplify = true)
+		dλ1 = Symbolics.jacobian(d, λ1, simplify = true)
+		dθ = Symbolics.jacobian(d, [q0; q1; u1; w1; h])#, simplify = true)
+
+		expr[:dq2] = build_function(dq2, h, q0, q1, u1, w1, λ1, q2)[1]
+		expr[:dλ1] = build_function(dλ1, h, q0, q1, u1, w1, λ1, q2)[1]
+		expr[:dθ]  = build_function(dθ,  h, q0, q1, u1, w1, λ1, q2)[1]
+	end
+
+	return expr
+end
+
+"""
+	instantiate_dynamics!(model,
+		path::AbstractString="dynamics.jld2")
+Loads the dynamics expressoins from the `path`, evaluates them to generate functions,
+stores them into the model.
+"""
+function instantiate_dynamics!(model::ContactModel, path::AbstractString="model/dynamics.jld2";
+	derivs = false)
+	expr = load_expressions(path)
+	instantiate_dynamics!(model.dyn, expr, derivs = derivs)
+	return nothing
+end
+
+"""
+	instantiate_dynamics!(model,
+		path::AbstractString="dynamics.jld2")
+Evaluates the dynamics expressions to generate functions, stores them into the dedicated struture.
+"""
+function instantiate_dynamics!(fct::DynamicsMethods, expr::Dict{Symbol,Expr};
+	derivs = false)
+	fct.d = eval(expr[:d])
+
+	if derivs
+		fct.dθ = eval(expr[:dθ])
+		fct.dλ1 = eval(expr[:dλ1])
+		fct.dq2 = eval(expr[:dq2])
+	end
+
+	return nothing
+end
+
+
 function generate_contact_expressions(model::ContactModel, env::Environment;
 		T = Float64, jacobians = false)
 
