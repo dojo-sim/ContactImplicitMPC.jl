@@ -467,34 +467,32 @@ function C_func(model::Quadruped, q, q̇)
 	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
 end
 
-function contact_forces(model::Quadruped, γ1, b1, q2, k)
-	k = kinematics(model, q2)
-	m = friction_mapping(model.env)
+function contact_forces(model::Quadruped, env::Environment{R2, LinearizedCone}, γ1, b1, q2, k)
+	m = friction_mapping(env)
 
-	SVector{8}([transpose(rotation(model.env, k[1:1])) * [m * b1[1:2]; γ1[1]];
-				transpose(rotation(model.env, k[3:3])) * [m * b1[3:4]; γ1[2]];
-				transpose(rotation(model.env, k[5:5])) * [m * b1[5:6]; γ1[3]];
-				transpose(rotation(model.env, k[7:7])) * [m * b1[7:8]; γ1[4]]])
+	SVector{8}([transpose(rotation(env, k[1:1])) * [m * b1[1:2]; γ1[1]];
+				transpose(rotation(env, k[3:3])) * [m * b1[3:4]; γ1[2]];
+				transpose(rotation(env, k[5:5])) * [m * b1[5:6]; γ1[3]];
+				transpose(rotation(env, k[7:7])) * [m * b1[7:8]; γ1[4]]])
 end
 
-function velocity_stack(model::Quadruped, q1, q2, k, h)
-	k = kinematics(model, q2)
+function velocity_stack(model::Quadruped, env::Environment{R2, LinearizedCone}, q1, q2, k, h)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
-	v1_surf = rotation(model.env, k[1:1]) * v[1:2]
-	v2_surf = rotation(model.env, k[3:3]) * v[3:4]
-	v3_surf = rotation(model.env, k[5:5]) * v[5:6]
-	v4_surf = rotation(model.env, k[7:7]) * v[7:8]
+	v1_surf = rotation(env, k[1:1]) * v[1:2]
+	v2_surf = rotation(env, k[3:3]) * v[3:4]
+	v3_surf = rotation(env, k[5:5]) * v[5:6]
+	v4_surf = rotation(env, k[7:7]) * v[7:8]
 
 	v1_surf = v[1:2]
 	v2_surf = v[3:4]
 	v3_surf = v[5:6]
 	v4_surf = v[7:8]
 
-	SVector{8}([friction_mapping(model.env)' * v1_surf[1];
-				friction_mapping(model.env)' * v2_surf[1];
-				friction_mapping(model.env)' * v3_surf[1];
-				friction_mapping(model.env)' * v4_surf[1]])
+	SVector{8}([transpose(friction_mapping(env)) * v1_surf[1];
+				transpose(friction_mapping(env)) * v2_surf[1];
+				transpose(friction_mapping(env)) * v3_surf[1];
+				transpose(friction_mapping(env)) * v4_surf[1]])
 end
 
 

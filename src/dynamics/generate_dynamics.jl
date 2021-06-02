@@ -66,8 +66,6 @@ expr_dyn = generate_dynamics_expressions(model)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
-
-
 ################################################################################
 # Quadruped
 ################################################################################

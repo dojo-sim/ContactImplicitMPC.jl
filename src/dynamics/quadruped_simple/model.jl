@@ -108,26 +108,26 @@ function C_func(model::QuadrupedSimple, q, q̇)
 				 0.0, 0.0, model.g * model.mf])
 end
 
-function contact_forces(model::QuadrupedSimple, γ1, b1, q2, k)
-	m = friction_mapping(model.env)
-	SVector{12}([transpose(rotation(model.env, k[1:2]))   * [m * b1[1:4];   γ1[1]];
-			     transpose(rotation(model.env, k[4:5]))   * [m * b1[5:8];   γ1[2]];
-				 transpose(rotation(model.env, k[7:8]))   * [m * b1[9:12];  γ1[3]];
-				 transpose(rotation(model.env, k[10:11])) * [m * b1[13:16]; γ1[4]]])
+function contact_forces(model::QuadrupedSimple, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
+	m = friction_mapping(env)
+	SVector{12}([transpose(rotation(env, k[1:2]))   * [m * b1[1:4];   γ1[1]];
+			     transpose(rotation(env, k[4:5]))   * [m * b1[5:8];   γ1[2]];
+				 transpose(rotation(env, k[7:8]))   * [m * b1[9:12];  γ1[3]];
+				 transpose(rotation(env, k[10:11])) * [m * b1[13:16]; γ1[4]]])
 end
 
-function velocity_stack(model::QuadrupedSimple, q1, q2, k, h)
+function velocity_stack(model::QuadrupedSimple, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
-	v1_surf = rotation(model.env, k[1:2]) * v[1:3]
-	v2_surf = rotation(model.env, k[4:5]) * v[4:6]
-	v3_surf = rotation(model.env, k[7:8]) * v[7:9]
-	v4_surf = rotation(model.env, k[10:11]) * v[10:12]
+	v1_surf = rotation(env, k[1:2]) * v[1:3]
+	v2_surf = rotation(env, k[4:5]) * v[4:6]
+	v3_surf = rotation(env, k[7:8]) * v[7:9]
+	v4_surf = rotation(env, k[10:11]) * v[10:12]
 
-	SVector{16}([friction_mapping(model.env)' * v1_surf[1:2];
-				 friction_mapping(model.env)' * v2_surf[1:2];
-				 friction_mapping(model.env)' * v3_surf[1:2];
-				 friction_mapping(model.env)' * v4_surf[1:2]])
+	SVector{16}([transpose(friction_mapping(env)) * v1_surf[1:2];
+				 transpose(friction_mapping(env)) * v2_surf[1:2];
+				 transpose(friction_mapping(env)) * v3_surf[1:2];
+				 transpose(friction_mapping(env)) * v4_surf[1:2]])
 end
 
 function get_stride(model::QuadrupedSimple, traj::ContactTraj)
