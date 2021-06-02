@@ -423,29 +423,27 @@ function J_func(model::Flamingo, q)
 			J_heel_2]
 end
 
-function contact_forces(model::Flamingo, γ1, b1, q2)
-	# k = kinematics(model, q2)
-	m = friction_mapping(model.env)
+function contact_forces(model::Flamingo, env::Environment{<:World, LinearizedCone}, γ1, b1, q2)
+	m = friction_mapping(env)
 
-	SVector{8}([transpose(rotation(model.env, k[1:1])) * [m * b1[1:2]; γ1[1]];
-				transpose(rotation(model.env, k[3:3])) * [m * b1[3:4]; γ1[2]];
-				transpose(rotation(model.env, k[5:5])) * [m * b1[5:6]; γ1[3]];
-				transpose(rotation(model.env, k[7:7])) * [m * b1[7:8]; γ1[4]]])
+	SVector{8}([transpose(rotation(env, k[1:1])) * [m * b1[1:2]; γ1[1]];
+				transpose(rotation(env, k[3:3])) * [m * b1[3:4]; γ1[2]];
+				transpose(rotation(env, k[5:5])) * [m * b1[5:6]; γ1[3]];
+				transpose(rotation(env, k[7:7])) * [m * b1[7:8]; γ1[4]]])
 end
 
-function velocity_stack(model::Flamingo, q1, q2, h)
-	# k = kinematics(model, q2)
+function velocity_stack(model::Flamingo, env::Environment{<:World, LinearizedCone}, q1, q2, h)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
-	v1_surf = rotation(model.env, k[1:1]) * v[1:2]
-	v2_surf = rotation(model.env, k[3:3]) * v[3:4]
-	v3_surf = rotation(model.env, k[5:5]) * v[5:6]
-	v4_surf = rotation(model.env, k[7:7]) * v[7:8]
+	v1_surf = rotation(env, k[1:1]) * v[1:2]
+	v2_surf = rotation(env, k[3:3]) * v[3:4]
+	v3_surf = rotation(env, k[5:5]) * v[5:6]
+	v4_surf = rotation(env, k[7:7]) * v[7:8]
 
-	SVector{8}([friction_mapping(model.env)' * v1_surf[1];
-				friction_mapping(model.env)' * v2_surf[1];
-				friction_mapping(model.env)' * v3_surf[1];
-				friction_mapping(model.env)' * v4_surf[1]])
+	SVector{8}([transpose(friction_mapping(model.env)) * v1_surf[1];
+				transpose(friction_mapping(model.env)) * v2_surf[1];
+				transpose(friction_mapping(model.env)) * v3_surf[1];
+				transpose(friction_mapping(model.env)) * v4_surf[1]])
 end
 
 # Dimensions

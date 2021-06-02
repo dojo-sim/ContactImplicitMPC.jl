@@ -25,7 +25,8 @@ slack = 0.1
 
 struct Dynamics{T}
 	s::Simulation
-	ip::InteriorPoint
+	ip_dyn::InteriorPoint
+	ip_jac::InteriorPoint
 	h::T
 end
 
@@ -46,7 +47,7 @@ function gen_dynamics(s::Simulation, h;
 				collect((4:7)),
 				collect((4:6)))
 
-	ip = interior_point(z, θ,
+	ip_dyn = interior_point(z, θ,
 		s = rq_space,
 		idx_ineq = inequality_indices(s.model, s.env),
 		idx_soc = soc_indices(s.model, s.env),
@@ -57,49 +58,64 @@ function gen_dynamics(s::Simulation, h;
 		rθ = s.rθ,
 		opts = ip_opts)
 
-	Dynamics(s, ip, h)
+	ip_dyn.opts.diff_sol = false
+
+	ip_jac = interior_point(z, θ,
+		s = rq_space,
+		idx_ineq = inequality_indices(s.model, s.env),
+		idx_soc = soc_indices(s.model, s.env),
+		r! = s.res.r!,
+		rz! = s.res.rz!,
+		rθ! = s.res.rθ!,
+		rz = s.rz,
+		rθ = s.rθ,
+		opts = ip_opts)
+
+	ip_jac.opts.diff_sol = true
+
+	Dynamics(s, ip_dyn, ip_jac, h)
 end
 
-d = gen_dynamics(s, h, ip_opts = InteriorPointOptions{Float64}(κ_tol = slack, κ_init = slack))
+d = gen_dynamics(s, h, ip_opts = InteriorPointOptions{Float64}(κ_tol = 0.0001, κ_init = slack))
 
-function f!(d::Dynamics, q0, q1, u1)
+function f!(d::Dynamics, q0, q1, u1, mode = :dynamics)
 	s = d.s
-	ip = d.ip
+	ip = (mode == :dynamics ? d.ip_dyn : d.ip_jac)
 	h = d.h
 
 	z_initialize!(ip.z, s.model, s.env, copy(q1))
 	θ_initialize!(ip.θ, s.model, copy(q0), copy(q1), copy(u1), zeros(s.model.dim.w), s.model.μ_world, h)
 
-	ip.opts.diff_sol = true
+	# ip.opts.diff_sol = true
 	status = interior_point!(ip)
 
 	!status && (@warn "dynamics failure")
 end
 
 function f(d::Dynamics, q0, q1, u1)
-	f!(d, q0, q1, u1)
-	return copy(d.ip.z[1:d.s.model.dim.q])
+	f!(d, q0, q1, u1, :dynamics)
+	return copy(d.ip_dyn.z[1:d.s.model.dim.q])
 end
 
 f(d, q0, q1, zeros(m))
 
 function fq0(d::Dynamics, q0, q1, u1)
-	f!(d, q0, q1, u1)
-	return copy(d.ip.δz[1:d.s.model.dim.q, 1:d.s.model.dim.q])
+	f!(d, q0, q1, u1, :jacobian)
+	return copy(d.ip_jac.δz[1:d.s.model.dim.q, 1:d.s.model.dim.q])
 end
 
 fq0(d, q0, q1, zeros(m))
 
 function fq1(d::Dynamics, q0, q1, u1)
-	f!(d, q0, q1, u1)
-	return copy(d.ip.δz[1:d.s.model.dim.q, d.s.model.dim.q .+ (1:d.s.model.dim.q)])
+	f!(d, q0, q1, u1, :jacobian)
+	return copy(d.ip_jac.δz[1:d.s.model.dim.q, d.s.model.dim.q .+ (1:d.s.model.dim.q)])
 end
 
 fq1(d, q0, q1, zeros(m))
 
 function fu1(d::Dynamics, q0, q1, u1)
-	f!(d, q0, q1, u1)
-	return copy(d.ip.δz[1:d.s.model.dim.q, 2 * d.s.model.dim.q .+ (1:d.s.model.dim.u)])
+	f!(d, q0, q1, u1, :jacobian)
+	return copy(d.ip_jac.δz[1:d.s.model.dim.q, 2 * d.s.model.dim.q .+ (1:d.s.model.dim.u)])
 end
 
 fu1(d, q0, q1, zeros(m))

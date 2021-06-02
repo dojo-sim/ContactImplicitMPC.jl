@@ -69,20 +69,18 @@ function J_func(model::Hopper3D, q)
     ForwardDiff.jacobian(k, q)
 end
 
-function contact_forces(model::Hopper3D, γ1, b1, q2, k)
-	# k = kinematics(model, q2)
-	m = friction_mapping(model.env)
+function contact_forces(model::Hopper3D, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
+	m = friction_mapping(env)
 
-	SVector{3}(transpose(rotation(model.env, k)) * [m * b1; γ1])
+	SVector{3}(transpose(rotation(env, k)) * [m * b1; γ1])
 end
 
-function velocity_stack(model::Hopper3D, q1, q2, k, h)
-	# k = kinematics(model, q2)
+function velocity_stack(model::Hopper3D, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
-	v1_surf = rotation(model.env, k) * v
+	v1_surf = rotation(env, k) * v
 
-	SVector{4}(friction_mapping(model.env)' * v1_surf[1:2])
+	SVector{4}(friction_mapping(env)' * v1_surf[1:2])
 end
 
 function get_stride(model::Hopper3D, traj::ContactTraj)

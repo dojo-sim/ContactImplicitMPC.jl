@@ -67,18 +67,16 @@ function A_func(::Hopper2D, q)
 	          0.0 1.0 0.0 0.0]
 end
 
-function contact_forces(model::Hopper2D, γ1, b1, q2, k)
-	# k = kinematics(model, q2)
-	m = friction_mapping(model.env)
+function contact_forces(model::Hopper2D, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
+	m = friction_mapping(env)
 
-	SVector{2}(transpose(rotation(model.env, k)) * [m * b1; γ1])
+	SVector{2}(transpose(rotation(env, k)) * [m * b1; γ1])
 end
 
-function velocity_stack(model::Hopper2D, q1, q2, k, h)
-	# k = kinematics(model, q2)
+function velocity_stack(model::Hopper2D, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
-	v1_surf = rotation(model.env, k) * v
+	v1_surf = rotation(env, k) * v
 
 	SVector{2}([v1_surf[1]; -v1_surf[1]])
 end
