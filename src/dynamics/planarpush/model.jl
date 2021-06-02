@@ -126,8 +126,8 @@ function ϕ_func(model::PlanarPush, env::Environment, q)
 	x2 = kinematics_1(model, q, body=:floor2)
 	xp = [q[5], q[6], 0.0]
 	Δ = x - xp
-	SVector{3}([q[3] - surf(x1[1:2]),
-				q[3] - surf(x2[1:2]),
+	SVector{3}([q[3] - env.surf(x1[1:2]),
+				q[3] - env.surf(x2[1:2]),
 				norm(Δ) - (model.r + model.rp),
 				])
 end
@@ -188,11 +188,11 @@ function J_func(model::PlanarPush, q)
 	return [J_floor1; J_floor2; J_object;] # (nc*np) x nq  = 6x7
 end
 
-function contact_forces(model::PlanarPush, γ1, b1, q2, k)
+function contact_forces(model::PlanarPush, env::Environment{<:World,LinearizedCone}, γ1, b1, q2, k)
 	# Express the contact forces in the world frame.
 	# returns λ1
 	# which will be used in dynamics: transpose(J_fast(model, q2)) * λ1
-	m = friction_mapping(model.env)
+	m = friction_mapping(env)
 	# In the surface frame
 	λ_floor1 = [m * b1[1:4]; γ1[1]]
 	λ_floor2 = [m * b1[5:8]; γ1[2]]
@@ -204,19 +204,19 @@ function contact_forces(model::PlanarPush, γ1, b1, q2, k)
 	SVector{9}([λ_floor1; λ_floor2; λ_object])
 end
 
-function velocity_stack(model::PlanarPush, q1, q2, k, h)
+function velocity_stack(model::PlanarPush, env::Environment{<:World,LinearizedCone}, q1, q2, k, h)
 	# In the world frame
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
 	R = rotation_s_to_w(model, q2)
-	v_floor1 = rotation(model.env, k) * v[1:3]
-	v_floor2 = rotation(model.env, k) * v[4:6]
+	v_floor1 = rotation(env, k) * v[1:3]
+	v_floor2 = rotation(env, k) * v[4:6]
 	v_object_w = v[7:9]
 	# We express in the surface frame
 	v_object = R' * v_object_w # W -> S
 	SVector{12}([v_floor1[1:2];  -v_floor1[1:2];
 				 v_floor2[1:2];  -v_floor2[1:2];
-				friction_mapping(model.env)' * v_object[1:2];
+				friction_mapping(env)' * v_object[1:2];
 				])
 end
 

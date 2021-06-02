@@ -6,17 +6,22 @@ open(vis)
 
 
 include(joinpath(@__DIR__, "..", "dynamics", "planarpush", "visuals.jl"))
-model = get_model("planarpush")
+
+s = get_simulation("planarpush", "flat_3D_lc", "flat")
+model = s.model
 nq = model.dim.q
 nu = model.dim.u
 nw = model.dim.w
 nc = model.dim.c
-nb = model.dim.b
-nf = 4
+nf = friction_dim(s.env)
+nb = nc * nf
+nz = num_var(model, s.env)
+nθ = num_data(model)
+
 
 # time
 h = 0.01
-H = 550
+H = 50 #550
 N_sample = 1
 
 # initial conditions
@@ -27,14 +32,14 @@ q1 = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
 p = open_loop_policy(fill(SVector{nu}([40*h, -0.0]), H), N_sample=N_sample)
 
 # simulator
-sim0 = ContactControl.simulator(model, q0, q1, h, H,
-	p = p,
-	ip_opts = ContactControl.InteriorPointOptions(
-		r_tol = 1.0e-8, κ_init=1e-6, κ_tol = 2.0e-6),
-	sim_opts = ContactControl.SimulatorOptions(warmstart = true))
+sim0 = simulator(s, q0, q1, h, H,
+				p = p,
+				ip_opts = ContactControl.InteriorPointOptions(
+					r_tol = 1.0e-8, κ_init=1e-6, κ_tol = 2.0e-6),
+				sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 # simulate
-status = ContactControl.simulate!(sim0)
+status = simulate!(sim0)
 @test status
 
 visualize_robot!(vis, model, sim0.traj)
@@ -60,22 +65,22 @@ H_sim = 500
 κ_mpc = 1.0e-4
 
 # Aggressive
-obj = TrackingVelocityObjective(H_mpc, model.dim,
+obj = TrackingVelocityObjective(model, s.env, H_mpc,
 	q = [Diagonal(1.0e-4 * [1e2, 1e2, 1e-1, 1e-1, 1e-0, 1e-0, 1e-0,]) for t = 1:H_mpc],
 	v = [Diagonal(1.0e-3 * ones(model.dim.q)) for t = 1:H_mpc],
 	u = [Diagonal(1.0e-6 * ones(model.dim.u)) for t = 1:H_mpc],
 	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-	b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
+	b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H_mpc])
 
 #
-obj = TrackingVelocityObjective(H_mpc, model.dim,
+obj = TrackingVelocityObjective(model, s.env, H_mpc,
 	q = [Diagonal(1.0e-2 * [1e2, 1e2, 1e-1, 1e-1, 1e-0, 1e-0, 1e-0,]) for t = 1:H_mpc],
 	v = [Diagonal(1.0e-1 * ones(model.dim.q)) for t = 1:H_mpc],
 	u = [Diagonal(1.0e-4 * ones(model.dim.u)) for t = 1:H_mpc],
 	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-	b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
+	b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H_mpc])
 
-p = linearized_mpc_policy(ref_traj, model, obj,
+p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
@@ -96,7 +101,7 @@ d = open_loop_disturbances([[0.05*rand(), 0.0, 0.4*rand()] for t=1:H_sim])
 q0_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
 q1_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
 
-sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
+sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	uL=-0.9*ones(model.dim.u),
 	uU=+2.0*ones(model.dim.u),
     p = p,
@@ -111,7 +116,7 @@ sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
 sim.traj.u
 
 @time status = ContactControl.simulate!(sim)
-
+sim0
 anim = visualize_robot!(vis, model, sim.traj, name=:sim, sample = N_sample, α=1.0)
 anim = visualize_robot!(vis, model, ref_traj, name=:ref, anim=anim, sample = 1, α=0.5)
 

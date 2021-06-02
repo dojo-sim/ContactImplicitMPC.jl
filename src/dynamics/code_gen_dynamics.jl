@@ -32,7 +32,7 @@ function generate_base_expressions(model::ContactModel;
 		dLq = mapping(model, q)' * Symbolics.gradient(L, q, simplify=true) # including mapping for orientation (e.g., attitude Jacobian)
 		dLq̇ = Symbolics.gradient(L, q̇, simplify=true)
 		ddL = Symbolics.hessian(L, [q; q̇], simplify=true)
-		ddLq̇q = ddL[nq .+ (1:nv), 1:nq] * mapping(q)
+		ddLq̇q = ddL[nq .+ (1:nv), 1:nq] * mapping(model, q)
 
 		M = ddL[nq .+ (1:nv), nq .+ (1:nv)]
 

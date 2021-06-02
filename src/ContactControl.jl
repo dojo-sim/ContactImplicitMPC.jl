@@ -26,7 +26,8 @@ using Test
 using FileIO
 using MeshIO
 
-using Ipopt, MathOptInterface
+using Ipopt
+using MathOptInterface
 
 
 # Utilities

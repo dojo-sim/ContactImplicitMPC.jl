@@ -12,7 +12,6 @@ function Simulation(model::ContactModel, env::Environment)
 end
 
 function get_simulation(model::String, env::String, sim_name::String;
-		model_name = model,
 		gen_base = true,
 		gen_dyn = true,
 		approx = false)
