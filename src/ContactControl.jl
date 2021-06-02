@@ -62,6 +62,7 @@ export environment_2D, environment_3D, environment_2D_flat,
 
 # Models
 include("dynamics/quaternions.jl")
+include("dynamics/mrp.jl")
 
 include("dynamics/particle_2D/model.jl")
 include("dynamics/particle/model.jl")

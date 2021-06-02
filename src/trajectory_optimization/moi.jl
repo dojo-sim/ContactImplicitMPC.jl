@@ -161,6 +161,29 @@ function solve(x0, prob::MOI.AbstractNLPEvaluator;
         solver.options["compl_inf_tol"] = tol
         solver.options["dual_inf_tol"] = tol
         solver.options["constr_viol_tol"] = c_tol
+
+    elseif nlp == :SNOPT7
+        solver = SNOPT7.Optimizer(MOI.MIN_SENSE,
+        nothing, [], [], nothing,
+        0, 0, 0,
+        nothing,
+        # Dict("Major_feasibility_tolerance" => c_tol,
+        #      "Minor_feasibility_tolerance" => c_tol,
+        #      "Minor_optimality_tolerance" => tol,
+        #      "Major_optimality_tolerance" => tol,
+        #      "Time_limit" => time_limit,
+        #      "Major_print_level" => mapl,
+        #      "Minor_print_level" => mipl))
+        Dict("Major_feasibility_tolerance" => c_tol,
+             "Major_optimality_tolerance" => tol,
+             # "Minor_feasibility_tolerance" => c_tol,
+             # "Minor_optimality_tolerance" => tol,
+             # "Time_limit" => time_limit,
+             # "Major_print_level" => mapl,
+             # "Minor_print_level" => mipl,
+             "Major_iterations_limit" => 10000,
+             "Minor_iterations_limit" => 200000,
+             "Iterations_limit" => 1000000))
     else
         @error "NLP solver not setup"
     end

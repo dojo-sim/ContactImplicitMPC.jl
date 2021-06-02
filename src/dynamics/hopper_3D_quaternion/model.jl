@@ -46,7 +46,7 @@ end
 # Kinematics
 function kinematics(model::Hopper3DQuaternion, q)
 	p = q[1:3]
-	R = eval(model.orientation)(q[4:7]...)
+	R = quaternion_rotation_matrix(q[4:7])
 	p + R * [0.0; 0.0; -1.0 * q[8]]
 end
 
@@ -70,8 +70,7 @@ function ϕ_func(model::Hopper3DQuaternion, env::Environment, q)
 end
 
 function B_func(model::Hopper3DQuaternion, q)
-    rot = view(q, 4:7)
-    R = eval(model.orientation)(rot...)
+    R = quaternion_rotation_matrix(q[4:7])
     @SMatrix [0.0 0.0 0.0 R[1,1] R[2,1] R[3,1] 0.0;
               0.0 0.0 0.0 R[1,2] R[2,2] R[3,2] 0.0;
 			  R[1,3] R[2,3] R[3,3] 0.0 0.0 0.0 1.0]

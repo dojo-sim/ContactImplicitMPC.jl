@@ -35,7 +35,7 @@ function lagrangian(model::Box, q, q̇)
 	J = Diagonal([1.0, 1.0, 1.0])
 
 	p = q[1:3]
-	quat = q[4:7]
+	mrp = q[4:7]
 	v = q̇[1:3]
 	ω = q̇[4:6]
 
@@ -246,6 +246,6 @@ end
 
 # Model
 box = Box(Dimensions(7, 3, 3, 8),
-	1.0, [1.0 / 12.0 * (0.5^2.0 + 0.5^2.0), 1.0 / 12.0 * (0.5^2.0 + 0.5^2.0), 1.0 / 12.0 * (0.5^2.0 + 0.5^2.0)], 9.81, 1.0, 8, corner_offset,
+	1.0, [1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0)], 9.81, 1.0, 8, corner_offset,
 	BaseMethods(), DynamicsMethods(),
 	SVector{6}(zeros(6)))

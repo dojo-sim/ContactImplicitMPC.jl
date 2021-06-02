@@ -61,8 +61,13 @@ function quaternion_rotation_matrix(q)
 end
 
 # Cayley map
-function φ(ϕ)
+function cayley_map(ϕ)
 	1.0 / sqrt(1.0 + norm(ϕ)^2.0) * [1.0; ϕ]
+end
+
+# slerp
+function slerp(q0::UnitQuaternion, q1::UnitQuaternion, t::T) where T
+	Rotations.params(q0 * exp(t * log(inv(q0) * q1)))
 end
 
 # Square root of quaternion: https://www.johndcook.com/blog/2021/01/06/quaternion-square-roots/
@@ -105,7 +110,7 @@ end
 
 function candidate_point!(z̄::Vector{T}, s::RnQuaternion, z::Vector{T}, Δ::Vector{T}, α::T) where T
     z̄[s.r_idx] .= z[s.r_idx] - α .* Δ[s.Δr_idx]
-	z̄[s.quat_idx] .= L_multiply(z[s.quat_idx]) * φ(-1.0 * α .* Δ[s.Δquat_idx])
+	z̄[s.quat_idx] .= L_multiply(z[s.quat_idx]) * cayley_map(-1.0 * α .* Δ[s.Δquat_idx])
 	return nothing
 end
 

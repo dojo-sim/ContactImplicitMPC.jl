@@ -3,7 +3,9 @@ include(joinpath(pwd(), "src/trajectory_optimization/utils.jl"))
 include(joinpath(pwd(), "src/dynamics/box/model.jl"))
 
 s = get_simulation("box", "flat_3D_nc", "flat_nc")
-s.model.μ_world = 0.5
+s.model.μ_world = 1.0
+model = s.model
+env = s.env
 
 n = s.model.dim.q
 m = s.model.dim.u
@@ -11,24 +13,46 @@ m = s.model.dim.u
 T = 10
 h = 0.1
 
-q0 = [0.5; 0.5; 0.5; 1.0; 0.0; 0.0; 0.0]
-q1 = [0.5; 0.5; 0.5; 1.0; 0.0; 0.0; 0.0]
-quat1 = UnitQuaternion(RotY(0.0) * RotX(pi / 4.0))
+quat0 = [1.0; 0.0; 0.0; 0.0]
+q0 = [0.5; 0.5; 0.5; quat0]
+q1 = [0.5; 0.5; 0.5; quat0]
+quat1 = Rotations.params(UnitQuaternion(RotY(0.0) * RotX(pi / 4.0)))
+# quat1 = Rotations.params(UnitQuaternion(RotY(0.0) * RotX(-pi / 2.0)))
 
-# quat1 = UnitQuaternion(RotY(-1.0 * atan(1.0 / sqrt(2.0))) * RotX(pi / 4.0))
-qT = [0.5; 0.0; 0.5 * sqrt(2.0); quat1.w; quat1.x; quat1.y; quat1.z]
+function slerp(q0, q1, t)
+	Rotations.params(q0 * exp(t * log(inv(q0) * q1)))
+end
+
+slerp(UnitQuaternion(quat0), UnitQuaternion(quat1), 0.5)
+
+qT = [0.5; 0.0; 0.5 * sqrt(2.0); quat1...]
+# qT = [0.5; 1.5; 0.5; quat1...]
 q_ref = copy(qT)
+
+ang = range(0.25 * π, stop = 0.5 * π, length = T-1)
+
+qp = [q0[1:3], [[q1[1]; 0.5 * sqrt(2.0) * cos(ang[t]); 0.5 * sqrt(2.0) * sin(ang[t])] for t = 1:T-1]...]
+# ang = range(3.0 * π / 4.0, stop = 0.25 * π, length = T-1)
+#
+# qp = [q0[1:3], [[q1[1]; 0.5 * sqrt(2.0) * cos(ang[t]) + 1.0; 0.5 * sqrt(2.0) * sin(ang[t])] for t = 1:T-1]...]
+
+qquat = [quat0, quat0, [slerp(UnitQuaternion(quat0), UnitQuaternion(quat1), (t - 1) / (T - 2)) for t = 2:T-1]...]
+qq = [[qp[t]; qquat[t]] for t = 1:T]
+u0 = [0.001 * randn(m) for t = 1:T-2]
+z0 = vcat(qq[1], [[qq[t+1]; u0[t]] for t = 1:T-2]..., qq[T])
+
+anim = visualize!(vis, s.model, qq, Δt = h)
 
 k = kinematics(s.model, qT)
 p4 = k[3 * 3 .+ (1:3)]
 p8 = k[7 * 3 .+ (1:3)]
 
 nz = n * T + m * (T - 2)
-np = n * (T - 2)# + 2 * 3 * T
+np = n * (T - 2) #+ 2 * 3 * T
 
-z0 = rand(nz)
+# z0 = rand(nz)
 
-slack = 0.1
+slack = 1.0
 
 struct Dynamics{T}
 	s::Simulation
@@ -74,8 +98,8 @@ function f!(d::Dynamics, q0, q1, u1)
 	ip = d.ip
 	h = d.h
 
-	z_initialize!(ip.z, s.model, s.env, copy(q1))
-	θ_initialize!(ip.θ, s.model, copy(q0), copy(q1), copy(u1), zeros(s.model.dim.w), s.model.μ_world, h)
+	z_initialize!(ip.z, s.model, s.env, copy(q1) ./ norm(q1))
+	θ_initialize!(ip.θ, s.model, copy(q0) ./ norm(q0), copy(q1) ./ norm(q1), copy(u1), zeros(s.model.dim.w), s.model.μ_world, h)
 
 	ip.opts.diff_sol = true
 	status = interior_point!(ip)
@@ -111,36 +135,36 @@ end
 
 fu1(d, q0, q1, zeros(m))
 
-function obj_config(q)
-	Qt = Diagonal(1.0e-1 * [1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0])
-	return transpose(q - q_ref) * Qt * (q - q_ref)
+function obj_config(q, qr)
+	Qt = Diagonal(0.0e-1 * [1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0])
+	return transpose(q - qr) * Qt * (q - qr)
 end
 
-function obj_configT(q)
-	QT = Diagonal(1.0e-1 * [1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0])
-	return transpose(q - q_ref) * QT * (q - q_ref)
+function obj_configT(q, qr)
+	QT = Diagonal(0.0e-1 * [1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0])
+	return transpose(q - qr) * QT * (q - qr)
 end
 
-@variables q_sym[1:n]
+@variables q_sym[1:n], qr_sym[1:n]
 
-obj_config_sym = obj_config(q_sym)
+obj_config_sym = obj_config(q_sym, qr_sym)
 obj_config_sym = simplify.(obj_config_sym)
 
 obj_config_q_sym = Symbolics.gradient(obj_config_sym, q_sym, simplify = true)
 
-obj_config_func = eval(Symbolics.build_function(obj_config_sym, q_sym))
-obj_config_q_func = eval(Symbolics.build_function(obj_config_q_sym, q_sym)[1])
+obj_config_func = eval(Symbolics.build_function(obj_config_sym, q_sym, qr_sym))
+obj_config_q_func = eval(Symbolics.build_function(obj_config_q_sym, q_sym, qr_sym)[1])
 
-obj_configT_sym = obj_configT(q_sym)
+obj_configT_sym = obj_configT(q_sym, qr_sym)
 obj_configT_sym = simplify.(obj_configT_sym)
 
 obj_configT_q_sym = Symbolics.gradient(obj_configT_sym, q_sym, simplify = true)
 
-obj_configT_func = eval(Symbolics.build_function(obj_configT_sym, q_sym))
-obj_configT_q_func = eval(Symbolics.build_function(obj_configT_q_sym, q_sym)[1])
+obj_configT_func = eval(Symbolics.build_function(obj_configT_sym, q_sym, qr_sym))
+obj_configT_q_func = eval(Symbolics.build_function(obj_configT_q_sym, q_sym, qr_sym)[1])
 
 function obj_ctrl(ut)
-	Rt = Diagonal(0.1 * ones(m))
+	Rt = Diagonal(1.0e-5 * ones(m))
 	return transpose(ut) * Rt * ut
 end
 
@@ -158,7 +182,7 @@ obj_ctrl_u_func = eval(Symbolics.build_function(obj_ctrl_u_sym, u_sym)[1])
 @variables h_sym[1:1]
 
 function obj_vel(q0, q1, h)
-	Qt = Diagonal(0.001 * ones(n))
+	Qt = Diagonal(1.0e-3 * ones(n))
 	return transpose(q1 - q0) * Qt * (q1 - q0) / h[1]^2.0
 end
 
@@ -180,12 +204,12 @@ function moi_obj(z)
 
 	for t = 1:T
 		qt = z[q_idx[t]]
-		J += t == T ? obj_configT_func(qt) : obj_config_func(qt)
+		J += t == T ? obj_configT_func(qt, qq[t]) : obj_config_func(qt, qq[t])
 	end
 
 	for t = 1:T-2
 		ut = z[u_idx[t]]
-		J += obj_config_func(ut)
+		J += obj_ctrl_func(ut)
 	end
 
 	for t = 1:T-1
@@ -194,6 +218,8 @@ function moi_obj(z)
 
 		J += obj_vel_func(q0, q1, h)
 	end
+
+	# J += 1.0e-5 * z' * z
 
 	return J
 end
@@ -208,7 +234,7 @@ function ∇moi_obj!(g, z)
 
 	for t = 1:T
 		qt = z[q_idx[t]]
-		g[q_idx[t]] .+= t == T ? obj_configT_func(qt) : obj_config_q_func(qt)
+		g[q_idx[t]] .+= t == T ? obj_configT_func(qt, qq[t]) : obj_config_q_func(qt, qq[t])
 	end
 
 	for t = 1:T-2
@@ -223,6 +249,8 @@ function ∇moi_obj!(g, z)
 		g[q_idx[t]] .+= obj_vel_q0_func(q0, q1, h)
 		g[q_idx[t+1]] .+= obj_vel_q1_func(q0, q1, h)
 	end
+
+	# g .+= 1.0e-5 * z
 
 	nothing
 end
@@ -251,13 +279,7 @@ function moi_con!(c, z)
 	nothing
 end
 
-qq = linear_interpolation(q0, qT, T)
-u0 = [0.001 * randn(m) for t = 1:T-2]
-z0 = vcat(qq[1], [[qq[t+1]; u0[t]] for t = 1:T-2]..., qq[T])
-
-
 c0 = zeros(np)
-z0[4:7] = [1.0; 0.0; 0.0; 0.0]
 moi_con!(c0, z0)
 c0
 
@@ -315,7 +337,7 @@ function ∇moi_con!(j, z)
 	nothing
 end
 
-j0 = zeros((n * n + n * n + n * m + n * n) * (T - 2) + 0.0 * (2 * 3 * n) * T)
+j0 = zeros((n * n + n * n + n * m + n * n) * (T - 2) + 1 * (2 * 3 * n) * T)
 ∇moi_con!(j0, z0)
 
 j0
@@ -365,13 +387,15 @@ end
 sparsity_jacobian(nz, np)
 
 zl, zu = primal_bounds(nz)
-zl[1:n] = q0 .- slack
-zu[1:n] = q0 .+ slack
-zl[n .+ (1:n)] = q1 .- slack
-zu[n .+ (1:n)] = q1 .+ slack
+zl[1:n] = qq[1] #.- slack
+zu[1:n] = qq[1] #.+ slack
+zl[n .+ (1:n)] = qq[2] #.- slack
+zu[n .+ (1:n)] = qq[2] #.+ slack
 
-zl[end-n+1:end] = qT .- slack
-zu[end-n+1:end] = qT .+ slack
+zl[end-n+1:end] = qq[T] #.- slack
+zu[end-n+1:end] = qq[T] #.+ slack
+# zl[(end-n+1:end) .- n] = qT #.- slack
+# zu[(end-n+1:end) .- n] = qT #.+ slack
 
 # for t = 1:T-2
 # 	zl[u_idx[t]] = [-10.0; -10.0; -10.0]
@@ -393,6 +417,7 @@ cu .= slack
 # show(J0)
 
 # plot(hcat(qq...)')
+include_snopt()
 prob = ProblemMOI(nz, np,
     sparsity_jac=sparsity_jacobian(nz, np),
     primal_bounds=(zl, zu),
@@ -416,17 +441,18 @@ plot(hcat(x_traj...)')
 plot(hcat(u_traj...)', linetype = :steppost)
 
 ##
-slack = 0.5 * slack
+slack = 0.1 * slack
 
 zl, zu = primal_bounds(nz)
-zl[1:n] = q0 .- slack
-zu[1:n] = q0 .+ slack
-zl[n .+ (1:n)] = q1 .- slack
-zu[n .+ (1:n)] = q1 .+ slack
+zl[1:n] = qq[1] #.- slack
+zu[1:n] = qq[1] #.+ slack
+zl[n .+ (1:n)] = qq[2] #.- slack
+zu[n .+ (1:n)] = qq[2] #.+ slack
 
-zl[end-n+1:end] = qT .- slack
-zu[end-n+1:end] = qT .+ slack
-
+zl[end-n+1:end] = qq[T] #.- slack
+zu[end-n+1:end] = qq[T] #.+ slack
+# zl[(end-n+1:end) .- n] = qT #.- slack
+# zu[(end-n+1:end) .- n] = qT #.+ slack
 
 # for t = 1:T-2
 # 	zl[u_idx[t]] = [-10.0; -10.0; -10.0]
@@ -438,13 +464,67 @@ cl .= -slack
 cu .= slack
 d.ip.opts.κ_init = slack
 d.ip.opts.κ_tol = slack
+
+
+function moi_obj(z)
+	J = 0.0
+
+	for t = 1:T
+		qt = z[q_idx[t]]
+		J += t == T ? obj_configT_func(qt, qq[t]) : obj_config_func(qt, qq[t])
+	end
+
+	for t = 1:T-2
+		ut = z[u_idx[t]]
+		J += obj_ctrl_func(ut)
+	end
+
+	for t = 1:T-1
+		q0 = z[q_idx[t]]
+		q1 = z[q_idx[t+1]]
+
+		J += obj_vel_func(q0, q1, h)
+	end
+
+	J += 1.0e-6 * (z - z_sol)' * (z - z_sol)
+
+	return J
+end
+
+
+function ∇moi_obj!(g, z)
+	g .= 0.0
+
+	for t = 1:T
+		qt = z[q_idx[t]]
+		g[q_idx[t]] .+= t == T ? obj_configT_func(qt, qq[t]) : obj_config_q_func(qt, qq[t])
+	end
+
+	for t = 1:T-2
+		ut = z[u_idx[t]]
+		g[u_idx[t]] .+= obj_ctrl_u_func(ut)
+	end
+
+	for t = 1:T-1
+		q0 = z[q_idx[t]]
+		q1 = z[q_idx[t+1]]
+
+		g[q_idx[t]] .+= obj_vel_q0_func(q0, q1, h)
+		g[q_idx[t+1]] .+= obj_vel_q1_func(q0, q1, h)
+	end
+
+	g .+= 1.0e-6 * (z - z_sol)
+
+	nothing
+end
+
 prob = ProblemMOI(nz, np,
     sparsity_jac=sparsity_jacobian(nz, np),
     primal_bounds=(zl, zu),
     constraint_bounds=(cl, cu),
     hessian_lagrangian=false)
 
-z_sol = solve(z_sol + 0.001 * randn(nz), prob,
+z_sol = solve(z_sol + 0.0 * randn(nz), prob,
         nlp=:ipopt,
         tol=1.0e-2,
         c_tol=1.0e-2,
@@ -465,3 +545,7 @@ include(joinpath(@__DIR__, "..", "dynamics", "box", "visuals.jl"))
 vis = Visualizer()
 render(vis)
 anim = visualize!(vis, s.model, x_traj, Δt = h)
+
+# all([norm(q[4:7]) ≈ 1.0 for q in x_traj])
+
+# @assert all()

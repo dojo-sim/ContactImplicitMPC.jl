@@ -17,7 +17,9 @@ q_ref = [0.25; 0.25; 0.5; 1.0; 0.0; 0.0; 0.0; 0.25]
 nz = n * T + m * (T - 2)
 np = n * (T - 2)
 
-z0 = rand(nz)
+qq = linear_interpolation(q0, qT, T)
+u0 = [0.1 * randn(m) for t = 1:T-2]
+z0 = vcat(qq[1], [[qq[t+1]; u0[t]] for t = 1:T-2]..., qq[T])
 
 slack = 0.1
 
@@ -131,7 +133,7 @@ obj_configT_func = eval(Symbolics.build_function(obj_configT_sym, q_sym))
 obj_configT_q_func = eval(Symbolics.build_function(obj_configT_q_sym, q_sym)[1])
 
 function obj_ctrl(ut)
-	Rt = Diagonal(0.1 * ones(m))
+	Rt = Diagonal(1.0 * ones(m))
 	return transpose(ut) * Rt * ut
 end
 
@@ -158,7 +160,7 @@ function moi_obj(z)
 
 	for t = 1:T-2
 		ut = z[u_idx[t]]
-		J += obj_config_func(ut)
+		J += obj_ctrl_func(ut)
 	end
 
 	return J
@@ -288,10 +290,6 @@ cl, cu = constraint_bounds(np)
 cl .= -slack
 cu .= slack
 
-qq = linear_interpolation(q0, qT, T)
-u0 = [0.1 * randn(m) for t = 1:T-2]
-z0 = vcat(qq[1], [[qq[t+1]; u0[t]] for t = 1:T-2]..., qq[T])
-
 
 # j0 = zeros((n * n + n * n + n * m + n * n) * (T - 2))
 # ∇moi_con!(j0, z0)
@@ -356,7 +354,7 @@ u_traj = [z_sol[u_idx[t]] for t = 1:T-2]
 plot(hcat(x_traj...)')
 plot(hcat(u_traj...)', linetype = :steppost)
 
-include(joinpath(@__DIR__, "..", "dynamics", "hopper_3D", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "hopper_3D_quaternion", "visuals.jl"))
 vis = Visualizer()
 render(vis)
 anim = visualize_robot!(vis, s.model, x_traj, h = h)
