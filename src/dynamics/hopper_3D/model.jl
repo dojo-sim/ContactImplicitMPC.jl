@@ -64,7 +64,7 @@ function A_func(::Hopper3D, q)
 			  0.0 0.0 1.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::Hopper3D, q)
+function J_func(model::Hopper3D, env::Environment, q)
     k(z) = kinematics(model, z)
     ForwardDiff.jacobian(k, q)
 end
@@ -76,7 +76,7 @@ function contact_forces(model::Hopper3D, env::Environment{<:World, LinearizedCon
 end
 
 function velocity_stack(model::Hopper3D, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(env, k) * v
 

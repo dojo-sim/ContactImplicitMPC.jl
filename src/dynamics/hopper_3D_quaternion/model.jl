@@ -82,7 +82,7 @@ function A_func(::Hopper3DQuaternion, q)
 			  0.0 0.0 1.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::Hopper3DQuaternion, q)
+function J_func(model::Hopper3DQuaternion, env::Environment, q)
     k(z) = kinematics(model, z)
     ForwardDiff.jacobian(k, q) * G_func(model, q)
 end
@@ -105,7 +105,7 @@ function velocity_stack(model::Hopper3DQuaternion, env::Environment{R3, Lineariz
 	quat2 = q2[4:7]
 	r2 = q2[8]
 
-	v = J_func(model, q2) * [(p2 - p1) / h[1]; ω_finite_difference(quat1, quat2, h[1]); (r2 - r1) / h[1]]
+	v = J_func(model, env, q2) * [(p2 - p1) / h[1]; ω_finite_difference(quat1, quat2, h[1]); (r2 - r1) / h[1]]
 
 	v1_surf = rotation(env, k) * v
 
@@ -121,7 +121,7 @@ function velocity_stack(model::Hopper3DQuaternion, env::Environment{R3, Nonlinea
 	quat2 = q2[4:7]
 	r2 = q2[8]
 
-	v = J_func(model, q2) * [(p2 - p1) / h[1]; ω_finite_difference(quat1, quat2, h[1]); (r2 - r1) / h[1]]
+	v = J_func(model, env, q2) * [(p2 - p1) / h[1]; ω_finite_difference(quat1, quat2, h[1]); (r2 - r1) / h[1]]
 
 	v1_surf = rotation(env, k) * v
 

@@ -411,7 +411,7 @@ function A_func(model::Flamingo, q)
 			  0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::Flamingo, q)
+function J_func(model::Flamingo, env::Environment, q)
 	J_toe_1 = jacobian_3(model, q, body = :foot_1, mode = :toe)
 	J_heel_1 = jacobian_3(model, q, body = :foot_1, mode = :heel)
 	J_toe_2 = jacobian_3(model, q, body = :foot_2, mode = :toe)
@@ -433,7 +433,7 @@ function contact_forces(model::Flamingo, env::Environment{<:World, LinearizedCon
 end
 
 function velocity_stack(model::Flamingo, env::Environment{<:World, LinearizedCone}, q1, q2, h)
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(env, k[1:1]) * v[1:2]
 	v2_surf = rotation(env, k[3:3]) * v[3:4]

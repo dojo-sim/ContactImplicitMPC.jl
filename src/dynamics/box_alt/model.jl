@@ -126,7 +126,7 @@ function A_func(model::Box, q)
 end
 
 # contact Jacobian
-function J_func(model::Box, q)
+function J_func(model::Box, env::Environment, q)
 	k(z) = kinematics(model, z)
 	ForwardDiff.jacobian(k, q)
 end
@@ -165,7 +165,7 @@ function velocity_stack(model::Box, env::Environment{<:World, LinearizedCone}, q
 	p2 = q2[1:3]
 	quat2 = q2[4:7]
 
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(env, k) * v
 
@@ -189,7 +189,7 @@ function velocity_stack(model::Box, env::Environment{<:World,NonlinearCone}, q1,
 	# p2 = q2[1:3]
 	# quat2 = q2[4:7]
 
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	v_surf = [rotation(env, k[(i-1) * ne .+ (1:ne)]) * v[(i-1) * ne .+ (1:ne)] for i = 1:nc]
 	vT_stack = vcat([v_surf[i][1:ne-1] for i = 1:nc]...)

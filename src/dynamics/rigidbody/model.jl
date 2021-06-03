@@ -78,7 +78,7 @@ function A_func(model::RigidBody, q)
 end
 
 # contact Jacobian
-function J_func(model::RigidBody, q)
+function J_func(model::RigidBody, env::Environment, q)
 	r = [0.0; 0.0; -model.r]
     SMatrix{3, 6}([Diagonal(ones(3)) -1.0 * skew(r)])
 end
@@ -100,7 +100,7 @@ function velocity_stack(model::RigidBody, env::Environment{<:World, LinearizedCo
 	p2 = q2[1:3]
 	quat2 = q2[4:7]
 
-	v = J_func(model, q2) * [(p2 - p1) / h[1]; ω_finite_difference(quat1, quat2, h[1])]
+	v = J_func(model, env, q2) * [(p2 - p1) / h[1]; ω_finite_difference(quat1, quat2, h[1])]
 
 	v1_surf = rotation(env, k) * v
 
@@ -117,7 +117,7 @@ function velocity_stack(model::RigidBody, env::Environment{<:World,NonlinearCone
 	p2 = q2[1:3]
 	quat2 = q2[4:7]
 
-	v = J_func(model, q2) * [(p2 - p1) / h[1]; ω_finite_difference(quat1, quat2, h[1])]
+	v = J_func(model, env, q2) * [(p2 - p1) / h[1]; ω_finite_difference(quat1, quat2, h[1])]
 
 	v_surf = [rotation(env, k[(i-1) * ne .+ (1:ne)]) * v[(i-1) * ne .+ (1:ne)] for i = 1:nc]
 	vT_stack = vcat([v_surf[i][1:ne-1] for i = 1:nc]...)

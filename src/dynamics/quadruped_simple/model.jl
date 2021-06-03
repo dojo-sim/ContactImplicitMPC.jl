@@ -89,7 +89,7 @@ function A_func(model::QuadrupedSimple, q)
 			  0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::QuadrupedSimple, q)
+function J_func(model::QuadrupedSimple, env::Environment, q)
 	z3 = zeros(3, 3)
 	J = transpose([
 		 zeros(6, 12);
@@ -117,7 +117,7 @@ function contact_forces(model::QuadrupedSimple, env::Environment{<:World, Linear
 end
 
 function velocity_stack(model::QuadrupedSimple, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(env, k[1:2]) * v[1:3]
 	v2_surf = rotation(env, k[4:5]) * v[4:6]

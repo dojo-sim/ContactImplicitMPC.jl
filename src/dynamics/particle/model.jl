@@ -72,7 +72,7 @@ function A_func(model::Particle, q)
 end
 
 # contact Jacobian
-function J_func(model::Particle, q)
+function J_func(model::Particle, env::Environment, q)
     SMatrix{3, 3}([1.0 0.0 0.0;
                    0.0 1.0 0.0;
 				   0.0 0.0 1.0])
@@ -85,7 +85,7 @@ function contact_forces(model::Particle, env::Environment{<:World, LinearizedCon
 end
 
 function velocity_stack(model::Particle, q1, q2, k, h)
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(env, k) * v
 

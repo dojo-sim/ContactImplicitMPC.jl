@@ -50,7 +50,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 instantiate_residual!(sim, path_res, path_jac)
 
 
-
 include(joinpath(@__DIR__, "..", "dynamics", "planarpush", "visuals.jl"))
 
 s = get_simulation("planarpush", "flat_3D_lc", "flat")
@@ -67,7 +66,7 @@ nθ = num_data(model)
 
 # time
 h = 0.01
-H = 50 #550
+H = 550
 N_sample = 1
 
 # initial conditions
