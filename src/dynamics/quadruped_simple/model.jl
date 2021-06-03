@@ -177,7 +177,7 @@ Iz = 0.242
 l_torso = 0.5 * 0.38 # dimension from com
 w_torso = 0.5 * 0.203 # dimension from com
 
-quadrupedlinear = QuadrupedSimple(Dimensions(nq, nu, nw, nc),
+quadruped_simple = QuadrupedSimple(Dimensions(nq, nu, nw, nc),
 				g, μ_world, μ_joint,
 				mb, mf, Ix, Iy, Iz, l_torso, w_torso,
 				BaseMethods(), DynamicsMethods(),

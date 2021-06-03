@@ -42,7 +42,7 @@ end
 function velocity_stack(model::ContactModel, env::Environment{<:World,LinearizedCone}, q1, q2, k, h)
 	nc = model.dim.c
 	ne = dim(env)
-	v = J_fast(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 	v_surf = [rotation(env, k[(i-1) * (ne - 1) .+ (1:ne)]) * v[(i-1) * ne .+ (1:ne)] for i = 1:nc]
 	vT_stack = vcat([[v_surf[i][1:ne-1]; -v_surf[i][1:ne-1]] for i = 1:nc]...)
 end
@@ -50,7 +50,7 @@ end
 function velocity_stack(model::ContactModel, env::Environment{<:World,NonlinearCone}, q1, q2, k, h)
 	nc = model.dim.c
 	ne = dim(env)
-	v = J_fast(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 	v_surf = [rotation(env, k[(i-1) * ne .+ (1:ne)]) * v[(i-1) * ne .+ (1:ne)] for i = 1:nc]
 	vT_stack = vcat([v_surf[i][1:ne-1] for i = 1:nc]...)
 end

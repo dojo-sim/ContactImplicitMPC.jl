@@ -358,6 +358,7 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/quadruped_simple")
 dir_sim   = joinpath(module_dir(), "src/simulation/quadruped_simple")
+include(joinpath(module_dir(), "src/dynamics/quadruped_simple/model.jl"))
 model = deepcopy(quadruped_simple)
 env = deepcopy(flat_3D_lc)
 sim = Simulation(model, env)
