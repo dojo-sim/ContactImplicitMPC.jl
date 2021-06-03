@@ -4,6 +4,60 @@ open(vis)
 # render(vis)
 
 
+
+
+
+
+dir = joinpath(module_dir(), "src", "dynamics", "planarpush")
+model = deepcopy(planarpush)
+
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+
+expr_base = generate_base_expressions(model, M_analytical = false)
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_model_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_model_dynamics!(model, path_dyn)
+
+
+
+
+dir_model = joinpath(module_dir(), "src/dynamics/planarpush")
+dir_sim   = joinpath(module_dir(), "src/simulation/planarpush")
+model = deepcopy(planarpush)
+env = deepcopy(flat_3D_lc)
+sim = Simulation(model, env)
+
+path_base = joinpath(dir_model, "dynamics/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+path_res = joinpath(dir_sim, "flat/residual.jld2")
+path_jac = joinpath(dir_sim, "flat/jacobians.jld2")
+
+expr_contact = generate_contact_expressions(model, env, jacobians=false)
+instantiate_contact_methods!(sim.con, expr_contact, jacobians=:full)
+expr_contact = generate_contact_expressions(model, env, jacobians=true)
+instantiate_contact_methods!(sim.con, expr_contact, jacobians=:approx)
+
+
+# expr_base = generate_sim_base_expressions(model, env,)
+# save_expressions(expr_base, path_sim_base, overwrite=true)
+# instantiate_sim_base!(model, path_sim_base)
+#
+# expr_dyn = generate_sim_dynamics_expressions(model, env)
+# save_expressions(expr_dyn, path_dyn, overwrite=true)
+# instantiate_dynamics!(model, path_dyn)
+
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(sim, path_res, path_jac)
+
+
+
 include(joinpath(@__DIR__, "..", "dynamics", "planarpush", "visuals.jl"))
 
 s = get_simulation("planarpush", "flat_3D_lc", "flat")

@@ -151,3 +151,78 @@ function instantiate_base!(fct::BaseMethods, expr::Dict{Symbol,Expr})
 	fct.k    = eval(expr[:k])
 	return nothing
 end
+
+
+"""
+	generate_dynamics_expressions(model::ContactModel)
+Generate fast dynamics methods using Symbolics symbolic computing tools.
+"""
+function generate_dynamics_expressions(model::ContactModel; derivs = false)
+	nq = model.dim.q
+	nu = model.dim.u
+	nw = model.dim.w
+	nc = model.dim.c
+	# ncf = nc * dim(env)
+
+	# Declare variables
+	@variables q0[1:nq]
+	@variables q1[1:nq]
+	@variables u1[1:nu]
+	@variables w1[1:nw]
+	@variables Λ1[1:nq]
+	@variables q2[1:nq]
+	@variables h[1:1]
+
+	# Expressions
+	expr = Dict{Symbol, Expr}()
+
+	# Dynamics
+	d = dynamics(model, h, q0, q1, u1, w1, Λ1, q2)
+	d = Symbolics.simplify.(d)
+
+	# Functions
+	expr[:d] = build_function(d, h, q0, q1, u1, w1, Λ1, q2)[1]
+
+	if derivs
+		∂q2 = Symbolics.jacobian(d, q2, simplify = true)
+		dΛ1 = Symbolics.jacobian(d, Λ1, simplify = true)
+		dθ =  Symbolics.jacobian(d, [q0; q1; u1; w1; h])#, simplify = true)
+
+		expr[:∂q2] = build_function(∂q2, h, q0, q1, u1, w1, Λ1, q2)[1]
+		expr[:dΛ1] = build_function(dΛ1, h, q0, q1, u1, w1, Λ1, q2)[1]
+		expr[:dθ]  = build_function(dθ,  h, q0, q1, u1, w1, Λ1, q2)[1]
+	end
+
+	return expr
+end
+
+"""
+	instantiate_dynamics!(model,
+		path::AbstractString="dynamics.jld2")
+Loads the dynamics expressoins from the `path`, evaluates them to generate functions,
+stores them into the model.
+"""
+function instantiate_dynamics!(model::ContactModel, path::AbstractString="model/dynamics.jld2";
+	derivs = false)
+	expr = load_expressions(path)
+	instantiate_dynamics!(model.dyn, expr, derivs = derivs)
+	return nothing
+end
+
+"""
+	instantiate_dynamics!(model,
+		path::AbstractString="dynamics.jld2")
+Evaluates the dynamics expressions to generate functions, stores them into the dedicated struture.
+"""
+function instantiate_dynamics!(fct::DynamicsMethods, expr::Dict{Symbol,Expr};
+	derivs = false)
+	fct.d = eval(expr[:d])
+
+	if derivs
+		fct.dθ = eval(expr[:dθ])
+		fct.dΛ1 = eval(expr[:dΛ1])
+		fct.∂q2 = eval(expr[:∂q2])
+	end
+
+	return nothing
+end

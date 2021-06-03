@@ -1,5 +1,9 @@
 mutable struct ContactMethods
+	J
+	dJ
 	ϕ
+	d
+	dλ1
 	cf
 	dcf
 	vs
@@ -17,7 +21,7 @@ function ContactMethods()
 		error("Not Implemented: use instantiate_contact_methods!")
 		return nothing
 	end
-	return ContactMethods(fill(f, 11)...)
+	return ContactMethods(fill(f, 15)...)
 end
 
 function contact_forces(model::ContactModel, env::Environment{<:World,LinearizedCone}, γ1, b1, q2, k)

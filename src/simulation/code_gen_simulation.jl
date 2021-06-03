@@ -1,77 +1,3 @@
-"""
-	generate_dynamics_expressions(model::ContactModel)
-Generate fast dynamics methods using Symbolics symbolic computing tools.
-"""
-function generate_dynamics_expressions(model::ContactModel, env::Environment; derivs = false)
-	nq = model.dim.q
-	nu = model.dim.u
-	nw = model.dim.w
-	nc = model.dim.c
-	ncf = nc * dim(env)
-
-	# Declare variables
-	@variables q0[1:nq]
-	@variables q1[1:nq]
-	@variables u1[1:nu]
-	@variables w1[1:nw]
-	@variables λ1[1:ncf]
-	@variables q2[1:nq]
-	@variables h[1:1]
-
-	# Expressions
-	expr = Dict{Symbol, Expr}()
-
-	# Dynamics
-	d = dynamics(model, h, q0, q1, u1, w1, λ1, q2)
-	d = Symbolics.simplify.(d)
-
-	# Functions
-	expr[:d] = build_function(d, h, q0, q1, u1, w1, λ1, q2)[1]
-
-	if derivs
-		dq2 = Symbolics.jacobian(d, q2, simplify = true)
-		dλ1 = Symbolics.jacobian(d, λ1, simplify = true)
-		dθ = Symbolics.jacobian(d, [q0; q1; u1; w1; h])#, simplify = true)
-
-		expr[:dq2] = build_function(dq2, h, q0, q1, u1, w1, λ1, q2)[1]
-		expr[:dλ1] = build_function(dλ1, h, q0, q1, u1, w1, λ1, q2)[1]
-		expr[:dθ]  = build_function(dθ,  h, q0, q1, u1, w1, λ1, q2)[1]
-	end
-
-	return expr
-end
-
-"""
-	instantiate_dynamics!(model,
-		path::AbstractString="dynamics.jld2")
-Loads the dynamics expressoins from the `path`, evaluates them to generate functions,
-stores them into the model.
-"""
-function instantiate_dynamics!(model::ContactModel, path::AbstractString="model/dynamics.jld2";
-	derivs = false)
-	expr = load_expressions(path)
-	instantiate_dynamics!(model.dyn, expr, derivs = derivs)
-	return nothing
-end
-
-"""
-	instantiate_dynamics!(model,
-		path::AbstractString="dynamics.jld2")
-Evaluates the dynamics expressions to generate functions, stores them into the dedicated struture.
-"""
-function instantiate_dynamics!(fct::DynamicsMethods, expr::Dict{Symbol,Expr};
-	derivs = false)
-	fct.d = eval(expr[:d])
-
-	if derivs
-		fct.dθ = eval(expr[:dθ])
-		fct.dλ1 = eval(expr[:dλ1])
-		fct.dq2 = eval(expr[:dq2])
-	end
-
-	return nothing
-end
-
 
 function generate_contact_expressions(model::ContactModel, env::Environment;
 		T = Float64, jacobians = false)
@@ -96,6 +22,8 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 	@variables γ1[1:nc]
 	@variables b1[1:nb]
 	@variables λ1[1:ncf]
+	@variables u1[1:nu]
+	@variables w1[1:nw]
 	@variables q2[1:nq]
 	@variables vt[1:nb]
 	@variables ψ1[1:nc]
@@ -110,6 +38,11 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 	# Expressions
 	expr = Dict{Symbol, Expr}()
 
+	# Contact Jacobian
+	J = J_func(model, env, q2)
+	J = reshape(J, (ncf, nq))
+	J = Symbolics.simplify.(J)
+
 	# Signed distance
 	ϕ = ϕ_func(model, env, q2)
 	ϕ = Symbolics.simplify.(ϕ)[1:nc]
@@ -122,12 +55,21 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 	vs = velocity_stack(model, env, q1, q2, k, h)
 	vs = Symbolics.simplify.(vs)
 
+	# Dynamics
+	d = dynamics(model, env, h, q0, q1, u1, w1, λ1, q2)
+	d = Symbolics.simplify.(d)
+
 	# Functions
+	expr[:J]    = build_function(J, q2)[1]
 	expr[:ϕ]    = build_function(ϕ, q2)[1]
 	expr[:cf]   = build_function(cf, γ1, b1, q2, k)[1]
 	expr[:vs]   = build_function(vs, q1, q2, k, h)[1]
+	expr[:d]    = build_function(d, h, q0, q1, u1, w1, λ1, q2)[1]
 
 	if jacobians
+		dJ = Symbolics.jacobian(J'*λ1, q2, simplify = true) # dq2 = ∂q2  + dJ(λ1, q2)
+		dλ1 = J # this is an analytical result, might be wrong but should be okay
+
 		dcf  = Symbolics.jacobian(cf, [q2; γ1; b1], simplify=true) # NOTE: input order change
 
 		vsq2 = Symbolics.jacobian(vs, q2, simplify = true)
@@ -146,6 +88,9 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 		rcθ = Symbolics.jacobian(rc, θ, simplify = true)
 
 		# Functions
+		expr[:dJ]   = build_function(dJ, λ1, q2)[1]
+		expr[:dλ1]  = build_function(dλ1, q2)[1]
+
 		expr[:dcf]  = build_function(dcf, γ1, b1, q2, k)[1]
 
 		expr[:vsq2]  = build_function(vsq2, q1, q2, k, h)[1]
@@ -154,11 +99,10 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 		expr[:mdvs] = build_function(mdvs, vt, ψ1, η1)[1]
 		expr[:mdψη] = build_function(mdψη, vt, ψ1, η1)[1]
 
-		expr[:rc] = build_function(rc, z, θ, κ)[2]
+		expr[:rc]  = build_function(rc, z, θ, κ)[2]
 		expr[:rcz] = build_function(rcz, z, θ)[2]
 		expr[:rcθ] = build_function(rcθ, z, θ)[2]
 	end
-
 	return expr
 end
 
@@ -274,11 +218,15 @@ end
 function instantiate_contact_methods!(fct::ContactMethods, expr::Dict{Symbol,Expr};
 	jacobians = :full)
 
+	fct.J = eval(expr[:J])
 	fct.ϕ = eval(expr[:ϕ])
 	fct.cf = eval(expr[:cf])
 	fct.vs = eval(expr[:vs])
+	fct.d = eval(expr[:d])
 
 	if jacobians == :approx
+		fct.dJ = eval(expr[:dJ])
+		fct.dλ1 = eval(expr[:dλ1])
 		fct.dcf = eval(expr[:dcf])
 		fct.vsq2 = eval(expr[:vsq2])
 		fct.vsq1h = eval(expr[:vsq1h])

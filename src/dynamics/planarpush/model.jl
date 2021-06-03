@@ -206,7 +206,7 @@ end
 
 function velocity_stack(model::PlanarPush, env::Environment{<:World,LinearizedCone}, q1, q2, k, h)
 	# In the world frame
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	R = rotation_s_to_w(model, q2)
 	v_floor1 = rotation(env, k) * v[1:3]

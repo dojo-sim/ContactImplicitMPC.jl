@@ -14,7 +14,24 @@ function lagrangian_derivatives(model::ContactModel, q, v)
 	return D1L, D2L
 end
 
-function dynamics(model::ContactModel, h, q0, q1, u1, w1, λ1, q2)
+# function dynamics(model::ContactModel, h, q0, q1, u1, w1, λ1, q2)
+# 	# evalutate at midpoint
+# 	qm1 = 0.5 * (q0 + q1)
+#     vm1 = (q1 - q0) / h[1]
+#     qm2 = 0.5 * (q1 + q2)
+#     vm2 = (q2 - q1) / h[1]
+#
+# 	D1L1, D2L1 = lagrangian_derivatives(model, qm1, vm1)
+# 	D1L2, D2L2 = lagrangian_derivatives(model, qm2, vm2)
+#
+# 	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
+# 		+ transpose(B_fast(model, qm2)) * u1
+# 		+ transpose(A_fast(model, qm2)) * w1
+# 		+ transpose(J_fast(model, q2)) * λ1
+# 		- h[1] * model.joint_friction .* vm2)
+# end
+
+function dynamics(model::ContactModel, h, q0, q1, u1, w1, Λ1, q2)
 	# evalutate at midpoint
 	qm1 = 0.5 * (q0 + q1)
     vm1 = (q1 - q0) / h[1]
@@ -27,8 +44,14 @@ function dynamics(model::ContactModel, h, q0, q1, u1, w1, λ1, q2)
 	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
 		+ transpose(B_fast(model, qm2)) * u1
 		+ transpose(A_fast(model, qm2)) * w1
-		+ transpose(J_fast(model, q2)) * λ1
+		# + transpose(J_fast(model, q2)) * λ1
+		+ Λ1
 		- h[1] * model.joint_friction .* vm2)
+end
+
+function dynamics(model::ContactModel, env::Environment, h, q0, q1, u1, w1, λ1, q2)
+	Λ1 = transpose(J_func(model, env, q2)) * λ1 #@@@@ maybe need to use J_fast
+	dynamics(model, h, q0, q1, u1, w1, Λ1, q2)
 end
 
 mutable struct BaseMethods
@@ -36,7 +59,7 @@ mutable struct BaseMethods
 	M::Any
 	B::Any
 	A::Any
-	J::Any
+	# J::Any
 	C::Any
 	k::Any
 end
@@ -46,7 +69,7 @@ function BaseMethods()
 		error("Not Implemented: use instantiate_base!")
 		return nothing
 	end
-	return BaseMethods(fill(f, 7)...)
+	return BaseMethods(fill(f, 6)...)
 end
 
 mutable struct DynamicsMethods
@@ -59,8 +82,8 @@ mutable struct DynamicsMethods
 	dw1::Any
 	dγ1::Any
 	db1::Any
-	dλ1::Any
-	dq2::Any
+	dΛ1::Any
+	∂q2::Any
 end
 
 function DynamicsMethods()
