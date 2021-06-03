@@ -242,10 +242,11 @@ function residual(model::ContactModel, env::Environment{<:World,LinearizedCone},
 
 	k = kinematics(model, q2)
 	λ1 = contact_forces(model, env, γ1, b1, q2, k)
+	Λ1 = transpose(J_func(model, env, q2)) * λ1 #@@@@ maybe need to use J_fast
 	vT_stack = velocity_stack(model, env, q1, q2, k, h)
 	ψ_stack = transpose(E_func(model, env)) * ψ1
 
-	[model.dyn.d(h, q0, q1, u1, w1, λ1, q2);
+	[model.dyn.d(h, q0, q1, u1, w1, Λ1, q2);
 	 s1 - ϕ;
 	 vT_stack + ψ_stack - η1;
 	 s2 .- (μ[1] * γ1 .- E_func(model, env) * b1);
@@ -266,7 +267,7 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	ne = dim(env)
 
 	# [
-	[dynamics(model, h, q0, q1, u1, w1, λ1, q2);
+	[dynamics(model, env, h, q0, q1, u1, w1, λ1, q2);
 	 s1 - ϕ;
 	 vcat([η1[(i - 1) * ne .+ (2:ne)] - vT[(i - 1) * (ne - 1) .+ (1:(ne - 1))] for i = 1:model.dim.c]...);
 	 s2 - μ[1] * γ1;

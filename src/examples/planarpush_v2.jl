@@ -16,11 +16,11 @@ path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
 expr_base = generate_base_expressions(model, M_analytical = false)
 save_expressions(expr_base, path_base, overwrite=true)
-instantiate_model_base!(model, path_base)
+instantiate_base!(model, path_base)
 
 expr_dyn = generate_dynamics_expressions(model)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
-instantiate_model_dynamics!(model, path_dyn)
+instantiate_dynamics!(model, path_dyn)
 
 
 
@@ -36,20 +36,13 @@ path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
 path_res = joinpath(dir_sim, "flat/residual.jld2")
 path_jac = joinpath(dir_sim, "flat/jacobians.jld2")
 
+instantiate_base!(model, path_base)
+instantiate_dynamics!(model, path_dyn)
+
 expr_contact = generate_contact_expressions(model, env, jacobians=false)
 instantiate_contact_methods!(sim.con, expr_contact, jacobians=:full)
 expr_contact = generate_contact_expressions(model, env, jacobians=true)
 instantiate_contact_methods!(sim.con, expr_contact, jacobians=:approx)
-
-
-# expr_base = generate_sim_base_expressions(model, env,)
-# save_expressions(expr_base, path_sim_base, overwrite=true)
-# instantiate_sim_base!(model, path_sim_base)
-#
-# expr_dyn = generate_sim_dynamics_expressions(model, env)
-# save_expressions(expr_dyn, path_dyn, overwrite=true)
-# instantiate_dynamics!(model, path_dyn)
-
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
