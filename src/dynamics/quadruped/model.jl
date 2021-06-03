@@ -276,6 +276,8 @@ function lagrangian(model::Quadruped, q, q̇)
 	# # torso
 	p_torso = kinematics_1(model, q, body = :torso, mode = :com)
 	J_torso = jacobian_1(model, q, body = :torso, mode = :com)
+	@show J_torso
+	@show q̇
 	v_torso = J_torso * q̇
 	#
 	L += 0.5 * model.m_torso * transpose(v_torso) * v_torso
@@ -530,8 +532,8 @@ d_torso = 0.5 * l_torso + 0.0127
 d_thigh = 0.5 * l_thigh - 0.00323
 d_leg = 0.5 * l_leg - 0.006435
 
-m_payload = 5.0
-J_payload = 0.05
+m_payload = 3.0
+J_payload = 0.03
 # Model parameters
 # m_torso = 4.713 + 4 * 0.696
 # m_thigh = 1.013

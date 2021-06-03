@@ -1,6 +1,6 @@
 
 function generate_contact_expressions(model::ContactModel, env::Environment;
-		T = Float64, jacobians = false)
+		T = Float64, jacobians = false, nv = model.dim.q)
 
 	# model dimensions
 	nq = model.dim.q
@@ -40,7 +40,7 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 
 	# Contact Jacobian
 	J = J_func(model, env, q2)
-	J = reshape(J, (ncf, nq))
+	J = reshape(J, (ncf, nv))
 	J = Symbolics.simplify.(J)
 
 	# Signed distance
@@ -111,7 +111,8 @@ end
 Generate fast residual methods using Symbolics symbolic computing tools.
 """
 function generate_residual_expressions(model::ContactModel, env::Environment;
-		mapping = (a,b,c) -> Diagonal(ones(num_var(model, env))), jacobians = :full, T = Float64)
+		mapping = (a,b,c) -> Diagonal(ones(num_var(model, env))), jacobians = :full,
+		T = Float64, nv = model.dim.q)
 
 	nq = model.dim.q
 	nu = model.dim.u
@@ -136,7 +137,7 @@ function generate_residual_expressions(model::ContactModel, env::Environment;
 	if jacobians == :full
 		# contact expressions
 		expr_contact = generate_contact_expressions(model, env,
-			T = T, jacobians = false)
+			T = T, jacobians = false, nv = nv)
 
 		m = mapping(model, env, z)
 		m = simplify.(m)
@@ -154,7 +155,7 @@ function generate_residual_expressions(model::ContactModel, env::Environment;
 		expr[:rθ] = build_function(rθ, z, θ)[2]
 	else
 		expr_contact = generate_contact_expressions(model, env,
-			T = T, jacobians = true)
+			T = T, jacobians = true, nv = nv)
 
 		rz_sp = zeros(nz, nz)
 		rθ_sp = zeros(nz, nθ)

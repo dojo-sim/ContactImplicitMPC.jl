@@ -128,7 +128,7 @@ function velocity_stack(model::Hopper3DQuaternion, env::Environment{R3, Nonlinea
 	SVector{2}(v1_surf[1:2])
 end
 
-function dynamics(model::Hopper3DQuaternion, h, q0, q1, u1, w1, λ1, q2)
+function dynamics(model::Hopper3DQuaternion, h, q0, q1, u1, w1, Λ1, q2)
 
 	p0 = q0[1:3]
 	quat0 = q0[4:7]
@@ -167,7 +167,12 @@ function dynamics(model::Hopper3DQuaternion, h, q0, q1, u1, w1, λ1, q2)
 	return (d
 		+ transpose(B_fast(model, q2)) * u1
 		+ transpose(A_fast(model, q2)) * w1
-		+ transpose(J_fast(model, q2)) * λ1)
+		+ Λ1)
+end
+
+function dynamics(model::Hopper3DQuaternion, env::Environment, h, q0, q1, u1, w1, λ1, q2)
+	Λ1 = transpose(J_func(model, env, q2)) * λ1
+	dynamics(model, h, q0, q1, u1, w1, Λ1, q2)
 end
 
 function get_stride(model::Hopper3DQuaternion, traj::ContactTraj)

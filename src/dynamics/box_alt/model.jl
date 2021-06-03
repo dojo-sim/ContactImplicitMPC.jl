@@ -195,7 +195,7 @@ function velocity_stack(model::Box, env::Environment{<:World,NonlinearCone}, q1,
 	vT_stack = vcat([v_surf[i][1:ne-1] for i = 1:nc]...)
 end
 
-function dynamics(model::Box, h, q0, q1, u1, w1, λ1, q2)
+function dynamics(model::Box, h, q0, q1, u1, w1, Λ1, q2)
 
 	# p0 = q0[1:3]
 	# quat0 = q0[4:7]
@@ -221,9 +221,13 @@ function dynamics(model::Box, h, q0, q1, u1, w1, λ1, q2)
 	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
 		+ transpose(B_fast(model, q2)) * u1
 		+ transpose(A_fast(model, q2)) * w1
-		+ transpose(J_fast(model, q2)) * λ1)
+		+ Λ1)
 end
 
+function dynamics(model::Box, env::Environment, h, q0, q1, u1, w1, λ1, q2)
+	Λ1 = transpose(J_func(model, env, q2)) * λ1
+	dynamics(model, h, q0, q1, u1, w1, Λ1, q2)
+end
 
 # Model
 box_alt = Box(Dimensions(6, 3, 3, 8),

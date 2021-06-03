@@ -41,7 +41,7 @@ model = deepcopy(hopper_2D)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
-expr_base = generate_base_expressions(model, M_analytical=true)
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=true)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
@@ -58,7 +58,7 @@ model = deepcopy(hopper_3D)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
-expr_base = generate_base_expressions(model, M_analytical=true)
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=true)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
@@ -74,7 +74,7 @@ model = deepcopy(quadruped)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
-expr_base = generate_base_expressions(model)
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=false)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
@@ -90,7 +90,7 @@ model = deepcopy(quadruped_payload)
 path_base = joinpath(dir, "dynamics_payload/base.jld2")
 path_dyn = joinpath(dir, "dynamics_payload/dynamics.jld2")
 
-expr_base = generate_base_expressions(model)
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=false)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
@@ -124,7 +124,7 @@ model = deepcopy(quadrupedlinear)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
-expr_base = generate_base_expressions(model, M_analytical=true)
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=true)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
@@ -140,7 +140,7 @@ model = deepcopy(biped)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
-expr_base = generate_base_expressions(model)
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=false)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
@@ -156,7 +156,7 @@ model = deepcopy(flamingo)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
-expr_base = generate_base_expressions(model)
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=false)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
@@ -173,7 +173,7 @@ model = deepcopy(pushbot)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
-expr_base = generate_base_expressions(model, M_analytical = true)
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=false)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
@@ -190,7 +190,7 @@ model = deepcopy(planarpush)
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
-expr_base = generate_base_expressions(model, M_analytical = false)
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=false)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
@@ -204,20 +204,21 @@ instantiate_dynamics!(model, path_dyn)
 ################################################################################
 dir = joinpath(@__DIR__, "rigidbody")
 model = deepcopy(rigidbody)
-include(joinpath(pwd(), "src/dynamics/rigidbody/model.jl"))
+# include(joinpath(module_dir(), "src/dynamics/rigidbody/model.jl"))
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
 expr_base = generate_base_expressions(model,
 	M_analytical = true,
+	C_analytical = true,
 	mapping = G_func,
 	nv = model.dim.q - 1)
 
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
-expr_dyn = generate_dynamics_expressions(model)
+expr_dyn = generate_dynamics_expressions(model, nv = model.dim.q - 1)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
@@ -226,7 +227,7 @@ instantiate_dynamics!(model, path_dyn)
 ################################################################################
 dir = joinpath(@__DIR__, "hopper_3D_quaternion")
 model = deepcopy(hopper_3D_quaternion)
-include(joinpath(pwd(), "src/dynamics/hopper_3D_quaternion/model.jl"))
+include(joinpath(module_dir(), "src/dynamics/hopper_3D_quaternion/model.jl"))
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
@@ -239,7 +240,7 @@ expr_base = generate_base_expressions(model,
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
-expr_dyn = generate_dynamics_expressions(model)
+expr_dyn = generate_dynamics_expressions(model, nv = model.dim.q - 1)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
@@ -248,7 +249,7 @@ instantiate_dynamics!(model, path_dyn)
 ################################################################################
 dir = joinpath(@__DIR__, "box")
 model = deepcopy(box)
-include(joinpath(pwd(), "src/dynamics/box/model.jl"))
+include(joinpath(module_dir(), "src/dynamics/box/model.jl"))
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
@@ -261,7 +262,7 @@ expr_base = generate_base_expressions(model,
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
-expr_dyn = generate_dynamics_expressions(model)
+expr_dyn = generate_dynamics_expressions(model, nv = model.dim.q - 1)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
@@ -270,7 +271,7 @@ instantiate_dynamics!(model, path_dyn)
 ################################################################################
 dir = joinpath(@__DIR__, "box_alt")
 model = deepcopy(box_alt)
-include(joinpath(pwd(), "src/dynamics/box_alt/model.jl"))
+include(joinpath(module_dir(), "src/dynamics/box_alt/model.jl"))
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")

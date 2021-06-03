@@ -123,7 +123,7 @@ function velocity_stack(model::RigidBody, env::Environment{<:World,NonlinearCone
 	vT_stack = vcat([v_surf[i][1:ne-1] for i = 1:nc]...)
 end
 
-function dynamics(model::RigidBody, h, q0, q1, u1, w1, λ1, q2)
+function dynamics(model::RigidBody, h, q0, q1, u1, w1, Λ1, q2)
 
 	p0 = q0[1:3]
 	quat0 = q0[4:7]
@@ -155,7 +155,12 @@ function dynamics(model::RigidBody, h, q0, q1, u1, w1, λ1, q2)
 	return (d
 		+ transpose(B_fast(model, qm2)) * u1
 		+ transpose(A_fast(model, qm2)) * w1
-		+ transpose(J_fast(model, q2)) * λ1)
+		+ Λ1)
+end
+
+function dynamics(model::RigidBody, env::Environment, h, q0, q1, u1, w1, λ1, q2)
+	Λ1 = transpose(J_func(model, env, q2)) * λ1
+	dynamics(model, h, q0, q1, u1, w1, Λ1, q2)
 end
 
 function G_func(::RigidBody, q)
