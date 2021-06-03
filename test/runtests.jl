@@ -34,6 +34,7 @@ include("simulator/particle.jl")
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
 # include("simulator/hopper_3D.jl")
 include("simulator/quadruped.jl")
+include("simulator/open_loop.jl")
 # include("simulator/biped.jl") #TODO: improve this test
 # include("simulator/flamingo.jl") #TODO: add this test
 

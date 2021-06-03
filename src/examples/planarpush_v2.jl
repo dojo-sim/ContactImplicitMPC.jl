@@ -4,52 +4,6 @@ open(vis)
 # render(vis)
 
 
-
-
-
-
-dir = joinpath(module_dir(), "src", "dynamics", "planarpush")
-model = deepcopy(planarpush)
-
-path_base = joinpath(dir, "dynamics/base.jld2")
-path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
-
-expr_base = generate_base_expressions(model, M_analytical = false)
-save_expressions(expr_base, path_base, overwrite=true)
-instantiate_base!(model, path_base)
-
-expr_dyn = generate_dynamics_expressions(model)
-save_expressions(expr_dyn, path_dyn, overwrite=true)
-instantiate_dynamics!(model, path_dyn)
-
-
-
-
-dir_model = joinpath(module_dir(), "src/dynamics/planarpush")
-dir_sim   = joinpath(module_dir(), "src/simulation/planarpush")
-model = deepcopy(planarpush)
-env = deepcopy(flat_3D_lc)
-sim = Simulation(model, env)
-
-path_base = joinpath(dir_model, "dynamics/base.jld2")
-path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
-path_res = joinpath(dir_sim, "flat/residual.jld2")
-path_jac = joinpath(dir_sim, "flat/jacobians.jld2")
-
-instantiate_base!(model, path_base)
-instantiate_dynamics!(model, path_dyn)
-
-expr_contact = generate_contact_expressions(model, env, jacobians=false)
-instantiate_contact_methods!(sim.con, expr_contact, jacobians=:full)
-expr_contact = generate_contact_expressions(model, env, jacobians=true)
-instantiate_contact_methods!(sim.con, expr_contact, jacobians=:approx)
-
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
-save_expressions(expr_res, path_res, overwrite=true)
-@save path_jac rz_sp rθ_sp
-instantiate_residual!(sim, path_res, path_jac)
-
-
 include(joinpath(@__DIR__, "..", "dynamics", "planarpush", "visuals.jl"))
 
 s = get_simulation("planarpush", "flat_3D_lc", "flat")
@@ -101,10 +55,10 @@ ref_traj = deepcopy(sim0.traj)
 ref_traj.H
 
 # MPC
-N_sample = 1
+N_sample = 2
 H_mpc = 40
 h_sim = h / N_sample
-H_sim = 500
+H_sim = 1000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -141,14 +95,14 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 # p = open_loop_policy(fill(SVector{nu}([40*h, -0.0]), H*2), N_sample=N_sample)
 using Random
 Random.seed!(100)
-d = open_loop_disturbances([[0.05*rand(), 0.0, 0.4*rand()] for t=1:H_sim])
+d = open_loop_disturbances([[0.05*rand(), 0.0, 0.4*rand()] for t=1:H_sim], N_sample)
 
 q0_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
 q1_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
 
 sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
-	uL=-0.9*ones(model.dim.u),
-	uU=+2.0*ones(model.dim.u),
+	# uL=-0.9*ones(model.dim.u),
+	# uU=+2.0*ones(model.dim.u),
     p = p,
 	d = d,
     ip_opts = ContactControl.InteriorPointOptions(
@@ -158,6 +112,7 @@ sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 		diff_sol=true),
     sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
+sim.traj.H
 sim.traj.u
 
 @time status = ContactControl.simulate!(sim)
@@ -166,8 +121,8 @@ anim = visualize_robot!(vis, model, sim.traj, name=:sim, sample = N_sample, α=1
 anim = visualize_robot!(vis, model, ref_traj, name=:ref, anim=anim, sample = 1, α=0.5)
 
 plot(hcat([x[1:2] ./ N_sample for x in ref_traj.u]...)')
-scatter!(hcat([x[1:2] for x in sim.traj.u]...)')
-sim.traj.u
+scatter(hcat([x[1:2] for x in sim.traj.u[1:10]]...)')
+
 # filename = "planarpush_precise"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",

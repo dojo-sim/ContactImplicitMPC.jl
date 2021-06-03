@@ -30,11 +30,16 @@ mutable struct OpenLoopDisturbance{W} <: Disturbances
     N_sample::Int
 end
 
-function open_loop_disturbances(w)
+function open_loop_disturbances(w, N_sample=Int)
     OpenLoopDisturbance(w, 0, N_sample, N_sample)
 end
 
 function disturbances(d::OpenLoopDisturbance, x, t)
+    # With N_sample = 3
+    # t   = 1   2   3   4   5   6   7   8   9   10
+    # idx = 1   1   1  12   2   2  23   3   3   34
+    # cnt = 0   1   2  30   1   2  30   1   2   30
+
     # reset
     if t == 1
         d.idx = 0
@@ -108,9 +113,3 @@ function disturbances(d::RandomDisturbance, x, t)
     k = searchsortedlast(d.t, t)
     return d.w[k]
 end
-
-
-
-a = [2.0]
-b = [2, 3]
-a .* b

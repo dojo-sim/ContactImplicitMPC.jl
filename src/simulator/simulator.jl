@@ -42,8 +42,8 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
     traj = contact_trajectory(model, env, H, h)
     traj.q[1] = q0
     traj.q[2] = q1
-    traj.u[1] = control_saturation(policy(p, traj.q[2], traj, 1), uL, uU)
-    traj.w[1] = disturbances(d, traj.q[2], 1)
+    # traj.u[1] = control_saturation(policy(p, traj.q[2], traj, 1), uL, uU) #@@@
+    traj.w[1] = disturbances(d, traj.q[2], 1) #@@@
 
     # initialize interior point solver (for pre-factorization)
     z = zeros(num_var(model, s.env))
@@ -89,11 +89,21 @@ function step!(sim::Simulator, t)
     z = ip.z
     θ = ip.θ
 
+    # t = 1 2 3
+    # u1 = traj.u[t]
+    # w1 = traj.w[t]
+    # γ1 = traj.γ[t]
+    # b1 = traj.b[t]
+    # q0 = traj.q[t]
+    # q1 = traj.q[t+1]
+    # q2 = traj.q[t+2]
+
     # policy
     u[t] = control_saturation(policy(sim.p, q[t+1], sim.traj, t), sim.uL, sim.uU)
 
     # disturbances
-    w[t] = disturbances(sim.d, q[t], t)
+    # w[t] = disturbances(sim.d, q[t], t) #@@@
+    w[t] = disturbances(sim.d, q[t+1], t)
 
     # initialize
     if sim.opts.warmstart

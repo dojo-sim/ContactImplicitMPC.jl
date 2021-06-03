@@ -66,7 +66,7 @@ function update_altitude!(alt, model::ContactModel, traj, t, N_sample;
 	threshold = 1.0, verbose = false)
 
 	# idx1 = max(0, t - N_sample) + 1
-	idx1 = max(0, t-1 - N_sample) + 1
+	idx1 = max(0, t-1 - N_sample) + 1 #@@@ simplify
 
 	for i = 1:model.dim.c
 		γ_max = 0.0
@@ -86,7 +86,7 @@ function update_altitude!(alt, model::ContactModel, traj, t, N_sample;
 			verbose && println(" ")
 			verbose && println("point $i in contact")
 			verbose && println("sim_step : $idx_max")
-			verbose && println("alt      : $(ϕ_func(model, traj.q[idx_max])[i])")
+			verbose && println("alt      : $(ϕ_func(model, traj.q[idx_max+2])[i])")
 			verbose && println("force    : $(traj.γ[idx_max][i])")
 		end
 	end
