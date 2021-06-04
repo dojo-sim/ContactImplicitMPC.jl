@@ -133,30 +133,30 @@ function build_force!(vis::Visualizer, model::ContactModel; name::Symbol=model_n
 	return nothing
 end
 
-function contact_force(model::ContactModel, pc::AbstractVector,
+function contact_force(model::ContactModel, env::Environment, pc::AbstractVector,
 		γ::AbstractVector, b::AbstractVector;
-		E::AbstractMatrix=Matrix(friction_mapping(model.env)))
+		E::AbstractMatrix=Matrix(friction_mapping(env)))
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 	nf = Int(nb/nc)
 
-	r = [Matrix(rotation(model.env, pc[i])') for i=1:nc]
+	r = [Matrix(rotation(env, pc[i])') for i=1:nc]
 	bc = [r[i] * [E*b[(i-1) * nf .+ (1:nf)];  0.0] for i = 1:nc] # TODO: make efficient
 	λc = [r[i] * [E*b[(i-1) * nf .+ (1:nf)]; γ[i]] for i = 1:nc] # TODO: make efficient
 	return bc, λc
 end
 
-function set_force!(vis::Visualizer, model::ContactModel, q::AbstractVector,
-		γ::AbstractVector, b::AbstractVector; name::Symbol=model_name(model), shift=-0.04,
-		E::AbstractMatrix=Matrix(friction_mapping(model.env)))
+function set_force!(vis::Visualizer, model::ContactModel, env::Environment, q::AbstractVector,
+		γ::AbstractVector, b::AbstractVector; name::Symbol=model_name(model), shift=-0.14,
+		E::AbstractMatrix=Matrix(friction_mapping(env)))
 
 	nc = model.dim.c
-	nb = model.dim.b
+	nb = nc * friction_dim(env)
 	nf = Int(nb/nc)
 	p_shift = [0, shift, 0]
 
 	pc = contact_point(model, q)
-	bc, λc = contact_force(model, pc, γ, b, E=E)
+	bc, λc = contact_force(model, env, pc, γ, b, E=E)
 
 	imp_vis = [ArrowVisualizer(vis[name][:force][:impact]["$i"]) for i=1:nc]
 	fri_vis = [ArrowVisualizer(vis[name][:force][:friction]["$i"]) for i=1:nc]
@@ -183,7 +183,7 @@ function set_force!(vis::Visualizer, model::ContactModel, q::AbstractVector,
 			max_head_radius=0.020)
 
 		trans = Translation(pc[i] + p_shift)
-		rot = LinearMap(rotation_3d(model.env, pc[i])')
+		rot = LinearMap(rotation_3d(env, pc[i])')
 		transform = compose(trans, rot)
 		settransform!(vis[name][:force][:impact]["$i"], transform)
 
@@ -198,35 +198,35 @@ function set_force!(vis::Visualizer, model::ContactModel, q::AbstractVector,
 	return nothing
 end
 
-function animate_force!(vis::Visualizer, anim::MeshCat.Animation, model::ContactModel,
+function animate_force!(vis::Visualizer, anim::MeshCat.Animation, model::ContactModel, env::Environment,
 	q::AbstractVector, γ::AbstractVector, b::AbstractVector;
 	name::Symbol=model_name(model))
-	E = Matrix(friction_mapping(model.env))
+	E = Matrix(friction_mapping(env))
 	for t in 1:length(q)
 		MeshCat.atframe(anim, t) do
-			set_force!(vis, model, q[t], γ[t], b[t], name=name, E=E)
+			set_force!(vis, model, env, q[t], γ[t], b[t], name=name, E=E)
 		end
 	end
 	setanimation!(vis, anim)
 	return nothing
 end
 
-function visualize_force!(vis::Visualizer, model::ContactModel,
+function visualize_force!(vis::Visualizer, model::ContactModel, env::Environment,
 		q::AbstractVector, γ::AbstractVector, b::AbstractVector; h=0.01,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
 	build_force!(vis, model, name=name)
-	animate_force!(vis, anim, model, q, γ, b, name=name)
+	animate_force!(vis, anim, model, env, q, γ, b, name=name)
 	return anim
 end
 
-function visualize_force!(vis::Visualizer, model::ContactModel,
+function visualize_force!(vis::Visualizer, model::ContactModel, env::Environment,
 		traj::ContactTraj; sample=max(1,Int(floor(traj.H/100))), h=traj.h*sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
-	visualize_force!(vis, model, traj.q[3:sample:end], traj.γ[1:sample:end], traj.b[1:sample:end];
+	visualize_force!(vis, model, env, traj.q[3:sample:end], traj.γ[1:sample:end], traj.b[1:sample:end];
 			anim=anim, name=name, h=h)
 	return anim
 end

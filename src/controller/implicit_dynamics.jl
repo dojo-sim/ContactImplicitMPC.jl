@@ -74,7 +74,7 @@ end
 
 function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	s::Simulation,
-	 # alt::Vector
+	 alt::Vector
 	; κ = ref_traj.κ[1])
 
 	H = ref_traj.H
@@ -88,9 +88,9 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 		im_traj.ip[t].rz = im_traj.ip[t+1].rz
 		im_traj.ip[t].rθ = im_traj.ip[t+1].rθ
 
-		# # altitude
-		# im_traj.ip[t].r.alt = alt
-		# im_traj.ip[t].r̄.alt = alt
+		# altitude
+		im_traj.ip[t].r.alt = alt
+		im_traj.ip[t].r̄.alt = alt
 	end
 
 	update!(im_traj.lin[H], s, ref_traj.z[H], ref_traj.θ[H])
@@ -106,9 +106,9 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	update!(im_traj.ip[H].rz, rz0)
 	update!(im_traj.ip[H].rθ, rθ0)
 
-	# # altitude
-	# im_traj.ip[H].r.alt = alt
-	# im_traj.ip[H].r̄.alt = alt
+	# altitude
+	im_traj.ip[H].r.alt = alt
+	im_traj.ip[H].r̄.alt = alt
 	return nothing
 end
 
@@ -142,7 +142,8 @@ function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
 
 		# solve
 		status = interior_point!(im_traj.ip[t])
-		!status && error("implicit dynamics failure (t = $t)") && (@warn "implicit dynamics failure (t = $t)")
+		# !status && error("implicit dynamics failure (t = $t)")
+		!status && (@warn "implicit dynamics failure (t = $t)")
 
 		# compute dynamics violation
 		im_traj.dq2[t] .-= traj.q[t+2]

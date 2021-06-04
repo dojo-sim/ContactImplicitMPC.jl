@@ -81,8 +81,8 @@ end
 function kinematics_1(model::PlanarPush, q; body = :floor)
 	# Contact 1 is between object and floor: :floor
 	# Contact 2 is between object and pusher: :object, :pusher
-	x = [q[1], q[2], 0.0]
-	xp = [q[5], q[6], 0.0]
+	x = [q[1], q[2], 0.0]#@@@ this may be wrong we might need to replace 0.0 by one q entry
+	xp = [q[5], q[6], 0.0]#@@@ this may be wrong we might need to replace 0.0 by one q entry
 	Δ = x - xp
 	Δ ./= norm(Δ)
 	rc = model.r/sqrt(2)
@@ -209,8 +209,8 @@ function velocity_stack(model::PlanarPush, env::Environment{<:World,LinearizedCo
 	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	R = rotation_s_to_w(model, q2)
-	v_floor1 = rotation(env, k) * v[1:3]
-	v_floor2 = rotation(env, k) * v[4:6]
+	v_floor1 = rotation(env, k) * v[1:3] #@@@ this is wrong we need to select the k_floor_1 out of k wen feeding it in rotation
+	v_floor2 = rotation(env, k) * v[4:6] #@@@ this is wrong we need to select the k_floor_2 out of k wen feeding it in rotation
 	v_object_w = v[7:9]
 	# We express in the surface frame
 	v_object = R' * v_object_w # W -> S

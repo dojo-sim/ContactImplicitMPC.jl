@@ -56,6 +56,7 @@ include("simulator/trajectory.jl")
 include("dynamics/code_gen_dynamics.jl")
 include("dynamics/fast_methods_dynamics.jl")
 
+export World, LinearizedCone, NonlinearCone
 export ContactModel, Dimensions, BaseMethods, DynamicsMethods,
     ResidualMethods, Environment
 export environment_2D, environment_3D, environment_2D_flat,
@@ -112,5 +113,5 @@ export SparseStructure, LinearizedStep, get_bilinear_indices,
 
 export ImplicitTraj, linearization!, implicit_dynamics!
 export TrackingObjective
-
+export second_order_cone_product, generate_base_expressions
 end # module
