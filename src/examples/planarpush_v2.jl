@@ -2,10 +2,11 @@ const ContactControl = Main
 vis = Visualizer()
 open(vis)
 # render(vis)
-
-
 include(joinpath(@__DIR__, "..", "dynamics", "planarpush", "visuals.jl"))
 
+################################################################################
+# Simulate reference trajectory
+################################################################################
 s = get_simulation("planarpush", "flat_3D_lc", "flat")
 model = s.model
 nq = model.dim.q
@@ -24,11 +25,13 @@ H = 550
 N_sample = 1
 
 # initial conditions
-q0 = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
-q1 = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
+q0 = @SVector [0.00, -0.0000, 0.0, 0.0, -0.25, 5e-3, 0.0]
+q1 = @SVector [0.00, -0.0000, 0.0, 0.0, -0.25, 5e-3, 0.0]
 
 # p = open_loop_policy(fill(SVector{nu}([10.0*h, -0.0]), H*2), N_sample=N_sample)
 p = open_loop_policy(fill(SVector{nu}([40*h, -0.0]), H), N_sample=N_sample)
+# p = open_loop_policy(fill(SVector{nu}([32*h, -0.0]), H), N_sample=N_sample)
+# p = open_loop_policy(fill(SVector{nu}([0*h, -0.0]), H), N_sample=N_sample)
 
 # simulator
 sim0 = simulator(s, q0, q1, h, H,
@@ -43,7 +46,7 @@ status = simulate!(sim0)
 
 visualize_robot!(vis, model, sim0.traj)
 
-plot(hcat([x[1:nq] for x in sim0.traj.q]...)')
+plot(hcat([x[3:3] for x in sim0.traj.q]...)')
 plot(hcat([x[1:nu] for x in sim0.traj.u]...)')
 plot(hcat([x[1:nw] for x in sim0.traj.w]...)')
 plot(hcat([x[1:nc] for x in sim0.traj.γ]...)')
@@ -51,14 +54,19 @@ plot(hcat([x[1:nb] for x in sim0.traj.b]...)')
 # plot(hcat([x[1:8] for x in sim0.traj.b]...)')
 
 
+
+################################################################################
+# MPC Control
+################################################################################
+
 ref_traj = deepcopy(sim0.traj)
 ref_traj.H
 
 # MPC
-N_sample = 2
+N_sample = 1
 H_mpc = 40
 h_sim = h / N_sample
-H_sim = 1000
+H_sim = 1600
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -73,7 +81,7 @@ obj = TrackingVelocityObjective(model, s.env, H_mpc,
 
 #
 obj = TrackingVelocityObjective(model, s.env, H_mpc,
-	q = [Diagonal(1.0e-2 * [1e2, 1e2, 1e-1, 1e-1, 1e-0, 1e-0, 1e-0,]) for t = 1:H_mpc],
+	q = [Diagonal(1.0e-0 * [1e0, 1e0, 1e-3, 1e-3, 1e-5, 1e-5, 1e-2,]) for t = 1:H_mpc],
 	v = [Diagonal(1.0e-1 * ones(model.dim.q)) for t = 1:H_mpc],
 	u = [Diagonal(1.0e-4 * ones(model.dim.u)) for t = 1:H_mpc],
 	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
@@ -84,10 +92,12 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
     n_opts = NewtonOptions(
-        r_tol = 3e-4,
+		# r_tol = 3e-4,
+        r_tol = 5e1,
         solver = :ldl_solver,
-		# max_iter = 5),
+		verbose=true,
 		max_iter = 5),
+		# max_iter = 50),
     mpc_opts = LinearizedMPCOptions(
 		# live_plotting=true
 		))
@@ -95,10 +105,10 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 # p = open_loop_policy(fill(SVector{nu}([40*h, -0.0]), H*2), N_sample=N_sample)
 using Random
 Random.seed!(100)
-d = open_loop_disturbances([[0.05*rand(), 0.0, 0.4*rand()] for t=1:H_sim], N_sample)
+# d = open_loop_disturbances([[0.05*rand(), 0.0, 0.4*rand()] for t=1:H_sim], N_sample)
 
-q0_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
-q1_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.00]
+q0_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.0]
+q1_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 5e-3, 0.0]
 
 sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	# uL=-0.9*ones(model.dim.u),
@@ -116,12 +126,12 @@ sim.traj.H
 sim.traj.u
 
 @time status = ContactControl.simulate!(sim)
-sim0
 anim = visualize_robot!(vis, model, sim.traj, name=:sim, sample = N_sample, α=1.0)
 anim = visualize_robot!(vis, model, ref_traj, name=:ref, anim=anim, sample = 1, α=0.5)
 
-plot(hcat([x[1:2] ./ N_sample for x in ref_traj.u]...)')
-scatter(hcat([x[1:2] for x in sim.traj.u[1:10]]...)')
+plot(hcat([x[1:2] ./ N_sample for x in ref_traj.u[1:20]]...)')
+scatter!(hcat([x[1:2] for x in sim.traj.u[1:end]]...)')
+# scatter(hcat([x[1:2] for x in sim.traj.u[1:end]]...)')
 
 # filename = "planarpush_precise"
 # MeshCat.convert_frames_to_video(

@@ -102,23 +102,23 @@ function live_plotting(model::ContactModel, ref_traj::ContactTraj,
 	qu = nq
 	ul = 1
 	uu = nu
-	plt = plot(layout=grid(2,1,heights=[0.7, 0.3], figsize=[(1000, 1000),(400,400)]), legend=false, xlims=(0,20))
-	plot!(plt[1,1], hcat([Vector(x[ql:qu]) for x in newton.traj.q]...)', color=:blue, linewidth=1.0)
-	plot!(plt[1,1], hcat([Vector(x[ql:qu]) for x in ref_traj.q]...)', linestyle=:dot, color=:red, linewidth=3.0)
+	plt = plot(layout=grid(2,1,heights=[0.7, 0.3], figsize=[(1000, 1000),(400,400)]), legend=:bottomright, xlims=(0,20))
+	plot!(plt[1,1], hcat([Vector(x[ql:qu]) for x in newton.traj.q]...)', color=:blue, linewidth=1.0, label=nothing)
+	plot!(plt[1,1], hcat([Vector(x[ql:qu]) for x in ref_traj.q]...)', linestyle=:dot, color=:red, linewidth=3.0, label=nothing)
 
-	scatter!((2-1/N_sample)ones(nq), sim_traj.q[t+0], markersize=8.0, color=:lightgreen)
-	scatter!(2*ones(nq), sim_traj.q[t+1], markersize=8.0, color=:lightgreen)
-	# scatter!(plt[1,1], 3*ones(nq), sim_traj.q[t+2], markersize=8.0, color=:lightgreen)
+	scatter!((2-1/N_sample)ones(nq), sim_traj.q[t+0], markersize=8.0, color=:lightgreen, label="simul. q0 q1")
+	scatter!(2*ones(nq), sim_traj.q[t+1], markersize=8.0, color=:lightgreen, label=nothing)
+	# scatter!(plt[1,1], (2+1/N_sample)ones(nq), sim_traj.q[t+2], markersize=8.0, color=:lightgreen)
 
 	# @show norm(sim_traj.q[t+1] - q1, Inf)
-	scatter!(plt[1,1], 1*ones(nq), q0, markersize=6.0, color=:blue)
-	scatter!(plt[1,1], 2*ones(nq), q1, markersize=6.0, color=:blue)
+	scatter!(plt[1,1], 1*ones(nq), q0, markersize=6.0, color=:blue, label="newton q0 q1")
+	scatter!(plt[1,1], 2*ones(nq), q1, markersize=6.0, color=:blue, label=nothing)
 
-	scatter!(plt[1,1], 1*ones(nq), ref_traj.q[1], markersize=4.0, color=:red)
-	scatter!(plt[1,1], 2*ones(nq), ref_traj.q[2], markersize=4.0, color=:red)
-	scatter!(plt[1,1], 3*ones(nq), ref_traj.q[3], markersize=4.0, color=:red)
+	scatter!(plt[1,1], 1*ones(nq), ref_traj.q[1], markersize=4.0, color=:red, label="refer. q0 q1 q2")
+	scatter!(plt[1,1], 2*ones(nq), ref_traj.q[2], markersize=4.0, color=:red, label=nothing)
+	scatter!(plt[1,1], 3*ones(nq), ref_traj.q[3], markersize=4.0, color=:red, label=nothing)
 
-	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in newton.traj.u]...)', color=:blue, linewidth=1.0)
-	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in ref_traj.u[1:end]]...)', linestyle=:dot, color=:red, linewidth=3.0)
+	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in newton.traj.u]...)', color=:blue, linewidth=1.0, label="u newton")
+	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in ref_traj.u[1:end]]...)', linestyle=:dot, color=:red, linewidth=3.0, label="u refer.")
 	display(plt)
 end

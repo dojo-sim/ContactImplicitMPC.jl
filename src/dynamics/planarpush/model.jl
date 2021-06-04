@@ -231,7 +231,8 @@ nb = nc * nf              # number of friction parameters
 nw = 3                    # disturbance dimension
 
 # World parameters
-μ_world = 0.50      # coefficient of friction
+# μ_world = 0.50      # coefficient of friction
+μ_world = 0.10      # coefficient of friction
 μ_joint = 0.0
 g = 9.81     # gravity
 

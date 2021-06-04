@@ -21,7 +21,7 @@
 	q0 = rand(4)
 	q0 ./= norm(q0)
 	ψ = 0.05 * rand(3)
-	qψ = φ(ψ)
+	qψ = cayley_map(ψ)
 	sqψ = sqrt_quat(qψ)
 	q1 = L_multiply(qψ) * q0
 	q2 = L_multiply(sqψ) * L_multiply(sqψ) * q0

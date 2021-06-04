@@ -479,7 +479,7 @@ function newton_solve!(core::Newton, s::Simulation,
     warm_start::Bool = false, initial_offset::Bool = false,
     q0 = ref_traj.q[1], q1 = ref_traj.q[2], verbose::Bool=false)
 
-    # @show "newton_solve!" #simon
+    # @show "newton_solve!" #@@@
 	reset!(core, ref_traj, warm_start = warm_start,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
 
@@ -493,7 +493,7 @@ function newton_solve!(core::Newton, s::Simulation,
 
     for l = 1:core.opts.max_iter
         # check convergence
-        # println("l = ", l, "  norm = ", r_norm / length(core.res.r)) #simon
+        # println("lbefor = ", l, "  norm = ", r_norm / length(core.res.r)) #@@@
         r_norm / length(core.res.r) < core.opts.r_tol && break
         # Compute NewtonJacobian
         update_jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
@@ -513,7 +513,7 @@ function newton_solve!(core::Newton, s::Simulation,
 
         # Compute residual for candidate
         residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
-        r_cand_norm = norm(core.res_cand.r)
+        r_cand_norm = norm(core.res_cand.r, 1)
 
         while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
             α = 0.5 * α
@@ -529,13 +529,14 @@ function newton_solve!(core::Newton, s::Simulation,
 			implicit_dynamics!(im_traj, s, core.traj_cand, κ = core.traj_cand.κ)
 
             residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
-            r_cand_norm = norm(core.res_cand.r)
+            r_cand_norm = norm(core.res_cand.r, 1)
         end
 
         # update
         update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
         core.res.r .= core.res_cand.r
         r_norm = r_cand_norm
+        # println("lafter = ", l, "  norm = ", r_norm / length(core.res.r)) #@@@
 
         # regularization update
         if iter > 6

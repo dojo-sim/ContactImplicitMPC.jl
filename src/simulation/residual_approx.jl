@@ -26,8 +26,8 @@ function rz_approx!(s, rz, z, θ)
 	nb = model.dim.c * friction_dim(env)
 
 	# Dynamics
-	rz[1:model.dim.q, 1:model.dim.q] = model.dyn.∂q2(h, q0, q1, u1, w1, λ1, q2) + sim.com.dJ(λ1, q2)
-	rz[1:model.dim.q, 1:(model.dim.q + model.dim.c + nb)] += s.con.dλ1(h, q0, q1, u1, w1, λ1, q2) * s.con.dcf(γ1, b1, q2, k)
+	rz[1:model.dim.q, 1:model.dim.q] = model.dyn.∂q2(h, q0, q1, u1, w1, λ1, q2) + s.con.dJ(λ1, q2)
+	rz[1:model.dim.q, 1:(model.dim.q + model.dim.c + nb)] += s.con.dλ1(q2) * s.con.dcf(γ1, b1, q2, k)
 
 	# Maximum dissipation
 	rz[model.dim.q + model.dim.c .+ (1:nb), model.dim.q + model.dim.c + nb .+ (1:model.dim.c + nb)] = s.con.mdψη(vT, ψ1, η1)

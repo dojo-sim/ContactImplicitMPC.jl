@@ -43,7 +43,7 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
     traj.q[1] = q0
     traj.q[2] = q1
     # traj.u[1] = control_saturation(policy(p, traj.q[2], traj, 1), uL, uU) #@@@
-    traj.w[1] = disturbances(d, traj.q[2], 1) #@@@
+    # traj.w[1] = disturbances(d, traj.q[2], 1) #@@@
 
     # initialize interior point solver (for pre-factorization)
     z = zeros(num_var(model, s.env))
