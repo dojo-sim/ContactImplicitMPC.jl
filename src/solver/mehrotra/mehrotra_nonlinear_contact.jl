@@ -13,8 +13,14 @@ mutable struct ProblemData{T}
     c::AbstractVector{T}
 end
 
-function get_data(model::ContactModel, env::Environment, ref_traj::ContactTraj;
-    κ=1e-6, t::Int=1)
+function get_data(s::Simulation, ref_traj::ContactTraj, t::Int; κ=1e-6)
+    get_data(s, ref_traj.z[t], ref_traj.θ[t], κ=κ)
+end
+
+function get_data(s::Simulation, z, θ;
+    κ=1e-6)
+    model = s.model
+    env = s.env
     # Dimensions and indices
     ix, iy1, iy2 = linearization_var_index(model, env)
     idyn, irst, ibil, ialt = linearization_term_index(model, env)
@@ -22,9 +28,6 @@ function get_data(model::ContactModel, env::Environment, ref_traj::ContactTraj;
     nθ = num_data(model)
     nx = length(ix)
     ny = length(iy1)
-
-    z = ref_traj.z[t]
-    θ = ref_traj.θ[t]
 
     r = zeros(nz)
     rz = zeros(nz, nz)
@@ -43,8 +46,8 @@ function get_data(model::ContactModel, env::Environment, ref_traj::ContactTraj;
     G = rz[irst, ix]
     H = rz[irst, iy1]
     J = rz[irst, iy2]
-    b = (rz*z + r)[idyn]
-    c = (rz*z + r)[irst]
+    b = r[idyn]
+    c = r[irst]
 
     # Dimensions
     n = nx
@@ -100,7 +103,7 @@ function unpack(Δ; n=n, m=m)
 end
 
 function progress(res)
-    ϵ = min(0.1, res^2)
+    ϵ = min(0.05, res^2)
     τ = 1 - ϵ
     return τ
 end
@@ -163,16 +166,28 @@ function initial_state(data::ProblemData)
     return w10, w20, w30
 end
 
-function mehrotra_solve(data::ProblemData; newton_iter::Int=100,
-        τ=0.99995, res_tol=1e-8, verbose::Bool=false)
+function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
+        newton_iter::Int=100, τ=0.99995, res_tol=1e-8, verbose::Bool=false)
+    κ = res_tol
+
+    z = deepcopy(ref_traj.z[t])
+    θ = deepcopy(ref_traj.θ[t])
+    data = get_data(s, z, θ, κ=κ)
+    ix, iy1, iy2 = linearization_var_index(s.model, s.env)
+
     n = data.n
     m = data.m
 
     w1, w2, w3 = initial_state(data)
+    # w1, w2, w3 = unpack(1e-3ones(n + 2m), n=n, m=m)
     iter = 0
     success = false
     for k = 1:newton_iter
         iter += 1
+
+        # z[[ix; iy1; iy2]] .= [w1; w2; w3]
+        data = get_data(s, z, θ)
+
         Δaff = affine_direction(w1, w2, w3, data, κ=0.0)
         Δw1aff, Δw2aff, Δw3aff = unpack(Δaff, n=n, m=m)
         αhaff, μaff = step_length(w2, w3, Δw2aff, Δw3aff)
@@ -197,19 +212,27 @@ function mehrotra_solve(data::ProblemData; newton_iter::Int=100,
     return iter, success
 end
 
-function baseline_solve(data::ProblemData; newton_iter::Int=100,
+function baseline_solve(s::Simulation, ref_traj::ContactTraj, t::Int; newton_iter::Int=100,
         res_tol=1e-8, verbose::Bool=false)
     κ = res_tol
 
+    z = deepcopy(ref_traj.z[t])
+    θ = deepcopy(ref_traj.θ[t])
+    data = get_data(s, z, θ, κ=κ)
+    ix, iy1, iy2 = linearization_var_index(s.model, s.env)
     n = data.n
     m = data.m
 
-    w1, w2, w3 = initial_state(data)
+    # w1, w2, w3 = initial_state(data)
     w1, w2, w3 = unpack(1e-3ones(n + 2m), n=n, m=m)
     iter = 0
     success = false
     for k = 1:newton_iter
         iter += 1
+
+        # z[[ix; iy1; iy2]] .= [w1; w2; w3]
+        data = get_data(s, z, θ)
+
         Δaff = affine_direction(w1, w2, w3, data, κ=κ)
         Δw1aff, Δw2aff, Δw3aff = unpack(Δaff, n=n, m=m)
         αhaff, μaff = step_length(w2, w3, Δw2aff, Δw3aff)
@@ -229,7 +252,7 @@ end
 
 
 
-function evaluate(model::ContactModel, env::Environment, ref_traj::ContactTraj;
+function evaluate(s::Simulation, ref_traj::ContactTraj;
         algorithm::Symbol=:mehrotra_solve, newton_iter=100, res_tol=1e-8)
 
     κ = res_tol
@@ -237,11 +260,10 @@ function evaluate(model::ContactModel, env::Environment, ref_traj::ContactTraj;
     iter = []
     success = 0.0
     for t = 1:H
-        data = get_data(model, env, ref_traj, κ=κ, t=t)
         it = newton_iter
         su = false
         try
-            it, su = eval(algorithm)(data, newton_iter = newton_iter, res_tol = res_tol)
+            it, su = eval(algorithm)(s, deepcopy(ref_traj), t, newton_iter = newton_iter, res_tol = res_tol)
         catch e
             @show e
         end
@@ -270,29 +292,30 @@ end
 # Benchmark
 ################################################################################
 
-# Test Quadruped
-s = get_simulation("quadruped", "flat_2D_lc", "flat")
-ref_traj = deepcopy(get_trajectory(s.model, s.env,
-    joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
-    load_type = :split_traj_alt))
+# # Test Quadruped
+# s1 = get_simulation("quadruped", "flat_2D_lc", "flat")
+# ref_traj1 = deepcopy(get_trajectory(s1.model, s1.env,
+#     joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+#     load_type = :split_traj_alt))
+#
+# # Test Flamingo
+# s2 = get_simulation("flamingo", "flat_2D_lc", "flat")
+# ref_traj2 = deepcopy(get_trajectory(s2.model, s2.env,
+#     joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
+#     load_type = :split_traj_alt))
+#
+# # Test Hopper 2D
+# s3 = get_simulation("hopper_2D", "flat_2D_lc", "flat")
+# ref_traj3 = get_trajectory(s3.model, s3.env,
+#     joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_in_place.jld2"),
+#     load_type=:joint_traj)
 
-μ_iter, σ_iter, success_rate = evaluate(s.model, s.env, ref_traj, algorithm = :mehrotra_solve, res_tol=1e-4)
-μ_iter, σ_iter, success_rate = evaluate(s.model, s.env, ref_traj, algorithm = :baseline_solve, res_tol=1e-4)
 
-# Test Flamingo
-s = get_simulation("flamingo", "flat_2D_lc", "flat")
-ref_traj = deepcopy(get_trajectory(s.model, s.env,
-    joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
-    load_type = :split_traj_alt))
+μ_iter, σ_iter, success_rate = evaluate(s1, ref_traj1, algorithm = :mehrotra_solve, res_tol=1e-6)
+μ_iter, σ_iter, success_rate = evaluate(s1, ref_traj1, algorithm = :baseline_solve, res_tol=1e-6)
 
-μ_iter, σ_iter, success_rate = evaluate(s.model, s.env, ref_traj, algorithm = :mehrotra_solve, res_tol=1e-4)
-μ_iter, σ_iter, success_rate = evaluate(s.model, s.env, ref_traj, algorithm = :baseline_solve, res_tol=1e-4)
+μ_iter, σ_iter, success_rate = evaluate(s2, ref_traj2, algorithm = :mehrotra_solve, res_tol=1e-6)
+μ_iter, σ_iter, success_rate = evaluate(s2, ref_traj2, algorithm = :baseline_solve, res_tol=1e-6)
 
-# Test Hopper 2D
-s = get_simulation("hopper_2D", "flat_2D_lc", "flat")
-ref_traj = get_trajectory(s.model, s.env,
-    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_in_place.jld2"),
-    load_type=:joint_traj)
-
-μ_iter, σ_iter, success_rate = evaluate(s.model, s.env, ref_traj, algorithm = :mehrotra_solve, res_tol=1e-4)
-μ_iter, σ_iter, success_rate = evaluate(s.model, s.env, ref_traj, algorithm = :baseline_solve, res_tol=1e-4)
+μ_iter, σ_iter, success_rate = evaluate(s3, ref_traj3, algorithm = :mehrotra_solve, res_tol=1e-6)
+μ_iter, σ_iter, success_rate = evaluate(s3, ref_traj3, algorithm = :baseline_solve, res_tol=1e-6)

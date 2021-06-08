@@ -1,7 +1,7 @@
 """
     QDLDL inplace functionality
 """
-mutable struct QDLDLFactorisationAF{Tf<:AbstractFloat,Ti<:Integer}
+mutable struct LDLSolver{Tf<:AbstractFloat,Ti<:Integer} <: LinearSolver
     # QDLDL Factorization
     F::QDLDL.QDLDLFactorisation{Tf,Ti}
     # Allocate memory
@@ -11,31 +11,31 @@ mutable struct QDLDLFactorisationAF{Tf<:AbstractFloat,Ti<:Integer}
     num_entries::Vector{Ti}
 end
 
-function QDLDLFactorisationAF(A::SparseMatrixCSC{Tv,Ti}, F::QDLDL.QDLDLFactorisation{Tv,Ti}) where {Tv<:AbstractFloat,Ti<:Integer}
+function LDLSolver(A::SparseMatrixCSC{Tv,Ti}, F::QDLDL.QDLDLFactorisation{Tv,Ti}) where {Tv<:AbstractFloat,Ti<:Integer}
     Pr = zeros(Ti, nnz(A))
     Pc = zeros(Ti, size(A, 1) + 1)
     Pv = zeros(Tv, nnz(A))
     num_entries = zeros(Ti, size(A, 2))
-    return QDLDLFactorisationAF{Tv,Ti}(F, Pr, Pc, Pv, num_entries)
+    return LDLSolver{Tv,Ti}(F, Pr, Pc, Pv, num_entries)
 end
 
 function qdldl!(A::SparseMatrixCSC{Tv,Ti},
-                G::QDLDLFactorisationAF{Tv,Ti};
+                s::LDLSolver{Tv,Ti};
               ) where {Tv<:AbstractFloat, Ti<:Integer}
     # Reset the pre-allocated fields
-    G.Pr .= 0
-    G.Pc .= 0
-    G.Pv .= 0.0
-    G.num_entries .= 0
+    s.Pr .= 0
+    s.Pc .= 0
+    s.Pv .= 0.0
+    s.num_entries .= 0
 
     # Triangularize the matrix with the allocation-free method.
-    A = permute_symmetricAF(A, G.F.iperm, G.Pr, G.Pc, G.Pv, G.num_entries)  #returns an upper triangular matrix
+    A = permute_symmetricAF(A, s.F.iperm, s.Pr, s.Pc, s.Pv, s.num_entries)  #returns an upper triangular matrix
 
     # Update the workspace, triuA is the only field we need to update
-    G.F.workspace.triuA.nzval .= A.nzval
+    s.F.workspace.triuA.nzval .= A.nzval
 
     #factor the matrix
-    QDLDL.factor!(G.F.workspace, G.F.logical)
+    QDLDL.factor!(s.F.workspace, s.F.logical)
 
     return nothing
 end
@@ -104,25 +104,22 @@ function permute_symmetricAF(A::SparseMatrixCSC{Tv, Ti}, iperm::AbstractVector{T
     return (P')'
 end
 
+
 """
     LDL solver
 """
-mutable struct LDLSolver{T} <: LinearSolver
-    F::QDLDLFactorisationAF{T,Int}
-end
-
 function ldl_solver(A::SparseMatrixCSC{T,Int}) where T
-    LDLSolver(QDLDLFactorisationAF(A, qdldl(A)))
+    LDLSolver(A, qdldl(A))
 end
 
 ldl_solver(A::Array{T, 2}) where T = ldl_solver(sparse(A))
 
-function linear_solve!(solver::LDLSolver{T}, x::Vector{T}, A::SparseMatrixCSC{T,Int}, b::Vector{T}) where T
-    qdldl!(A, solver.F) # factorize
+function linear_solve!(solver::LDLSolver{Tv,Ti}, x::Vector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv}) where {Tv<:AbstractFloat,Ti<:Integer}
+    qdldl!(A, solver) # factorize
     x .= b
-    QDLDL.solve!(solver.F.F, x) # solve
+    QDLDL.solve!(solver.F, x) # solve
 end
 
-function linear_solve!(solver::LDLSolver{T}, X::Matrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T}) where T
-    x .= A \ B # TODO: fix
+function linear_solve!(solver::LDLSolver{Tv,Ti}, X::Matrix{Tv}, A::AbstractMatrix{Tv}, B::AbstractMatrix{Tv}) where {Tv<:AbstractFloat,Ti<:Integer}
+    X .= A \ B # TODO: fix
 end

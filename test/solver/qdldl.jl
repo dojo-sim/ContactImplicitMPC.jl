@@ -21,14 +21,14 @@
     @test norm(A0 * x0 - b, Inf) < 1e-8
 
     # The in-place QDLDL works on the same matrix A0
-    G0 = ContactControl.QDLDLFactorisationAF(A0, F0)
+    G0 = ContactControl.LDLSolver(A0, F0)
     ContactControl.qdldl!(A0, G0)
     x0 = deepcopy(b)
     QDLDL.solve!(G0.F, x0)
     @test norm(A0 * x0 - b, Inf) < 1e-8
 
     # The in-place QDLDL works on a different marix A1 but with the same sparsity pattern
-    G1 = ContactControl.QDLDLFactorisationAF(A0, F0)
+    G1 = ContactControl.LDLSolver(A0, F0)
     ContactControl.qdldl!(A1, G0)
     x0 = deepcopy(b)
     QDLDL.solve!(G0.F, x0)
