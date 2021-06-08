@@ -77,6 +77,7 @@ include("dynamics/biped/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/planarpush/model.jl")
+include("dynamics/planarpush_2D/model.jl")
 include("dynamics/rigidbody/model.jl")
 
 # Simulator

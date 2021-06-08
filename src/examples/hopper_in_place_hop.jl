@@ -5,6 +5,8 @@ open(vis)
 
 # qet hopper simulation
 s = get_simulation("hopper_2D", "flat_2D_lc", "flat")
+model = s.model
+env = s.env
 nq = s.model.dim.q
 nu = model.dim.u
 nc = model.dim.c

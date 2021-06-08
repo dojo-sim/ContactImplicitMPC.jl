@@ -48,8 +48,8 @@ function set_robot!(vis::Visualizer, model::PlanarPush2D, q::AbstractVector;
 	r = convert(Float32, model.r)
 	rp = convert(Float32, model.rp)
 
-	p_object = [q[1:2]; 0.0]
-    p_pusher = [q[3:4]; 0.0]
+	p_object = [q[1], 0.0, q[2]]
+    p_pusher = [q[3], 0.0, q[4]]
 
     settransform!(vis[name][:robot]["object"], compose(Translation(p_object), LinearMap(RotZ(q[4]))))
     settransform!(vis[name][:robot]["pusher"], Translation(p_pusher))
