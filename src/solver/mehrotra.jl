@@ -1,56 +1,5 @@
-abstract type LinearSolver end
-
-# residual
-function r!(r, z, θ, κ)
-    @warn "residual not defined"
-    nothing
-end
-
-# residual mehrotra
-function rm!(r, z, Δz, θ, κ)
-    @warn "residual mehrotra not defined"
-    nothing
-end
-
-# residual Jacobian wrt z
-function rz!(rz, z, θ)
-    @warn "residual Jacobian wrt z not defined"
-    nothing
-end
-
-# residual Jacobian wrt θ
-function rθ!(rθ, z, θ)
-    @warn "residual Jacobian wrt θ not defined"
-    nothing
-end
-
-# function r_update!(r, r̄)
-#     r .= r̄
-# end
-
-# # optimization spaces
-# abstract type Space end
-#
-# # Euclidean
-# struct Euclidean <: Space
-#     n::Int
-# end
-#
-# function candidate_point!(z̄::Vector{T}, ::Euclidean, z::Vector{T}, Δ::Vector{T}, α::T) where T
-#     z̄ .= z - α .* Δ
-# end
-#
-# function update_point!(z::Vector{T}, ::Space, z̄::Vector{T}) where T
-#     z .= z̄
-# end
-#
-# function mapping!(δz, s::Euclidean, δzs, z) # TODO: make allocation free
-#     δz .= δzs
-# end
-
-
 # interior-point solver options
-@with_kw mutable struct Mehrotra19Options{T}
+@with_kw mutable struct MehrotraOptions{T}
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
     κ_init::T = 1.0                   # useless
@@ -67,14 +16,8 @@ end
     reg_du_init = 0.0
     ϵ_min = 0.05
     solver::Symbol = :lu_solver
+    verbose::Bool = false
 end
-
-# mutable struct ResidualMethods
-#     r!
-#     rm!
-#     rz!
-#     rθ!
-# end
 
 # regularize Jacobian / Hessian
 function regularize!(v_pr, v_du, reg_pr, reg_du)
@@ -82,7 +25,7 @@ function regularize!(v_pr, v_du, reg_pr, reg_du)
     v_du .-= reg_du
 end
 
-mutable struct Mehrotra19{T}
+mutable struct Mehrotra{T} <: InteriorPointSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}                 # current point
@@ -91,6 +34,7 @@ mutable struct Mehrotra19{T}
     Δ::Vector{T}                 # corrector search direction
     r                            # residual
     rm                           # corrector residual
+    rbil                         # corrector residual
     r_merit::T                   # residual norm
     r̄                            # candidate residual
     r̄_merit::T                   # candidate residual norm
@@ -106,6 +50,7 @@ mutable struct Mehrotra19{T}
     κ::Vector{T}                 # barrier parameter
     num_var::Int
     num_data::Int
+    nbil::Int
     solver::LinearSolver
     v_pr # view
     v_du # view
@@ -117,9 +62,11 @@ mutable struct Mehrotra19{T}
     Δ_y2 # view into Δ corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
     iy1
     iy2
+    ibil
     reg_pr
     reg_du
-    opts::Mehrotra19Options
+    iterations::Int
+    opts::MehrotraOptions
 end
 
 function mehrotra(z, θ;
@@ -132,6 +79,7 @@ function mehrotra(z, θ;
         idx_du = collect(1:0),
         iy1 = collect(1:0),
         iy2 = collect(1:0),
+        ibil = collect(1:0),
         r! = r!, rm! = rm!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
         rm = zeros(s.n),
@@ -140,21 +88,30 @@ function mehrotra(z, θ;
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts = Mehrotra19Options()) where T
+        opts = MehrotraOptions()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
-    # Views
+    # Search direction
     Δaff = zeros(s.n)
     Δ = zeros(s.n)
+
+    # Indices
+    nbil = length(iy1)
+    iy1 = SVector{nbil, Int}(iy1)
+    iy2 = SVector{nbil, Int}(iy2)
+    ibil = SVector{nbil, Int}(iy2)
+
+    # Views
     z_y1 = view(z, iy1)
     z_y2 = view(z, iy2)
     Δaff_y1 = view(Δaff, iy1) # TODO this should be in Δ space
     Δaff_y2 = view(Δaff, iy2) # TODO this should be in Δ space
     Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
+    rbil = bilinear_res(rm, ibil)
 
-    Mehrotra19(
+    Mehrotra(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
@@ -163,6 +120,7 @@ function mehrotra(z, θ;
         Δ,
         r,
         rm, # rm
+        rbil,
         0.0,
         deepcopy(r),
         0.0,
@@ -178,6 +136,7 @@ function mehrotra(z, θ;
         zeros(1),
         num_var,
         num_data,
+        nbil,
         eval(opts.solver)(rz),
         v_pr,
         v_du,
@@ -189,13 +148,22 @@ function mehrotra(z, θ;
         Δ_y2,
         iy1,
         iy2,
+        ibil,
         reg_pr, reg_du,
+        0,
         opts)
 end
 
+function bilinear_res(r::AbstractVector, ibil)
+    view(r, ibil)
+end
+
+function bilinear_res(r::RLin, ibil)
+    r.rbil
+end
 
 # interior point solver
-function mehrotra!(ip::Mehrotra19{T}) where T
+function mehrotra!(ip::Mehrotra{T}) where T
 
     # space
     s = ip.s
@@ -221,6 +189,7 @@ function mehrotra!(ip::Mehrotra19{T}) where T
     res_norm = opts.res_norm
     reg = opts.reg
     ϵ_min = opts.ϵ_min
+    verbose = opts.verbose
 
     # unpack pre-allocated data
     z = ip.z
@@ -229,6 +198,8 @@ function mehrotra!(ip::Mehrotra19{T}) where T
     Δ = ip.Δ
     r = ip.r
     rm = ip.rm
+    rbil = ip.rbil
+    nbil = ip.nbil
     r_merit = ip.r_merit
     r̄ = ip.r̄
     r̄_merit = ip.r̄_merit
@@ -245,33 +216,11 @@ function mehrotra!(ip::Mehrotra19{T}) where T
     Δaff_y2 = ip.Δaff_y2
     Δ_y1 = ip.Δ_y1
     Δ_y2 = ip.Δ_y2
+    iy1 = ip.iy1
+    iy2 = ip.iy2
     reg_pr = ip.reg_pr
     reg_du = ip.reg_du
     solver = ip.solver
-
-    ix, iy1, iy2 = linearization_var_index(model, env)
-
-    # @show norm(z_y1 - z[iy1])
-    # @show norm(z_y2 - z[iy2])
-    # z .+= rand(length(z))
-    # @show norm(z_y1 - z[iy1])
-    # @show norm(z_y2 - z[iy2])
-    #
-    # @show norm(Δaff_y1 - Δaff[iy1])
-    # @show norm(Δaff_y2 - Δaff[iy2])
-    # Δaff .+= rand(length(z))
-    # @show norm(Δaff_y1 - Δaff[iy1])
-    # @show norm(Δaff_y2 - Δaff[iy2])
-    #
-    # @show norm(Δ_y1 - Δ[iy1])
-    # @show norm(Δ_y2 - Δ[iy2])
-    # Δ .+= rand(length(z))
-    # @show norm(Δ_y1 - Δ[iy1])
-    # @show norm(Δ_y2 - Δ[iy2])
-    # @show Δ_y2
-    # @show Δ[iy2]
-    # initialize barrier parameter
-    κ[1] = κ_init
 
     # initialize regularization
     reg_pr[1] = opts.reg_pr_init
@@ -284,59 +233,43 @@ function mehrotra!(ip::Mehrotra19{T}) where T
     elapsed_time = 0.0
 
     for j = 1:max_iter_inner
-        @show j
         elapsed_time >= max_time && break
         elapsed_time += @elapsed begin
             # check for converged residual
             if r_merit < r_tol
                 break
             end
-
+            ip.iterations += 1
             # compute residual Jacobian
             rz!(rz, z, θ)
 
             # regularize (fixed, TODO: adaptive)
             reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
-            # compute step
+            # compute affine search direction
             linear_solve!(solver, Δaff, rz, r)
+            αaff = step_length_new(z_y1, z_y2, Δaff_y1, Δaff_y2, τ=1.0)
+            # μaff = (z_y1 - αaff * Δaff_y1)' * (z_y2 - αaff * Δaff_y2) / length(z_y1)
+            μaff = (z_y1 - αaff * Δaff[iy1])' * (z_y2 - αaff * Δaff[iy2]) / nbil
 
-            w1 = z[ix]
-            w2 = z[iy1]
-            w3 = z[iy2]
-            @show norm(w2 - z_y1)
-            @show norm(w3 - z_y2)
-
-            Δw1aff = Δaff[ix]
-            Δw2aff = Δaff[iy1]
-            Δw3aff = Δaff[iy2]
-            @show norm(Δw2aff - Δaff_y1)
-            @show norm(Δw3aff - Δaff_y2)
-
-            # αhaff, μaff = step_length(w2, w3, -Δw2aff, -Δw3aff)
-            αhaff, μaff = step_length(z_y1, w3, -Δaff_y1, -Δw3aff)
-            # μ = w2'*w3 / length(w2)
-            μ = w2'*w3 / length(z_y1)
+            μ = z_y1'*z_y2 / length(z_y1)
             σ = (μaff / μ)^3
 
+            # Compute corrector residual
             rm!(rm, z, Δaff, θ, σ*μ) # here we set κ = σ*μ, Δ = Δaff
+
+            # Compute corrector search direction
             linear_solve!(solver, Δ, rz, rm)
-            Δw1 = Δ[ix]
-            Δw2 = Δ[iy1]
-            Δw3 = Δ[iy2]
-            @show norm(Δw2 - Δ_y1)
-            # @show norm(Δw3 - Δ_y2)
             τ = progress(r_merit, ϵ_min=ϵ_min)
-            # αh = corrector_step_length(w2, w3, -Δw2, -Δw3; τ=τ)
-            αh = corrector_step_length(z_y1, w3, -Δ_y1, -Δw3; τ=τ)
+            α = step_length_new(z_y1, z_y2, Δ_y1, Δ_y2, τ=τ)
 
             # candidate point
-            candidate_point!(z, s, z, Δ, αh)
+            candidate_point!(z, s, z, Δ, α)
 
             # update
             r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
             r_merit = norm(r, res_norm)
-            @show scn(r_merit)
+            verbose && println("iter: ", j, "   res∞: ", scn(r_merit))
         end
     end
 
@@ -358,54 +291,36 @@ end
 # end
 
 
+
 function progress(merit; ϵ_min=0.05)
     ϵ = min(ϵ_min, merit^2)
     τ = 1 - ϵ
     return τ
 end
 
-
-function corrector_step_length(w2, w3, Δw2, Δw3; τ=0.9995)
-    m = length(w2)
-
+function step_length_new(w2::S, w3::S, Δw2::S, Δw3::S; τ::Real=0.9995) where {S}
     ατ_p = 1.0
     ατ_d = 1.0
-    for i = 1:m
-        if Δw2[i] < 0.0
-            ατ_p = min(ατ_p, - τ * w2[i] / Δw2[i])
+    for i in eachindex(w2)
+        if Δw2[i] > 0.0
+            ατ_p = min(ατ_p, τ * w2[i] / Δw2[i])
         end
-        if Δw3[i] < 0.0
-            ατ_d = min(ατ_d, - τ * w3[i] / Δw3[i])
-        end
-    end
-    αh = min(ατ_p, ατ_d)
-    return αh
-end
-
-function step_length(w2, w3, Δw2aff, Δw3aff)
-    m = length(w2)
-
-    αhaff = 1.0
-    for i = 1:m
-        if Δw2aff[i] < 0.0
-            αhaff = min(αhaff, - w2[i] / Δw2aff[i])
-        end
-        if Δw3aff[i] < 0.0
-            αhaff = min(αhaff, - w3[i] / Δw3aff[i])
+        if Δw3[i] > 0.0
+            ατ_d = min(ατ_d, τ * w3[i] / Δw3[i])
         end
     end
-    # @show αhaff
-    μaff = (w2 + αhaff * Δw2aff)' * (w3 + αhaff * Δw3aff) / m
-    return αhaff, μaff
+    α = min(ατ_p, ατ_d)
+    return α
 end
 
-function mehrotra!(ip::Mehrotra19{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+
+function mehrotra!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
     mehrotra!(ip)
 end
 
-function differentiate_solution!(ip::Mehrotra19)
+function differentiate_solution!(ip::Mehrotra)
     s = ip.s
     z = ip.z
     θ = ip.θ
@@ -416,7 +331,7 @@ function differentiate_solution!(ip::Mehrotra19)
 
     κ = ip.κ
 
-    ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
+    ip.methods.rz!(rz, z, θ)
     ip.methods.rθ!(rθ, z, θ)
 
     linear_solve!(ip.solver, δzs, rz, rθ)

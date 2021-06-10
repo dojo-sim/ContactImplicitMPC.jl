@@ -1,4 +1,12 @@
 abstract type LinearSolver end
+abstract type InteriorPointSolver end
+
+mutable struct ResidualMethods
+    r!
+    rm!
+    rz!
+    rθ!
+end
 
 # residual
 function r!(r, z, θ, κ)
@@ -42,7 +50,6 @@ function mapping!(δz, s::Euclidean, δzs, z) # TODO: make allocation free
     δz .= δzs
 end
 
-
 # interior-point solver options
 @with_kw mutable struct InteriorPointOptions{T}
     r_tol::T = 1.0e-5
@@ -63,20 +70,13 @@ end
     verbose::Bool = false
 end
 
-mutable struct ResidualMethods
-    r!
-    rm!
-    rz!
-    rθ!
-end
-
 # regularize Jacobian / Hessian
 function regularize!(v_pr, v_du, reg_pr, reg_du)
     v_pr .+= reg_pr
     v_du .-= reg_du
 end
 
-mutable struct InteriorPoint{T}
+mutable struct InteriorPoint{T} <: InteriorPointSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}               # current point
