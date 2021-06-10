@@ -106,7 +106,7 @@ z2, θ2 = get_initialization(ref_traj, t)
 ip2 = mehrotra(z2, θ2,
 	iy1 = linearization_var_index(model, env)[2],
 	iy2 = linearization_var_index(model, env)[3],
-	ibil = linearization_term_index(model, env)[3],
+	# ibil = linearization_term_index(model, env)[3],
     idx_ineq = inequality_indices(model, env),
     idx_soc = soc_indices(model, env),
 	r! = s.res.r!,
@@ -115,11 +115,12 @@ ip2 = mehrotra(z2, θ2,
     rθ! = s.res.rθ!,
     rz = s.rz,
     rθ = s.rθ,
-    opts = Mehrotra27Options(
+    opts = Mehrotra19Options(
         max_iter_inner=100,
         r_tol=1e-8,
         κ_tol=2e-8,
-		verbose=true))
+		# verbose=true
+		))
 @time mehrotra!(ip2)
 r2 = zeros(nz)
 s.res.r!(r2, ip2.z, ip2.θ, 0.0)
@@ -212,21 +213,21 @@ end
 
 
 
-
 ################################################################################
 # Test Mehrotra on the linearized problem
 ################################################################################
 
 im_traj2 = MehrotraImplicitTraj(ref_traj, s;
 	κ = 1e-8,
-	opts = Mehrotra27Options(
+	opts = Mehrotra19Options(
 			κ_tol = 2.0 * 1e-8,
 			r_tol = 1.0e-8,
 			diff_sol = true,
 			max_iter_inner=100,
 			ϵ_min=0.05,
 			solver=:empty_solver,
-			verbose=true))
+			# verbose=true
+			))
 z2, θ2 = get_initialization(ref_traj, t)
 ip2 = deepcopy(im_traj2[10])
 @time mehrotra!(ip2, z2, θ2)
@@ -255,7 +256,7 @@ end
 function MehrotraImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 60.0,
-	opts = Mehrotra27Options(
+	opts = Mehrotra19Options(
 			κ_init = κ[1],
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,

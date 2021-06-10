@@ -50,7 +50,7 @@ end
 
 
 # interior-point solver options
-@with_kw mutable struct Mehrotra19Options{T}
+@with_kw mutable struct Mehrotra21Options{T}
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
     κ_init::T = 1.0                   # useless
@@ -82,7 +82,7 @@ function regularize!(v_pr, v_du, reg_pr, reg_du)
     v_du .-= reg_du
 end
 
-mutable struct Mehrotra19{T}
+mutable struct Mehrotra21{T}
     s::Space
     methods::ResidualMethods
     z::Vector{T}                 # current point
@@ -91,6 +91,7 @@ mutable struct Mehrotra19{T}
     Δ::Vector{T}                 # corrector search direction
     r                            # residual
     rm                           # corrector residual
+    rbil                         # corrector residual
     r_merit::T                   # residual norm
     r̄                            # candidate residual
     r̄_merit::T                   # candidate residual norm
@@ -119,7 +120,7 @@ mutable struct Mehrotra19{T}
     iy2
     reg_pr
     reg_du
-    opts::Mehrotra19Options
+    opts::Mehrotra21Options
 end
 
 function mehrotra(z, θ;
@@ -132,6 +133,7 @@ function mehrotra(z, θ;
         idx_du = collect(1:0),
         iy1 = collect(1:0),
         iy2 = collect(1:0),
+        ibil = collect(1:0),
         r! = r!, rm! = rm!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
         rm = zeros(s.n),
@@ -140,13 +142,20 @@ function mehrotra(z, θ;
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts = Mehrotra19Options()) where T
+        opts = Mehrotra21Options()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
-    # Views
+    # Search direction
     Δaff = zeros(s.n)
     Δ = zeros(s.n)
+
+    # Indices
+    m = length(iy1)
+    iy1 = SVector{m, Int}(iy1)
+    iy2 = SVector{m, Int}(iy2)
+
+    # Views
     z_y1 = view(z, iy1)
     z_y2 = view(z, iy2)
     Δaff_y1 = view(Δaff, iy1) # TODO this should be in Δ space
@@ -154,7 +163,17 @@ function mehrotra(z, θ;
     Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
 
-    Mehrotra19(
+
+    if typeof(rm) <: AbstractVector
+        rbil = view(rm, ibil)
+    elseif typeof(rm) <: RLin
+        rbil = rm.rbil
+    else
+        error("Invalid rm type.")
+    end
+
+
+    Mehrotra21(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
@@ -163,6 +182,7 @@ function mehrotra(z, θ;
         Δ,
         r,
         rm, # rm
+        rbil,
         0.0,
         deepcopy(r),
         0.0,
@@ -195,7 +215,7 @@ end
 
 
 # interior point solver
-function mehrotra!(ip::Mehrotra19{T}) where T
+function mehrotra!(ip::Mehrotra21{T}) where T
 
     # space
     s = ip.s
@@ -229,6 +249,7 @@ function mehrotra!(ip::Mehrotra19{T}) where T
     Δ = ip.Δ
     r = ip.r
     rm = ip.rm
+    rbil = ip.rbil
     r_merit = ip.r_merit
     r̄ = ip.r̄
     r̄_merit = ip.r̄_merit
@@ -249,27 +270,7 @@ function mehrotra!(ip::Mehrotra19{T}) where T
     reg_du = ip.reg_du
     solver = ip.solver
 
-    ix, iy1, iy2 = linearization_var_index(model, env)
 
-    # @show norm(z_y1 - z[iy1])
-    # @show norm(z_y2 - z[iy2])
-    # z .+= rand(length(z))
-    # @show norm(z_y1 - z[iy1])
-    # @show norm(z_y2 - z[iy2])
-    #
-    # @show norm(Δaff_y1 - Δaff[iy1])
-    # @show norm(Δaff_y2 - Δaff[iy2])
-    # Δaff .+= rand(length(z))
-    # @show norm(Δaff_y1 - Δaff[iy1])
-    # @show norm(Δaff_y2 - Δaff[iy2])
-    #
-    # @show norm(Δ_y1 - Δ[iy1])
-    # @show norm(Δ_y2 - Δ[iy2])
-    # Δ .+= rand(length(z))
-    # @show norm(Δ_y1 - Δ[iy1])
-    # @show norm(Δ_y2 - Δ[iy2])
-    # @show Δ_y2
-    # @show Δ[iy2]
     # initialize barrier parameter
     κ[1] = κ_init
 
@@ -278,13 +279,13 @@ function mehrotra!(ip::Mehrotra19{T}) where T
     reg_du[1] = opts.reg_du_init
 
     # compute residual, residual Jacobian
-    rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
+    r!(r, z, θ, 0.0) # here we set κ = 0, Δ = 0
     r_merit = norm(r, res_norm)
 
     elapsed_time = 0.0
 
     for j = 1:max_iter_inner
-        @show j
+        verbose && @show j
         elapsed_time >= max_time && break
         elapsed_time += @elapsed begin
             # check for converged residual
@@ -301,42 +302,33 @@ function mehrotra!(ip::Mehrotra19{T}) where T
             # compute step
             linear_solve!(solver, Δaff, rz, r)
 
-            w1 = z[ix]
-            w2 = z[iy1]
-            w3 = z[iy2]
-            @show norm(w2 - z_y1)
-            @show norm(w3 - z_y2)
+            # verbose && @show typeof(z_y1)
+            # verbose && @show typeof(z_y2)
+            # verbose && @show typeof(Δaff_y1)
+            # verbose && @show typeof(Δaff_y2)
+            αaff = step_length(z_y1, z_y2, Δaff_y1, Δaff_y2, τ=0.0)
+            μaff = (z_y1 - αaff * Δaff_y1)' * (z_y2 - αaff * Δaff_y2) / length(z_y1)
 
-            Δw1aff = Δaff[ix]
-            Δw2aff = Δaff[iy1]
-            Δw3aff = Δaff[iy2]
-            @show norm(Δw2aff - Δaff_y1)
-            @show norm(Δw3aff - Δaff_y2)
-
-            # αhaff, μaff = step_length(w2, w3, -Δw2aff, -Δw3aff)
-            αhaff, μaff = step_length(z_y1, w3, -Δaff_y1, -Δw3aff)
-            # μ = w2'*w3 / length(w2)
-            μ = w2'*w3 / length(z_y1)
+            μ = z_y1'*z_y2 / length(z_y1)
             σ = (μaff / μ)^3
 
-            rm!(rm, z, Δaff, θ, σ*μ) # here we set κ = σ*μ, Δ = Δaff
-            linear_solve!(solver, Δ, rz, rm)
-            Δw1 = Δ[ix]
-            Δw2 = Δ[iy1]
-            Δw3 = Δ[iy2]
-            @show norm(Δw2 - Δ_y1)
-            # @show norm(Δw3 - Δ_y2)
+            r_update!(rm, r)
+            rbil += Δaff_y1 .* Δaff_y2 .- σ*μ
+            linear_solve!(solver, Δ, rz, rm) # TODO this should not recompute the factorization of rz
             τ = progress(r_merit, ϵ_min=ϵ_min)
-            # αh = corrector_step_length(w2, w3, -Δw2, -Δw3; τ=τ)
-            αh = corrector_step_length(z_y1, w3, -Δ_y1, -Δw3; τ=τ)
+            # verbose && @show typeof(z_y1)
+            # verbose && @show typeof(z_y2)
+            # verbose && @show typeof(Δ_y1)
+            # verbose && @show typeof(Δ_y2)
+            α = step_length(z_y1, z_y2, Δ_y1, Δ_y2; τ=τ)
 
             # candidate point
-            candidate_point!(z, s, z, Δ, αh)
+            candidate_point!(z, s, z, Δ, α)
 
             # update
             r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
             r_merit = norm(r, res_norm)
-            @show scn(r_merit)
+            verbose && @show scn(r_merit)
         end
     end
 
@@ -364,48 +356,29 @@ function progress(merit; ϵ_min=0.05)
     return τ
 end
 
-
-function corrector_step_length(w2, w3, Δw2, Δw3; τ=0.9995)
-    m = length(w2)
-
+function step_length(w2::S, w3::S, Δw2::S, Δw3::S; τ::Real=0.9995) where {S}
     ατ_p = 1.0
     ατ_d = 1.0
-    for i = 1:m
-        if Δw2[i] < 0.0
-            ατ_p = min(ατ_p, - τ * w2[i] / Δw2[i])
+    for i in eachindex(w2)
+        if Δw2[i] > 0.0
+            ατ_p = min(ατ_p, τ * w2[i] / Δw2[i])
         end
-        if Δw3[i] < 0.0
-            ατ_d = min(ατ_d, - τ * w3[i] / Δw3[i])
-        end
-    end
-    αh = min(ατ_p, ατ_d)
-    return αh
-end
-
-function step_length(w2, w3, Δw2aff, Δw3aff)
-    m = length(w2)
-
-    αhaff = 1.0
-    for i = 1:m
-        if Δw2aff[i] < 0.0
-            αhaff = min(αhaff, - w2[i] / Δw2aff[i])
-        end
-        if Δw3aff[i] < 0.0
-            αhaff = min(αhaff, - w3[i] / Δw3aff[i])
+        if Δw3[i] > 0.0
+            ατ_d = min(ατ_d, τ * w3[i] / Δw3[i])
         end
     end
-    # @show αhaff
-    μaff = (w2 + αhaff * Δw2aff)' * (w3 + αhaff * Δw3aff) / m
-    return αhaff, μaff
+    α = min(ατ_p, ατ_d)
+    return α
 end
 
-function mehrotra!(ip::Mehrotra19{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+
+function mehrotra!(ip::Mehrotra21{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
     mehrotra!(ip)
 end
 
-function differentiate_solution!(ip::Mehrotra19)
+function differentiate_solution!(ip::Mehrotra21)
     s = ip.s
     z = ip.z
     θ = ip.θ

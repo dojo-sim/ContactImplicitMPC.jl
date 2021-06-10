@@ -145,14 +145,16 @@ function mehrotra(z, θ;
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
     # Views
-    Δaff = zeros(s.n)
-    Δ = zeros(s.n)
-    z_y1 = view(z, iy1)
-    z_y2 = view(z, iy2)
-    Δaff_y1 = view(Δaff, iy1) # TODO this should be in Δ space
-    Δaff_y2 = view(Δaff, iy2) # TODO this should be in Δ space
-    Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
-    Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
+    # @show iy1
+    # @show iy2
+    # Δaff = zeros(s.n)
+    # Δ = zeros(s.n)
+    # z_y1 = view(z, iy1)
+    # z_y2 = view(z, iy2)
+    # Δaff_y1 = view(Δaff, iy1) # TODO this should be in Δ space
+    # Δaff_y2 = view(Δaff, iy2) # TODO this should be in Δ space
+    # Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
+    # Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
 
     Mehrotra19(
         s,
@@ -270,6 +272,7 @@ function mehrotra!(ip::Mehrotra19{T}) where T
     # @show norm(Δ_y2 - Δ[iy2])
     # @show Δ_y2
     # @show Δ[iy2]
+    # @show "aaaa"
     # initialize barrier parameter
     κ[1] = κ_init
 
@@ -305,13 +308,13 @@ function mehrotra!(ip::Mehrotra19{T}) where T
             w2 = z[iy1]
             w3 = z[iy2]
             @show norm(w2 - z_y1)
-            @show norm(w3 - z_y2)
+            # @show norm(w3 - z_y2)
 
             Δw1aff = Δaff[ix]
             Δw2aff = Δaff[iy1]
             Δw3aff = Δaff[iy2]
             @show norm(Δw2aff - Δaff_y1)
-            @show norm(Δw3aff - Δaff_y2)
+            # @show norm(Δw3aff - Δaff_y2)
 
             # αhaff, μaff = step_length(w2, w3, -Δw2aff, -Δw3aff)
             αhaff, μaff = step_length(z_y1, w3, -Δaff_y1, -Δw3aff)

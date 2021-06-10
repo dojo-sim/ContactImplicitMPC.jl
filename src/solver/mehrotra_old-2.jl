@@ -311,7 +311,7 @@ function mehrotra!(ip::Mehrotra19{T}) where T
             Δw2aff = Δaff[iy1]
             Δw3aff = Δaff[iy2]
             @show norm(Δw2aff - Δaff_y1)
-            @show norm(Δw3aff - Δaff_y2)
+            # @show norm(Δw3aff - Δaff_y2)
 
             # αhaff, μaff = step_length(w2, w3, -Δw2aff, -Δw3aff)
             αhaff, μaff = step_length(z_y1, w3, -Δaff_y1, -Δw3aff)
