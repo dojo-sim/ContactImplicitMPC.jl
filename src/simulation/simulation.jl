@@ -192,6 +192,12 @@ function num_var(model::ContactModel, env::Environment{<:World,NonlinearCone})
 	dim.q + dim.c + nb + (nb + dim.c) + 2 * dim.c
 end
 
+function num_bil(model::ContactModel, env::Environment{<:World,LinearizedCone})
+	dim = model.dim
+	nb = dim.c * friction_dim(env)
+	nb + 2 * dim.c
+end
+
 function num_data(model::ContactModel)
 	dim = model.dim
 	dim.q + dim.q + dim.u + dim.w + 1 + 1
@@ -266,7 +272,6 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 
 	ne = dim(env)
 
-	# [
 	[dynamics(model, env, h, q0, q1, u1, w1, λ1, q2);
 	 s1 - ϕ;
 	 vcat([η1[(i - 1) * ne .+ (2:ne)] - vT[(i - 1) * (ne - 1) .+ (1:(ne - 1))] for i = 1:model.dim.c]...);
@@ -275,10 +280,18 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	 vcat([second_order_cone_product(η1[(i - 1) * ne .+ (1:ne)], [s2[i]; b1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]) - [κ; zeros(ne - 1)] for i = 1:model.dim.c]...)]
 end
 
+function residual_mehrotra(model::ContactModel, env::Environment, z, Δz, θ, κ)
+	ix, iy1, iy2 = linearization_var_index(model, env)
+	idyn, irst, ibil, ialt = linearization_term_index(model, env)
+	rm = residual(model, env, z, θ, κ)
+	rm[ibil] .+= Δz[iy1] .* Δz[iy2]
+	return rm
+end
+
 function ResidualMethods()
 	function f()
 		error("Not Implemented: use instantiate_residual!")
 		return nothing
 	end
-	return ResidualMethods(fill(f, 3)...)
+	return ResidualMethods(fill(f, 4)...)
 end

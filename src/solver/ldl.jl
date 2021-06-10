@@ -19,9 +19,7 @@ function LDLSolver(A::SparseMatrixCSC{Tv,Ti}, F::QDLDL.QDLDLFactorisation{Tv,Ti}
     return LDLSolver{Tv,Ti}(F, Pr, Pc, Pv, num_entries)
 end
 
-function qdldl!(A::SparseMatrixCSC{Tv,Ti},
-                s::LDLSolver{Tv,Ti};
-              ) where {Tv<:AbstractFloat, Ti<:Integer}
+function factorize!(s::LDLSolver{Tv,Ti}, A::SparseMatrixCSC{Tv,Ti}) where {Tv<:AbstractFloat, Ti<:Integer}
     # Reset the pre-allocated fields
     s.Pr .= 0
     s.Pc .= 0
@@ -115,7 +113,7 @@ end
 ldl_solver(A::Array{T, 2}) where T = ldl_solver(sparse(A))
 
 function linear_solve!(solver::LDLSolver{Tv,Ti}, x::Vector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv}) where {Tv<:AbstractFloat,Ti<:Integer}
-    qdldl!(A, solver) # factorize
+    factorize!(solver, A) # factorize
     x .= b
     QDLDL.solve!(solver.F, x) # solve
 end

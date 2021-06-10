@@ -8,12 +8,12 @@
     end
     gs_data = ContactControl.CGSData(A, n)
 
-    ContactControl.gs!(gs_data, A)
+    ContactControl.factorize!(gs_data, A)
     @test norm(A - hcat(gs_data.qs...) * ContactControl.triangularize(gs_data.rs, n), Inf) < 1e-10
 
     A1 = deepcopy(A)
     A1.nzval .+= rand(nnz(A))
-    ContactControl.gs!(gs_data, A1)
+    ContactControl.factorize!(gs_data, A1)
     @test norm(A1 - hcat(gs_data.qs...) * ContactControl.triangularize(gs_data.rs, n), Inf) < 1e-10
 
     b = rand(SizedVector{n,T})
@@ -33,12 +33,12 @@ end
     end
     gs_data = ContactControl.MGSData(A, n)
 
-    ContactControl.gs!(gs_data, A)
+    ContactControl.factorize!(gs_data, A)
     @test norm(A - hcat(gs_data.qs...) * ContactControl.triangularize(gs_data.rs, n), Inf) < 1e-10
 
     A1 = deepcopy(A)
     A1.nzval .+= rand(nnz(A))
-    ContactControl.gs!(gs_data, A1)
+    ContactControl.factorize!(gs_data, A1)
     @test norm(A1 - hcat(gs_data.qs...) * ContactControl.triangularize(gs_data.rs, n), Inf) < 1e-10
 
     b = rand(SizedVector{n,T})
@@ -60,7 +60,7 @@ end
     Ad = Matrix(A)
     gs_data = ContactControl.DMGSData(Ad, n)
 
-    ContactControl.gs!(gs_data, Ad)
+    ContactControl.factorize!(gs_data, Ad)
     @test norm(A - hcat(gs_data.qs...) * ContactControl.triangularize(gs_data.rs, n), Inf) < 1e-10
     b = rand(SizedVector{n,T})
     c = zeros(SizedVector{n,T})
@@ -72,7 +72,7 @@ end
     m = 33
     A = rand(n,n)
     gs_data = ContactControl.DMGSData(Ad, n)
-    ContactControl.gs!(gs_data, A)
+    ContactControl.factorize!(gs_data, A)
     X = rand(n,m)
     B = rand(n,m)
     ContactControl.qr_matrix_solve!(gs_data, X, B)
@@ -85,9 +85,9 @@ end
 	A = rand(n,n)
 	a = Vector{SVector{n,T}}([SVector{n,T}(A[:,i]) for i=1:n])
 	gs_data = ContactControl.SDMGSData(n)
-	ContactControl.gs!(gs_data, A)
-	ContactControl.gs!(gs_data, a)
-	ContactControl.gs!(gs_data)
+	ContactControl.factorize!(gs_data, A)
+	ContactControl.factorize!(gs_data, a)
+	ContactControl.factorize!(gs_data)
 
 
 	b = rand(SVector{n,T})

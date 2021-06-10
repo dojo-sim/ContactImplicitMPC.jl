@@ -114,7 +114,7 @@ function MGSData(A::AbstractMatrix{T}, n::Int) where {T}
     return MGSData{n,T}(n, A, qs, rs, qi_expr, r_expr, qu_expr, re_expr, q_expr)
 end
 
-function gs!(mgs_data::MGSData{n,T}, A::SparseMatrixCSC{T,Int}) where {n,T}
+function factorize!(mgs_data::MGSData{n,T}, A::SparseMatrixCSC{T,Int}) where {n,T}
     # Unpack
     qs = mgs_data.qs
     rs = mgs_data.rs
@@ -205,7 +205,7 @@ function CGSData(A::AbstractMatrix{T}, n::Int) where {T}
     return CGSData{n,T}(n, A, qs, rs, qi_expr, r_expr, qu_expr, re_expr, q_expr)
 end
 
-function gs!(cgs_data::CGSData{n,T}, A::SparseMatrixCSC{T,Int}) where {n,T}
+function factorize!(cgs_data::CGSData{n,T}, A::SparseMatrixCSC{T,Int}) where {n,T}
     # Unpack
     qs = cgs_data.qs
     rs = cgs_data.rs
@@ -253,7 +253,7 @@ function DMGSData(A::Array{T, 2}, n::Int) where {T}
     return DMGSData{n,T}(n, A, qs, rs)
 end
 
-function gs!(mgs_data::DMGSData{n,T}, A::Array{T, 2}) where {n,T}
+function factorize!(mgs_data::DMGSData{n,T}, A::Array{T, 2}) where {n,T}
     # Unpack
     qs = mgs_data.qs
     rs = mgs_data.rs
@@ -304,34 +304,34 @@ function SDMGSData(A::AbstractMatrix{T}) where T
     n, m = size(A)
     @assert n == m
     gs_data = SDMGSData(n; T=T)
-    gs!(gs_data, A)
+    factorize!(gs_data, A)
     return gs_data
 end
 
 """
     Gram-Schmidt algorithm perform on A.
 """
-function gs!(gs_data::SDMGSData{n,T}, A::AbstractMatrix{T}) where {n,T}
+function factorize!(gs_data::SDMGSData{n,T}, A::AbstractMatrix{T}) where {n,T}
     for j in eachindex(1:n)
         @inbounds @views gs_data.as[j] = A[:,j]
     end
-    gs!(gs_data)
+    factorize!(gs_data)
     return nothing
 end
 
 """
     Gram-Schmidt algorithm perform on a.
 """
-function gs!(gs_data::SDMGSData{n,T}, a::Vector{SVector{n,T}}) where {n,T}
+function factorize!(gs_data::SDMGSData{n,T}, a::Vector{SVector{n,T}}) where {n,T}
     gs_data.as .= a
-    gs!(gs_data)
+    factorize!(gs_data)
     return nothing
 end
 
 """
     Gram-Schmidt algorithm perform on gs_data.a.
 """
-function gs!(gs_data::SDMGSData{n,T}) where {n,T}
+function factorize!(gs_data::SDMGSData{n,T}) where {n,T}
     # Unpack
     as = gs_data.as
     qs = gs_data.qs
@@ -405,17 +405,17 @@ mutable struct SDMGSSolver <: QRSolver
 end
 
 function linear_solve!(solver::QRSolver, x::Vector{T}, A::SparseMatrixCSC{T,Int}, b::Vector{T}) where T
-    gs!(solver.F, A)
+    factorize!(solver.F, A)
     qr_solve!(solver.F, x, b)
 end
 
 function linear_solve!(solver::DMGSSolver, x::Vector{T}, A::Array{T, 2}, b::Vector{T}) where T
-    gs!(solver.F, A)
+    factorize!(solver.F, A)
     qr_solve!(solver.F, x, b)
 end
 
 function linear_solve!(solver::QRSolver, X::Matrix{T}, A::AbstractMatrix{T}, B::Matrix{T}) where T
-    gs!(solver.F, A)
+    factorize!(solver.F, A)
     qr_matrix_solve!(solver.F, X, B)
 end
 

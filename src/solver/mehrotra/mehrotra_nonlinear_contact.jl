@@ -250,8 +250,6 @@ function baseline_solve(s::Simulation, ref_traj::ContactTraj, t::Int; newton_ite
     return iter, success
 end
 
-
-
 function evaluate(s::Simulation, ref_traj::ContactTraj;
         algorithm::Symbol=:mehrotra_solve, newton_iter=100, res_tol=1e-8)
 
