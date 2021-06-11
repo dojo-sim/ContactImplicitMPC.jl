@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1000#35000
+H_sim = 1700#35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -62,8 +62,8 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 @time status = simulate!(sim)
 
 # save trajectory
-@save joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
-@load joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
+# @save joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
+# @load joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
 
 l = 9
 lu = 1
@@ -80,8 +80,10 @@ plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', colo
 # plot!(plt[3,1], hcat(Vector.([b[1:nb] for b in sim.traj.b]*N_sample)...)', color=:red, linewidth=1.0)
 
 plot_surface!(vis, env, xlims=[-1, 7.5], ylims = [-0.5, 0.5])
-anim = visualize_robot!(vis, model, sim.traj, sample=10)
-anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim, sample=10)
+plot_surface!(vis, env, xlims=[-0.5, 1.5], ylims = [-0.5, 0.5])
+# anim = visualize_robot!(vis, model, sim.traj, sample=10)
+anim = visualize_meshrobot!(vis, model, sim.traj, sample=10)
+anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample=10)
 
 convert_config(model_sim, sim.traj.q[1])
 
