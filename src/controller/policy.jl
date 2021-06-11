@@ -59,7 +59,7 @@ function policy(p::LinearizedMPC, x, traj, t)
     if p.cnt == p.N_sample
 		# tγ = max(1,t-1) #@@@
 		# tq = t+1 #@@@
-		(p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.s.model,
+		(p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.s,
 									traj, t, p.N_sample,
 									threshold = p.opts.altitude_impact_threshold,
 									verbose = p.opts.altitude_verbose))
@@ -67,7 +67,7 @@ function policy(p::LinearizedMPC, x, traj, t)
 		set_altitude!(p.im_traj, p.altitude) #@@@ keep the altitude update here
 		newton_solve!(p.newton, p.s, p.im_traj, p.traj,
 			# verbose = p.newton.opts.verbose, warm_start = t > 1, q0 = copy(p.q0), q1 = copy(x))
-			verbose = p.newton.opts.verbose, warm_start = false, q0 = copy(p.q0), q1 = copy(x)) #@@@@
+			warm_start = false, q0 = copy(p.q0), q1 = copy(x)) #@@@@
 		update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ) #@@@ only keep the rotation stuff not the altitude update.
 		p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, copy(x), t)
 

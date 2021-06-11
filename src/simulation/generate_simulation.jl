@@ -272,8 +272,8 @@ model = deepcopy(quadruped_payload)
 env = deepcopy(flat_2D_lc)
 sim = Simulation(model, env)
 
-path_base = joinpath(dir_model, "dynamics/base.jld2")
-path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+path_base = joinpath(dir_model, "dynamics_payload/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics_payload/dynamics.jld2")
 path_res = joinpath(dir_sim, "payload/residual.jld2")
 path_jac = joinpath(dir_sim, "payload/jacobians.jld2")
 

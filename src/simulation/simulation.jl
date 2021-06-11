@@ -12,6 +12,8 @@ function Simulation(model::ContactModel, env::Environment)
 end
 
 function get_simulation(model::String, env::String, sim_name::String;
+		model_variable_name::String = model,
+		dynamics_name::String = "dynamics",
 		gen_base = true,
 		gen_dyn = true,
 		approx = false)
@@ -21,12 +23,12 @@ function get_simulation(model::String, env::String, sim_name::String;
 	dir_model = joinpath(@__DIR__, "..", "dynamics", model)
 	dir_sim   = joinpath(@__DIR__, "..", "simulation", model, sim_name)
 
-	dir_base = joinpath(dir_model, "dynamics/base.jld2")
-	dir_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+	dir_base = joinpath(dir_model, dynamics_name, "base.jld2")
+	dir_dyn = joinpath(dir_model, dynamics_name, "dynamics.jld2")
 	dir_res = joinpath(dir_sim, "residual.jld2")
 	dir_jac = joinpath(dir_sim, "jacobians.jld2")
 
-	model = deepcopy(eval(Symbol(model)))
+	model = deepcopy(eval(Symbol(model_variable_name)))
 	env = deepcopy(eval(Symbol(env)))
 	sim = Simulation(model, env)
 

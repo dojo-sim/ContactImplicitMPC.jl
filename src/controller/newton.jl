@@ -477,7 +477,7 @@ end
 function newton_solve!(core::Newton, s::Simulation,
     im_traj::ImplicitTraj, ref_traj::ContactTraj;
     warm_start::Bool = false, initial_offset::Bool = false,
-    q0 = ref_traj.q[1], q1 = ref_traj.q[2], verbose::Bool=false)
+    q0 = ref_traj.q[1], q1 = ref_traj.q[2])
 
     # @show "newton_solve!" #@@@
 	reset!(core, ref_traj, warm_start = warm_start,
@@ -546,7 +546,7 @@ function newton_solve!(core::Newton, s::Simulation,
         end
 
         # print status
-        verbose && println(" l: ", l ,
+        core.opts.verbose && println(" l: ", l ,
                 "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits = 0),
                 "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits = 0),
                 "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
