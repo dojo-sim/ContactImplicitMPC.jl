@@ -52,7 +52,7 @@ function ϕ_func(model::Hopper2D, env::Environment, q)
     SVector{1}(q[2] - q[4] * cos(q[3]) - env.surf(q[1] + q[4] * sin(q[3])))
 end
 
-function J_func(::Hopper2D, q)
+function J_func(::Hopper2D, env::Environment, q)
     @SMatrix [1.0 0.0 (q[4] * cos(q[3])) sin(q[3]);
 		      0.0 1.0 (q[4] * sin(q[3])) (-1.0 * cos(q[3]))]
 end
@@ -74,7 +74,7 @@ function contact_forces(model::Hopper2D, env::Environment{<:World, LinearizedCon
 end
 
 function velocity_stack(model::Hopper2D, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(env, k) * v
 

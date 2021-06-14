@@ -37,6 +37,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         solver = :ldl_solver,
+        verbose=true,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions())
 
@@ -63,7 +64,7 @@ plot_lines!(vis, model, sim.traj.q[1:25:end])
 plot_surface!(vis, env, ylims=[0.3, -0.05])
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
 # anim = visualize_robot!(vis, model, sim.traj, anim=anim)
-anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim)
+anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim)
 
 # Display ghosts
 t_ghosts = [1, 1333, 2666]

@@ -12,7 +12,8 @@ function Simulation(model::ContactModel, env::Environment)
 end
 
 function get_simulation(model::String, env::String, sim_name::String;
-		model_name = model,
+		model_variable_name::String = model,
+		dynamics_name::String = "dynamics",
 		gen_base = true,
 		gen_dyn = true,
 		approx = false)
@@ -22,12 +23,12 @@ function get_simulation(model::String, env::String, sim_name::String;
 	dir_model = joinpath(@__DIR__, "..", "dynamics", model)
 	dir_sim   = joinpath(@__DIR__, "..", "simulation", model, sim_name)
 
-	dir_base = joinpath(dir_model, "dynamics/base.jld2")
-	dir_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+	dir_base = joinpath(dir_model, dynamics_name, "base.jld2")
+	dir_dyn = joinpath(dir_model, dynamics_name, "dynamics.jld2")
 	dir_res = joinpath(dir_sim, "residual.jld2")
 	dir_jac = joinpath(dir_sim, "jacobians.jld2")
 
-	model = deepcopy(eval(Symbol(model)))
+	model = deepcopy(eval(Symbol(model_variable_name)))
 	env = deepcopy(eval(Symbol(env)))
 	sim = Simulation(model, env)
 
@@ -193,6 +194,12 @@ function num_var(model::ContactModel, env::Environment{<:World,NonlinearCone})
 	dim.q + dim.c + nb + (nb + dim.c) + 2 * dim.c
 end
 
+function num_bil(model::ContactModel, env::Environment{<:World,LinearizedCone})
+	dim = model.dim
+	nb = dim.c * friction_dim(env)
+	nb + 2 * dim.c
+end
+
 function num_data(model::ContactModel)
 	dim = model.dim
 	dim.q + dim.q + dim.u + dim.w + 1 + 1
@@ -243,10 +250,11 @@ function residual(model::ContactModel, env::Environment{<:World,LinearizedCone},
 
 	k = kinematics(model, q2)
 	λ1 = contact_forces(model, env, γ1, b1, q2, k)
+	Λ1 = transpose(J_func(model, env, q2)) * λ1 #@@@@ maybe need to use J_fast
 	vT_stack = velocity_stack(model, env, q1, q2, k, h)
 	ψ_stack = transpose(E_func(model, env)) * ψ1
 
-	[model.dyn.d(h, q0, q1, u1, w1, λ1, q2);
+	[model.dyn.d(h, q0, q1, u1, w1, Λ1, q2);
 	 s1 - ϕ;
 	 vT_stack + ψ_stack - η1;
 	 s2 .- (μ[1] * γ1 .- E_func(model, env) * b1);
@@ -266,8 +274,7 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 
 	ne = dim(env)
 
-	# [
-	[dynamics(model, h, q0, q1, u1, w1, λ1, q2);
+	[dynamics(model, env, h, q0, q1, u1, w1, λ1, q2);
 	 s1 - ϕ;
 	 vcat([η1[(i - 1) * ne .+ (2:ne)] - vT[(i - 1) * (ne - 1) .+ (1:(ne - 1))] for i = 1:model.dim.c]...);
 	 s2 - μ[1] * γ1;
@@ -275,10 +282,18 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	 vcat([second_order_cone_product(η1[(i - 1) * ne .+ (1:ne)], [s2[i]; b1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]) - [κ; zeros(ne - 1)] for i = 1:model.dim.c]...)]
 end
 
+function residual_mehrotra(model::ContactModel, env::Environment, z, Δz, θ, κ)
+	ix, iy1, iy2 = linearization_var_index(model, env)
+	idyn, irst, ibil, ialt = linearization_term_index(model, env)
+	rm = residual(model, env, z, θ, κ)
+	rm[ibil] .+= Δz[iy1] .* Δz[iy2]
+	return rm
+end
+
 function ResidualMethods()
 	function f()
 		error("Not Implemented: use instantiate_residual!")
 		return nothing
 	end
-	return ResidualMethods(fill(f, 3)...)
+	return ResidualMethods(fill(f, 4)...)
 end

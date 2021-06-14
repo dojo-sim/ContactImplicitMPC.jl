@@ -1,5 +1,6 @@
+
 function generate_contact_expressions(model::ContactModel, env::Environment;
-		T = Float64, jacobians = false)
+		T = Float64, jacobians = false, nv = model.dim.q)
 
 	# model dimensions
 	nq = model.dim.q
@@ -21,6 +22,8 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 	@variables γ1[1:nc]
 	@variables b1[1:nb]
 	@variables λ1[1:ncf]
+	@variables u1[1:nu]
+	@variables w1[1:nw]
 	@variables q2[1:nq]
 	@variables vt[1:nb]
 	@variables ψ1[1:nc]
@@ -35,6 +38,11 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 	# Expressions
 	expr = Dict{Symbol, Expr}()
 
+	# Contact Jacobian
+	J = J_func(model, env, q2)
+	J = reshape(J, (ncf, nv))
+	J = Symbolics.simplify.(J)
+
 	# Signed distance
 	ϕ = ϕ_func(model, env, q2)
 	ϕ = Symbolics.simplify.(ϕ)[1:nc]
@@ -47,12 +55,21 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 	vs = velocity_stack(model, env, q1, q2, k, h)
 	vs = Symbolics.simplify.(vs)
 
+	# Dynamics
+	d = dynamics(model, env, h, q0, q1, u1, w1, λ1, q2)
+	d = Symbolics.simplify.(d)
+
 	# Functions
+	expr[:J]    = build_function(J, q2)[1]
 	expr[:ϕ]    = build_function(ϕ, q2)[1]
 	expr[:cf]   = build_function(cf, γ1, b1, q2, k)[1]
 	expr[:vs]   = build_function(vs, q1, q2, k, h)[1]
+	expr[:d]    = build_function(d, h, q0, q1, u1, w1, λ1, q2)[1]
 
 	if jacobians
+		dJ = Symbolics.jacobian(J'*λ1, q2, simplify = true) # dq2 = ∂q2  + dJ(λ1, q2)
+		dλ1 = J # this is an analytical result, might be wrong but should be okay
+
 		dcf  = Symbolics.jacobian(cf, [q2; γ1; b1], simplify=true) # NOTE: input order change
 
 		vsq2 = Symbolics.jacobian(vs, q2, simplify = true)
@@ -71,6 +88,9 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 		rcθ = Symbolics.jacobian(rc, θ, simplify = true)
 
 		# Functions
+		expr[:dJ]   = build_function(dJ, λ1, q2)[1]
+		expr[:dλ1]  = build_function(dλ1, q2)[1]
+
 		expr[:dcf]  = build_function(dcf, γ1, b1, q2, k)[1]
 
 		expr[:vsq2]  = build_function(vsq2, q1, q2, k, h)[1]
@@ -79,11 +99,10 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 		expr[:mdvs] = build_function(mdvs, vt, ψ1, η1)[1]
 		expr[:mdψη] = build_function(mdψη, vt, ψ1, η1)[1]
 
-		expr[:rc] = build_function(rc, z, θ, κ)[2]
+		expr[:rc]  = build_function(rc, z, θ, κ)[2]
 		expr[:rcz] = build_function(rcz, z, θ)[2]
 		expr[:rcθ] = build_function(rcθ, z, θ)[2]
 	end
-
 	return expr
 end
 
@@ -92,7 +111,8 @@ end
 Generate fast residual methods using Symbolics symbolic computing tools.
 """
 function generate_residual_expressions(model::ContactModel, env::Environment;
-		mapping = (a,b,c) -> Diagonal(ones(num_var(model, env))), jacobians = :full, T = Float64)
+		mapping = (a,b,c) -> Diagonal(ones(num_var(model, env))), jacobians = :full,
+		T = Float64, nv = model.dim.q)
 
 	nq = model.dim.q
 	nu = model.dim.u
@@ -103,21 +123,25 @@ function generate_residual_expressions(model::ContactModel, env::Environment;
 
 	# Declare variables
 	@variables z[1:nz]
+	@variables Δ[1:nz]
 	@variables θ[1:nθ]
 	@variables κ
 
 	# Residual
 	r = residual(model, env, z, θ, κ)
 	r = Symbolics.simplify.(r)
+	rm = residual_mehrotra(model, env, z, Δ, θ, κ)
+	rm = Symbolics.simplify.(rm)
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
 	expr[:r]  = build_function(r, z, θ, κ)[2]
+	expr[:rm]  = build_function(rm, z, Δ, θ, κ)[2]
 
 	if jacobians == :full
 		# contact expressions
 		expr_contact = generate_contact_expressions(model, env,
-			T = T, jacobians = false)
+			T = T, jacobians = false, nv = nv)
 
 		m = mapping(model, env, z)
 		m = simplify.(m)
@@ -135,7 +159,7 @@ function generate_residual_expressions(model::ContactModel, env::Environment;
 		expr[:rθ] = build_function(rθ, z, θ)[2]
 	else
 		expr_contact = generate_contact_expressions(model, env,
-			T = T, jacobians = true)
+			T = T, jacobians = true, nv = nv)
 
 		rz_sp = zeros(nz, nz)
 		rθ_sp = zeros(nz, nθ)
@@ -155,6 +179,7 @@ function instantiate_residual!(s::Simulation, path_res, path_jac;
 
 	# residual
 	s.res.r!  = eval(expr[:r])
+	s.res.rm! = eval(expr[:rm])
 
 	# Jacobians
 	if jacobians == :full
@@ -184,6 +209,7 @@ function instantiate_residual!(fct::ResidualMethods, expr::Dict{Symbol,Expr};
 	jacobians = :full)
 
 	fct.r!  = eval(expr[:r])
+	fct.rm! = eval(expr[:rm])
 
 	if jacobians == :full
 		fct.rz! = eval(expr[:rz])
@@ -199,11 +225,15 @@ end
 function instantiate_contact_methods!(fct::ContactMethods, expr::Dict{Symbol,Expr};
 	jacobians = :full)
 
+	fct.J = eval(expr[:J])
 	fct.ϕ = eval(expr[:ϕ])
 	fct.cf = eval(expr[:cf])
 	fct.vs = eval(expr[:vs])
+	fct.d = eval(expr[:d])
 
 	if jacobians == :approx
+		fct.dJ = eval(expr[:dJ])
+		fct.dλ1 = eval(expr[:dλ1])
 		fct.dcf = eval(expr[:dcf])
 		fct.vsq2 = eval(expr[:vsq2])
 		fct.vsq1h = eval(expr[:vsq1h])

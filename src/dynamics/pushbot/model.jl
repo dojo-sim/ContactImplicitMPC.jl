@@ -92,7 +92,7 @@ function rot2D(x)
     -sin(x) cos(x)]
 end
 
-function J_func(model::PushBot, q)
+function J_func(model::PushBot, env::Environment, q)
 	r1 = [0.0 -1.0; 1.0 0.0]
 	r2 = [0.0 1.0; -1.0 0.0]
 

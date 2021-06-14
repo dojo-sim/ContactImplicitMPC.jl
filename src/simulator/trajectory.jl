@@ -18,7 +18,7 @@ struct ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}
 	ib1::SizedArray{Tuple{nb},Int,1,1,Vector{Int}}
 end
 
-function contact_trajectory(model::ContactModel, env::Environment, H::Int, h::T) where {T}
+function contact_trajectory(model::ContactModel, env::Environment, H::Int, h::T; κ::T=0.0) where {T}
 	dim = model.dim
 	nq = dim.q
     nu = dim.u
@@ -35,7 +35,7 @@ function contact_trajectory(model::ContactModel, env::Environment, H::Int, h::T)
 	b = [zeros(nb) for k=1:H]
 	z = [zeros(nz) for k=1:H]
 	θ = [[zeros(nθ-1); copy(h)] for k=1:H]
-	κ = [0.0]
+	κ = [κ]
 	off = 0
 	iq0 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q0
 	iq1 = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q1

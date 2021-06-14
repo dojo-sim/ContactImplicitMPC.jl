@@ -81,8 +81,8 @@ end
 function kinematics_1(model::PlanarPush, q; body = :floor)
 	# Contact 1 is between object and floor: :floor
 	# Contact 2 is between object and pusher: :object, :pusher
-	x = [q[1], q[2], 0.0]
-	xp = [q[5], q[6], 0.0]
+	x = [q[1], q[2], q[3]]#@@@ this may be wrong we might need to replace 0.0 by one q entry
+	xp = [q[5], q[6], q[7]]#@@@ this may be wrong we might need to replace 0.0 by one q entry
 	Δ = x - xp
 	Δ ./= norm(Δ)
 	rc = model.r/sqrt(2)
@@ -126,8 +126,8 @@ function ϕ_func(model::PlanarPush, env::Environment, q)
 	x2 = kinematics_1(model, q, body=:floor2)
 	xp = [q[5], q[6], 0.0]
 	Δ = x - xp
-	SVector{3}([q[3] - surf(x1[1:2]),
-				q[3] - surf(x2[1:2]),
+	SVector{3}([q[3] - env.surf(x1[1:2]),
+				q[3] - env.surf(x2[1:2]),
 				norm(Δ) - (model.r + model.rp),
 				])
 end
@@ -166,7 +166,7 @@ function rotation_s_to_w(model::PlanarPush, q2)
 	return R
 end
 
-function J_func(model::PlanarPush, q)
+function J_func(model::PlanarPush, env::Environment{<:World,LinearizedCone}, q)
 	r = model.r
 	rc = model.r/sqrt(2)
 	α = contact_angle(model, q)
@@ -188,7 +188,7 @@ function J_func(model::PlanarPush, q)
 	return [J_floor1; J_floor2; J_object;] # (nc*np) x nq  = 6x7
 end
 
-function contact_forces(model::PlanarPush, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
+function contact_forces(model::PlanarPush, env::Environment{<:World,LinearizedCone}, γ1, b1, q2, k)
 	# Express the contact forces in the world frame.
 	# returns λ1
 	# which will be used in dynamics: transpose(J_fast(model, q2)) * λ1
@@ -204,19 +204,19 @@ function contact_forces(model::PlanarPush, env::Environment{<:World, LinearizedC
 	SVector{9}([λ_floor1; λ_floor2; λ_object])
 end
 
-function velocity_stack(model::PlanarPush, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
+function velocity_stack(model::PlanarPush, env::Environment{<:World,LinearizedCone}, q1, q2, k, h)
 	# In the world frame
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	R = rotation_s_to_w(model, q2)
-	v_floor1 = rotation(env, k) * v[1:3]
-	v_floor2 = rotation(env, k) * v[4:6]
+	v_floor1 = rotation(env, k[1:3]) * v[1:3] #@@@ this is wrong we need to select the k_floor_1 out of k wen feeding it in rotation
+	v_floor2 = rotation(env, k[4:6]) * v[4:6] #@@@ this is wrong we need to select the k_floor_2 out of k wen feeding it in rotation
 	v_object_w = v[7:9]
 	# We express in the surface frame
 	v_object = R' * v_object_w # W -> S
 	SVector{12}([v_floor1[1:2];  -v_floor1[1:2];
 				 v_floor2[1:2];  -v_floor2[1:2];
-				transpose(friction_mapping(env)) * v_object[1:2];
+				friction_mapping(env)' * v_object[1:2];
 				])
 end
 
@@ -231,7 +231,8 @@ nb = nc * nf              # number of friction parameters
 nw = 3                    # disturbance dimension
 
 # World parameters
-μ_world = 0.50      # coefficient of friction
+# μ_world = 0.50      # coefficient of friction
+μ_world = 0.10      # coefficient of friction
 μ_joint = 0.0
 g = 9.81     # gravity
 

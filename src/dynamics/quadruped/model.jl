@@ -447,7 +447,7 @@ function A_func(model::Quadruped, q)
 			  0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::Quadruped, q)
+function J_func(model::Quadruped, env::Environment, q)
 	J_calf_1 = jacobian_2(model, q, body = :calf_1, mode = :ee)
 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
@@ -477,7 +477,7 @@ function contact_forces(model::Quadruped, env::Environment{R2, LinearizedCone}, 
 end
 
 function velocity_stack(model::Quadruped, env::Environment{R2, LinearizedCone}, q1, q2, k, h)
-	v = J_func(model, q2) * (q2 - q1) / h[1]
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(env, k[1:1]) * v[1:2]
 	v2_surf = rotation(env, k[3:3]) * v[3:4]
@@ -525,8 +525,8 @@ d_torso = 0.5 * l_torso + 0.0127
 d_thigh = 0.5 * l_thigh - 0.00323
 d_leg = 0.5 * l_leg - 0.006435
 
-m_payload = 5.0
-J_payload = 0.05
+m_payload = 3.0
+J_payload = 0.03
 # Model parameters
 # m_torso = 4.713 + 4 * 0.696
 # m_thigh = 1.013

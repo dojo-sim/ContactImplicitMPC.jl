@@ -286,7 +286,6 @@ end
     @test abs(sim.traj.q[end][1]) < 0.05
     @test abs(sim.traj.q[end][2]) < 0.05
     @test abs(sim.traj.q[end][3]) < 0.001
-
 end
 
 @testset "Simulation: Particle (2D)" begin

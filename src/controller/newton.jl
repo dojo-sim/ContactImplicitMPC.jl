@@ -202,7 +202,7 @@ end
 function Newton(s::Simulation, H::Int, h::T,
     traj::ContactTraj, im_traj::ImplicitTraj;
     obj::Objective = TrackingObjective(s.model, s.env, H),
-    opts::NewtonOptions = NewtonOptions()) where T
+    opts::NewtonOptions = NewtonOptions(), κ::T=im_traj.ip[1].κ[1]) where T
 
     model = s.model
     env = s.env
@@ -222,7 +222,7 @@ function Newton(s::Simulation, H::Int, h::T,
     jac = NewtonJacobian(model, env, H)
 
     # precompute Jacobian for pre-factorization
-    implicit_dynamics!(im_traj, s, traj, κ = traj.κ)
+    implicit_dynamics!(im_traj, s, traj, κ = [κ]) #@@@
     jacobian!(jac, im_traj, obj, H, opts.β_init)
 
     res = NewtonResidual(model, env, H)
@@ -233,8 +233,8 @@ function Newton(s::Simulation, H::Int, h::T,
     ν = [zeros(SizedVector{ind.nd,T}) for t = 1:H]
     ν_cand = deepcopy(ν)
 
-    traj = contact_trajectory(model, env, H, h)
-    traj_cand = contact_trajectory(model, env, H, h)
+    traj = contact_trajectory(model, env, H, h, κ=κ)
+    traj_cand = contact_trajectory(model, env, H, h, κ=κ)
 
     Δq  = [zeros(SizedVector{nq,T}) for t = 1:H]
     Δu  = [zeros(SizedVector{nu,T}) for t = 1:H]
@@ -305,7 +305,7 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objec
         jac.u1T[t] .+= im_traj.δu1[t]'
 
         # Dual regularization
-        jac.reg[t] .-= 1.0 * β * im_traj.lin[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+        jac.reg[t] .-= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
     end
 
     return nothing
@@ -477,14 +477,14 @@ end
 function newton_solve!(core::Newton, s::Simulation,
     im_traj::ImplicitTraj, ref_traj::ContactTraj;
     warm_start::Bool = false, initial_offset::Bool = false,
-    q0 = ref_traj.q[1], q1 = ref_traj.q[2], verbose::Bool=false)
+    q0 = ref_traj.q[1], q1 = ref_traj.q[2])
 
-    # @show "newton_solve!" #simon
+    # @show "newton_solve!" #@@@
 	reset!(core, ref_traj, warm_start = warm_start,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
 
     # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, s, core.traj, κ = core.traj.κ)
+	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
 
     # Compute residual
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
@@ -493,7 +493,7 @@ function newton_solve!(core::Newton, s::Simulation,
 
     for l = 1:core.opts.max_iter
         # check convergence
-        # println("l = ", l, "  norm = ", r_norm / length(core.res.r)) #simon
+        # println("lbefor = ", l, "  norm = ", r_norm / length(core.res.r)) #@@@
         r_norm / length(core.res.r) < core.opts.r_tol && break
         # Compute NewtonJacobian
         update_jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
@@ -509,11 +509,11 @@ function newton_solve!(core::Newton, s::Simulation,
         update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
         # Compute implicit dynamics for candidate
-		implicit_dynamics!(im_traj, s, core.traj_cand, κ = core.traj_cand.κ)
+		implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
 
         # Compute residual for candidate
         residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
-        r_cand_norm = norm(core.res_cand.r)
+        r_cand_norm = norm(core.res_cand.r, 1)
 
         while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
             α = 0.5 * α
@@ -526,16 +526,17 @@ function newton_solve!(core::Newton, s::Simulation,
             update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
             # Compute implicit dynamics about trial_traj
-			implicit_dynamics!(im_traj, s, core.traj_cand, κ = core.traj_cand.κ)
+			implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
 
             residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
-            r_cand_norm = norm(core.res_cand.r)
+            r_cand_norm = norm(core.res_cand.r, 1)
         end
 
         # update
         update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
         core.res.r .= core.res_cand.r
         r_norm = r_cand_norm
+        # println("lafter = ", l, "  norm = ", r_norm / length(core.res.r)) #@@@
 
         # regularization update
         if iter > 6
@@ -545,12 +546,12 @@ function newton_solve!(core::Newton, s::Simulation,
         end
 
         # print status
-        verbose && println(" l: ", l ,
+        core.opts.verbose && println(" l: ", l ,
                 "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits = 0),
                 "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits = 0),
                 "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
                 "     α: ", -Int(round(log(α))),
-                "     κ: ", scn(core.traj.κ[1], digits = 0))
+                "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0))
     end
 
     return nothing

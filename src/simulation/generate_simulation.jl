@@ -272,8 +272,8 @@ model = deepcopy(quadruped_payload)
 env = deepcopy(flat_2D_lc)
 sim = Simulation(model, env)
 
-path_base = joinpath(dir_model, "dynamics/base.jld2")
-path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+path_base = joinpath(dir_model, "dynamics_payload/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics_payload/dynamics.jld2")
 path_res = joinpath(dir_sim, "payload/residual.jld2")
 path_jac = joinpath(dir_sim, "payload/jacobians.jld2")
 
@@ -358,6 +358,7 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/quadruped_simple")
 dir_sim   = joinpath(module_dir(), "src/simulation/quadruped_simple")
+include(joinpath(module_dir(), "src/dynamics/quadruped_simple/model.jl"))
 model = deepcopy(quadruped_simple)
 env = deepcopy(flat_3D_lc)
 sim = Simulation(model, env)
@@ -508,6 +509,28 @@ save_expressions(expr_res, path_res, overwrite=true)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
+# PlanarPush (2D)
+################################################################################
+dir_model = joinpath(module_dir(), "src/dynamics/planarpush_2D")
+dir_sim   = joinpath(module_dir(), "src/simulation/planarpush_2D")
+model = deepcopy(planarpush_2D)
+env = deepcopy(flat_2D_lc)
+sim = Simulation(model, env)
+
+path_base = joinpath(dir_model, "dynamics/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+path_res = joinpath(dir_sim, "flat/residual.jld2")
+path_jac = joinpath(dir_sim, "flat/jacobians.jld2")
+
+instantiate_base!(sim.model, path_base)
+instantiate_dynamics!(sim.model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(sim, path_res, path_jac)
+
+################################################################################
 # PlanarPush
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/planarpush")
@@ -607,7 +630,7 @@ expr_base = generate_base_expressions(model,
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
-expr_dyn = generate_dynamics_expressions(model)
+expr_dyn = generate_dynamics_expressions(model, nv = model.dim.q - 1)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
@@ -619,7 +642,11 @@ path_jac = joinpath(dir_sim, "bowl_nc/jacobians.jld2")
 instantiate_base!(sim.model, path_base)
 instantiate_dynamics!(sim.model, path_dyn)
 
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, mapping = Gz_func)
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(
+	sim.model,
+	sim.env,
+	mapping = Gz_func,
+	nv = model.dim.q - 1)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(sim, path_res, path_jac)
@@ -641,7 +668,11 @@ path_jac = joinpath(dir_sim, "flat_nc/jacobians.jld2")
 instantiate_base!(sim.model, path_base)
 instantiate_dynamics!(sim.model, path_dyn)
 
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, mapping = Gz_func)
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(
+	sim.model,
+	sim.env,
+	mapping = Gz_func,
+	nv = model.dim.q - 1)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(sim, path_res, path_jac)
@@ -651,6 +682,7 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/box")
 dir_sim   = joinpath(module_dir(), "src/simulation/box")
+include(joinpath(module_dir(), "src/dynamics/box/model.jl"))
 model = deepcopy(box)
 env = deepcopy(flat_3D_nc)
 sim = Simulation(model, env)
@@ -663,7 +695,11 @@ path_jac = joinpath(dir_sim, "flat_nc/jacobians.jld2")
 instantiate_base!(sim.model, path_base)
 instantiate_dynamics!(sim.model, path_dyn)
 
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, mapping = Gz_func)
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(
+	sim.model,
+	sim.env,
+	mapping = Gz_func,
+	nv = model.dim.q - 1)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(sim, path_res, path_jac)
@@ -673,6 +709,7 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/box_alt")
 dir_sim   = joinpath(module_dir(), "src/simulation/box_alt")
+include(joinpath(module_dir(), "src/dynamics/box_alt/model.jl"))
 model = deepcopy(box_alt)
 env = deepcopy(flat_3D_nc)
 sim = Simulation(model, env)

@@ -19,6 +19,7 @@ include("solver/lu.jl")
 include("solver/gs.jl")
 include("solver/schur.jl")
 include("solver/soc.jl")
+include("solver/mehrotra.jl")
 
 # Dynamics
 include("dynamics/lagrangian.jl")
@@ -34,6 +35,7 @@ include("simulator/particle.jl")
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
 # include("simulator/hopper_3D.jl")
 include("simulator/quadruped.jl")
+include("simulator/open_loop.jl")
 # include("simulator/biped.jl") #TODO: improve this test
 # include("simulator/flamingo.jl") #TODO: add this test
 
@@ -47,3 +49,4 @@ include("controller/newton.jl")
 # MPC examples
 include("controller/mpc_quadruped.jl")
 include("controller/mpc_flamingo.jl")
+# const ContactControl = Main

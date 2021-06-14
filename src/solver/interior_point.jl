@@ -1,4 +1,12 @@
 abstract type LinearSolver end
+abstract type InteriorPointSolver end
+
+mutable struct ResidualMethods
+    r!
+    rm!
+    rz!
+    rθ!
+end
 
 # residual
 function r!(r, z, θ, κ)
@@ -42,7 +50,6 @@ function mapping!(δz, s::Euclidean, δzs, z) # TODO: make allocation free
     δz .= δzs
 end
 
-
 # interior-point solver options
 @with_kw mutable struct InteriorPointOptions{T}
     r_tol::T = 1.0e-5
@@ -60,12 +67,7 @@ end
     reg_pr_init = 0.0
     reg_du_init = 0.0
     solver::Symbol = :lu_solver
-end
-
-mutable struct ResidualMethods
-    r!
-    rz!
-    rθ!
+    verbose::Bool = false
 end
 
 # regularize Jacobian / Hessian
@@ -74,7 +76,7 @@ function regularize!(v_pr, v_du, reg_pr, reg_du)
     v_du .-= reg_du
 end
 
-mutable struct InteriorPoint{T}
+mutable struct InteriorPoint{T} <: InteriorPointSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}               # current point
@@ -101,6 +103,7 @@ mutable struct InteriorPoint{T}
     v_du
     reg_pr
     reg_du
+    iterations::Int
     opts::InteriorPointOptions
 end
 
@@ -112,7 +115,7 @@ function interior_point(z, θ;
         idx_soc = Vector{Int}[],
         idx_pr = collect(1:s.n),
         idx_du = collect(1:0),
-        r! = r!, rz! = rz!, rθ! = rθ!,
+        r! = r!, rm! = rm!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
@@ -125,7 +128,7 @@ function interior_point(z, θ;
 
     InteriorPoint(
         s,
-        ResidualMethods(r!, rz!, rθ!),
+        ResidualMethods(r!, rm!, rz!, rθ!),
         z,
         zeros(length(z)),
         r,
@@ -149,6 +152,7 @@ function interior_point(z, θ;
         v_pr,
         v_du,
         reg_pr, reg_du,
+        0,
         opts)
 end
 
@@ -177,6 +181,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
     diff_sol = opts.diff_sol
     res_norm = opts.res_norm
     reg = opts.reg
+    verbose = opts.verbose
 
     # unpack pre-allocated data
     z = ip.z
@@ -196,6 +201,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
     reg_pr = ip.reg_pr
     reg_du = ip.reg_du
     solver = ip.solver
+    iterations = ip.iterations
 
     # initialize barrier parameter
     κ[1] = κ_init
@@ -219,6 +225,8 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 if r_norm < r_tol
                     break
                 end
+                iterations += 1
+
                 # @show r_norm
 
                 # compute residual Jacobian
@@ -276,6 +284,7 @@ function interior_point!(ip::InteriorPoint{T}) where T
                 update_point!(z, s, z̄)
                 r_update!(r, r̄)
                 r_norm = r̄_norm
+                verbose && println("out: ", i, "   in: ", j, "   res∞: ", scn(r_norm))
             end
         end
 

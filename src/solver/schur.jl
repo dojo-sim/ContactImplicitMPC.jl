@@ -35,7 +35,7 @@ function Schur(M::AbstractMatrix{T}; n::Int=1, m::Int=size(M)[1]-n) where {T}
     CAi = C*Ai
     CAiB = C*Ai*B
     gs_data = SDMGSData(m,T=T)
-    gs!(gs_data, D - CAiB)
+    factorize!(gs_data, D - CAiB)
     u = zeros(SVector{n,T})
     v = zeros(SVector{m,T})
     x = zeros(SVector{n,T})
@@ -44,10 +44,10 @@ function Schur(M::AbstractMatrix{T}; n::Int=1, m::Int=size(M)[1]-n) where {T}
 end
 
 """
-    Update the Schur complement structure to handle a change n the D matrix.
+    Update the Schur complement structure to handle a change in the D matrix.
     It recomputes the Gram-Schmidt factorization of the Schur complement of the block A.
 """
-function schur_update!(S::Schur{T,n,m,nn,nm,mm}, D::AbstractMatrix{T}) where {T,n,m,nn,nm,mm}
+function schur_factorize!(S::Schur{T,n,m,nn,nm,mm}, D::AbstractMatrix{T}) where {T,n,m,nn,nm,mm}
     # update D, gs_data and the shur complement
     # B = S.B
     # C = S.C
@@ -56,7 +56,7 @@ function schur_update!(S::Schur{T,n,m,nn,nm,mm}, D::AbstractMatrix{T}) where {T,
     CAiB = S.CAiB
     gs_data = S.gs_data
 
-    gs!(gs_data, D - CAiB)
+    factorize!(gs_data, D - CAiB)
     return nothing
 end
 

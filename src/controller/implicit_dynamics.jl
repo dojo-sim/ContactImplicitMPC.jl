@@ -4,6 +4,7 @@ This structure holds the trajectory of evaluations and Jacobians of the implicit
 These evaluations and Jacobians are computed using a linearizedimation computed around `lin`.
 """
 mutable struct ImplicitTraj{T}
+	H::Int
 	lin::Vector{LinearizedStep{T}}
 	d::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}} # dynamics violation
 	dq2::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
@@ -15,7 +16,7 @@ mutable struct ImplicitTraj{T}
 	δq0::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}} # q0 solution gradient length=H
 	δq1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # q1 solution gradient length=H
 	δu1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # u1 solution gradient length=H
-	ip::Vector{InteriorPoint{T}}
+	ip::Vector{<:InteriorPointSolver}
 end
 
 
@@ -68,11 +69,13 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	δq1 = [view(ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
 	δu1 = [view(ip[t].δz, 1:nd, off .+ (1:nu)) for t = 1:H]; off += nu
 
-	return ImplicitTraj(lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip)
+	return ImplicitTraj(H, lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip)
 end
 
 function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
-	s::Simulation, alt::Vector; κ = ref_traj.κ[1])
+	s::Simulation,
+	 alt::Vector
+	; κ = ref_traj.κ[1])
 
 	H = ref_traj.H
 	for t = 1:H
@@ -109,11 +112,21 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	return nothing
 end
 
+function set_altitude!(im_traj::ImplicitTraj, alt::Vector)
+	H = im_traj.H
+	for t = 1:H
+		# altitude
+		im_traj.ip[t].r.alt = alt
+		im_traj.ip[t].r̄.alt = alt
+	end
+	return nothing
+end
+
 """
 	implicit_dynamics!(im_traj::ImplicitTraj, model::ContactModel,
 		traj::ContactTraj; κ = traj.κ)
 Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
-linearizedimated since it relies on a linearization about a reference trajectory.
+linearized since it relies on a linearization about a reference trajectory.
 """
 function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
 	traj; κ = traj.κ) where {T, D}
@@ -129,6 +142,7 @@ function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
 
 		# solve
 		status = interior_point!(im_traj.ip[t])
+		# !status && error("implicit dynamics failure (t = $t)")
 		!status && (@warn "implicit dynamics failure (t = $t)")
 
 		# compute dynamics violation
