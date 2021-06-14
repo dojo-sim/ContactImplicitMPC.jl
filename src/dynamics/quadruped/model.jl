@@ -484,11 +484,6 @@ function velocity_stack(model::Quadruped, env::Environment{R2, LinearizedCone}, 
 	v3_surf = rotation(env, k[5:5]) * v[5:6]
 	v4_surf = rotation(env, k[7:7]) * v[7:8]
 
-	v1_surf = v[1:2]
-	v2_surf = v[3:4]
-	v3_surf = v[5:6]
-	v4_surf = v[7:8]
-
 	SVector{8}([transpose(friction_mapping(env)) * v1_surf[1];
 				transpose(friction_mapping(env)) * v2_surf[1];
 				transpose(friction_mapping(env)) * v3_surf[1];

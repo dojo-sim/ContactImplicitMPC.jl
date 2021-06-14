@@ -63,6 +63,7 @@ export environment_2D, environment_3D, environment_2D_flat,
 # Models
 include("dynamics/quaternions.jl")
 include("dynamics/mrp.jl")
+include("dynamics/euler.jl")
 
 include("dynamics/particle_2D/model.jl")
 include("dynamics/particle/model.jl")
@@ -76,6 +77,7 @@ include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/planarpush/model.jl")
 include("dynamics/rigidbody/model.jl")
+include("dynamics/box/model.jl")
 
 # Simulator
 include("simulator/policy.jl")

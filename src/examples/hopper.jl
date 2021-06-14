@@ -19,11 +19,12 @@ r0 = rand(nz)
 z0 = rand(nz)
 θ0 = rand(nθ)
 
-
 # get trajectory
 # ref_traj = get_trajectory("hopper_2D", "gait_in_place", load_type=:joint_traj)
-ref_traj = get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
-
+# ref_traj = get_trajectory("hopper_2D", "gait_forward", load_type=:joint_traj)
+ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
+    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_forward.jld2"),
+    load_type = :joint_traj))
 # time
 H = ref_traj.H
 h = ref_traj.h
