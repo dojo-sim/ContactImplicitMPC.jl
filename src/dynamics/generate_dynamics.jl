@@ -116,6 +116,22 @@ save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
 ################################################################################
+# Quadruped (3D alt)
+################################################################################
+dir = joinpath(@__DIR__, "quadruped_3D_alt")
+model = deepcopy(quadruped)
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+
+expr_base = generate_base_expressions(model, M_analytical = false)
+save_expressions(expr, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
+
+################################################################################
 # Quadruped (Simple)
 ################################################################################
 dir = joinpath(@__DIR__, "quadruped_simple")

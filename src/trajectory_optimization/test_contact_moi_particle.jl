@@ -11,83 +11,117 @@ h = 0.1
 
 q0 = [0.0; 1.0]
 q1 = [0.0; 1.0]
-qT = [1.0; 0.0]
+qT = [10.0; 0.0]
 
 nz = n * T + m * (T - 2)
 np = n * (T - 2)
 
-z0 = rand(nz)
+qq = linear_interpolation(q0, qT, T)
+u0 = [0.01 * randn(m) for t = 1:T-2]
+z0 = vcat(qq[1], [[qq[t+1]; u0[t]] for t = 1:T-2]..., qq[T])
 
 slack = 0.1
 
 struct Dynamics{T}
 	s::Simulation
-	ip::InteriorPoint
+	ip_dyn::InteriorPoint
+	ip_jac::InteriorPoint
 	h::T
 end
 
 function gen_dynamics(s::Simulation, h;
-		ip_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-5,
-						κ_tol = 0.1,
+		dyn_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-5,
+						κ_init = 0.1,
+						diff_sol = true),
+		jac_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-1,
 						κ_init = 0.1,
 						diff_sol = true))
 
 	z = zeros(num_var(s.model, s.env))
 	θ = zeros(num_data(s.model))
 
-	ip = interior_point(z, θ,
+	# # Rn + quaternion space
+	# rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model, s.env, x),
+	# 			collect([(1:3)..., (8:num_var(s.model, s.env))...]),
+	# 			collect([(1:3)..., (7:num_var(s.model, s.env)-1)...]),
+	# 			collect((4:7)),
+	# 			collect((4:6)))
+
+	ip_dyn = interior_point(z, θ,
+		# s = rq_space,
 		idx_ineq = inequality_indices(s.model, s.env),
+		# idx_soc = soc_indices(s.model, s.env),
 		r! = s.res.r!,
 		rz! = s.res.rz!,
 		rθ! = s.res.rθ!,
 		rz = s.rz,
 		rθ = s.rθ,
-		opts = ip_opts)
+		opts = dyn_opts)
 
-	Dynamics(s, ip, h)
+	ip_dyn.opts.diff_sol = false
+
+	ip_jac = interior_point(z, θ,
+		# s = rq_space,
+		idx_ineq = inequality_indices(s.model, s.env),
+		# idx_soc = soc_indices(s.model, s.env),
+		r! = s.res.r!,
+		rz! = s.res.rz!,
+		rθ! = s.res.rθ!,
+		rz = s.rz,
+		rθ = s.rθ,
+		opts = jac_opts)
+
+	ip_jac.opts.diff_sol = true
+
+	Dynamics(s, ip_dyn, ip_jac, h)
 end
 
-d = gen_dynamics(s, h, ip_opts = InteriorPointOptions{Float64}(κ_tol = slack, κ_init = slack))
+d = gen_dynamics(s, h,
+	dyn_opts = InteriorPointOptions{Float64}(κ_tol = 1.0e-5, κ_init = 0.1),
+	jac_opts = InteriorPointOptions{Float64}(κ_tol = 1.0e-3, κ_init = 0.1))
 
-function f!(d::Dynamics, q0, q1, u1)
+function f!(d::Dynamics, q0, q1, u1, mode = :dynamics)
 	s = d.s
-	ip = d.ip
+	ip = (mode == :dynamics ? d.ip_dyn : d.ip_jac)
 	h = d.h
 
 	z_initialize!(ip.z, s.model, s.env, copy(q1))
 	θ_initialize!(ip.θ, s.model, copy(q0), copy(q1), copy(u1), zeros(s.model.dim.w), s.model.μ_world, h)
 
-	ip.opts.diff_sol = true
+	# ip.opts.diff_sol = true
 	status = interior_point!(ip)
 
 	!status && (@warn "dynamics failure")
 end
 
 function f(d::Dynamics, q0, q1, u1)
-	f!(d, q0, q1, u1)
-	return copy(d.ip.z[1:d.s.model.dim.q])
+	f!(d, q0, q1, u1, :dynamics)
+	return copy(d.ip_dyn.z[1:d.s.model.dim.q])
 end
 
 f(d, q0, q1, zeros(m))
 
 function fq0(d::Dynamics, q0, q1, u1)
-	f!(d, q0, q1, u1)
-	return copy(d.ip.δz[1:d.s.model.dim.q, 1:d.s.model.dim.q])
+	f!(d, q0, q1, u1, :jacobian)
+	return copy(d.ip_jac.δz[1:d.s.model.dim.q, 1:d.s.model.dim.q])
 end
 
 fq0(d, q0, q1, zeros(m))
 
 function fq1(d::Dynamics, q0, q1, u1)
-	f!(d, q0, q1, u1)
-	return copy(d.ip.δz[1:d.s.model.dim.q, d.s.model.dim.q .+ (1:d.s.model.dim.q)])
+	f!(d, q0, q1, u1, :jacobian)
+	return copy(d.ip_jac.δz[1:d.s.model.dim.q, d.s.model.dim.q .+ (1:d.s.model.dim.q)])
 end
 
 fq1(d, q0, q1, zeros(m))
 
 function fu1(d::Dynamics, q0, q1, u1)
-	f!(d, q0, q1, u1)
-	return copy(d.ip.δz[1:d.s.model.dim.q, 2 * d.s.model.dim.q .+ (1:d.s.model.dim.u)])
+	f!(d, q0, q1, u1, :jacobian)
+	return copy(d.ip_jac.δz[1:d.s.model.dim.q, 2 * d.s.model.dim.q .+ (1:d.s.model.dim.u)])
 end
 
 fu1(d, q0, q1, zeros(m))
@@ -148,7 +182,7 @@ function moi_obj(z)
 
 	for t = 1:T-2
 		ut = z[u_idx[t]]
-		J += obj_config_func(ut)
+		J += obj_ctrl_func(ut)
 	end
 
 	return J
@@ -254,27 +288,26 @@ end
 sparsity_jacobian(nz, np)
 
 zl, zu = primal_bounds(nz)
-zl[1:n] = q0
-zu[1:n] = q0
-zl[n .+ (1:n)] = q1
-zu[n .+ (1:n)] = q1
+zl[q_idx[1]] = q0
+zu[q_idx[1]] = q0
+zl[q_idx[2]] = q1
+zu[q_idx[2]] = q1
 
-zl[end-n+1:end] = qT
-zu[end-n+1:end] = qT
+zl[q_idx[T]] = qT
+zu[q_idx[T]] = qT
+zl[q_idx[T-1]] = qT
+zu[q_idx[T-1]] = qT
 
 for t = 1:T-2
 	zl[u_idx[t]] = [-10.0; 0.0]
 	zu[u_idx[t]] = [10.0; 0.0]
 end
 
+slack = 1.0e-4
+
 cl, cu = constraint_bounds(np)
 cl .= -slack
 cu .= slack
-
-qq = linear_interpolation(q0, qT, T)
-u0 = [0.01 * randn(m) for t = 1:T-2]
-z0 = vcat(qq[1], [[qq[t+1]; u0[t]] for t = 1:T-2]..., qq[T])
-
 
 # j0 = zeros((n * n + n * n + n * m + n * n) * (T - 2))
 # ∇moi_con!(j0, z0)
@@ -286,6 +319,8 @@ z0 = vcat(qq[1], [[qq[t+1]; u0[t]] for t = 1:T-2]..., qq[T])
 
 # show(J0)
 
+# d.ip.opts.κ_init = 0.1
+# d.ip.opts.κ_tol = 1.0e-3
 # plot(hcat(qq...)')
 prob = ProblemMOI(nz, np,
     sparsity_jac=sparsity_jacobian(nz, np),
@@ -314,8 +349,8 @@ slack = 0.1 * slack
 cl, cu = constraint_bounds(np)
 cl .= -slack
 cu .= slack
-d.ip.opts.κ_init = slack
-d.ip.opts.κ_tol = slack
+# d.ip.opts.κ_init = 1.0e-3
+# d.ip.opts.κ_tol = 1.0e-5
 prob = ProblemMOI(nz, np,
     sparsity_jac=sparsity_jacobian(nz, np),
     primal_bounds=(zl, zu),
