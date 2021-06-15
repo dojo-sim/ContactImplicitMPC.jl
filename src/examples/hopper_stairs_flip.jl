@@ -12,8 +12,8 @@ function get_stride(model::Hopper2D, traj::ContactTraj)
 end
 
 # get hopper model
-model_sim = get_model("hopper_2D", surf="stairs")
-model = get_model("hopper_2D")
+s = get_simulation("hopper_2D", "flat_2D_lc", "flat")
+s_sim = get_simulation("hopper_2D", "stairs3_2D_lc", "stairs")
 
 # MPC parameters
 N_sample = 10
@@ -33,8 +33,8 @@ mpc_opts = LinearizedMPCOptions(
 ################################################################################
 
 # get stair trajectory
-ref_traj_ = get_trajectory(model,
-    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stair_ref.jld2"),
+ref_traj_ = get_trajectory(s.model, s.env,
+    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/hopper_stair_ref.jld2"),
     load_type=:split_traj_alt)
 ref_traj = deepcopy(ref_traj_)
 
@@ -45,21 +45,20 @@ h_sim = h / N_sample
 H_sim = 254*N_sample
 
 # Objective
-obj = TrackingVelocityObjective(H_mpc, model.dim,
+obj = TrackingVelocityObjective(s.model, s.env, H_mpc,
     v = [Diagonal(1e-3 * [0.1,1,1,10]) for t = 1:H_mpc],
     q = [[Diagonal(1.0e-0 * [0.3,0.3,0.3,1])   for t = 1:H_mpc]; [Diagonal(1.0e+2 * [5,0.3,0.3,0.1])   for t = 1:H_mpc]],
     u = [Diagonal(1.0e-1 * [1e0, 1e-0]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-3 * ones(model.dim.b)) for t = 1:H_mpc])
+    γ = [Diagonal(1.0e-3 * ones(s.model.dim.c)) for t = 1:H_mpc],
+    b = [Diagonal(1.0e-3 * ones(s.model.dim.c * friction_dim(s.env))) for t = 1:H_mpc])
 
 # Policy
-p = linearized_mpc_policy(ref_traj, model, obj,
+p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
     n_opts = n_opts,
-    mpc_opts = mpc_opts,
-    )
+    mpc_opts = mpc_opts)
 
 # Get initial configurations
 q1_ref = copy(ref_traj.q[2])
@@ -69,7 +68,7 @@ q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
 # Simulate the stair climbing
-sim_stair = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
+sim_stair = ContactControl.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = ContactControl.InteriorPointOptions(
         r_tol = 1.0e-8,
@@ -77,17 +76,18 @@ sim_stair = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
         κ_tol = 2.0e-8),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
-@time status = ContactControl.simulate!(sim_stair)
+@time status = simulate!(sim_stair)
 
 
-# plot_surface!(vis, model_sim.env, n=400)
+# plot_surface!(vis, s_sim.env, n=400)
+plot_surface!(vis, s.env, xlims=[-5.0, 5.0], ylims=[-1.0, 1.0])
 anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0)
 
 # ghost
-ref_traj_full = get_trajectory(model,
-    joinpath(module_dir(),"src", "dynamics", "hopper_2D", "parkour", "hopper_stairs_3_v3.jld2"),
+ref_traj_full_ = get_trajectory(s.model, s.env,
+    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/hopper_stairs_3_v3.jld2"),
     load_type=:split_traj_alt)
-ref_traj_full = deepcopy(ref_traj_full)
+ref_traj_full = deepcopy(ref_traj_full_)
 
 idx = [1, 300, 500, 1100, 1300, 1900, 2100]
 α = [0.2, 0.2, 0.4, 0.4, 0.6, 0.6, 0.6]
@@ -98,8 +98,8 @@ hopper_parkour_ghost!(vis, sim_stair, sim_stair.traj, ref_traj_full, idx = idx, 
 ################################################################################
 
 # get trajectory
-ref_traj_ = get_trajectory(model,
-    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_tall_flip_ref.jld2"),
+ref_traj_ = get_trajectory(s.model, s.env,
+    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/hopper_tall_flip_ref.jld2"),
     load_type=:split_traj_alt)
 ref_traj = deepcopy(ref_traj_)
 # offset the trajectory
@@ -114,15 +114,15 @@ h_sim = h / N_sample
 H_sim = 64*N_sample
 
 # Objective
-obj = TrackingVelocityObjective(H_mpc, model.dim,
+obj = TrackingVelocityObjective(s.model, s.env, H_mpc,
     v = [Diagonal(1e-3 * [0.1,1,1,10]) for t = 1:H_mpc],
     q = [[Diagonal(1.0e-1 * [0.1,10,3,3]) for t = 1:H_mpc]; [Diagonal(1.0e+2 * [5,10,3,10])   for t = 1:H_mpc]],
     u = [Diagonal(1.0e-1 * [1e0, 5e-1]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-3 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-3 * ones(model.dim.b)) for t = 1:H_mpc])
+    γ = [Diagonal(1.0e-3 * ones(s.model.dim.c)) for t = 1:H_mpc],
+    b = [Diagonal(1.0e-3 * ones(s.model.dim.c * friction_dim(s.env))) for t = 1:H_mpc])
 
 # Policy
-p = linearized_mpc_policy(ref_traj, model, obj,
+p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
@@ -134,7 +134,7 @@ p = linearized_mpc_policy(ref_traj, model, obj,
 q0_sim = deepcopy(SVector{model.dim.q}(sim_stair.traj.q[end-1]))
 q1_sim = deepcopy(SVector{model.dim.q}(sim_stair.traj.q[end]))
 
-sim_flip = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
+sim_flip = ContactControl.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = ContactControl.InteriorPointOptions(
         r_tol = 1.0e-8,
@@ -153,20 +153,21 @@ sim_flip = ContactControl.simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 # Full trajectory
 ################################################################################
 
-ref_traj_full = get_trajectory(model,
-    joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "parkour", "hopper_stairs_flip_ref.jld2"),
+ref_traj_full = get_trajectory(s.model, s.env,
+    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/hopper_stairs_flip_ref.jld2"),
     load_type=:split_traj_alt)
 
+N_sample = 3
 sim_traj_full = [sim_stair.traj.q[1:end-2]; sim_flip.traj.q]
 anim = visualize_robot!(vis, model, [sim_traj_full[1:N_sample:end]..., [sim_traj_full[end] for i = 1:50]...], name=:Sim, α=1.0)
-anim = visualize_robot!(vis, model, [ref_traj_full.q..., [ref_traj_full.q[end] for i = 1:50]...], anim=anim, name=:Ref, α=0.3)
+anim = visualize_robot!(vis, model, [ref_traj_full.q..., [ref_traj_full.q[end] for i = 1:50]...], anim=anim, name=:Ref, α=0.15)
 stairs!(vis)
 settransform!(vis["/Cameras/default"],
         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
 setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
 
-plot_lines!(vis, model, ref_traj_full.q)
-plot_lines!(vis, model, sim_traj_full, offset = -0.5, size = 5)
+plot_lines!(vis, model, ref_traj_full.q, offset = -0.3)
+plot_lines!(vis, model, sim_traj_full, offset = -0.5, size = 6)
 
 
 
