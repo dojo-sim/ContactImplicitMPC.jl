@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - master && contains(github.event.head_commit.message, 'run_ci') 
-    tags: '*'
+    tags: '*' 
   pull_request:
 jobs:
   test:
