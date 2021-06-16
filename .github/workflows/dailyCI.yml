@@ -1,4 +1,4 @@
-name: CI
+name: dailyCI
 on:
   schedule:
     - cron: '00 10,22 * * *'
