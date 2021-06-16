@@ -2,7 +2,7 @@ name: CI
 on:
   schedule:
     # * is a special character in YAML so you have to quote this string
-    - cron:  '38 3,15 * * *'
+    - cron:  '42 10,22 * * *'
   push:
     branches:
       - master
