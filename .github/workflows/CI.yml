@@ -10,20 +10,20 @@ on:
   pull_request:
 jobs:
   test:
-#     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
-#     runs-on: ${{ matrix.os }}
-#     strategy:
-#       matrix:
-#         version:
-#           - '1.6'
-#         os:
-#           - ubuntu-latest
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        version:
+          - '1.6'
+        os:
+          - ubuntu-latest
 # #           - macOS-latest
 # #           - windows-latest
-#         arch:
-#           - x64
+        arch:
+          - x64
     steps:
-#       - uses: actions/checkout@v1
+      - uses: actions/checkout@v1
 #       - uses: julia-actions/setup-julia@latest
 # #         with:
 # #           version: ${{ matrix.version }}
