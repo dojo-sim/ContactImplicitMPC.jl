@@ -9,7 +9,7 @@ on:
     tags: '*'
   pull_request:
 jobs:
-#   test:
+  test:
 #     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
 #     runs-on: ${{ matrix.os }}
 #     strategy:
