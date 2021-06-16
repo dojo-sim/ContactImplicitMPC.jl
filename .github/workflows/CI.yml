@@ -23,7 +23,7 @@ jobs:
         arch:
           - x64
     steps:
-      if: "!contains(github.event.head_commit.message, 'ci')"
+      - if: ${{ contains(github.event.head_commit.message, 'cii') }}
       - uses: actions/checkout@v1
 #       - uses: julia-actions/setup-julia@latest
 # #         with:
