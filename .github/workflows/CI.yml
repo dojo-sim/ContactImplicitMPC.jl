@@ -1,7 +1,7 @@
 name: CI
 on:
 #   schedule:
-#     - cron:  '42 10,22 * * *'
+#     - cron:  '42 10,22 * * *' 
   push:
     branches:
       - master
