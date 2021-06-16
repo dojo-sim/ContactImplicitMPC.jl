@@ -38,8 +38,8 @@ im_traj = ImplicitTraj(ref_traj, s, κ=κ)
 core = Newton(s, H, h, ref_traj, im_traj, obj = obj, opts = n_opts)
 
 β = 0.10/sqrt(2)
-q0_dist = deepcopy(ref_traj.q[1] + [-β,-β,0,0,0,0,0])
-q1_dist = deepcopy(ref_traj.q[2] + [-β,-β,0,0,0,0,0])
+q0_dist = deepcopy(ref_traj.q[1] + [-β,+β,0,0,0,0,0])
+q1_dist = deepcopy(ref_traj.q[2] + [-β,+β,0,0,0,0,0])
 newton_solve!(core, s, im_traj, ref_traj, q0=q0_dist, q1=q1_dist)
 
 visualize_robot!(vis, model, core.traj.q)

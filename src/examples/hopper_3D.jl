@@ -33,7 +33,7 @@ h = ref_traj.h
 N_sample = 10
 H_mpc = 20
 h_sim = h / N_sample
-H_sim = 7500# 12000
+H_sim = 12000# 12000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -82,9 +82,9 @@ sim = simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 @time status = simulate!(sim)
 
-plot_surface!(vis, env_sim, n=100, xlims=[-0.3, 0.8], ylims=[-0.3, 0.9])
+plot_surface!(vis, env_sim, n=100, xlims=[-0.3, 1.5], ylims=[-1.1, 0.3])
 visualize_robot!(vis, model, sim.traj)
-plot_lines!(vis, model_sim, sim.traj.q[1:7300])
+plot_lines!(vis, model_sim, sim.traj.q[1:11000], offset=0.0)
 
 
 plt = plot(layout=(3,1), legend=false)

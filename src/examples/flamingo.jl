@@ -22,6 +22,14 @@ H_sim = 12000#35000
 # barrier parameter
 κ_mpc = 1.0e-4
 
+# obj = TrackingVelocityObjective(model, env, H_mpc,
+#     v = [Diagonal(1e-3 * [1e0,1,1e4,1,1,1,1,1e4,1e4]) for t = 1:H_mpc],
+#     q = [Diagonal(1e-1 * [3e2, 1e-6, 3e2, 1, 1, 1, 1, 0.1, 0.1]) for t = 1:H_mpc],
+#     u = [Diagonal(3e-1 * [0.1; 0.1; 0.3; 0.3; ones(model.dim.u-6); 2; 2]) for t = 1:H_mpc],
+#     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
+#     b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+
+
 obj = TrackingVelocityObjective(model, env, H_mpc,
     v = [Diagonal(1e-3 * [1e0,1,1e4,1,1,1,1,1e4,1e4]) for t = 1:H_mpc],
     q = [Diagonal(1e-1 * [3e2, 1e-6, 3e2, 1, 1, 1, 1, 0.1, 0.1]) for t = 1:H_mpc],
