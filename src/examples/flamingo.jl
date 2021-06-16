@@ -7,7 +7,7 @@ open(vis)
 s = get_simulation("flamingo", "flat_2D_lc", "flat")
 model = s.model
 env = s.env
-
+const ContactControl = Main
 ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
     joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
     load_type = :split_traj_alt))
@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1700#35000
+H_sim = 12000#35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
