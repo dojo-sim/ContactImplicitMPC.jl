@@ -1,8 +1,7 @@
 name: CI
 on:
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    - cron:  '42 10,22 * * *'
+#   schedule:
+#     - cron:  '42 10,22 * * *'
   push:
     branches:
       - master
@@ -12,6 +11,7 @@ jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
+    if: ${{ contains(github.event.head_commit.message, 'cii') }}
     strategy:
       matrix:
         version:
@@ -23,7 +23,6 @@ jobs:
         arch:
           - x64
     steps:
-      - if: ${{ contains(github.event.head_commit.message, 'cii') }}
       - uses: actions/checkout@v1
 #       - uses: julia-actions/setup-julia@latest
 # #         with:
