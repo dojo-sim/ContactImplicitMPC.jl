@@ -40,10 +40,10 @@ function mehrotra_timing(ref_traj, t, im_traj2)
 	return e2 - e1
 end
 
-function MehrotraImplicitTraj(ref_traj::ContactControl.ContactTraj, s::ContactControl.Simulation;
+function Mehrotra13ImplicitTraj(ref_traj::ContactControl.ContactTraj, s::ContactControl.Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 60.0,
-	opts = ContactControl.MehrotraOptions(
+	opts = ContactControl.Mehrotra13Options(
 			κ_init = κ[1],
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,
@@ -123,7 +123,7 @@ end
 
 
 ################################################################################
-# Test Mehrotra on the full non linear problem
+# Test Mehrotra13 on the full non linear problem
 ################################################################################
 
 z2, θ2 = get_initialization(ref_traj, t)
@@ -139,7 +139,7 @@ ip2 = mehrotra(z2, θ2,
     rθ! = s.res.rθ!,
     rz = s.rz,
     rθ = s.rθ,
-    opts = MehrotraOptions(
+    opts = Mehrotra13Options(
         max_iter_inner=100,
         r_tol=1e-8,
         κ_tol=2e-8,
@@ -148,7 +148,7 @@ ip2 = mehrotra(z2, θ2,
 mehrotra!(ip2)
 r2 = zeros(nz)
 s.res.r!(r2, ip2.z, ip2.θ, 0.0)
-@testset "Mehrotra Non Linear" begin
+@testset "Mehrotra13 Non Linear" begin
 	@test norm(r2, Inf) < 1e-8
 	@test (norm(r2, Inf) - 1.4e-14) < 1e-15
 	@test ip2.iterations == 8
@@ -197,12 +197,12 @@ end
 
 
 ################################################################################
-# Test Mehrotra on the linearized problem
+# Test Mehrotra13 on the linearized problem
 ################################################################################
 
-im_traj2 = MehrotraImplicitTraj(ref_traj, s;
+im_traj2 = Mehrotra13ImplicitTraj(ref_traj, s;
 	κ = 1e-8,
-	opts = MehrotraOptions(
+	opts = Mehrotra13Options(
 			κ_tol = 2.0 * 1e-8,
 			r_tol = 1.0e-8,
 			diff_sol = true,
@@ -216,7 +216,7 @@ ip2 = deepcopy(im_traj2[10])
 mehrotra!(ip2, z2, θ2)
 r2 = zeros(nz)
 s.res.r!(r2, ip2.z, ip2.θ, 0.0)
-@testset "Mehrotra Linear" begin
+@testset "Mehrotra13 Linear" begin
 	@test norm(r2, Inf) < 1e-8
 	@test (norm(r2, Inf) - 7.7e-12) < 1e-13
 	@test ip2.iterations == 5

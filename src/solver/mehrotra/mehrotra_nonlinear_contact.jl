@@ -125,7 +125,7 @@ function corrector_step_length(w2, w3, Δw2, Δw3; τ=0.9995)
     return αh
 end
 
-function step_length(w2, w3, Δw2aff, Δw3aff)
+function step_length_(w2, w3, Δw2aff, Δw3aff)
     m = length(w2)
 
     αhaff = 1.0
@@ -190,7 +190,7 @@ function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
 
         Δaff = affine_direction(w1, w2, w3, data, κ=0.0)
         Δw1aff, Δw2aff, Δw3aff = unpack(Δaff, n=n, m=m)
-        αhaff, μaff = step_length(w2, w3, Δw2aff, Δw3aff)
+        αhaff, μaff = step_length_(w2, w3, Δw2aff, Δw3aff)
         μ = w2'*w3 / m
         σ = (μaff / μ)^3
         Δ = corrector_direction(w1, w2, w3, σ, μ, Δw2aff, Δw3aff, data)
@@ -235,7 +235,7 @@ function baseline_solve(s::Simulation, ref_traj::ContactTraj, t::Int; newton_ite
 
         Δaff = affine_direction(w1, w2, w3, data, κ=κ)
         Δw1aff, Δw2aff, Δw3aff = unpack(Δaff, n=n, m=m)
-        αhaff, μaff = step_length(w2, w3, Δw2aff, Δw3aff)
+        αhaff, μaff = step_length_(w2, w3, Δw2aff, Δw3aff)
         w1 = w1 + αhaff * Δw1aff
         w2 = w2 + αhaff * Δw2aff
         w3 = w3 + αhaff * Δw3aff
@@ -290,23 +290,34 @@ end
 # Benchmark
 ################################################################################
 
-# # Test Quadruped
-# s1 = get_simulation("quadruped", "flat_2D_lc", "flat")
-# ref_traj1 = deepcopy(get_trajectory(s1.model, s1.env,
-#     joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
-#     load_type = :split_traj_alt))
-#
-# # Test Flamingo
-# s2 = get_simulation("flamingo", "flat_2D_lc", "flat")
-# ref_traj2 = deepcopy(get_trajectory(s2.model, s2.env,
-#     joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
-#     load_type = :split_traj_alt))
-#
-# # Test Hopper 2D
-# s3 = get_simulation("hopper_2D", "flat_2D_lc", "flat")
-# ref_traj3 = get_trajectory(s3.model, s3.env,
-#     joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_in_place.jld2"),
-#     load_type=:joint_traj)
+# Test Quadruped
+s1 = get_simulation("quadruped", "flat_2D_lc", "flat")
+ref_traj1 = deepcopy(get_trajectory(s1.model, s1.env,
+    joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+    load_type = :split_traj_alt))
+
+# Test Flamingo
+s2 = get_simulation("flamingo", "flat_2D_lc", "flat")
+ref_traj2 = deepcopy(get_trajectory(s2.model, s2.env,
+    joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
+    load_type = :split_traj_alt))
+
+# Test Hopper 2D
+s3 = get_simulation("hopper_2D", "flat_2D_lc", "flat")
+ref_traj3 = get_trajectory(s3.model, s3.env,
+    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_in_place.jld2"),
+    load_type=:joint_traj)
+
+
+μ_iter, σ_iter, success_rate = evaluate(s1, ref_traj1, algorithm = :mehrotra_solve, res_tol=1e-6)
+μ_iter, σ_iter, success_rate = evaluate(s1, ref_traj1, algorithm = :baseline_solve, res_tol=1e-6)
+
+μ_iter, σ_iter, success_rate = evaluate(s2, ref_traj2, algorithm = :mehrotra_solve, res_tol=1e-6)
+μ_iter, σ_iter, success_rate = evaluate(s2, ref_traj2, algorithm = :baseline_solve, res_tol=1e-6)
+
+μ_iter, σ_iter, success_rate = evaluate(s3, ref_traj3, algorithm = :mehrotra_solve, res_tol=1e-6)
+μ_iter, σ_iter, success_rate = evaluate(s3, ref_traj3, algorithm = :baseline_solve, res_tol=1e-6)
+
 
 
 μ_iter, σ_iter, success_rate = evaluate(s1, ref_traj1, algorithm = :mehrotra_solve, res_tol=1e-6)

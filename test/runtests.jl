@@ -11,7 +11,7 @@ using SparseArrays
 using BenchmarkTools
 using Quaternions
 
-Solver
+# Solver
 include("solver/gs.jl")
 include("solver/qdldl.jl")
 include("solver/random_qp.jl")
