@@ -152,7 +152,7 @@ function update_θ!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,n
 	return nothing
 end
 
-function repeat_ref_traj(traj::ContactTraj, model::ContactModel, N::Int;
+function repeat_ref_traj(traj::ContactTraj, N::Int;
        idx_shift = (1:0))
 
     shift = (traj.q[end] - traj.q[2])[idx_shift]
@@ -185,9 +185,9 @@ function repeat_ref_traj(traj::ContactTraj, model::ContactModel, N::Int;
 		traj.iq0, traj.iq1, traj.iu1, traj.iw1, traj.iq2, traj.iγ1, traj.ib1)
 end
 
-function sub_ref_traj(traj::ContactTraj, model::ContactModel, idx)
+function sub_traj(traj::ContactTraj, idx::AbstractVector{Int})
 
-    q = deepcopy(traj.q[collect([[idx..., idx[1][end] + 1, idx[1][end] + 2]]...)])
+    q = deepcopy(traj.q[collect([[idx..., idx[end] + 1, idx[end] + 2]]...)])
     u = deepcopy(traj.u[idx])
     w = deepcopy(traj.w[idx])
     γ = deepcopy(traj.γ[idx])
@@ -263,4 +263,36 @@ function get_trajectory(model::ContactModel, env::Environment, gait_path::String
 	end
 
 	return traj
+end
+
+# Check tracking performance
+function tracking_error(ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
+		sim_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, N_sample::Int; idx_shift=(1:0)) where {T,nq,nu,nw,nc,nb,nz,nθ}
+
+	# Horizons
+	H_ref = ref_traj.H
+	H_sim = sim_traj.H
+	H̄_sim = H_sim / N_sample
+	dupl_traj = repeat_ref_traj(ref_traj, Int(ceil(H̄_sim / H_ref)), idx_shift=idx_shift)
+	H_dupl = dupl_traj.H
+
+	q_error = 0.0
+	u_error = 0.0
+	γ_error = 0.0
+	b_error = 0.0
+	cnt = 0
+    for t = 1:H_dupl
+		cnt += 1
+		(t-1)*N_sample + 1 > H_sim && break
+		q_error += norm(dupl_traj.q[t+2] - sim_traj.q[(t-1)*N_sample + 3], 1) / nq
+		u_error += norm(dupl_traj.u[t] - sim_traj.u[(t-1)*N_sample + 1], 1) / nu
+		γ_error += norm(dupl_traj.γ[t] - sim_traj.γ[(t-1)*N_sample + 1], 1) / nc
+		b_error += norm(dupl_traj.b[t] - sim_traj.b[(t-1)*N_sample + 1], 1) / nb
+    end
+
+	q_error /= cnt
+	u_error /= cnt
+	γ_error /= cnt
+	b_error /= cnt
+    return q_error, u_error, γ_error, b_error
 end
