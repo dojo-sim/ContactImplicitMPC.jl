@@ -2,12 +2,12 @@
 @with_kw mutable struct MehrotraOptions{T}
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
-    κ_init::T = 1.0                   # useless
-    κ_scale::T = 0.1                  # useless
-    ls_scale::T = 0.5                 # useless
+    # κ_init::T = 1.0                   # useless
+    # κ_scale::T = 0.1                  # useless
+    # ls_scale::T = 0.5                 # useless
     max_iter_inner::Int = 100
-    max_iter_outer::Int = 1           # useless
-    max_ls::Int = 50                  # useless
+    # max_iter_outer::Int = 1           # useless
+    # max_ls::Int = 50                  # useless
     max_time::T = 60.0
     diff_sol::Bool = false
     res_norm::Real = Inf
