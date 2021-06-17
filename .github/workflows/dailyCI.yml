@@ -1,17 +1,11 @@
-name: CI
+name: dailyCI
 on:
-  push:
-    branches:
-      - master
-    tags: '*' 
-  pull_request:
-#   schedule:
-#     - cron: '42 10,22 * * *'
+  schedule:
+    - cron: '00 10,22 * * *'
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
-    if: ${{ contains(github.event.head_commit.message, 'run_ci') }}
     strategy:
       matrix:
         version:
