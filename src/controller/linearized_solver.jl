@@ -571,6 +571,10 @@ function update!(rθ::RθLin{T}, rθ0::AbstractMatrix{T}) where {T}
 	return nothing
 end
 
+function bilinear_res(r::RLin, ibil)
+    r.rbil
+end
+
 # function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 # 	r!(r, z, θ, κ)
 # 	return nothing

@@ -40,10 +40,10 @@ function mehrotra_timing(ref_traj, t, im_traj2)
 	return e2 - e1
 end
 
-function MehrotraImplicitTraj(ref_traj::ContactTraj, s::Simulation;
+function MehrotraImplicitTraj(ref_traj::ContactControl.ContactTraj, s::ContactControl.Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 60.0,
-	opts = MehrotraOptions(
+	opts = ContactControl.MehrotraOptions(
 			κ_init = κ[1],
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,
@@ -55,13 +55,13 @@ function MehrotraImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	model = s.model
 	env = s.env
 	H = ref_traj.H
-	lin = [LinearizedStep(s, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
+	lin = [ContactControl.LinearizedStep(s, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
 
-	ip =  [mehrotra(zeros(num_var(model, env)), zeros(num_data(model)),
-			 idx_ineq = inequality_indices(model, env),
-			 iy1 = linearization_var_index(model, env)[2],
-		 	 iy2 = linearization_var_index(model, env)[3],
-			 ibil = linearization_term_index(model, env)[3],
+	ip =  [ContactControl.mehrotra(zeros(ContactControl.num_var(model, env)), zeros(ContactControl.num_data(model)),
+			 idx_ineq = ContactControl.inequality_indices(model, env),
+			 iy1 = ContactControl.linearization_var_index(model, env)[2],
+		 	 iy2 = ContactControl.linearization_var_index(model, env)[3],
+			 ibil = ContactControl.linearization_term_index(model, env)[3],
 			 r! = r!,
 			 rm! = rm!,
 			 rz! = rz!,
@@ -80,9 +80,9 @@ end
 # Test data
 ################################################################################
 
-s = get_simulation("quadruped", "flat_2D_lc", "flat")
-ref_traj = deepcopy(get_trajectory(s.model, s.env,
-    joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+s = ContactControl.get_simulation("quadruped", "flat_2D_lc", "flat")
+ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
+    joinpath(ContactControl.module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
     load_type = :split_traj_alt))
 
 model = s.model

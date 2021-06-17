@@ -160,6 +160,8 @@ s = get_simulation("hopper_2D", "flat_2D_lc", "flat")
 s = get_simulation("quadruped", "flat_2D_lc", "flat")
 s = get_simulation("flamingo", "flat_2D_lc", "flat")
 s = get_simulation("pushbot", "flat_2D_lc", "flat")
+
+s
 model = s.model
 env = s.env
 
@@ -223,7 +225,7 @@ r1 = ContactControl.RLin(s, z0, θ0, r0, rz0, rθ0)
 # Test rz!
 ContactControl.rz!(rz1, z)
 rz2 = rand(nz, nz)
-s.linearized.rz!(rz2, z, rz0)
+s.model.linearized.rz!(rz2, z, rz0)
 
 @test norm(rz1.Dx  - rz2[idyn, ix],  Inf) < 1e-10
 @test norm(rz1.Dy1 - rz2[idyn, iy1], Inf) < 1e-10
