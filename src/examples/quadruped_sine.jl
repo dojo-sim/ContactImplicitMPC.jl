@@ -10,6 +10,8 @@ s = get_simulation("quadruped", "flat_2D_lc", "flat")
 model = s.model
 env = s.env
 
+nq = model.dim.q
+
 s_sim.model.μ_world
 s.model.μ_world
 
@@ -24,22 +26,29 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1500 #4000 #5000
+H_sim = 5000 #4000 #5000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
-obj = TrackingVelocityObjective(model, env, H_mpc,
-    q = [Diagonal(1e-2 * [1.00; 0.02; 0.1; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    # v = [Diagonal(1e-4 * [0.01; 0.01; 0.01; 1.00 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    # q = [Diagonal(1e-2 * [1.0; 0.02; 0.01; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    # q = [Diagonal(1e-2 * [1.0; 0.02; 0.01; 0.5 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    # q = [Diagonal(1e-2 * [2.0; 0.02; 0.01; 0.5 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    # q = [Diagonal(1e-2 * [10.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    # q = [Diagonal(1e-2 * [10.0; 0.02; 0.25; 0.5 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    u = [Diagonal(1e-2 * ones(model.dim.u)) for t = 1:H_mpc],
+# obj = TrackingVelocityObjective(model, env, H_mpc,
+#     q = [Diagonal(1e-2 * [1.00; 0.02; 0.1; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
+#     # v = [Diagonal(1e-4 * [0.01; 0.01; 0.01; 1.00 * ones(model.dim.q-3)]) for t = 1:H_mpc],
+#     # q = [Diagonal(1e-2 * [1.0; 0.02; 0.01; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
+#     # q = [Diagonal(1e-2 * [1.0; 0.02; 0.01; 0.5 * ones(model.dim.q-3)]) for t = 1:H_mpc],
+#     # q = [Diagonal(1e-2 * [2.0; 0.02; 0.01; 0.5 * ones(model.dim.q-3)]) for t = 1:H_mpc],
+#     # q = [Diagonal(1e-2 * [10.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
+#     # q = [Diagonal(1e-2 * [10.0; 0.02; 0.25; 0.5 * ones(model.dim.q-3)]) for t = 1:H_mpc],
+#     u = [Diagonal(1e-2 * ones(model.dim.u)) for t = 1:H_mpc],
+#     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
+#     b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+
+obj = TrackingObjective(model, env, H_mpc,
+    q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
+    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+
 
 p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -48,10 +57,10 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         max_iter = 5,
-        verbose = true,
+        # verbose = true,
         ),
     mpc_opts = LinearizedMPCOptions(
-        live_plotting=true,
+        # live_plotting=true,
         altitude_update = true,
         altitude_impact_threshold = 0.05,
         altitude_verbose = true,

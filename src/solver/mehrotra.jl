@@ -19,12 +19,6 @@
     verbose::Bool = false
 end
 
-# regularize Jacobian / Hessian
-function regularize!(v_pr, v_du, reg_pr, reg_du)
-    v_pr .+= reg_pr
-    v_du .-= reg_du
-end
-
 mutable struct Mehrotra{T} <: InteriorPointSolver
     s::Space
     methods::ResidualMethods
@@ -156,10 +150,6 @@ end
 
 function bilinear_res(r::AbstractVector, ibil)
     view(r, ibil)
-end
-
-function bilinear_res(r::RLin, ibil)
-    r.rbil
 end
 
 # interior point solver
@@ -340,5 +330,3 @@ function differentiate_solution!(ip::Mehrotra)
 
     nothing
 end
-
-linear_solve!(solver::LinearSolver, x::Vector{T}, A::Array{T, 2}, b::Vector{T}) where T = linear_solve!(solver, x, sparse(A), b)

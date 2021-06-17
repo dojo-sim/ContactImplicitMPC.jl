@@ -36,6 +36,7 @@ include("utils.jl")
 # Solver
 include("solver/cones.jl")
 include("solver/interior_point.jl")
+include("solver/mehrotra.jl")
 include("solver/lu.jl")
 include("solver/gn.jl")
 include("solver/ldl.jl")
@@ -115,6 +116,59 @@ export SparseStructure, LinearizedStep, get_bilinear_indices,
     bil_addition!, r_linearized!, rz_linearized!
 
 export ImplicitTraj, linearization!, implicit_dynamics!
-export TrackingObjective
+export TrackingObjective, TrackingVelocityObjective
 export second_order_cone_product, generate_base_expressions
+export RLin, RZLin, RθLin, ContactTraj, Simulation, num_var, num_data
+export get_simulation, get_trajectory
+export
+    interior_point,
+    inequality_indices,
+    soc_indices,
+    InteriorPointOptions,
+    interior_point!,
+    mehrotra,
+    linearization_var_index,
+    linearization_term_index,
+    MehrotraOptions,
+    mehrotra!,
+    r!,
+    rm!,
+    rz!,
+    rθ!
+
+export
+    generate_base_expressions,
+    save_expressions,
+    instantiate_base!,
+    generate_dynamics_expressions,
+    save_expressions,
+    instantiate_dynamics!,
+    environment_3D_flat,
+    RigidBody,
+    friction_dim,
+    dim,
+    sqrt_quat,
+    cayley_map,
+    L_multiply,
+    R_multiply,
+    R2,
+    R3,
+    FrictionCone,
+    rotation,
+    module_dir,
+    open_loop_disturbances,
+    disturbances,
+    open_loop_policy,
+    policy,
+    linearized_mpc_policy,
+    NewtonOptions,
+    LinearizedMPCOptions,
+    SimulatorOptions,
+    simulator,
+    simulate!,
+    generate_residual_expressions,
+    instantiate_residual!,
+    ϕ_func,
+    Particle
+
 end # module

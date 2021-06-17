@@ -123,8 +123,9 @@ end
 
     dir_dyn = joinpath(module_dir(), "src/dynamics/particle")
     dir_sim = joinpath(module_dir(), "src/simulation/particle")
+    include(joinpath(dir_dyn, "model.jl"))
     model2 = deepcopy(particle)
-    env2 = deepcopy(flat_3D_lc)
+    env2 = environment_3D_flat()
     s2 = Simulation(model2, env2)
 
     path_base = joinpath(dir_dyn, "dynamics/base.jld2")
