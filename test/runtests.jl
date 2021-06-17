@@ -21,6 +21,7 @@ include("solver/schur.jl")
 include("solver/soc.jl")
 include("solver/mehrotra.jl")
 
+
 # Dynamics
 # include("dynamics/lagrangian.jl") #bad
 include("dynamics/model.jl")
