@@ -165,6 +165,10 @@ export
     LinearizedMPCOptions,
     SimulatorOptions,
     simulator,
-    simulate!
+    simulate!,
+    generate_residual_expressions,
+    instantiate_residual!,
+    ϕ_func,
+    Particle
 
 end # module
