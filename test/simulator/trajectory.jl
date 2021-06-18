@@ -8,6 +8,6 @@
     N_repeat = 5
     N_sample = 1
     dupl_traj = repeat_ref_traj(ref_traj, N_repeat, idx_shift=[1])
-    @test all(tracking_error(ref_traj, dupl_traj, N_sample, idx_shift=[1]) .== 0.0)
+    @test all(ContactControl.tracking_error(ref_traj, dupl_traj, N_sample, idx_shift=[1]) .== 0.0)
 
 end

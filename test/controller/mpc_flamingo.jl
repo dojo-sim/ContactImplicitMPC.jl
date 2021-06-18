@@ -63,7 +63,7 @@
     @test norm(ref_traj.q[1][2:end] - ref_traj.q[end-1][2:end]) < 1e-8
     @test norm(ref_traj.q[2][2:end] - ref_traj.q[end-0][2:end]) < 1e-8
 
-    qerr, uerr, γerr, berr = tracking_error(ref_traj, sim.traj, N_sample, idx_shift=[1])
+    qerr, uerr, γerr, berr = ContactControl.tracking_error(ref_traj, sim.traj, N_sample, idx_shift=[1])
     @test qerr < 0.0154 * 1.5 # 0.0154
     @test uerr < 0.0829 * 1.5 # 0.0829
     @test γerr < 0.444 * 1.5 # 0.444

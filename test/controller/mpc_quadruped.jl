@@ -60,7 +60,7 @@
     @test status = ContactControl.simulate!(sim)
     ref_traj = deepcopy(ref_traj_)
 
-    qerr, uerr, γerr, berr = tracking_error(ref_traj, sim.traj, N_sample, idx_shift=[1])
+    qerr, uerr, γerr, berr = ContactControl.tracking_error(ref_traj, sim.traj, N_sample, idx_shift=[1])
     @test qerr < 0.0201 * 1.5 # 0.0201
     @test uerr < 0.0437 * 1.5 # 0.0437
     @test γerr < 0.374 * 1.5 # 0.374
@@ -140,7 +140,7 @@ end
     @time status = simulate!(sim)
     ref_traj = deepcopy(ref_traj_)
 
-    qerr, uerr, γerr, berr = tracking_error(ref_traj, sim.traj, N_sample, idx_shift=[1])
+    qerr, uerr, γerr, berr = ContactControl.tracking_error(ref_traj, sim.traj, N_sample, idx_shift=[1])
     @test qerr < 0.0333 * 1.5 # 0.0333
     @test uerr < 0.0437 * 1.5 # 0.0437
     @test γerr < 0.381 * 1.5 # 0.381
