@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 12000#35000
+H_sim = 2000#35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -60,12 +60,22 @@ q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-    ip_opts = InteriorPointOptions(
+    ip_opts = MehrotraOptions(
         r_tol = 1.0e-8,
         κ_init = 1.0e-8,
         κ_tol = 2.0e-8),
-    sim_opts = SimulatorOptions(warmstart = true)
+    sim_opts = SimulatorOptions(warmstart = true),
+	ip_type = :mehrotra,
     )
+# sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
+#     p = p,
+#     ip_opts = InteriorPointOptions(
+#         r_tol = 1.0e-8,
+#         κ_init = 1.0e-8,
+#         κ_tol = 2.0e-8),
+#     sim_opts = SimulatorOptions(warmstart = true),
+# 	ip_type = :interior_point,
+#     )
 
 @time status = simulate!(sim)
 
@@ -87,7 +97,6 @@ plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', colo
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 # plot!(plt[3,1], hcat(Vector.([b[1:nb] for b in sim.traj.b]*N_sample)...)', color=:red, linewidth=1.0)
 
-plot_surface!(vis, env, xlims=[-1, 7.5], ylims = [-0.5, 0.5])
 plot_surface!(vis, env, xlims=[-0.5, 1.5], ylims = [-0.5, 0.5])
 # anim = visualize_robot!(vis, model, sim.traj, sample=10)
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=10)

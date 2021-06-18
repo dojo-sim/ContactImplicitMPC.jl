@@ -22,7 +22,7 @@ function interior_point_timing(ref_traj, t, im_traj1)
 	e2 = @belapsed begin
 		z1, θ1 = get_initialization(ref_traj, t)
 		ip1 = deepcopy(im_traj1.ip[10])
-		interior_point!(ip1, z1, θ1)
+		interior_point_solve!(ip1, z1, θ1)
 	end
 	return e2 - e1
 end
@@ -35,15 +35,15 @@ function mehrotra_timing(ref_traj, t, im_traj2)
 	e2 = @belapsed begin
 		z2, θ2 = get_initialization(ref_traj, t)
 		ip2 = deepcopy(im_traj2[10])
-		mehrotra!(ip2, z2, θ2)
+		interior_point_solve!(ip2, z2, θ2)
 	end
 	return e2 - e1
 end
 
-function Mehrotra13ImplicitTraj(ref_traj::ContactControl.ContactTraj, s::ContactControl.Simulation;
+function MehrotraImplicitTraj(ref_traj::ContactControl.ContactTraj, s::ContactControl.Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 60.0,
-	opts = ContactControl.Mehrotra13Options(
+	opts = ContactControl.MehrotraOptions(
 			κ_init = κ[1],
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,
@@ -112,7 +112,7 @@ ip1 = interior_point(z1, θ1,
 		κ_tol=2e-8,
 		# verbose=true,
 		))
-interior_point!(ip1)
+interior_point_solve!(ip1)
 r1 = zeros(nz)
 s.res.r!(r1, ip1.z, ip1.θ, 0.0)
 @testset "Interior Point Non Linear" begin
@@ -123,7 +123,7 @@ end
 
 
 ################################################################################
-# Test Mehrotra13 on the full non linear problem
+# Test Mehrotra on the full non linear problem
 ################################################################################
 
 z2, θ2 = get_initialization(ref_traj, t)
@@ -139,16 +139,16 @@ ip2 = mehrotra(z2, θ2,
     rθ! = s.res.rθ!,
     rz = s.rz,
     rθ = s.rθ,
-    opts = Mehrotra13Options(
+    opts = MehrotraOptions(
         max_iter_inner=100,
         r_tol=1e-8,
         κ_tol=2e-8,
 		# verbose=true
 		))
-mehrotra!(ip2)
+interior_point_solve!(ip2)
 r2 = zeros(nz)
 s.res.r!(r2, ip2.z, ip2.θ, 0.0)
-@testset "Mehrotra13 Non Linear" begin
+@testset "Mehrotra Non Linear" begin
 	@test norm(r2, Inf) < 1e-8
 	@test (norm(r2, Inf) - 1.4e-14) < 1e-15
 	@test ip2.iterations == 8
@@ -158,7 +158,7 @@ end
 
 # @profiler for k = 1:3000
 # 	z2, θ2 = get_initialization(ref_traj, t)
-# 	mehrotra!(ip2, z2, θ2)
+# 	interior_point_solve!(ip2, z2, θ2)
 # end
 
 
@@ -179,7 +179,7 @@ im_traj1 = ImplicitTraj(ref_traj, s;
 
 z1, θ1 = get_initialization(ref_traj, t)
 ip1 = deepcopy(im_traj1.ip[10])
-interior_point!(ip1, z1, θ1)
+interior_point_solve!(ip1, z1, θ1)
 r1 = zeros(nz)
 s.res.r!(r1, ip1.z, ip1.θ, 0.0)
 @testset "Interior Point Linear" begin
@@ -191,18 +191,18 @@ end
 # @profiler for k = 1:5000
 # 	z1, θ1 = get_initialization(ref_traj, t)
 # 	ip1 = deepcopy(im_traj1.ip[10])
-# 	interior_point!(ip1, z1, θ1)
+# 	interior_point_solve!(ip1, z1, θ1)
 # end
 
 
 
 ################################################################################
-# Test Mehrotra13 on the linearized problem
+# Test Mehrotra on the linearized problem
 ################################################################################
 
-im_traj2 = Mehrotra13ImplicitTraj(ref_traj, s;
+im_traj2 = MehrotraImplicitTraj(ref_traj, s;
 	κ = 1e-8,
-	opts = Mehrotra13Options(
+	opts = MehrotraOptions(
 			κ_tol = 2.0 * 1e-8,
 			r_tol = 1.0e-8,
 			diff_sol = true,
@@ -213,10 +213,10 @@ im_traj2 = Mehrotra13ImplicitTraj(ref_traj, s;
 			))
 z2, θ2 = get_initialization(ref_traj, t)
 ip2 = deepcopy(im_traj2[10])
-mehrotra!(ip2, z2, θ2)
+interior_point_solve!(ip2, z2, θ2)
 r2 = zeros(nz)
 s.res.r!(r2, ip2.z, ip2.θ, 0.0)
-@testset "Mehrotra13 Linear" begin
+@testset "Mehrotra Linear" begin
 	@test norm(r2, Inf) < 1e-8
 	@test (norm(r2, Inf) - 7.7e-12) < 1e-13
 	@test ip2.iterations == 5
@@ -227,5 +227,5 @@ end
 # @profiler for k = 1:5000
 # 	z2, θ2 = get_initialization(ref_traj, t)
 # 	ip2 = deepcopy(im_traj2[10])
-# 	mehrotra!(ip2, z2, θ2)
+# 	interior_point_solve!(ip2, z2, θ2)
 # end

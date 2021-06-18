@@ -81,7 +81,7 @@ ip = ContactControl.interior_point(z0, zeros(0),
 	opts = opts)
 
 # solve
-status = ContactControl.interior_point!(ip)
+status = ContactControl.interior_point_solve!(ip)
 
 # test
 @test status

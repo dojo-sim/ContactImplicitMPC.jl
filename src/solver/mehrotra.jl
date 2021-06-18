@@ -1,8 +1,8 @@
 # interior-point solver options
-@with_kw mutable struct Mehrotra13Options{T}
+@with_kw mutable struct MehrotraOptions{T} <: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
-    # κ_init::T = 1.0                   # useless
+    κ_init::T = 1.0                   # useless
     # κ_scale::T = 0.1                  # useless
     # ls_scale::T = 0.5                 # useless
     max_iter_inner::Int = 100
@@ -19,7 +19,7 @@
     verbose::Bool = false
 end
 
-mutable struct Mehrotra13{T} <: InteriorPointSolver
+mutable struct Mehrotra{T} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}                 # current point
@@ -60,7 +60,7 @@ mutable struct Mehrotra13{T} <: InteriorPointSolver
     reg_pr
     reg_du
     iterations::Int
-    opts::Mehrotra13Options
+    opts::MehrotraOptions
 end
 
 function mehrotra(z, θ;
@@ -82,7 +82,7 @@ function mehrotra(z, θ;
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts = Mehrotra13Options()) where T
+        opts::MehrotraOptions = MehrotraOptions()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
@@ -94,7 +94,7 @@ function mehrotra(z, θ;
     nbil = length(iy1)
     iy1 = SVector{nbil, Int}(iy1)
     iy2 = SVector{nbil, Int}(iy2)
-    ibil = SVector{nbil, Int}(iy2)
+    ibil = SVector{nbil, Int}(ibil)
 
     # Views
     z_y1 = view(z, iy1)
@@ -105,7 +105,7 @@ function mehrotra(z, θ;
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
     rbil = bilinear_res(rm, ibil)
 
-    Mehrotra13(
+    Mehrotra(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
@@ -153,7 +153,7 @@ function bilinear_res(r::AbstractVector, ibil)
 end
 
 # interior point solver
-function mehrotra!(ip::Mehrotra13{T}) where T
+function interior_point_solve!(ip::Mehrotra{T}) where T
 
     # space
     s = ip.s
@@ -212,7 +212,7 @@ function mehrotra!(ip::Mehrotra13{T}) where T
     reg_du[1] = opts.reg_du_init
 
     # compute residual, residual Jacobian
-    rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
+    ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     r_merit = norm(r, res_norm)
 
     elapsed_time = 0.0
@@ -220,6 +220,15 @@ function mehrotra!(ip::Mehrotra13{T}) where T
     for j = 1:max_iter_inner
         elapsed_time >= max_time && break
         elapsed_time += @elapsed begin
+
+            # @show j
+            # @show norm(z)
+            # @show norm(θ)
+            # @show minimum(abs.(z))
+            # plt = plot()
+            # plot!(z)
+            # display(plt)
+
             # check for converged residual
             if r_merit < r_tol
                 break
@@ -227,14 +236,22 @@ function mehrotra!(ip::Mehrotra13{T}) where T
             ip.iterations += 1
             # compute residual Jacobian
             rz!(rz, z, θ)
+            # @show norm(rz)
 
             # regularize (fixed, TODO: adaptive)
             reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r)
+            # @show norm(Δaff)
+            # plt = plot()
+            # plot!(Δaff)
+            # display(plt)
             αaff = step_length(z_y1, z_y2, Δaff_y1, Δaff_y2, τ=1.0)
             μaff = (z_y1 - αaff * Δaff[iy1])' * (z_y2 - αaff * Δaff[iy2]) / nbil
+            # @show nbil
+            # @show norm(αaff)
+            # @show norm(μaff)
 
             μ = z_y1'*z_y2 / length(z_y1)
             σ = (μaff / μ)^3
@@ -258,7 +275,7 @@ function mehrotra!(ip::Mehrotra13{T}) where T
     end
 
     if r_merit > r_tol
-        @error "Mehrotra13 solver failed to reduce residual below r_tol."
+        @error "Mehrotra solver failed to reduce residual below r_tol."
         return false
     end
 
@@ -295,13 +312,13 @@ function step_length(w2::S, w3::S, Δw2::S, Δw3::S; τ::Real=0.9995) where {S}
     return α
 end
 
-function mehrotra!(ip::Mehrotra13{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function interior_point_solve!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
-    mehrotra!(ip)
+    interior_point_solve!(ip)
 end
 
-function differentiate_solution!(ip::Mehrotra13)
+function differentiate_solution!(ip::Mehrotra)
     s = ip.s
     z = ip.z
     θ = ip.θ

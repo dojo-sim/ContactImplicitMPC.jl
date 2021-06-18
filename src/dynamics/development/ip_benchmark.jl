@@ -75,7 +75,7 @@ lu(_rz_sp)
 fact = lu(ip.rz)
 ldiv!(ip.Δ, fact, r)
 # solve
-@time status = ContactControl.interior_point!(ip, z, θ, opts = opts)
+@time status = ContactControl.interior_point_solve!(ip, z, θ, opts = opts)
 
 # test
 @test status

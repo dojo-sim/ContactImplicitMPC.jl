@@ -114,4 +114,4 @@ ip = ContactControl.interior_point(z, θ,
 	opts = opts)
 
 # solve
-status = ContactControl.interior_point!(ip)
+status = ContactControl.interior_point_solve!(ip)

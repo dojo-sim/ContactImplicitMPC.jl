@@ -1,5 +1,16 @@
 abstract type LinearSolver end
-abstract type InteriorPointSolver end
+abstract type AbstractIPSolver end
+abstract type AbstractIPOptions end
+
+function interior_point_options(ip_type::Symbol; T::DataType=Float64)
+    if ip_type == :interior_point
+        return InteriorPointOptions{T}()
+    elseif ip_type == :mehrotra
+        return MehrotraOptions{T}()
+    else
+        error("Unknown ip_type.")
+    end
+end
 
 mutable struct ResidualMethods
     r!
@@ -11,6 +22,12 @@ end
 # residual
 function r!(r, z, θ, κ)
     @warn "residual not defined"
+    nothing
+end
+
+# residual mehrotra
+function rm!(r, z, Δz, θ, κ)
+    @warn "residual mehrotra not defined"
     nothing
 end
 
@@ -51,7 +68,7 @@ function mapping!(δz, s::Euclidean, δzs, z) # TODO: make allocation free
 end
 
 # interior-point solver options
-@with_kw mutable struct InteriorPointOptions{T}
+@with_kw mutable struct InteriorPointOptions{T} <: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
     κ_init::T = 1.0
@@ -76,7 +93,7 @@ function regularize!(v_pr, v_du, reg_pr, reg_du)
     v_du .-= reg_du
 end
 
-mutable struct InteriorPoint{T} <: InteriorPointSolver
+mutable struct InteriorPoint{T} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}               # current point
@@ -122,7 +139,10 @@ function interior_point(z, θ;
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts = InteriorPointOptions()) where T
+        iy1 = collect(1:0), # useless
+        iy2 = collect(1:0), # useless
+        ibil = collect(1:0), # useless
+        opts::InteriorPointOptions = InteriorPointOptions()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
@@ -157,13 +177,14 @@ function interior_point(z, θ;
 end
 
 # interior point solver
-function interior_point!(ip::InteriorPoint{T}) where T
+function interior_point_solve!(ip::InteriorPoint{T}) where T
 
     # space
     s = ip.s
 
     # methods
     r! = ip.methods.r!
+    rm! = ip.methods.rm!
     rz! = ip.methods.rz!
     rθ! = ip.methods.rθ!
 
@@ -303,10 +324,10 @@ function interior_point!(ip::InteriorPoint{T}) where T
     end
 end
 
-function interior_point!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function interior_point_solve!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
-    interior_point!(ip)
+    interior_point_solve!(ip)
 end
 
 function differentiate_solution!(ip::InteriorPoint)

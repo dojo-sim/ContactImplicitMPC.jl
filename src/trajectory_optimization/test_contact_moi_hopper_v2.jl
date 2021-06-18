@@ -82,7 +82,7 @@ function f!(d::Dynamics, q0, q1, u1, mode = :dynamics)
 	z_initialize!(ip.z, s.model, s.env, copy(q1))
 	θ_initialize!(ip.θ, s.model, copy(q0), copy(q1), copy(u1), zeros(s.model.dim.w), s.model.μ_world, h)
 
-	status = interior_point!(ip)
+	status = interior_point_solve!(ip)
 
 	!status && (@warn "dynamics failure")
 end

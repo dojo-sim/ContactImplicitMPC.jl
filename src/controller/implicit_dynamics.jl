@@ -16,7 +16,7 @@ mutable struct ImplicitTraj{T}
 	δq0::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}} # q0 solution gradient length=H
 	δq1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # q1 solution gradient length=H
 	δu1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # u1 solution gradient length=H
-	ip::Vector{<:InteriorPointSolver}
+	ip::Vector{<:AbstractIPSolver}
 end
 
 
@@ -141,7 +141,7 @@ function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
 		im_traj.ip[t].θ .= traj.θ[t]
 
 		# solve
-		status = interior_point!(im_traj.ip[t])
+		status = interior_point_solve!(im_traj.ip[t])
 		# !status && error("implicit dynamics failure (t = $t)")
 		!status && (@warn "implicit dynamics failure (t = $t)")
 
