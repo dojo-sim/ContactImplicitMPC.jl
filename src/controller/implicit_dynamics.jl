@@ -60,6 +60,9 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 			 rθ = RθLin(s, lin[t].rθ),
 			 v_pr = view(zeros(1,1), 1,1),
 			 v_du = view(zeros(1,1), 1,1),
+			 iy1 = linearization_var_index(model, env)[2],
+			 iy2 = linearization_var_index(model, env)[3],
+			 ibil = linearization_term_index(model, env)[3],
 			 opts = opts) for t = 1:H]
 
 	# views

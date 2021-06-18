@@ -30,7 +30,7 @@ mutable struct Mehrotra{T} <: AbstractIPSolver
     rm                           # corrector residual
     rbil                         # corrector residual
     r_merit::T                   # residual norm
-    # r̄                            # candidate residual
+    r̄ #useless                            # candidate residual
     # r̄_merit::T                   # candidate residual norm
     rz                           # residual Jacobian wrt z
     rθ                           # residual Jacobian wrt θ
@@ -76,7 +76,7 @@ function mehrotra(z, θ;
         ibil = collect(1:0),
         r! = r!, rm! = rm!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
-        rm = zeros(s.n),
+        rm = deepcopy(r),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
         reg_pr = [0.0], reg_du = [0.0],
@@ -95,6 +95,7 @@ function mehrotra(z, θ;
     iy1 = SVector{nbil, Int}(iy1)
     iy2 = SVector{nbil, Int}(iy2)
     ibil = SVector{nbil, Int}(ibil)
+    nbil == 0 && @warn "nbil == 0, we will get NaNs during the Mehrotra solve."
 
     # Views
     z_y1 = view(z, iy1)
@@ -116,7 +117,7 @@ function mehrotra(z, θ;
         rm, # rm
         rbil,
         0.0,
-        # deepcopy(r),
+        deepcopy(r), #useless
         # 0.0,
         rz,
         rθ,
@@ -243,7 +244,7 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r)
-            # @show norm(Δaff)
+            @show norm(Δaff)
             # plt = plot()
             # plot!(Δaff)
             # display(plt)
