@@ -20,7 +20,8 @@ for tt in t
 	# 	flag = true
 	# 	push!(a_traj, 10.0)
 	# else
-	push!(a_traj, a)
+	_a = p <= 0.0 ? 0.0 : a
+	push!(a_traj, _a)
 	# end
 end
 
