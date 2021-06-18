@@ -61,7 +61,7 @@
         opts = opts)
 
     # solve
-    status = ContactControl.interior_point!(ip)
+    status = ContactControl.interior_point_solve!(ip)
 
     # test
     @test status
@@ -142,7 +142,7 @@ end
         rθ = rθ_sp,
         opts = opts)
 
-    status = ContactControl.interior_point!(ip, z, θ)
+    status = ContactControl.interior_point_solve!(ip, z, θ)
 
     # test
     @test status
@@ -228,7 +228,7 @@ end
         rθ = rθ_sp,
         opts = opts)
 
-    status = ContactControl.interior_point!(ip, z, θ)
+    status = ContactControl.interior_point_solve!(ip, z, θ)
 
     # test
     @test status
@@ -322,9 +322,9 @@ end
         opts = opts_dmgs)
 
     # solve
-    status_cgs = ContactControl.interior_point!(ip_cgs, z, θ)
-    status_mgs = ContactControl.interior_point!(ip_mgs, z, θ)
-    status_dmgs = ContactControl.interior_point!(ip_dmgs, z, θ)
+    status_cgs = ContactControl.interior_point_solve!(ip_cgs, z, θ)
+    status_mgs = ContactControl.interior_point_solve!(ip_mgs, z, θ)
+    status_dmgs = ContactControl.interior_point_solve!(ip_dmgs, z, θ)
 
     # test
     @test status_cgs
@@ -414,7 +414,7 @@ end
         rθ = rθ_sp,
         opts = opts)
 
-    status = ContactControl.interior_point!(ip, z, θ)
+    status = ContactControl.interior_point_solve!(ip, z, θ)
 
     # test
     @test status

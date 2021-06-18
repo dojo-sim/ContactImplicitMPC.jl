@@ -100,9 +100,10 @@ end
 function visualize_meshrobot!(vis::Visualizer, model::ContactModel, q::AbstractVector;
 		h=0.01,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
-		name::Symbol=model_name(model))
+		name::Symbol=model_name(model),
+		α=α)
 
-	mvis = build_meshrobot!(vis, model, name=name)
+	mvis = build_meshrobot!(vis, model, name=name, α=α)
 	animate_meshrobot!(vis, mvis, anim, model, q, name=name)
 
 	return anim
@@ -111,9 +112,10 @@ end
 function visualize_meshrobot!(vis::Visualizer, model::ContactModel, traj::ContactTraj;
 		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
-		name::Symbol=model_name(model))
+		name::Symbol=model_name(model),
+		α=1.0)
 
-	anim = visualize_meshrobot!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, h=h)
+	anim = visualize_meshrobot!(vis, model, traj.q[3:sample:end]; anim=anim, name=name, h=h, α=α)
 	return anim
 end
 

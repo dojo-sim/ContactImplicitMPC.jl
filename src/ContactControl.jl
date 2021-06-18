@@ -106,6 +106,9 @@ include("controller/objective.jl")
 # include("controller/objective_configuration.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
+include("controller/newton_indices.jl")
+include("controller/newton_residual.jl")
+include("controller/newton_jacobian.jl")
 # include("controller/newton_configuration.jl")
 include("controller/mpc_utils.jl")
 include("controller/policy.jl")
@@ -127,12 +130,12 @@ export
     inequality_indices,
     soc_indices,
     InteriorPointOptions,
-    interior_point!,
+    interior_point_solve!,
     mehrotra,
     linearization_var_index,
     linearization_term_index,
     MehrotraOptions,
-    mehrotra!,
+    interior_point_solve!,
     r!,
     rm!,
     rz!,

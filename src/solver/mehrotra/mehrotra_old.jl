@@ -206,7 +206,7 @@ end
 
 
 # interior point solver
-function mehrotra!(ip::Mehrotra21{T}) where T
+function interior_point_solve!(ip::Mehrotra21{T}) where T
 
     # space
     s = ip.s
@@ -375,10 +375,10 @@ function step_length(w2, w3, Δw2aff, Δw3aff)
     return αhaff, μaff
 end
 
-function mehrotra!(ip::Mehrotra21{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function interior_point_solve!(ip::Mehrotra21{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
-    mehrotra!(ip)
+    interior_point_solve!(ip)
 end
 
 function differentiate_solution!(ip::Mehrotra21)

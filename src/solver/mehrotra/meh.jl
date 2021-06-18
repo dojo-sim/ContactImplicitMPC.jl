@@ -205,7 +205,7 @@ function bilinear_res(r::RLin, ibil)
 end
 
 # interior point solver
-function mehrotra!(ip::Mehrotra27{T}) where T
+function interior_point_solve!(ip::Mehrotra27{T}) where T
 
     # space
     s = ip.s
@@ -338,10 +338,10 @@ function step_length(w2::S, w3::S, Δw2::S, Δw3::S; τ::Real=0.9995) where {S}
     return α
 end
 
-function mehrotra!(ip::Mehrotra27{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function interior_point_solve!(ip::Mehrotra27{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
-    mehrotra!(ip)
+    interior_point_solve!(ip)
 end
 
 function differentiate_solution!(ip::Mehrotra27)

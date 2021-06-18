@@ -496,7 +496,7 @@ for t = 1:T
 	ip.z .= copy(x[end])
 	ip.θ .= [x[end-1]; x[end]; u1; h]
 
-	status = ContactControl.interior_point!(ip)
+	status = ContactControl.interior_point_solve!(ip)
 
 	push!(x, copy(ip.z))
 end

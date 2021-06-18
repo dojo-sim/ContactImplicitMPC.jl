@@ -64,7 +64,7 @@
 		opts = opts)
 
 	# solve
-	status = ContactControl.interior_point!(ip)
+	status = ContactControl.interior_point_solve!(ip)
 
 	# test
 	@test status
@@ -86,7 +86,7 @@
 	ip.θ .= θ
 
 	# solve
-	status = ContactControl.interior_point!(ip)
+	status = ContactControl.interior_point_solve!(ip)
 
 	# test
 	@test status
@@ -108,7 +108,7 @@
 	ip.θ .= θ
 
 	# solve
-	status = ContactControl.interior_point!(ip)
+	status = ContactControl.interior_point_solve!(ip)
 
 	# test
 	@test status
@@ -130,7 +130,7 @@
 	ip.θ .= θ
 
 	# solve
-	status = ContactControl.interior_point!(ip)
+	status = ContactControl.interior_point_solve!(ip)
 
 	# test
 	@test status
@@ -152,7 +152,7 @@
 	ip.θ .= θ
 
 	# solve
-	status = ContactControl.interior_point!(ip)
+	status = ContactControl.interior_point_solve!(ip)
 
 	# test
 	@test status
