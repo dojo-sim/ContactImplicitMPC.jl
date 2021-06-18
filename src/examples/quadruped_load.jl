@@ -133,7 +133,7 @@ time = @elapsed status = ContactControl.simulate!(sim_load)
 plot_surface!(vis, s_load.env, ylims=[0.3, -0.05])
 plot_lines!(vis, model, sim_no_load.traj.q[1:1:end], name=:NoPayload, offset=-0.15)
 plot_lines!(vis, model, sim_load.traj.q[1:1:end], name=:Payload, offset=-0.15)
-ext_ref_traj = repeat_ref_traj(ref_traj, model, 7; idx_shift = (1:1))
+ext_ref_traj = repeat_ref_traj(ref_traj, 7; idx_shift = (1:1))
 plot_lines!(vis, model, ext_ref_traj.q, offset=-0.17, name=:Ref, col=false,)
 
 anim = visualize_meshrobot!(vis, s_load.model, sim_load.traj, anim=anim, sample=5, name=:Payload)

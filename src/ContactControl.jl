@@ -171,6 +171,8 @@ export
     generate_residual_expressions,
     instantiate_residual!,
     ϕ_func,
-    Particle
+    Particle,
+    tracking_error,
+    repeat_ref_traj
 
 end # module

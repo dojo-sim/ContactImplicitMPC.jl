@@ -1,13 +1,13 @@
 # interior-point solver options
-@with_kw mutable struct MehrotraOptions{T}
+@with_kw mutable struct Mehrotra13Options{T}
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
-    κ_init::T = 1.0                   # useless
-    κ_scale::T = 0.1                  # useless
-    ls_scale::T = 0.5                 # useless
+    # κ_init::T = 1.0                   # useless
+    # κ_scale::T = 0.1                  # useless
+    # ls_scale::T = 0.5                 # useless
     max_iter_inner::Int = 100
-    max_iter_outer::Int = 1           # useless
-    max_ls::Int = 50                  # useless
+    # max_iter_outer::Int = 1           # useless
+    # max_ls::Int = 50                  # useless
     max_time::T = 60.0
     diff_sol::Bool = false
     res_norm::Real = Inf
@@ -19,19 +19,19 @@
     verbose::Bool = false
 end
 
-mutable struct Mehrotra{T} <: InteriorPointSolver
+mutable struct Mehrotra13{T} <: InteriorPointSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}                 # current point
-    z̄::Vector{T}                 # candidate point
+    # z̄::Vector{T}                 # candidate point
     Δaff::Vector{T}              # affine search direction
     Δ::Vector{T}                 # corrector search direction
     r                            # residual
     rm                           # corrector residual
     rbil                         # corrector residual
     r_merit::T                   # residual norm
-    r̄                            # candidate residual
-    r̄_merit::T                   # candidate residual norm
+    # r̄                            # candidate residual
+    # r̄_merit::T                   # candidate residual norm
     rz                           # residual Jacobian wrt z
     rθ                           # residual Jacobian wrt θ
     idx_ineq::Vector{Int}        # indices for inequality constraints
@@ -60,7 +60,7 @@ mutable struct Mehrotra{T} <: InteriorPointSolver
     reg_pr
     reg_du
     iterations::Int
-    opts::MehrotraOptions
+    opts::Mehrotra13Options
 end
 
 function mehrotra(z, θ;
@@ -82,7 +82,7 @@ function mehrotra(z, θ;
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts = MehrotraOptions()) where T
+        opts = Mehrotra13Options()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
@@ -105,19 +105,19 @@ function mehrotra(z, θ;
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
     rbil = bilinear_res(rm, ibil)
 
-    Mehrotra(
+    Mehrotra13(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
-        zeros(length(z)),
+        # zeros(length(z)),
         Δaff,
         Δ,
         r,
         rm, # rm
         rbil,
         0.0,
-        deepcopy(r),
-        0.0,
+        # deepcopy(r),
+        # 0.0,
         rz,
         rθ,
         idx_ineq,
@@ -153,7 +153,7 @@ function bilinear_res(r::AbstractVector, ibil)
 end
 
 # interior point solver
-function mehrotra!(ip::Mehrotra{T}) where T
+function mehrotra!(ip::Mehrotra13{T}) where T
 
     # space
     s = ip.s
@@ -168,13 +168,8 @@ function mehrotra!(ip::Mehrotra{T}) where T
     opts = ip.opts
     r_tol = opts.r_tol
     κ_tol = opts.κ_tol
-    κ_init = opts.κ_init
-    κ_scale = opts.κ_scale
-    ls_scale = opts.ls_scale
     max_iter_inner = opts.max_iter_inner
-    max_iter_outer = opts.max_iter_outer
     max_time = opts.max_time
-    max_ls = opts.max_ls
     diff_sol = opts.diff_sol
     res_norm = opts.res_norm
     reg = opts.reg
@@ -183,7 +178,7 @@ function mehrotra!(ip::Mehrotra{T}) where T
 
     # unpack pre-allocated data
     z = ip.z
-    z̄ = ip.z̄
+    # z̄ = ip.z̄
     Δaff = ip.Δaff
     Δ = ip.Δ
     r = ip.r
@@ -191,8 +186,8 @@ function mehrotra!(ip::Mehrotra{T}) where T
     rbil = ip.rbil
     nbil = ip.nbil
     r_merit = ip.r_merit
-    r̄ = ip.r̄
-    r̄_merit = ip.r̄_merit
+    # r̄ = ip.r̄
+    # r̄_merit = ip.r̄_merit
     rz = ip.rz
     idx_ineq = ip.idx_ineq
     idx_soc = ip.idx_soc
@@ -238,8 +233,7 @@ function mehrotra!(ip::Mehrotra{T}) where T
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r)
-            αaff = step_length_new(z_y1, z_y2, Δaff_y1, Δaff_y2, τ=1.0)
-            # μaff = (z_y1 - αaff * Δaff_y1)' * (z_y2 - αaff * Δaff_y2) / length(z_y1)
+            αaff = step_length(z_y1, z_y2, Δaff_y1, Δaff_y2, τ=1.0)
             μaff = (z_y1 - αaff * Δaff[iy1])' * (z_y2 - αaff * Δaff[iy2]) / nbil
 
             μ = z_y1'*z_y2 / length(z_y1)
@@ -251,7 +245,7 @@ function mehrotra!(ip::Mehrotra{T}) where T
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, rm)
             τ = progress(r_merit, ϵ_min=ϵ_min)
-            α = step_length_new(z_y1, z_y2, Δ_y1, Δ_y2, τ=τ)
+            α = step_length(z_y1, z_y2, Δ_y1, Δ_y2, τ=τ)
 
             # candidate point
             candidate_point!(z, s, z, Δ, α)
@@ -264,7 +258,7 @@ function mehrotra!(ip::Mehrotra{T}) where T
     end
 
     if r_merit > r_tol
-        @error "Mehrotra solver failed to reduce residual below r_tol."
+        @error "Mehrotra13 solver failed to reduce residual below r_tol."
         return false
     end
 
@@ -280,15 +274,13 @@ end
 # 	return a, b
 # end
 
-
-
 function progress(merit; ϵ_min=0.05)
     ϵ = min(ϵ_min, merit^2)
     τ = 1 - ϵ
     return τ
 end
 
-function step_length_new(w2::S, w3::S, Δw2::S, Δw3::S; τ::Real=0.9995) where {S}
+function step_length(w2::S, w3::S, Δw2::S, Δw3::S; τ::Real=0.9995) where {S}
     ατ_p = 1.0
     ατ_d = 1.0
     for i in eachindex(w2)
@@ -303,14 +295,13 @@ function step_length_new(w2::S, w3::S, Δw2::S, Δw3::S; τ::Real=0.9995) where 
     return α
 end
 
-
-function mehrotra!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function mehrotra!(ip::Mehrotra13{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
     mehrotra!(ip)
 end
 
-function differentiate_solution!(ip::Mehrotra)
+function differentiate_solution!(ip::Mehrotra13)
     s = ip.s
     z = ip.z
     θ = ip.θ
