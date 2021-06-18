@@ -2,11 +2,11 @@ abstract type LinearSolver end
 abstract type AbstractIPSolver end
 abstract type AbstractIPOptions end
 
-function interior_point_options(ip_type::Symbol; T::DataType=Float64)
+function interior_point_options(ip_type::Symbol)
     if ip_type == :interior_point
-        return InteriorPointOptions{T}()
+        return Symbol("InteriorPointOptions")
     elseif ip_type == :mehrotra
-        return MehrotraOptions{T}()
+        return Symbol("MehrotraOptions")
     else
         error("Unknown ip_type.")
     end

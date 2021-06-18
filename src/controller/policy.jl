@@ -29,6 +29,7 @@ function linearized_mpc_policy(traj, s, obj;
 	H_mpc = traj.H,
 	N_sample = 1,
 	κ_mpc = traj.κ[1],
+	ip_type = :interior_point,
 	n_opts = NewtonOptions(
 		r_tol = 3e-4,
 		max_iter = 5,
@@ -39,7 +40,7 @@ function linearized_mpc_policy(traj, s, obj;
 	traj = deepcopy(traj)
 	ref_traj = deepcopy(traj)
 
-	im_traj = ImplicitTraj(traj, s, κ = κ_mpc, max_time = mpc_opts.ip_max_time)
+	im_traj = ImplicitTraj(traj, s, ip_type = ip_type, κ = κ_mpc, max_time = mpc_opts.ip_max_time)
 	stride = get_stride(s.model, traj)
 	altitude = zeros(s.model.dim.c)
 	update!(im_traj, traj, s, altitude, κ = κ_mpc)
@@ -57,8 +58,6 @@ function policy(p::LinearizedMPC, x, traj, t)
 	end
 
     if p.cnt == p.N_sample
-		# tγ = max(1,t-1) #@@@
-		# tq = t+1 #@@@
 		(p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.s,
 									traj, t, p.N_sample,
 									threshold = p.opts.altitude_impact_threshold,
@@ -67,7 +66,6 @@ function policy(p::LinearizedMPC, x, traj, t)
 		set_altitude!(p.im_traj, p.altitude) #@@@ keep the altitude update here
 		newton_solve!(p.newton, p.s, p.im_traj, p.traj,
 			warm_start = t > 1, q0 = copy(p.q0), q1 = copy(x))
-			# warm_start = false, q0 = copy(p.q0), q1 = copy(x)) #@@@@
 		update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ) #@@@ only keep the rotation stuff not the altitude update.
 		p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, copy(x), t)
 

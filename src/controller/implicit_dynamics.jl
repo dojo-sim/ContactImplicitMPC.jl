@@ -23,13 +23,14 @@ end
 function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 60.0,
-	opts = InteriorPointOptions(
+	ip_type::Symbol = :interior_point,
+	opts = eval(interior_point_options(ip_type))(
 			κ_init = κ[1],
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,
 			diff_sol = true,
-			solver=:empty_solver,
-			max_time=max_time))
+			solver = :empty_solver,
+			max_time = max_time))
 
 	model = s.model
 	env = s.env
@@ -46,9 +47,12 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 
 	lin = [LinearizedStep(s, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
 
-	ip =  [interior_point(zeros(num_var(model, env)), zeros(num_data(model)),
+	ip =  [eval(ip_type)(
+			 zeros(num_var(model, env)),
+			 zeros(num_data(model)),
 			 idx_ineq = inequality_indices(model, env),
 			 r! = r!,
+			 rm! = rm!,
 			 rz! = rz!,
 			 rθ! = rθ!,
 			 r  = RLin(s, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
@@ -72,6 +76,7 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	return ImplicitTraj(H, lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip)
 end
 
+
 function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	s::Simulation,
 	 alt::Vector
@@ -84,12 +89,14 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	for t = 1:H-1
 		im_traj.lin[t]   = im_traj.lin[t+1]
 		im_traj.ip[t].r  = im_traj.ip[t+1].r
+		# @warn "need to remove comment"
 		im_traj.ip[t].r̄  = im_traj.ip[t+1].r̄
 		im_traj.ip[t].rz = im_traj.ip[t+1].rz
 		im_traj.ip[t].rθ = im_traj.ip[t+1].rθ
 
 		# altitude
 		im_traj.ip[t].r.alt = alt
+		# @warn "need to remove comment"
 		im_traj.ip[t].r̄.alt = alt
 	end
 
@@ -102,12 +109,14 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	rθ0 = im_traj.lin[H].rθ
 
 	update!(im_traj.ip[H].r,  z0, θ0, r0, rz0, rθ0)
+	# @warn "need to remove comment"
 	update!(im_traj.ip[H].r̄,  z0, θ0, r0, rz0, rθ0)
 	update!(im_traj.ip[H].rz, rz0)
 	update!(im_traj.ip[H].rθ, rθ0)
 
 	# altitude
 	im_traj.ip[H].r.alt = alt
+	# @warn "need to remove comment"
 	im_traj.ip[H].r̄.alt = alt
 	return nothing
 end
@@ -116,9 +125,21 @@ function set_altitude!(im_traj::ImplicitTraj, alt::Vector)
 	H = im_traj.H
 	for t = 1:H
 		# altitude
-		im_traj.ip[t].r.alt = alt
-		im_traj.ip[t].r̄.alt = alt
+		set_altitude!(im_traj.ip[t], alt)
 	end
+	return nothing
+end
+
+function set_altitude!(ip::InteriorPoint, alt::Vector)
+	# altitude
+	ip.r.alt = alt
+	ip.r̄.alt = alt
+	return nothing
+end
+
+function set_altitude!(ip::Mehrotra, alt::Vector)
+	# altitude
+	ip.r.alt = alt
 	return nothing
 end
 
