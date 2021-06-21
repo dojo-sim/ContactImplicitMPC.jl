@@ -32,43 +32,43 @@ end
 	nc = model.dim.c
 	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
-	nr = nq + nu + nc + nb + nd
+	nr = nq + nu + nc + nb #+ nd
 
 	mode = :configurationforce
 
 	# Test Residual
 	r0 = ContactControl.NewtonResidual(model, env, H, mode = mode)
-	@test length(r0.r) == H * nr
+	@test length(r0.r) == H * (nr + nd)
 
 	# Test views
 	r0.q2[1] .= 1.0
 	r0.q2[2] .= 2.0
-	@test all(r0.r[1:nq] .== 1.0)
-	@test all(r0.r[nr .+ (1:nq)] .== 2.0)
+	@test all(r0.r[nu + nc + nb .+ (1:nq)] .== 1.0)
+	@test all(r0.r[nr + nu + nc + nb .+ (1:nq)] .== 2.0)
 
 	# Test views
 	r0.r[1:nr] .= -1.0
-	@test all(r0.q2[1] .== -1.0)
 	@test all(r0.u1[1] .== -1.0)
 	@test all(r0.γ1[1] .== -1.0)
 	@test all(r0.b1[1] .== -1.0)
+	@test all(r0.q2[1] .== -1.0)
 
 	# Test Jacobian
 	j0 = ContactControl.NewtonJacobian(model, env, H, mode = mode)
-	@test size(j0.R) == (H * nr, H * nr)
+	@test size(j0.R) == (H * (nr + nd), H * (nr + nd))
 
 	# Test views
 	j0.obj_q2[1] .= 1.0
 	j0.obj_q2[2] .= 2.0
-	@test all(j0.R[1:nq, 1:nq] .== 1.0)
-	@test all(j0.R[nr .+ (1:nq), nr .+ (1:nq)] .== 2.0)
+	@test all(j0.R[nu + nc + nb .+ (1:nq), nu + nc + nb .+ (1:nq)] .== 1.0)
+	@test all(j0.R[nr + nu + nc + nb .+ (1:nq), nr + nu + nc + nb .+ (1:nq)] .== 2.0)
 
 	# Test views
 	j0.R[1:nr, 1:nr] .= -1.0
-	@test all(j0.obj_q2[1] .== -1.0)
 	@test all(j0.obj_u1[1] .== -1.0)
 	@test all(j0.obj_γ1[1] .== -1.0)
 	@test all(j0.obj_b1[1] .== -1.0)
+	@test all(j0.obj_q2[1] .== -1.0)
 end
 
 @testset "Newton: jacobian! (configurations and forces)" begin
@@ -92,7 +92,7 @@ end
 	nc = model.dim.c
 	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
-	nr = nq + nu + nc + nb + nd
+	nr = nq + nu + nc + nb #+ nd
 
 	mode = :configurationforce
 
@@ -109,15 +109,14 @@ end
 	ContactControl.update_jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
 
 	# Test symmetry
-	@test core.jac.R - core.jac.R' == spzeros(H * nr, H * nr)
+	@test core.jac.R - core.jac.R' == spzeros(H * (nr + nd), H * (nr + nd))
 
 	# Test obj function terms and regularization terms
 	off = 0
-	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nq), off .+ (1:nq)] .- 1e-0))) .< 1e-8); off += nq
 	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nu), off .+ (1:nu)] .- 1e-1))) .< 1e-8); off += nu
 	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nc), off .+ (1:nc)] .- 1e-2))) .< 1e-8); off += nc
 	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nb), off .+ (1:nb)] .- 1e-3))) .< 1e-8); off += nb
-	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nd), off .+ (1:nd)] .+ core.β * im_traj0.lin[1].κ[1]))) .< 1e-8); off += nd
+	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nq), off .+ (1:nq)] .- 1e-0))) .< 1e-8); off += nq
 
 	# Test dynamics terms
 	for t = 1:H
@@ -158,7 +157,7 @@ end
 	nc = model.dim.c
 	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
-	nr = nq + nu + nc + nb + nd
+	nr = nq + nu + nc + nb
 
 	mode = :configurationforce
 
@@ -218,19 +217,19 @@ end
 	nq = model.dim.q
 	nu = model.dim.u
 	nd = nq
-	nr = nq + nu + nd
+	nr = nq + nu
 
 	mode = :configuration
 
 	# Test Residual
 	r0 = ContactControl.NewtonResidual(model, env, H, mode = mode)
-	@test length(r0.r) == H * nr
+	@test length(r0.r) == H * (nr + nd)
 
 	# Test views
 	r0.q2[1] .= 1.0
 	r0.q2[2] .= 2.0
-	@test all(r0.r[1:nq] .== 1.0)
-	@test all(r0.r[nr .+ (1:nq)] .== 2.0)
+	@test all(r0.r[nu .+ (1:nq)] .== 1.0)
+	@test all(r0.r[nr + nu .+ (1:nq)] .== 2.0)
 
 	# Test views
 	r0.r[1:nr] .= -1.0
@@ -239,13 +238,13 @@ end
 
 	# Test Jacobian
 	j0 = ContactControl.NewtonJacobian(model, env, H, mode = mode)
-	@test size(j0.R) == (H * nr, H * nr)
+	@test size(j0.R) == (H * (nr + nd), H * (nr + nd))
 
 	# Test views
 	j0.obj_q2[1] .= 1.0
 	j0.obj_q2[2] .= 2.0
-	@test all(j0.R[1:nq, 1:nq] .== 1.0)
-	@test all(j0.R[nr .+ (1:nq), nr .+ (1:nq)] .== 2.0)
+	@test all(j0.R[nu .+ (1:nq), nu .+ (1:nq)] .== 1.0)
+	@test all(j0.R[nr + nu .+ (1:nq), nr + nu .+ (1:nq)] .== 2.0)
 
 	# Test views
 	j0.R[1:nr, 1:nr] .= -1.0
@@ -272,7 +271,7 @@ end
 	nq = model.dim.q
 	nu = model.dim.u
 	nd = nq
-	nr = nq + nu + nd
+	nr = nq + nu
 
 	mode = :configuration
 
@@ -287,13 +286,12 @@ end
 	ContactControl.update_jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
 
 	# Test symmetry
-	@test core.jac.R - core.jac.R' == spzeros(H * nr, H * nr)
+	@test core.jac.R - core.jac.R' == spzeros(H * (nr + nd), H * (nr + nd))
 
 	# Test obj function terms and regularization terms
 	off = 0
-	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nq), off .+ (1:nq)] .- 1e-0))) .< 1e-8); off += nq
 	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nu), off .+ (1:nu)] .- 1e-1))) .< 1e-8); off += nu
-	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nd), off .+ (1:nd)] .+ core.β * im_traj0.lin[1].κ[1]))) .< 1e-8); off += nd
+	@test all(abs.(diag(Matrix(core.jac.R[off .+ (1:nq), off .+ (1:nq)] .- 1e-0))) .< 1e-8); off += nq
 
 	# Test dynamics terms
 	for t = 1:H
@@ -334,7 +332,7 @@ end
 	nc = model.dim.c
 	nb = nc * friction_dim(env)
 	nd = nq
-	nr = nq + nu + nd
+	nr = nq + nu
 
 	mode = :configuration
 
