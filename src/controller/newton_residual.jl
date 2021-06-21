@@ -10,6 +10,7 @@ struct NewtonResidualConfigurationForce{T,vq2,vu1,vγ1,vb1,vd,vI,vq0,vq1} <: New
 
     rd::Vector{vd}                         # rsd dynamics lagrange multiplier views
     rI::Vector{vI}                         # rsd dynamics -I views [q2, γ1, b1]
+
     q0::Vector{vq0}                        # rsd dynamics q0 views
     q1::Vector{vq1}                        # rsd dynamics q1 views
 end
@@ -22,25 +23,29 @@ function NewtonResidualConfigurationForce(model::ContactModel, env::Environment,
     nc = dim.c # contact
     nb = nc * friction_dim(env) # linear friction
     nd = nq + nc + nb # implicit dynamics constraint
-    nr = nq + nu + nc + nb + nd # size of a one-time-step block
+    nr = nq + nu + nc + nb# + nd # size of a one-time-step block
 
     off = 0
-    iq = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q2
     iu = SizedVector{nu}(off .+ (1:nu)); off += nu # index of the control u1
     iγ = SizedVector{nc}(off .+ (1:nc)); off += nc # index of the impact γ1
     ib = SizedVector{nb}(off .+ (1:nb)); off += nb # index of the linear friction b1
-    iν = SizedVector{nd}(off .+ (1:nd)); off += nd # index of the dynamics lagrange multiplier ν1
+    iq = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q2
+
     iz = vcat(iq, iγ, ib) # index of the IP solver solution [q2, γ1, b1]
 
-    r = zeros(H * nr)
+    # iν = SizedVector{nd}(off .+ (1:nd)); #off += nd # index of the dynamics lagrange multiplier ν1
+    iν = SizedVector{nd}(1:nd); #off += nd # index of the dynamics lagrange multiplier ν1
 
-    q2  = [view(r, (t - 1) * nr .+ iq) for t = 1:H]
+    r = zeros(H * (nr + nd))
+
     u1  = [view(r, (t - 1) * nr .+ iu) for t = 1:H]
     γ1  = [view(r, (t - 1) * nr .+ iγ) for t = 1:H]
     b1  = [view(r, (t - 1) * nr .+ ib) for t = 1:H]
-
-    rd  = [view(r, (t - 1) * nr .+ iν) for t = 1:H]
+    q2  = [view(r, (t - 1) * nr .+ iq) for t = 1:H]
     rI  = [view(r, (t - 1) * nr .+ iz) for t = 1:H]
+
+    rd  = [view(r, H * nr + (t - 1) * nd .+ iν) for t = 1:H]
+
     q0  = [view(r, (t - 3) * nr .+ iq) for t = 3:H]
     q1  = [view(r, (t - 2) * nr .+ iq) for t = 2:H]
 
@@ -70,21 +75,24 @@ function NewtonResidualConfiguration(model::ContactModel, env::Environment, H::I
     nu = dim.u # control
     nc = dim.c # contact
     nd = nq    # implicit dynamics constraint
-    nr = nq + nu + nd # size of a one-time-step block
+    nr = nq + nu # size of a one-time-step block
 
     off = 0
-    iq = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q2
     iu = SizedVector{nu}(off .+ (1:nu)); off += nu # index of the control u1
-    iν = SizedVector{nd}(off .+ (1:nd)); off += nd # index of the dynamics lagrange multiplier ν1
+    iq = SizedVector{nq}(off .+ (1:nq)); off += nq # index of the configuration q2
     iz = copy(iq) # index of the IP solver solution [q2]
 
-    r = zeros(H * nr)
+    iν = SizedVector{nd}(1:nd) # index of the dynamics lagrange multiplier ν1
 
-    q2  = [view(r, (t - 1) * nr .+ iq) for t = 1:H]
+
+    r = zeros(H * (nr + nd))
+
     u1  = [view(r, (t - 1) * nr .+ iu) for t = 1:H]
-
-    rd  = [view(r, (t - 1) * nr .+ iν) for t = 1:H]
+    q2  = [view(r, (t - 1) * nr .+ iq) for t = 1:H]
     rI  = [view(r, (t - 1) * nr .+ iz) for t = 1:H]
+
+    rd  = [view(r, H * nr + (t - 1) * nd .+ iν) for t = 1:H]
+
     q0  = [view(r, (t - 3) * nr .+ iq) for t = 3:H]
     q1  = [view(r, (t - 2) * nr .+ iq) for t = 2:H]
 
@@ -119,15 +127,15 @@ function residual!(res::NewtonResidual, core::Newton,
     gradient!(res, obj, core, traj, ref_traj)
 
     for t in eachindex(ν)
+        # Lagrangian
+        t >= 3 ? res.q2[t-2] .+= im_traj.δq0[t]' * ν[t] : nothing
+        t >= 2 ? res.q2[t-1] .+= im_traj.δq1[t]' * ν[t] : nothing
+        res.u1[t] .+= im_traj.δu1[t]' * ν[t]
         # Implicit dynamics
         res.rd[t] .+= im_traj.d[t]
 
         # Minus Identity term #∇qk1, ∇γk, ∇bk
         res.rI[t] .-= ν[t]
-
-        t >= 3 ? res.q0[t-2] .+= im_traj.δq0[t]' * ν[t] : nothing
-        t >= 2 ? res.q1[t-1] .+= im_traj.δq1[t]' * ν[t] : nothing
-        res.u1[t] .+= im_traj.δu1[t]' * ν[t]
     end
 
     return nothing
