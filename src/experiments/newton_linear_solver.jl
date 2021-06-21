@@ -114,3 +114,104 @@ UnicodePlots.spy(C)
 
 
 UnicodePlots.spy(C * inv(H) * C')
+
+inv(Array(cholesky(H).U)) * inv(Array(cholesky(H).U))'
+
+
+
+
+
+
+
+# run Flamingo MPC example
+
+using UnicodePlots
+UnicodePlots.show(p.newton.jac.R)
+
+# @show "newton_solve!" #@@@
+reset!(p.newton, p.ref_traj, warm_start = false,
+	initial_offset = false, q0 = q0_sim, q1 = q1_sim)
+
+# Compute implicit dynamics about traj
+implicit_dynamics!(p.im_traj, s, p.newton.traj, κ = p.im_traj.ip[1].κ)
+
+# Compute residual
+residual!(p.newton.res, p.newton, p.newton.ν, p.im_traj, p.newton.traj, p.ref_traj)
+update_jacobian!(p.newton.jac, p.im_traj, p.newton.obj, p.newton.traj.H, p.newton.β)
+
+using BenchmarkTools
+@benchmark linear_solve!($p.newton.solver, $p.newton.Δ.r, $p.newton.jac.R, $p.newton.res.r)
+nq = model.dim.q # configuration
+nu = model.dim.u # control
+nc = model.dim.c # contact
+nb = nc * friction_dim(env) # linear friction
+nd = nq + nc + nb # implicit dynamics constraint
+nr = nq + nu + nc + nb# + nd # size of a one-time-step block
+
+idx_pr = collect(1:nr * H_mpc)
+idx_du = collect(nr * H_mpc .+ (1:nd * H_mpc))
+H = Array(@view Array(p.newton.jac.R)[idx_pr, idx_pr])
+C = Array(@view Array(p.newton.jac.R)[idx_du, idx_pr])
+invH = inv(Array(H))
+rd = Array(@view p.newton.res.r[idx_du])
+rp = Array(@view p.newton.res.r[idx_pr])
+Δz = zeros(nr * H_mpc)
+Δν = zeros(nd * H_mpc)
+D = zeros(nd * H_mpc, nr * H_mpc)
+Y = zeros(nd * H_mpc, nd * H_mpc)
+
+function solve_schur!(Δz, Δν, H, C, invH, rd, rp, D, Y)
+	mul!(D, C, invH)
+	mul!(Y, D, transpose(C))
+	LAPACK.potrf!('U', Y)
+	mul!(Δν, D, rp)
+	Δν .-= rd
+	LAPACK.potrs!('U', Y, Δν)
+
+	mul!(Δz, invH, rp)
+	Δz .-= transpose(D) * Δν
+end
+
+@code_warntype solve_schur!(Δz, Δν, H, C, invH, rd, rp, D, Y)
+@benchmark solve_schur!($Δz, $Δν, $H, $C, $invH, $rd, $rp, $D, $Y)
+
+function solve_schur!(Δz, Δν, R, invH, r, D, Y)
+	mul!(D, p.newton.jac.R[idx_du, idx_pr], invH)
+	mul!(Y, D, transpose(p.newton.jac.R[idx_du, idx_pr]))
+	LAPACK.potrf!('U', Y)
+	mul!(Δν, D, p.newton.res.r[idx_pr])
+	Δν .-= p.newton.res.r[idx_du]
+	LAPACK.potrs!('U', Y, Δν)
+
+	mul!(Δz, invH, p.newton.res.r[idx_pr])
+	Δz .-= transpose(D) * Δν
+end
+
+@benchmark solve_schur!($Δz, $Δν, $p.newton.jac.R, $invH, $p.newton.res.r, $D, $Y)
+
+norm(p.newton.Δ.r - [Δz; Δν], Inf)
+
+# save trajectory
+# @save joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
+# @load joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
+
+idx_pr = 1:nr * H_mpc
+idx_du = nr * H_mpc .+ (1:nd * H_mpc)
+H = view(p.newton.jac.R, idx_pr, idx_pr)
+C = view(p.newton.jac.R, idx_du, idx_pr)
+invH = inv(Array(H))
+D = zeros(nd * H_mpc, nr * H_mpc)
+rd = view(p.newton.res.r, idx_du)
+rp = view(p.newton.res.r, idx_pr)
+Δz = zeros(nr * H_mpc)
+Δν = zeros(nd * H_mpc)
+mul!(D, C, invH)
+mul!(Y, D, transpose(C))
+Δν .= -rd + D * rp
+Δν .= Y \ (-rd + D * rp)
+
+LAPACK.potrf!('U', Y)
+LAPACK.potrs!('U', Y, Δν)
+Δz .= invH * rp - transpose(C) * Δν
+
+norm(p.newton.Δ.r - [Δz; Δν], Inf)

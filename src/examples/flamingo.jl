@@ -82,55 +82,6 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 
 @time status = simulate!(sim)
 
-using UnicodePlots
-UnicodePlots.show(p.newton.jac.R)
-
-# @show "newton_solve!" #@@@
-reset!(p.newton, p.ref_traj, warm_start = false,
-	initial_offset = false, q0 = q0_sim, q1 = q1_sim)
-
-# Compute implicit dynamics about traj
-implicit_dynamics!(p.im_traj, s, p.newton.traj, κ = p.im_traj.ip[1].κ)
-
-# Compute residual
-residual!(p.newton.res, p.newton, p.newton.ν, p.im_traj, p.newton.traj, p.ref_traj)
-update_jacobian!(p.newton.jac, p.im_traj, p.newton.obj, p.newton.traj.H, p.newton.β)
-
-@time linear_solve!(p.newton.solver, p.newton.Δ.r, p.newton.jac.R, p.newton.res.r)
-nq = model.dim.q # configuration
-nu = model.dim.u # control
-nc = model.dim.c # contact
-nb = nc * friction_dim(env) # linear friction
-nd = nq + nc + nb # implicit dynamics constraint
-nr = nq + nu + nc + nb# + nd # size of a one-time-step block
-
-struct TrajOptSchurSolver <: LinearSolver
-	H
-	C
-	Y
-	invH
-	β
-	r1
-	r2
-end
-
-idx_pr = 1:nr * H_mpc
-idx_du = nr * H_mpc .+ (1:nd * H_mpc)
-H = view(p.newton.jac.R, idx_pr, idx_pr)
-C = view(p.newton.jac.R, idx_du, idx_pr)
-invH = sparse(inv(Array(H)))
-
-@time Y = C * invH * transpose(C)
-β = -view(p.newton.res.r, idx_du) + C * invH * view(p.newton.res.r, idx_pr)
-Δν = Y \ β
-
-Δz = invH * (view(p.newton.res.r, idx_pr) - transpose(C) * Δν)
-
-p.newton.Δ.r - [Δz; Δν]
-# save trajectory
-# @save joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
-# @load joinpath(module_dir(), "src/dynamics/flamingo/simulations/flat.jld2") sim
-
 l = 9
 lu = 1
 plt = plot(layout=(3,1), legend=false)
