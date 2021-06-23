@@ -6,9 +6,9 @@ https://web.stanford.edu/~boyd/papers/pdf/fast_mpc.pdf
 using BenchmarkTools
 
 # dimensions
-n = 10
-m = 5
-T = 50
+n = 5
+m = 3
+T = 25
 nz = m * (T - 1) + n * (T - 1)
 nd = n * (T - 1)
 
@@ -70,17 +70,31 @@ idx_n = [(t - 1) * n .+ (1:n) for t = 1:T-1]
 Y = zeros(n * (T - 1), n * (T - 1))
 Yii = [zeros(n, n) for t = 1:T-1]
 Yij = [zeros(n, n) for t = 1:T-1]
+tmp_nm = zeros(n, m)
+tmp_nn = zeros(n, n)
 
 for t = 1:T-1
 	if t == 1
-		Yii[t] = B[t] * R̃[t] * B[t]' + Q̃[t+1]
+		# Yii[t] = B[t] * R̃[t] * B[t]' + Q̃[t+1]
+
+		Yii[t] .= Q̃[t+1]
+		mul!(tmp_nm, B[t], R̃[t])
+		mul!(Yii[t], tmp_nm, transpose(B[t]), 1.0, 1.0)
 	else
-		Yii[t] = A[t] * Q̃[t] * A[t]' + B[t] * R̃[t] * B[t]' + Q̃[t+1]
-		# Yii[t] = A[t-1] * Q̃[t-1] * A[t-1]' + B[t] * R̃[t] * B[t]' + Q̃[t]
+		# Yii[t] = A[t] * Q̃[t] * A[t]' + B[t] * R̃[t] * B[t]' + Q̃[t+1]
+
+		mul!(tmp_nn, A[t], Q̃[t])
+		mul!(Yii[t], tmp_nn, transpose(A[t]))
+		mul!(tmp_nm, B[t], R̃[t])
+		mul!(Yii[t], tmp_nm, transpose(B[t]), 1.0, 1.0)
+		Yii[t] .+= Q̃[t+1]
 	end
 
 	t == T-1 && continue
-	Yij[t] = -Q̃[t+1] * A[t+1]'
+	# Yij[t] = -Q̃[t+1] * A[t+1]'
+
+	Yij[t] .= 0.0
+	mul!(Yij[t], Q̃[t+1], transpose(A[t+1]), -1.0, 1.0)
 end
 
 for t = 1:T-1
@@ -93,24 +107,35 @@ for t = 1:T-1
 end
 
 norm((Y - C * H̃ * C'))#[1:2n, 1:2n])
-rank(C * H̃ * C')
-rank(Y)
+
 L = zeros(n * (T - 1), n * (T - 1))
 Lii = [zeros(n, n) for t = 1:T-1]
 Lji = [zeros(n, n) for t = 1:T-1]
-Yii
+
 for t = 1:T-1
 	@show t
 	if t == 1
-		Lii[t] = cholesky(Hermitian(Yii[t])).L
+		# Lii[t] = cholesky(Hermitian(Yii[t])).L
+
+		Lii[t] .= copy(Yii[t])
+		LAPACK.potrf!('L', Lii[t])
+		# Lii[t] .= LowerTriangular(Lii[t])
 	else
-		Lii[t] = cholesky(Hermitian(Yii[t] - Lji[t - 1] * Lji[t - 1]')).L
+		# Lii[t] = cholesky(Hermitian(Yii[t] - Lji[t - 1] * Lji[t - 1]')).L
+		Lii[t] .= copy(Yii[t])
+		mul!(Lii[t], Lji[t-1], transpose(Lji[t-1]), -1.0, 1.0)
+		LAPACK.potrf!('L', Lii[t])
+		# Lii[t] .= LowerTriangular(Lii[t])
 	end
-	Lji[t] = (Lii[t] \ Yij[t])'
+	# Lji[t] = (LowerTriangular(Lii[t]) \ Yij[t])'
+
+	Lji[t] .= copy(Yij[t])
+	LAPACK.trtrs!('L', 'N', 'N', Lii[t], Lji[t])
+	Lji[t] .= transpose(Lji[t])
 end
 
 for t = 1:T-1
-	L[idx_n[t], idx_n[t]] = Lii[t]
+	L[idx_n[t], idx_n[t]] = LowerTriangular(Lii[t])
 
 	t == T-1 && continue
 
@@ -136,27 +161,32 @@ norm(Δldl - [Δz; Δν])
 y = [zeros(n) for t = 1:T-1]
 for t = 1:T-1
 	if t == 1
-		# y[1] .= copy(β[idx_n[1]])
-		# LAPACK.potrf!('L', Lii[1])
-		# LAPACK.potrs!('L', Lii[1], y[1])
-		y[1] .= Lii[1] \ β[idx_n[1]]
+		# y[1] .= Lii[1] \ β[idx_n[1]]
+		y[1] .= copy(β[idx_n[1]])
+		LAPACK.trtrs!('L', 'N', 'N', Lii[t], y[1])
 	else
-		# y[t] .= copy(β[idx_n[t]]) - Lij[t - 1] * y[t - 1]
-		# LAPACK.potrs!('L', Lii[t], y[t])
-		y[t] .= Lii[t] \ (β[idx_n[t]] - Lji[t - 1] * y[t - 1])
+		# y[t] .= Lii[t] \ (β[idx_n[t]] - Lji[t - 1] * y[t - 1])
+		y[t] .= β[idx_n[t]]
+		mul!(y[t], Lji[t - 1], y[t - 1], -1.0, 1.0)
+		LAPACK.trtrs!('L', 'N', 'N', Lii[t], y[t])
 	end
 end
 
 norm(vcat(y...) - L \ β, Inf)
 
 # backward substitution
-x = [@SVector zeros(n) for t = 1:T-1]
+x = [zeros(n) for t = 1:T-1]
 for t = T-1:-1:1
 	@show t
 	if t == T-1
-		x[t] = LowerTriangular(Lii[t])' \ y[t]
+		# x[t] = LowerTriangular(Lii[t])' \ y[t]
+		x[t] .= y[t]
+		LAPACK.trtrs!('L', 'T', 'N', Lii[t], x[t])
 	else
-		x[t] = LowerTriangular(Lii[t])' \ (y[t] - Lji[t]' * x[t+1])
+		# x[t] = LowerTriangular(Lii[t])' \ (y[t] - Lji[t]' * x[t+1])
+		x[t] .= y[t]
+		mul!(x[t], transpose(Lji[t]), x[t+1], -1.0, 1.0)
+		LAPACK.trtrs!('L', 'T', 'N', Lii[t], x[t])
 	end
 end
 
