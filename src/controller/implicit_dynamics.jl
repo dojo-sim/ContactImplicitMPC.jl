@@ -55,22 +55,28 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 
 	lin = [LinearizedStep(s, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
 
+
+	@warn "different init of ips"
 	ip =  [eval(ip_type)(
-			 zeros(num_var(model, env)),
-			 zeros(num_data(model)),
+			 # zeros(num_var(model, env)),
+			 # zeros(num_data(model)),
+			 ref_traj.z[t],
+			 ref_traj.θ[t],
 			 idx_ineq = inequality_indices(model, env),
+			 ix = linearization_var_index(model, env)[1],
+			 iy1 = linearization_var_index(model, env)[2],
+			 iy2 = linearization_var_index(model, env)[3],
+			 ibil = linearization_term_index(model, env)[3],
 			 r! = r!,
 			 rm! = rm!,
 			 rz! = rz!,
 			 rθ! = rθ!,
 			 r  = RLin(s, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
+			 # rm  = RLin(s, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
 			 rz = RZLin(s, lin[t].rz),
 			 rθ = RθLin(s, lin[t].rθ),
 			 v_pr = view(zeros(1,1), 1,1),
 			 v_du = view(zeros(1,1), 1,1),
-			 iy1 = linearization_var_index(model, env)[2],
-			 iy2 = linearization_var_index(model, env)[3],
-			 ibil = linearization_term_index(model, env)[3],
 			 opts = opts) for t = 1:H]
 
 	# views
