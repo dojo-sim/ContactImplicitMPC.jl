@@ -16,7 +16,7 @@
     @test norm(M1*[S.x; S.y] - [u; v], Inf) < 1e-10
 end
 
-
+const ContactControl = Main
 T = Float64
 s = get_simulation("flamingo", "flat_2D_lc", "flat")
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
@@ -30,28 +30,65 @@ nθ = num_data(s.model)
 nx = length(ix)
 ny = length(iy1)
 
-r0 = zeros(nz)
-rz0 = zeros(nz, nz)
-rθ0 = zeros(nz, nθ)
-z0 = max.(1e-10, ref_traj.z[10])
-θ0 = ref_traj.θ[10]
+r0 = zeros(T, nz)
+rz0 = zeros(T, nz, nz)
+rθ0 = zeros(T, nz, nθ)
+z0 = zeros(T, nz)
+θ0 = zeros(T, nθ)
+z0 .= max.(1e-12, ref_traj.z[10])
+θ0 .= ref_traj.θ[10]
 κ0 = 0.0
 s.res.r!(r0, z0, θ0, κ0)
 s.res.rz!(rz0, z0, θ0)
 s.res.rθ!(rθ0, z0, θ0)
 
-A = rz[idyn, ix]
-B = rz[idyn, iy1]
-C = rz[irst, ix]
-D = rz[irst, iy1] - rz[irst, iy2] * Diagonal(z0[iy2] ./ z0[iy1])
+A = rz0[idyn, ix]
+B = rz0[idyn, iy1]
+C = rz0[irst, ix]
+D = rz0[irst, iy1] - rz0[irst, iy2] * Diagonal(z0[iy2] ./ z0[iy1])
 M = [A B ; C D]
-S = ContactControl.Schur(M, n=nx, m=ny)
-
+S = Schur(M, n=nx, m=ny)
 
 u = r0[idyn]
 v = r0[irst] - r0[ibil] ./ z0[iy1]
-ContactControl.schur_factorize!(S, D)
+
+# @benchmark schur_factorize!(S, D)
+# @benchmark ContactControl.schur_solve!(S, u, v)
+schur_factorize!(S, D)
 ContactControl.schur_solve!(S, u, v)
 M1 = [S.A S.B; S.C D]
 norm(M1*[S.x; S.y] - [u; v], Inf)
 @test norm(M1*[S.x; S.y] - [u; v], Inf) < 1e-10
+
+
+
+
+# # S.x = Ai*(us + B*(As*(C*(Ai*us) - vs)))
+# # S.y = As*(- C*(Ai*us) + vs)
+# qr_solve!(gs_data, CAi*us - vs)
+# temp = gs_data.xs
+# S.x = Ai*(us + B*temp)
+# S.y = - temp
+α = 1e-15
+y00 = (S.D - S.CAiB + α * I) \ (- S.C * (S.Ai * u) + v)
+r00 = (- S.C * (S.Ai * u) + v) - (S.D - S.CAiB) * y00
+y01 = y00 + (S.D - S.CAiB + α * I) \ r00
+r01 = (- S.C * (S.Ai * u) + v) - (S.D - S.CAiB) * y01
+y02 = y01 + (S.D - S.CAiB + α * I) \ r01
+y0 = y00
+
+x0 = S.Ai * (u + S.B * (-y0))
+norm(M1*[x0; y0] - [u; v], Inf)
+@test norm(M1*[x0; y0] - [u; v], Inf) < 1e-10
+
+cond(S.D)
+cond(S.CAiB)
+cond(S.D - S.CAiB + 1e-20*I)
+
+plot(Gray.(1e10*abs.(Matrix(S.D))))
+plot(Gray.(1e10*abs.(Matrix(S.CAiB))))
+plot(Gray.(1e10*abs.(Matrix(S.D - S.CAiB))))
+
+plot(Gray.(1e0*abs.(Matrix(S.D))))
+plot(Gray.(1e0*abs.(Matrix(S.CAiB))))
+plot(Gray.(1e0*abs.(Matrix(S.D - S.CAiB))))

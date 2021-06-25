@@ -176,6 +176,8 @@ export
     ϕ_func,
     Particle,
     tracking_error,
-    repeat_ref_traj
+    repeat_ref_traj,
+    schur_factorize,
+    schur_solve
 
 end # module
