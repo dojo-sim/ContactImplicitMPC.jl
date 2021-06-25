@@ -225,6 +225,16 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     solver = ip.solver
     ip.iterations = 0
 
+    if !(typeof(r) <: AbstractArray)
+        δθ = θ - r.θ0
+        comp = true
+        comp && println("**** δθ:", scn(norm(δθ), digits=4))
+        comp = false
+        comp && println("****  θ[μ,h]:", scn.(θ[end-1:end], digits=4))
+        comp && println("****  θ:", scn(norm(θ), digits=4))
+        comp && println("****  z:", scn(norm(z), digits=4))
+    end
+
     # initialize barrier parameter
     κ[1] = κ_init
 

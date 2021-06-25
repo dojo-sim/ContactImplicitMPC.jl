@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1#35000
+H_sim = 500#35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -54,7 +54,15 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         altitude_verbose = true,
         )
     )
-
+p.im_traj.ip[1].opts
+# for (t,ip) in enumerate(p.ip)
+# 	@show t
+# 	@show ip.iterations
+# 	r_norm = norm(ip.r, ip.opts.res_norm)
+# 	@show scn(r_norm)
+# end
+#
+# p.im_traj.ip[18].δz
 
 p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -75,7 +83,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 	ip_opts = MehrotraOptions(
 		max_iter_inner = 100,
 		verbose = true,
-		r_tol = 1.0e-8,
+		r_tol = 1.0e-4,
 		diff_sol = true,
 		solver = :empty_solver,
 		),
@@ -107,6 +115,35 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     )
 
 @time status = simulate!(sim)
+sim.traj.q
+
+
+# nz = num_var(s.model, s.env)
+# nθ = num_data(s.model)
+# clearconsole()
+# Random.seed!(100)
+# ip_ = deepcopy(sim.p.im_traj.ip[2])
+# ip_.opts.max_iter_inner = 10
+#
+# ip_
+#
+# z0_ = zeros(nz)
+# θ0_ = deepcopy(ip_.r.θ0) + 1e-2*[rand(nθ-2); zeros(2)]
+# z0_[[ip_.r.ix; ip_.r.iy1; ip_.r.iy2]] = [ip_.r.x0; ip_.r.y10; ip_.r.y20]
+#
+# interior_point_solve!(ip_, z0_, θ0_)
+
+a = 10
+a = 10
+a = 10
+a = 10
+a = 10
+a = 10
+a = 10
+
+
+
+
 
 l = 9
 lu = 1
@@ -166,3 +203,14 @@ for tt = 1:1000
 end
 sul
 mean(itl)
+
+
+
+filename = "flamingo_mehrotra"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)

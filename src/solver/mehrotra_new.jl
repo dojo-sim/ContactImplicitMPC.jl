@@ -159,6 +159,9 @@ end
 # interior point solver
 function interior_point_solve!(ip::Mehrotra{T}) where T
 
+    # @warn "should do this through updates"
+    ip.rm = deepcopy(ip.r)
+
     # space
     s = ip.s
 
@@ -219,12 +222,12 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
     reg_du[1] = opts.reg_du_init
 
     δθ = θ - r.θ0
-    comp = true
+    # comp = true
     comp && println("**** δθ:", scn(norm(δθ), digits=4))
+    comp = false
     comp && println("****  θ[μ,h]:", scn.(θ[end-1:end], digits=4))
     comp && println("****  θ:", scn(norm(θ), digits=4))
     comp && println("****  z:", scn(norm(z), digits=4))
-    comp = false
     # compute residual, residual Jacobian
     # @warn "bad init"
 
@@ -283,6 +286,8 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
                 break
             end
             ip.iterations += 1
+            comp && println("************************** ITERATION :", ip.iterations)
+
             # compute residual Jacobian
             rz!(rz, z, θ)
             # @show norm(rz.Dx)
@@ -315,8 +320,8 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
             comp && println("**** cond(Dx):", scn(cond(rz.Dx), digits=4))
             comp && println("**** My1:", scn(norm(rz.y1), digits=4))
             comp && println("**** My2:", scn(norm(rz.y2), digits=4))
-            comp && println("**** My1:", scn.(rz.y1, digits=1))
-            comp && println("**** My2:", scn.(rz.y2, digits=1))
+            # comp && println("**** My1:", scn.(rz.y1, digits=1))
+            # comp && println("**** My2:", scn.(rz.y2, digits=1))
             comp && println("**** rdyn:", scn(norm(r.rdyn), digits=4))
             comp && println("**** rrst:", scn(norm(r.rrst), digits=4))
             comp && println("**** rbil:", scn(norm(r.rbil), digits=4))
@@ -324,8 +329,8 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
             comp && println("**** Δaff1:", scn(norm(Δaff[ix]), digits=4))
             comp && println("**** Δaff2:", scn(norm(Δaff[iy1]), digits=4))
             comp && println("**** Δaff3:", scn(norm(Δaff[iy2]), digits=4))
-            comp && println("**** Δaff2:", scn.(Δaff[iy1], digits=1))
-            comp && println("**** Δaff3:", scn.(Δaff[iy2], digits=1))
+            # comp && println("**** Δaff2:", scn.(Δaff[iy1], digits=1))
+            # comp && println("**** Δaff3:", scn.(Δaff[iy2], digits=1))
 
             err = M_ * [Δaff[ix]; Δaff[iy1]; Δaff[iy2]] - [r.rdyn; r.rrst; r.rbil]
             err2 = M_ * [Δaff[ix]; Δaff[iy1]; Δaff[iy2]] - [r.rdyn; 0.0*r.rrst; 0.0*r.rbil]
@@ -334,7 +339,7 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
             comp && println("**** errx:", scn(norm(err[ix]), digits=4))
             comp && println("**** erry1:", scn(norm(err[iy1]), digits=4))
             comp && println("**** erry2:", scn(norm(err[iy2]), digits=4))
-            comp && println("**** err:", scn.(err, digits=1))
+            # comp && println("**** err:", scn.(err, digits=1))
 
             # @show norm(Δaff)
             # plt = plot()
@@ -353,15 +358,18 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
             # rm!(rm, z, Δaff, θ, σ*μ) # here we set κ = σ*μ, Δ = Δaff
             #@@@
             # rm!(rm, z, Δaff, θ, max(min(1e-8, r_tol/10), σ*μ)) # here we set κ = σ*μ, Δ = Δaff
-            rm!(rm, z, Δaff, θ, σ*μ) # here we set κ = σ*μ, Δ = Δaff
+            # rm!(rm, z, Δaff, θ, σ*μ) # here we set κ = σ*μ, Δ = Δaff
+            rm!(r, z, Δaff, θ, σ*μ) # here we set κ = σ*μ, Δ = Δaff
             # @show norm(Δaff)
 
 
             # Compute corrector search direction
-            linear_solve!(solver, Δ, rz, rm)
+            # linear_solve!(solver, Δ, rz, rm)
+            linear_solve!(solver, Δ, rz, r)
 
             # @warn "overwriting the linear_solve!"
-            Δ[[ix; iy1; iy2]] = M_ \ [rm.rdyn; rm.rrst; rm.rbil]
+            # Δ[[ix; iy1; iy2]] = M_ \ [rm.rdyn; rm.rrst; rm.rbil]
+            Δ[[ix; iy1; iy2]] = M_ \ [r.rdyn; r.rrst; r.rbil]
 
             τ = progress(r_merit, ϵ_min=ϵ_min)
             α = step_length(z_y1, z_y2, Δ_y1, Δ_y2, τ=τ)
@@ -380,15 +388,15 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
             # @show norm(Δaff)
             # @show norm(τ)
             # @show norm(α)
-            verbose && println("iter:", j,
-                "  r: ", scn(norm(r, res_norm)),
-                "  Δ: ", scn(norm(Δ)),
-                # "  Δ[ix]: ", scn(norm(Δ[ix])),
-                # "  Δ[iy1]: ", scn(norm(Δ[iy1])),
-                # "  Δ[iy2]: ", scn(norm(Δ[iy2])),
-                "  Δaff: ", scn(norm(Δaff)),
-                "  τ: ", scn(norm(τ)),
-                "  α: ", scn(norm(α)))
+            # verbose && println("iter:", j,
+            #     "  r: ", scn(norm(r, res_norm)),
+            #     "  Δ: ", scn(norm(Δ)),
+            #     # "  Δ[ix]: ", scn(norm(Δ[ix])),
+            #     # "  Δ[iy1]: ", scn(norm(Δ[iy1])),
+            #     # "  Δ[iy2]: ", scn(norm(Δ[iy2])),
+            #     "  Δaff: ", scn(norm(Δaff)),
+            #     "  τ: ", scn(norm(τ)),
+            #     "  α: ", scn(norm(α)))
 
             # candidate point
             candidate_point!(z, s, z, Δ, α)
@@ -408,7 +416,8 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
             # verbose && println("iter: ", j, "   res∞: ", scn(r_merit))
         end
     end
-    verbose && println("r final: ", scn(r_merit))
+    # verbose && println("iter : ", ip.iterations)
+    # verbose && println("r final: ", scn(r_merit))
 
     if r_merit > r_tol
         @error "Mehrotra solver failed to reduce residual below r_tol."
@@ -439,8 +448,8 @@ function initial_state!(z, ix, iy1, iy2; comp::Bool=true)
 
     y1h = y1t .+ δy1
     y2h = y2t .+ δy2
-    comp && println("**** w2h:", scn.(y1h[1:3], digits=4))
-    comp && println("**** w3h:", scn.(y2h[1:3], digits=4))
+    # comp && println("**** w2h:", scn.(y1h[1:3], digits=4))
+    # comp && println("**** w3h:", scn.(y2h[1:3], digits=4))
 
     δhy1 = 0.5 * y1h'*y2h / sum(y2h)
     δhy2 = 0.5 * y1h'*y2h / sum(y1h)

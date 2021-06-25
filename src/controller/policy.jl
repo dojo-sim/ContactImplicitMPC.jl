@@ -39,8 +39,8 @@ function linearized_mpc_policy(traj, s, obj;
 		live_plotting = false),
 	mpc_opts = LinearizedMPCOptions(),
 	ip_opts = eval(interior_point_options(ip_type))(
-				κ_init = traj.κ[1],
-				κ_tol = 2.0 * traj.κ[1],
+				κ_init = κ_mpc,
+				κ_tol = 2.0 * κ_mpc,
 				r_tol = 1.0e-8,
 				diff_sol = true,
 				solver = :empty_solver,
@@ -59,8 +59,8 @@ function linearized_mpc_policy(traj, s, obj;
 
 	stride = get_stride(s.model, traj)
 	altitude = zeros(s.model.dim.c)
-	@info "not sure why we need to do this update."
-	update!(im_traj, traj, s, altitude, κ = κ_mpc)
+	# @info "not sure why we need to do this update."
+	# update!(im_traj, traj, s, altitude, κ = κ_mpc)
 	newton = Newton(s, H_mpc, traj.h, traj, im_traj, obj = obj, opts = n_opts)
 
 	LinearizedMPC(traj, ref_traj, im_traj, H_mpc, stride, altitude, κ_mpc, newton, s, copy(ref_traj.q[1]),

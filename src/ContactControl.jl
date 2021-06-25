@@ -35,7 +35,7 @@ include("utils.jl")
 
 # Solver
 include("solver/cones.jl")
-include("solver/interior_point.jl")
+include("solver/interior_point_new.jl")
 include("solver/mehrotra_new.jl")
 include("solver/lu.jl")
 include("solver/gn.jl")
