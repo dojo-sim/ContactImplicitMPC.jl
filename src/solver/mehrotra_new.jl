@@ -27,7 +27,7 @@ mutable struct Mehrotra{T} <: AbstractIPSolver
     Δaff::Vector{T}              # affine search direction
     Δ::Vector{T}                 # corrector search direction
     r                            # residual
-    rm                           # corrector residual
+    # rm                           # corrector residual
     rbil                         # corrector residual
     r_merit::T                   # residual norm
     r̄ #useless                            # candidate residual
@@ -78,7 +78,6 @@ function mehrotra(z, θ;
         ibil = collect(1:0),
         r! = r!, rm! = rm!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
-        rm = deepcopy(r),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
         reg_pr = [0.0], reg_du = [0.0],
@@ -106,7 +105,7 @@ function mehrotra(z, θ;
     Δaff_y2 = view(Δaff, iy2) # TODO this should be in Δ space
     Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
-    rbil = bilinear_res(rm, ibil)
+    rbil = bilinear_res(r, ibil)
 
     Mehrotra(
         s,
@@ -116,7 +115,6 @@ function mehrotra(z, θ;
         Δaff,
         Δ,
         r,
-        rm, # rm
         rbil,
         0.0,
         deepcopy(r), #useless
@@ -159,9 +157,6 @@ end
 # interior point solver
 function interior_point_solve!(ip::Mehrotra{T}) where T
 
-    # @warn "should do this through updates"
-    ip.rm = deepcopy(ip.r)
-
     # space
     s = ip.s
 
@@ -189,7 +184,6 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
     Δaff = ip.Δaff
     Δ = ip.Δ
     r = ip.r
-    rm = ip.rm
     rbil = ip.rbil
     nbil = ip.nbil
     r_merit = ip.r_merit
@@ -214,6 +208,8 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
     reg_pr = ip.reg_pr
     reg_du = ip.reg_du
     solver = ip.solver
+
+    # Initialization
     ip.iterations = 0
     comp = false
 
@@ -233,7 +229,6 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
 
     # @warn "bad κ"
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
-    # ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 1e-8) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
 	nx = length(r.ix)
@@ -260,11 +255,6 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
 
-    # plt = plot()
-    # # plot!(plt, abs.(r))
-    # plot!(plt, abs.([Vector(r.rdyn); Vector(r.rrst); Vector(r.rbil); ]))
-    # display(plt)
-
     r_merit = norm(r, res_norm)
     # @show r_merit
     elapsed_time = 0.0
@@ -272,15 +262,6 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
     for j = 1:max_iter_inner
         elapsed_time >= max_time && break
         elapsed_time += @elapsed begin
-
-            # @show j
-            # @show norm(z)
-            # @show norm(θ)
-            # @show minimum(abs.(z))
-            # plt = plot()
-            # plot!(z)
-            # display(plt)
-
             # check for converged residual
             if r_merit < r_tol
                 break
@@ -290,61 +271,46 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
 
             # compute residual Jacobian
             rz!(rz, z, θ)
-            # @show norm(rz.Dx)
-            # @show norm(rz.Dy1)
-            # @show norm(rz.Rx)
-            # @show norm(rz.Ry1)
-            # @show norm(rz.Ry2)
-            # @show norm(rz.y1)
-            # @show norm(rz.y2)
-            # @show minimum(rz.y1)
-            # @show minimum(rz.y2)
-            # @show minimum(abs.(rz.y2))
-            # @show minimum(abs.(rz.y1))
 
             # regularize (fixed, TODO: adaptive)
             reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r)
-            A_ = [rz.Dx rz.Dy1 zeros(length(ix), length(iy1));
-                  rz.Rx rz.Ry1 Diagonal(rz.Ry2)]
+            # A_ = [rz.Dx rz.Dy1 zeros(length(ix), length(iy1));
+            #       rz.Rx rz.Ry1 Diagonal(rz.Ry2)]
             M_ = [rz.Dx rz.Dy1 zeros(length(ix), length(iy1));
                   rz.Rx rz.Ry1 Diagonal(rz.Ry2);
                   zeros(length(iy2), length(ix)) Diagonal(rz.y2) Diagonal(rz.y1)]
             # @warn "overwriting the linear_solve!"
             Δaff[[ix; iy1; iy2]] = M_ \ [r.rdyn; r.rrst; r.rbil]
 
-            comp && println("**** A:", scn(norm(A_), digits=4))
-            comp && println("**** M:", scn(norm(M_), digits=4))
-            comp && println("**** cond(Dx):", scn(cond(rz.Dx), digits=4))
-            comp && println("**** My1:", scn(norm(rz.y1), digits=4))
-            comp && println("**** My2:", scn(norm(rz.y2), digits=4))
+            # comp && println("**** A:", scn(norm(A_), digits=4))
+            # comp && println("**** M:", scn(norm(M_), digits=4))
+            # comp && println("**** cond(Dx):", scn(cond(rz.Dx), digits=4))
+            # comp && println("**** My1:", scn(norm(rz.y1), digits=4))
+            # comp && println("**** My2:", scn(norm(rz.y2), digits=4))
             # comp && println("**** My1:", scn.(rz.y1, digits=1))
             # comp && println("**** My2:", scn.(rz.y2, digits=1))
-            comp && println("**** rdyn:", scn(norm(r.rdyn), digits=4))
-            comp && println("**** rrst:", scn(norm(r.rrst), digits=4))
-            comp && println("**** rbil:", scn(norm(r.rbil), digits=4))
-
-            comp && println("**** Δaff1:", scn(norm(Δaff[ix]), digits=4))
-            comp && println("**** Δaff2:", scn(norm(Δaff[iy1]), digits=4))
-            comp && println("**** Δaff3:", scn(norm(Δaff[iy2]), digits=4))
+            # comp && println("**** rdyn:", scn(norm(r.rdyn), digits=4))
+            # comp && println("**** rrst:", scn(norm(r.rrst), digits=4))
+            # comp && println("**** rbil:", scn(norm(r.rbil), digits=4))
+            #
+            # comp && println("**** Δaff1:", scn(norm(Δaff[ix]), digits=4))
+            # comp && println("**** Δaff2:", scn(norm(Δaff[iy1]), digits=4))
+            # comp && println("**** Δaff3:", scn(norm(Δaff[iy2]), digits=4))
             # comp && println("**** Δaff2:", scn.(Δaff[iy1], digits=1))
             # comp && println("**** Δaff3:", scn.(Δaff[iy2], digits=1))
 
-            err = M_ * [Δaff[ix]; Δaff[iy1]; Δaff[iy2]] - [r.rdyn; r.rrst; r.rbil]
-            err2 = M_ * [Δaff[ix]; Δaff[iy1]; Δaff[iy2]] - [r.rdyn; 0.0*r.rrst; 0.0*r.rbil]
-            comp && println("**** err:", scn(norm(err), digits=4))
-            comp && println("**** err2:", scn(norm(err2), digits=4))
-            comp && println("**** errx:", scn(norm(err[ix]), digits=4))
-            comp && println("**** erry1:", scn(norm(err[iy1]), digits=4))
-            comp && println("**** erry2:", scn(norm(err[iy2]), digits=4))
+            # err = M_ * [Δaff[ix]; Δaff[iy1]; Δaff[iy2]] - [r.rdyn; r.rrst; r.rbil]
+            # err2 = M_ * [Δaff[ix]; Δaff[iy1]; Δaff[iy2]] - [r.rdyn; 0.0*r.rrst; 0.0*r.rbil]
+            # comp && println("**** err:", scn(norm(err), digits=4))
+            # comp && println("**** err2:", scn(norm(err2), digits=4))
+            # comp && println("**** errx:", scn(norm(err[ix]), digits=4))
+            # comp && println("**** erry1:", scn(norm(err[iy1]), digits=4))
+            # comp && println("**** erry2:", scn(norm(err[iy2]), digits=4))
             # comp && println("**** err:", scn.(err, digits=1))
 
-            # @show norm(Δaff)
-            # plt = plot()
-            # plot!(Δaff)
-            # display(plt)
             αaff = step_length(z_y1, z_y2, Δaff_y1, Δaff_y2, τ=1.0)
             μaff = (z_y1 - αaff * Δaff[iy1])' * (z_y2 - αaff * Δaff[iy2]) / nbil
             # @show nbil
@@ -355,20 +321,13 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
             σ = (μaff / μ)^3
 
             # Compute corrector residual
-            # rm!(rm, z, Δaff, θ, σ*μ) # here we set κ = σ*μ, Δ = Δaff
-            #@@@
-            # rm!(rm, z, Δaff, θ, max(min(1e-8, r_tol/10), σ*μ)) # here we set κ = σ*μ, Δ = Δaff
-            # rm!(rm, z, Δaff, θ, σ*μ) # here we set κ = σ*μ, Δ = Δaff
             rm!(r, z, Δaff, θ, σ*μ) # here we set κ = σ*μ, Δ = Δaff
             # @show norm(Δaff)
 
-
             # Compute corrector search direction
-            # linear_solve!(solver, Δ, rz, rm)
             linear_solve!(solver, Δ, rz, r)
 
             # @warn "overwriting the linear_solve!"
-            # Δ[[ix; iy1; iy2]] = M_ \ [rm.rdyn; rm.rrst; rm.rbil]
             Δ[[ix; iy1; iy2]] = M_ \ [r.rdyn; r.rrst; r.rbil]
 
             τ = progress(r_merit, ϵ_min=ϵ_min)
@@ -376,18 +335,7 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
             comp && println("**** Δ1:", scn(norm(α*Δ[ix]), digits=4))
             comp && println("**** Δ2:", scn(norm(α*Δ[iy1]), digits=4))
             comp && println("**** Δ3:", scn(norm(α*Δ[iy2]), digits=4))
-            #
-            # @show norm(rm.rdyn)
-            # @show norm(rm.rrst)
-            # @show norm(rm.rbil)
-            # @show norm(Δ)
-            # @show τ
-            # @show α
-            # @show norm(r, res_norm)
-            # @show norm(Δ)
-            # @show norm(Δaff)
-            # @show norm(τ)
-            # @show norm(α)
+
             # verbose && println("iter:", j,
             #     "  r: ", scn(norm(r, res_norm)),
             #     "  Δ: ", scn(norm(Δ)),
@@ -404,12 +352,6 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
             # update
             # @warn "bad approx"
             r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
-            # r!(r, z, θ, 1e-10) # we set κ= 0.0 to measure the bilinear constraint violation # this κ=1e-10 remove instabilities leading to divergence of the method.
-
-            # plt = plot()
-            # # plot!(plt, abs.(r))
-            # plot!(plt, abs.([Vector(r.rdyn); Vector(r.rrst); Vector(r.rbil); ]))
-            # display(plt)
 
             r_merit = norm(r, res_norm)
             # @show r_merit

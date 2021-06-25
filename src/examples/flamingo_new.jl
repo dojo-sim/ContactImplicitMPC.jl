@@ -54,15 +54,6 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         altitude_verbose = true,
         )
     )
-p.im_traj.ip[1].opts
-# for (t,ip) in enumerate(p.ip)
-# 	@show t
-# 	@show ip.iterations
-# 	r_norm = norm(ip.r, ip.opts.res_norm)
-# 	@show scn(r_norm)
-# end
-#
-# p.im_traj.ip[18].δz
 
 p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -132,17 +123,6 @@ sim.traj.q
 # z0_[[ip_.r.ix; ip_.r.iy1; ip_.r.iy2]] = [ip_.r.x0; ip_.r.y10; ip_.r.y20]
 #
 # interior_point_solve!(ip_, z0_, θ0_)
-
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-
-
-
 
 
 l = 9
