@@ -35,7 +35,7 @@ rz0 = zeros(T, nz, nz)
 rθ0 = zeros(T, nz, nθ)
 z0 = zeros(T, nz)
 θ0 = zeros(T, nθ)
-z0 .= max.(1e-12, ref_traj.z[10])
+z0 .= max.(1e-6, ref_traj.z[10])
 θ0 .= ref_traj.θ[10]
 κ0 = 0.0
 s.res.r!(r0, z0, θ0, κ0)
@@ -47,7 +47,7 @@ B = rz0[idyn, iy1]
 C = rz0[irst, ix]
 D = rz0[irst, iy1] - rz0[irst, iy2] * Diagonal(z0[iy2] ./ z0[iy1])
 M = [A B ; C D]
-S = Schur(M, n=nx, m=ny)
+S = Schur11(M, n=nx, m=ny)
 
 u = r0[idyn]
 v = r0[irst] - r0[ibil] ./ z0[iy1]
@@ -59,6 +59,27 @@ ContactControl.schur_solve!(S, u, v)
 M1 = [S.A S.B; S.C D]
 norm(M1*[S.x; S.y] - [u; v], Inf)
 @test norm(M1*[S.x; S.y] - [u; v], Inf) < 1e-10
+
+
+
+
+M = [A B ; C D]
+S = Schur(M, n=nx, m=ny)
+
+u = r0[idyn]
+v = r0[irst] - r0[ibil] ./ z0[iy1]
+
+schur_factorize!(S, D)
+ContactControl.schur_solve!(S, u, v)
+M1 = [S.A S.B; S.C D]
+norm(M1*[S.x; S.y] - [u; v], Inf)
+@test norm(M1*[S.x; S.y] - [u; v], Inf) < 1e-10
+
+
+
+sca = Vector(ny ./ sum(abs.(S.D - S.CAiB), dims=2)[:,1])
+cond(sca .* (S.D - S.CAiB))
+
 
 
 
@@ -81,9 +102,26 @@ x0 = S.Ai * (u + S.B * (-y0))
 norm(M1*[x0; y0] - [u; v], Inf)
 @test norm(M1*[x0; y0] - [u; v], Inf) < 1e-10
 
+diag(S.D - S.CAiB)
+
 cond(S.D)
 cond(S.CAiB)
-cond(S.D - S.CAiB + 1e-20*I)
+cond(S.D - S.CAiB + 0e-10*Diagonal([zeros(12); ones(2); zeros(2)]))
+cond(S.D - S.CAiB + 1e-1*Diagonal([zeros(12); ones(2); zeros(2)]))
+cond(ones(ny) .* (S.D - S.CAiB))
+cond(1 ./ abs.(diag(S.D - S.CAiB)) .* (S.D - S.CAiB))
+sca = Vector(ny ./ sum(abs.(S.D - S.CAiB), dims=2)[:,1])
+sca = Vector(ny ./ sum(abs.(S.D - S.CAiB), dims=1)[1,:])
+cond(sca .* (S.D - S.CAiB))
+
+
+v = [1,2]'
+v .* A
+A = [1 2;
+     3 4]
+sum(A, dims = 2)
+
+
 
 plot(Gray.(1e10*abs.(Matrix(S.D))))
 plot(Gray.(1e10*abs.(Matrix(S.CAiB))))

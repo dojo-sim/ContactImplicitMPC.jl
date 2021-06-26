@@ -55,8 +55,8 @@ function schur_factorize!(S::Schur11{T,n,m,nn,nm,mm}, D::AbstractMatrix{T}) wher
     # Ai = S.Ai
     CAiB = S.CAiB
     gs_data = S.gs_data
-
-    factorize!(gs_data, D - CAiB)
+    ϵ = 1e-12
+    factorize!(gs_data, D - CAiB + ϵ * I)
     return nothing
 end
 
@@ -74,8 +74,21 @@ function schur_solve!(S::Schur11{T,n,m,nn,nm,mm}, u::AbstractVector{T}, v::Abstr
     vs  = S.v
     # S.x = Ai*(us + B*(As*(C*(Ai*us) - vs)))
     # S.y = As*(- C*(Ai*us) + vs)
-    qr_solve!(gs_data, CAi*us - vs)
-    temp = gs_data.xs
+
+    r0 = CAi*us - vs
+    qr_solve!(gs_data, r0)
+    x0 = gs_data.xs
+    r1 = r0 - (S.D - S.CAiB)*x0
+    qr_solve!(gs_data, r1)
+    x1 = x0 + gs_data.xs
+    r2 = r0 - (S.D - S.CAiB)*x1
+    temp = x1
+    @show norm(r0)
+    @show norm(r1)
+    @show norm(r2)
+
+    # qr_solve!(gs_data, CAi*us - vs)
+    # temp = gs_data.xs
     S.x = Ai*(us + B*temp)
     S.y = - temp
     return nothing

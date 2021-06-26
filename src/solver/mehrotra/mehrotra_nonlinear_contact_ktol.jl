@@ -130,7 +130,7 @@ function residual_light(w1, w2, w3, z, δθ, data::ProblemData13; κ=0.0, verbos
     verbose && println("res: Aδwt-x", scn(norm(A*δwt .- x), digits=4))
     verbose && println("res: r", scn(norm(r), digits=4))
     verbose && println("res: ", scn.([v1,v2]))
-    return maximum([v1,v2])
+    return v1, v2
 end
 
 function affine_direction(w1, w2, w3, z, δθ, data::ProblemData13; κ=0.0, verbose = false)
@@ -153,12 +153,12 @@ function affine_direction(w1, w2, w3, z, δθ, data::ProblemData13; κ=0.0, verb
          data.G data.H data.J;
          zeros(m,n) Diagonal(w3) Diagonal(w2)]
 
-    verbose && println("**** A:", scn(norm(A_), digits=4))
-    verbose && println("**** M:", scn(norm(M), digits=4))
-    verbose && println("**** My1:", scn(norm(w2), digits=4))
-    verbose && println("**** My2:", scn(norm(w3), digits=4))
-    verbose && println("**** My1:", scn.(w2, digits=1))
-    verbose && println("**** My2:", scn.(w3, digits=1))
+    # verbose && println("**** A:", scn(norm(A_), digits=4))
+    # verbose && println("**** M:", scn(norm(M), digits=4))
+    # verbose && println("**** My1:", scn(norm(w2), digits=4))
+    # verbose && println("**** My2:", scn(norm(w3), digits=4))
+    # verbose && println("**** My1:", scn.(w2, digits=1))
+    # verbose && println("**** My2:", scn.(w3, digits=1))
     verbose && println("**** rdyn:", scn(norm(r[1:n]), digits=4))
     verbose && println("**** rrst:", scn(norm(r[n .+ (1:m)]), digits=4))
     verbose && println("**** rbil:", scn(norm(r[n+m .+ (1:m)]), digits=4))
@@ -167,17 +167,17 @@ function affine_direction(w1, w2, w3, z, δθ, data::ProblemData13; κ=0.0, verb
 
     err = M * Δ .- r
     err2 = M * Δ .- [r[1:n]; zeros(2m)]
-    verbose && println("**** err:", scn(norm(err), digits=4))
-    verbose && println("**** err2:", scn(norm(err2), digits=4))
-    verbose && println("**** errx:", scn(norm(err[data.ix]), digits=4))
-    verbose && println("**** erry1:", scn(norm(err[data.iy1]), digits=4))
-    verbose && println("**** erry2:", scn(norm(err[data.iy2]), digits=4))
-    verbose && println("**** err:", scn.(err, digits=1))
+    # verbose && println("**** err:", scn(norm(err), digits=4))
+    # verbose && println("**** err2:", scn(norm(err2), digits=4))
+    # verbose && println("**** errx:", scn(norm(err[data.ix]), digits=4))
+    # verbose && println("**** erry1:", scn(norm(err[data.iy1]), digits=4))
+    # verbose && println("**** erry2:", scn(norm(err[data.iy2]), digits=4))
+    # verbose && println("**** err:", scn.(err, digits=1))
 
     return Δ
 end
 
-function corrector_direction(w1, w2, w3, z, δθ, σ, μ, Δw2aff, Δw3aff, data::ProblemData13)
+function corrector_direction(w1, w2, w3, z, δθ, σμ, Δw2aff, Δw3aff, data::ProblemData13)
     n = data.n
     m = data.m
     δw1 = w1 - z[data.ix]
@@ -188,7 +188,7 @@ function corrector_direction(w1, w2, w3, z, δθ, σ, μ, Δw2aff, Δw3aff, data
           - (data.G*δw1 + data.H*δw2 + data.J*δw3 - data.c);]
     r_ += - data.B*δθ
     r = [r_;
-         - w2 .* w3 - Δw2aff .* Δw3aff .+ σ * μ]
+         - w2 .* w3 - Δw2aff .* Δw3aff .+ σμ]
 
     M = [data.E data.F zeros(n,m);
          data.G data.H data.J;
@@ -213,17 +213,17 @@ function progress_(res; ϵ0 = 0.05)
     return τ
 end
 
-function corrector_step_length(w2, w3, Δw2, Δw3; τ=0.9995)
+function corrector_step_length(w2, w3, Δw2, Δw3; τ=0.9995, margin=0.0)
     m = length(w2)
 
     ατ_p = 1.0
     ατ_d = 1.0
     for i = 1:m
         if Δw2[i] < 0.0
-            ατ_p = min(ατ_p, - τ * w2[i] / Δw2[i])
+            ατ_p = min(ατ_p, - τ * (w2[i] - margin)/ Δw2[i])
         end
         if Δw3[i] < 0.0
-            ατ_d = min(ατ_d, - τ * w3[i] / Δw3[i])
+            ατ_d = min(ατ_d, - τ * (w3[i] - margin)/ Δw3[i])
         end
     end
     αh = min(ατ_p, ατ_d)
@@ -332,15 +332,18 @@ function initial_reg(w1t, w2t, w3t)
 end
 
 function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
-        newton_iter::Int=100, res_tol=1e-8, verbose::Bool=false, verbose_res = false, θamp=1.0, ϵ0=0.05)
+        newton_iter::Int=100, res_tol=1e-8, κ_tol = 1e-6, verbose::Bool=false, verbose_res = false, θamp=1.0, ϵ0=0.05, γ=Inf)
+    # ϵ0 ∈ [0.005, 0.25] # larger -> more robust, smaller -> faster
+    # γ ∈ [1, Inf] # larger -> faster, smaller -> better conditionned
+
     κ = res_tol
 
     z = deepcopy(ref_traj.z[t])
     θ = deepcopy(ref_traj.θ[t])
-    # δθ = θamp * θ
-    @warn "changed δθ"
-    δθ = θamp * (0.5 .- rand(length(θ)-0))
-    δθ[end-1:end] .= max.(0.0, δθ[end-1:end])
+    δθ = θamp * θ
+    # @warn "changed δθ"
+    # δθ = θamp * (0.5 .- rand(length(θ)-0))
+    # δθ[end-1:end] .= max.(0.0, δθ[end-1:end])
     # δθ = θamp * [ones(length(θ) - 2); zeros(2)]
 
     data = get_data(s, z, θ, κ=κ)
@@ -359,55 +362,84 @@ function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
     # w1, w2, w3 = initial_state2(deepcopy(ref_traj.z[t]), Δaff, ix, iy1, iy2)
 
 
-    verbose && println("****  δθ:", scn(norm(δθ), digits=4))
-    verbose && println("****  δθ+θ:", scn(norm(δθ+θ), digits=4))
-    verbose && println("****  θ:", scn(norm(θ), digits=4))
-    verbose && println("****  z:", scn(norm(z), digits=4))
+    # verbose && println("****  δθ:", scn(norm(δθ), digits=4))
+    # verbose && println("****  δθ+θ:", scn(norm(δθ+θ), digits=4))
+    # verbose && println("****  θ:", scn(norm(θ), digits=4))
+    # verbose && println("****  z:", scn(norm(z), digits=4))
 
-    resl = residual_light(z[ix], z[iy1], z[iy2], z, δθ, data, verbose=verbose_res)
+    resl, κl = residual_light(z[ix], z[iy1], z[iy2], z, δθ, data, verbose=verbose_res)
     verbose && println("**** rl:", scn(resl, digits=4))
+    verbose && println("**** κl:", scn(κl, digits=4))
 
-    w1, w2, w3 = initial_state(z, δθ, data, verbose = verbose)
-    verbose && println("**** w1:", scn(norm(w1), digits=4))
-    verbose && println("**** w2:", scn(norm(w2), digits=4))
-    verbose && println("**** w3:", scn(norm(w3), digits=4))
+    w1, w2, w3 = initial_state(z, δθ, data, verbose = false && verbose)
+    # verbose && println("**** w1:", scn(norm(w1), digits=4))
+    # verbose && println("**** w2:", scn(norm(w2), digits=4))
+    # verbose && println("**** w3:", scn(norm(w3), digits=4))
 
 
     # w1, w2, w3 = unpack(1e-0ones(n + 2m), n=n, m=m)
-    rinit = residual_light(w1, w2, w3, z, δθ, data, verbose=verbose_res)
-    verbose && println("**** rinit:", scn(rinit, digits=4))
+    r_vio, κ_vio = residual_light(w1, w2, w3, z, δθ, data, verbose=verbose_res)
+    verbose && println("**** rinit:", scn(r_vio, digits=4))
+    verbose && println("**** κinit:", scn(κ_vio, digits=4))
 
     iter = 0
     success = false
     for k = 1:newton_iter
         iter += 1
+        verbose && println("********************** Iteration [$k]")
+        A = data.E
+        B = data.F
+        C = data.G
+        # D = data.H - data.J * Diagonal(w3 ./ w2)
+        reg = κ_vio/γ
+        D = data.H - data.J * Diagonal(w3 ./ (max.(w2, reg)))
+        # for reg in 10 .^ (range(-15,stop=5,length=21))
+        #     Dreg = data.H - data.J * Diagonal(w3 ./ (max.(w2, reg)))
+        #     cndDreg = cond(Dreg)
+        #     verbose && println("**** reg:", scn(reg), "   cond Dreg:", scn(cndDreg, digits=4))
+        # end
+
+        cndD = cond(D)
+        cnd = cond(D - C*inv(A)*B)
+        verbose && println("**** cond D:", scn(cndD, digits=4))
+        verbose && println("**** cond:", scn(cnd, digits=4))
+
 
         Δaff = affine_direction(w1, w2, w3, z, δθ, data, κ=0.0, verbose = verbose)
         Δw1aff, Δw2aff, Δw3aff = unpack(Δaff, n=n, m=m)
-        # verbose && println("**** κ:", scn(min(0.05, res^3), digits=4))
-        verbose && println("**** Δaff1:", scn(norm(Δw1aff), digits=4))
-        verbose && println("**** Δaff2:", scn(norm(Δw2aff), digits=4))
-        verbose && println("**** Δaff3:", scn(norm(Δw3aff), digits=4))
-        verbose && println("**** Δaff2:", scn.(Δw2aff, digits=1))
-        verbose && println("**** Δaff3:", scn.(Δw3aff, digits=1))
+        # # verbose && println("**** κ:", scn(min(0.05, res^3), digits=4))
+        # verbose && println("**** Δaff1:", scn(norm(Δw1aff), digits=4))
+        # verbose && println("**** Δaff2:", scn(norm(Δw2aff), digits=4))
+        # verbose && println("**** Δaff3:", scn(norm(Δw3aff), digits=4))
+        # verbose && println("**** Δaff2:", scn.(Δw2aff, digits=1))
+        # verbose && println("**** Δaff3:", scn.(Δw3aff, digits=1))
         αhaff, μaff = step_length_(w2, w3, Δw2aff, Δw3aff)
         μ = w2'*w3 / m
         σ = (μaff / μ)^3
-        Δ = corrector_direction(w1, w2, w3, z, δθ, σ, μ, Δw2aff, Δw3aff, data)
+        verbose && println("**** σμ:", scn(σ*μ, digits=1))
+        @warn "this might be an effective regularization"
+        # Δ = corrector_direction(w1, w2, w3, z, δθ, max(κ_tol/10, σ*μ), Δw2aff, Δw3aff, data)
+        Δ = corrector_direction(w1, w2, w3, z, δθ, σ*μ, Δw2aff, Δw3aff, data)
         Δw1, Δw2, Δw3 = unpack(Δ, n=n, m=m)
         res = residual(w1, w2, w3, z, δθ, data)
         τ = progress_(res, ϵ0=ϵ0)
-        αh = corrector_step_length(w2, w3, Δw2, Δw3; τ=τ)
+
+        verbose && println("**** τ:", scn(τ, digits=4))
+        αh = corrector_step_length(w2, w3, Δw2, Δw3; τ=τ, margin=0.0)
         w1 = w1 + αh * Δw1
         w2 = w2 + αh * Δw2
         w3 = w3 + αh * Δw3
-        verbose && println("**** Δ1:", scn(norm(Δw1 * αh), digits=4))
-        verbose && println("**** Δ2:", scn(norm(Δw2 * αh), digits=4))
-        verbose && println("**** Δ3:", scn(norm(Δw3 * αh), digits=4))
+        # verbose && println("**** Δ1:", scn(norm(Δw1 * αh), digits=4))
+        # verbose && println("**** Δ2:", scn(norm(Δw2 * αh), digits=4))
+        # verbose && println("**** Δ3:", scn(norm(Δw3 * αh), digits=4))
         res = residual(w1, w2, w3, z, δθ, data, verbose=verbose_res)
         verbose && println("res: ", scn(res))
+        r_vio, κ_vio = residual_light(w1, w2, w3, z, δθ, data, verbose=verbose_res)
+        verbose && println("**** r_vio:", scn(r_vio, digits=4))
+        verbose && println("**** κ_vio:", scn(κ_vio, digits=4))
+
         # @show res
-        if res < res_tol
+        if (r_vio < res_tol) && (κ_vio < κ_tol)
             success = true
             break
         end
@@ -419,28 +451,28 @@ function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
 end
 
 function baseline_solve(s::Simulation, ref_traj::ContactTraj, t::Int; newton_iter::Int=100,
-        res_tol=1e-8, verbose::Bool=false, verbose_res = false, θamp=1.0, ϵ0 = 0.05)
+        res_tol=1e-8, κ_tol=1e-4, verbose::Bool=false, verbose_res = false, θamp=1.0, ϵ0 = 0.05, γ=Inf)
     κ = res_tol
 
     z = deepcopy(ref_traj.z[t])
     θ = deepcopy(ref_traj.θ[t])
-    # δθ = θamp * θ
-    @warn "changed δθ"
-    δθ = θamp * (0.5 .- rand(length(θ)))
-    δθ[end-1:end] .= max.(0.0, δθ[end-1:end])
+    δθ = θamp * θ
+    # @warn "changed δθ"
+    # δθ = θamp * (0.5 .- rand(length(θ)))
+    # δθ[end-1:end] .= max.(0.0, δθ[end-1:end])
     data = get_data(s, z, θ, κ=κ)
     ix, iy1, iy2 = linearization_var_index(s.model, s.env)
     n = data.n
     m = data.m
 
     res = residual(z[ix], z[iy1], z[iy2], z, δθ, data, verbose=verbose_res)
-    verbose && println("res: ", scn(res))
+    # verbose && println("res: ", scn(res))
 
     w1, w2, w3 = initial_state(z, δθ, data, verbose = verbose)
     # w1, w2, w3 = unpack(1e-0ones(n + 2m), n=n, m=m)
 
     rinit = residual_light(w1, w2, w3, z, δθ, data, verbose=verbose_res)
-    verbose && println("**** rinit:", scn(rinit, digits=4))
+    # verbose && println("**** rinit:", scn(rinit, digits=4))
 
     iter = 0
     success = false
@@ -453,21 +485,21 @@ function baseline_solve(s::Simulation, ref_traj::ContactTraj, t::Int; newton_ite
         w1 = w1 + αhaff * Δw1aff
         w2 = w2 + αhaff * Δw2aff
         w3 = w3 + αhaff * Δw3aff
-        verbose && println("**** Δ1:", scn(norm(Δw1aff * αhaff), digits=4))
-        verbose && println("**** Δ2:", scn(norm(Δw2aff * αhaff), digits=4))
-        verbose && println("**** Δ3:", scn(norm(Δw3aff * αhaff), digits=4))
-        verbose && println("**** w1:", scn(norm(w1), digits=4))
-        verbose && println("**** w2:", scn(norm(w2), digits=4))
-        verbose && println("**** w3:", scn(norm(w3), digits=4))
+        # verbose && println("**** Δ1:", scn(norm(Δw1aff * αhaff), digits=4))
+        # verbose && println("**** Δ2:", scn(norm(Δw2aff * αhaff), digits=4))
+        # verbose && println("**** Δ3:", scn(norm(Δw3aff * αhaff), digits=4))
+        # verbose && println("**** w1:", scn(norm(w1), digits=4))
+        # verbose && println("**** w2:", scn(norm(w2), digits=4))
+        # verbose && println("**** w3:", scn(norm(w3), digits=4))
 
-        verbose && println("****    Δ2:", scn.(Δw2aff * αhaff, digits=1))
-        verbose && println("****    Δ3:", scn.(Δw3aff * αhaff, digits=1))
-        verbose && println("****    w2:", scn.(w2, digits=1))
-        verbose && println("****    w3:", scn.(w3, digits=1))
-        verbose && println("**** w2*w3:", scn.(w3.*w2, digits=1))
+        # verbose && println("****    Δ2:", scn.(Δw2aff * αhaff, digits=1))
+        # verbose && println("****    Δ3:", scn.(Δw3aff * αhaff, digits=1))
+        # verbose && println("****    w2:", scn.(w2, digits=1))
+        # verbose && println("****    w3:", scn.(w3, digits=1))
+        # verbose && println("**** w2*w3:", scn.(w3.*w2, digits=1))
 
         res = residual(w1, w2, w3, z, δθ, data; κ=κ, verbose=verbose_res)
-        verbose && println("res: ", scn(res))
+        # verbose && println("res: ", scn(res))
         if res < res_tol
             success = true
             break
@@ -475,7 +507,7 @@ function baseline_solve(s::Simulation, ref_traj::ContactTraj, t::Int; newton_ite
     end
     println("bas zdiff: ", scn(z_difference(z, w1, w2, w3, data)))
     res = residual(w1, w2, w3, z, δθ, data; κ=κ, verbose=verbose_res)
-    verbose && println("iter: ", iter, " res: ", scn(res))
+    # verbose && println("iter: ", iter, " res: ", scn(res))
     return iter, success
 end
 
@@ -484,7 +516,8 @@ function z_difference(z, w1, w2, w3, data)
 end
 
 function evaluate(s::Simulation, ref_traj::ContactTraj;
-        algorithm::Symbol=:mehrotra_solve, newton_iter=100, res_tol=1e-8, θamp=1.0, verbose::Bool = false, ϵ0=0.05)
+        algorithm::Symbol=:mehrotra_solve, newton_iter=100,
+        res_tol=1e-8, κ_tol=1e-8, θamp=1.0, verbose::Bool = false, ϵ0=0.05, γ = Inf)
 
     κ = res_tol
     H = ref_traj.H
@@ -496,14 +529,20 @@ function evaluate(s::Simulation, ref_traj::ContactTraj;
         it, su = eval(algorithm)(s, deepcopy(ref_traj), t,
             newton_iter = newton_iter,
             res_tol = res_tol,
+            κ_tol = κ_tol,
             θamp = θamp,
-            verbose = verbose, ϵ0 = ϵ0)
+            verbose = verbose,
+            ϵ0 = ϵ0,
+            γ = γ,)
         try
             it, su = eval(algorithm)(s, deepcopy(ref_traj), t,
                 newton_iter = newton_iter,
                 res_tol = res_tol,
+                κ_tol = κ_tol,
                 θamp = θamp,
-                verbose = verbose, ϵ0 = ϵ0)
+                verbose = verbose,
+                ϵ0 = ϵ0,
+                γ = γ,)
         catch e
             @show e
         end
@@ -571,8 +610,8 @@ res_tol = 1e-8
                                         res_tol=res_tol, θamp=θamp, verbose=true)
 
 
-function benchmark_mehrotra(ss, ref_trajs; plt = plot(), ϵ0 = 0.05, color=:red,
-        ls=[:solid, :dash, :dot])
+function benchmark_mehrotra(ss, ref_trajs; plt = plot(), ϵ0 = 0.05, γ = Inf, color=:red,
+        algorithm = :mehrotra_solve, ls=[:solid, :dash, :dot])
     n = length(ss)
     μ = [[] for i=1:n]
     σ = [[] for i=1:n]
@@ -588,9 +627,12 @@ function benchmark_mehrotra(ss, ref_trajs; plt = plot(), ϵ0 = 0.05, color=:red,
         for i in eachindex(ss)
             s = ss[i]
             ref_traj = ref_trajs[i]
-            # μ_iter, σ_iter, success_rate = evaluate(s, ref_traj, algorithm = :mehrotra_solve,
-            μ_iter, σ_iter, success_rate = evaluate(s, ref_traj, algorithm = :baseline_solve,
-                                                    res_tol=1e-5, θamp=θamp, ϵ0 = ϵ0)
+            μ_iter, σ_iter, success_rate = evaluate(s, ref_traj, algorithm = algorithm,
+                                                    res_tol = 1e-4,
+                                                    κ_tol = 1e-4,
+                                                    θamp = θamp,
+                                                    ϵ0 = ϵ0,
+                                                    γ = γ,)
             push!(μ[i], μ_iter)
             push!(σ[i], σ_iter)
             push!(su[i], success_rate)
@@ -607,8 +649,9 @@ end
 
 ss = [s1, s2, s3]
 ref_trajs = [ref_traj1, ref_traj2, ref_traj3]
-plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.005, color=:black)
-plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.01, color=:red, plt = plt)
+plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.005, γ = 1.0, algorithm = :mehrotra_solve, color=:black)
+plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.005, γ = Inf, algorithm = :mehrotra_solve, color=:green, plt=plt)
+plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.01, algorithm = :baseline_solve, color=:red, plt = plt)
 plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.02, color=:blue, plt = plt)
 plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.05, color=:yellow, plt = plt)
 plot([1,2,3], linestyle=:dash)
@@ -642,8 +685,16 @@ ref_traj = deepcopy(get_trajectory(s.model, s.env,
     load_type = :split_traj_alt))
 
 Random.seed!(100)
-@time mehrotra_solve(s, ref_traj, 1, newton_iter=30, res_tol=1e-8, verbose=true, θamp=1e-0, ϵ0=0.05)
-@time baseline_solve(s, ref_traj, 1, newton_iter=30, res_tol=1e-8, verbose=true, θamp=0e-0, ϵ0=0.05)
+@time mehrotra_solve(s, ref_traj, 1,
+    newton_iter=20,
+    res_tol=1e-8,
+    κ_tol=1e-6,
+    verbose=true,
+    verbose_res = false,
+    θamp=1e-0,
+    ϵ0=0.05,
+    γ = 1)
+# @time baseline_solve(s, ref_traj, 1, newton_iter=30, res_tol=1e-8, verbose=true, θamp=0e-0, ϵ0=0.05)
 mean([norm(θ, 1)/length(θ) for θ in ref_traj1.θ])
 
 
