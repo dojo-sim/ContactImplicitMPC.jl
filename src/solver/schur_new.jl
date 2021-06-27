@@ -1,5 +1,5 @@
 """
-    Schur complement structure of the form:
+    Schur11 complement structure of the form:
        M = A B
            C D
        |A B| |x| = |u|
@@ -7,10 +7,10 @@
     M ∈ R{n+m,n+m}
     A ∈ R{n,n}
     D ∈ R{m,m}
-    The Schur complement is taken about A, the top-left block:
+    The Schur11 complement is taken about A, the top-left block:
         SC = D - C * A^-1 * B
 """
-mutable struct Schur{T,n,m,nn,nm,mm}
+mutable struct Schur11{T,n,m,nn,nm,mm}
     A::SMatrix{n,n,T,nn}
     B::SMatrix{n,m,T,nm}
     C::SMatrix{m,n,T,nm}
@@ -18,14 +18,14 @@ mutable struct Schur{T,n,m,nn,nm,mm}
     Ai::SMatrix{n,n,T,nn} # Inverse of A
     CAi::SMatrix{m,n,T,nm} # C*A^{-1}
     CAiB::SMatrix{m,m,T,mm} # C*A^{-1}*B
-    gs_data::SDMGSData{m,T} # Schur complement of the block A in M
+    gs_data::SDMGSData{m,T} # Schur11 complement of the block A in M
     u::SVector{n,T}
     v::SVector{m,T}
     x::SVector{n,T}
     y::SVector{m,T}
 end
 
-function Schur(M::AbstractMatrix{T}; n::Int=1, m::Int=size(M)[1]-n) where {T}
+function Schur11(M::AbstractMatrix{T}; n::Int=1, m::Int=size(M)[1]-n) where {T}
     @assert all(size(M) .== n+m)
     A = SMatrix{n,n,T,n^2}(M[1:n,      1:n])
     B = SMatrix{n,m,T,n*m}(M[1:n,      n .+ (1:m)])
@@ -40,14 +40,14 @@ function Schur(M::AbstractMatrix{T}; n::Int=1, m::Int=size(M)[1]-n) where {T}
     v = zeros(SVector{m,T})
     x = zeros(SVector{n,T})
     y = zeros(SVector{m,T})
-    return Schur{T,n,m,n^2,n*m,m^2}(A,B,C,D,Ai,CAi,CAiB,gs_data,u,v,x,y)
+    return Schur11{T,n,m,n^2,n*m,m^2}(A,B,C,D,Ai,CAi,CAiB,gs_data,u,v,x,y)
 end
 
 """
-    Update the Schur complement structure to handle a change in the D matrix.
-    It recomputes the Gram-Schmidt factorization of the Schur complement of the block A.
+    Update the Schur11 complement structure to handle a change in the D matrix.
+    It recomputes the Gram-Schmidt factorization of the Schur11 complement of the block A.
 """
-function schur_factorize!(S::Schur{T,n,m,nn,nm,mm}, D::AbstractMatrix{T}) where {T,n,m,nn,nm,mm}
+function schur_factorize!(S::Schur11{T,n,m,nn,nm,mm}, D::AbstractMatrix{T}) where {T,n,m,nn,nm,mm}
     # update D, gs_data and the shur complement
     # B = S.B
     # C = S.C
@@ -57,15 +57,13 @@ function schur_factorize!(S::Schur{T,n,m,nn,nm,mm}, D::AbstractMatrix{T}) where 
     gs_data = S.gs_data
     ϵ = 1e-12
     factorize!(gs_data, D - CAiB + ϵ * I)
-
-    # factorize!(gs_data, D - CAiB)
     return nothing
 end
 
 """
     Solve for [x;y] given [u,v] and the factorized matrix M.
 """
-function schur_solve!(S::Schur{T,n,m,nn,nm,mm}, u::AbstractVector{T}, v::AbstractVector{T}) where {T,n,m,nn,nm,mm}
+function schur_solve!(S::Schur11{T,n,m,nn,nm,mm}, u::AbstractVector{T}, v::AbstractVector{T}) where {T,n,m,nn,nm,mm}
     B  = S.B
     Ai = S.Ai
     CAi = S.CAi
@@ -83,15 +81,14 @@ function schur_solve!(S::Schur{T,n,m,nn,nm,mm}, u::AbstractVector{T}, v::Abstrac
     r1 = r0 - (S.D - S.CAiB)*x0
     qr_solve!(gs_data, r1)
     x1 = x0 + gs_data.xs
-    # r2 = r0 - (S.D - S.CAiB)*x1
-    # temp = x0
+    r2 = r0 - (S.D - S.CAiB)*x1
     temp = x1
-    # @show norm(r0)
-    # @show norm(r1)
-    # @show norm(r2)
+    @show norm(r0)
+    @show norm(r1)
+    @show norm(r2)
 
     # qr_solve!(gs_data, CAi*us - vs)
-    temp = gs_data.xs
+    # temp = gs_data.xs
     S.x = Ai*(us + B*temp)
     S.y = - temp
     return nothing
