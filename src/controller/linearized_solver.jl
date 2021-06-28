@@ -226,6 +226,15 @@ end
         Dx, Dy1, Rx, Ry1, Ry2
     The variable parts:
         y1, y2.
+	We define matrix A, it is used to initialize the interior point solver with
+	a least square solution to the linearized constraints (i.e. excluding bilienar constraints).
+	A = [Dx  Dy1       0        ] -> Linearized dynamics constraints -> size = nx
+	    [Rx  Ry1       Diag(Ry2)] -> Rest of the linearized constraints -> size = ny
+	δz = A' * inv(A * A') * δr
+	We introduce the following notations:
+	A' * inv(A * A') = [A1 A2]
+					   |A3 A4|
+	                   [A5 A6]
 """
 mutable struct RZLin{T,nx,ny,nxx,nxy,nyy}
     # Reference residual jacobian rz0
@@ -240,6 +249,14 @@ mutable struct RZLin{T,nx,ny,nxx,nxy,nyy}
     # Schur complement
     D::SMatrix{ny,ny,T,nyy}
     S::Schur{T,nx,ny,nxx,nxy,nyy}
+
+	# Least Squares
+	A1::SMatrix{nx,nx,T,nxx}
+	A2::SMatrix{nx,ny,T,nxy}
+	A3::SMatrix{ny,nx,T,nxy}
+	A4::SMatrix{ny,ny,T,nyy}
+	A5::SMatrix{ny,nx,T,nxy}
+	A6::SMatrix{ny,ny,T,nyy}
 
     # Indices
     ix::SVector{nx,Int}
@@ -285,6 +302,17 @@ function RZLin(s::Simulation, rz0::AbstractMatrix{T}) where {T}
          Rx D  ]
     S = Schur(M; n=nx, m=ny)
 
+	# Least squares
+	A = [Dx Dy1 zeros(nx, ny);
+		 Rx Ry1 Diagonal(Ry2)]
+	AA = A' * inv(A * A')
+	A1 = SMatrix{nx,nx,T,nx*nx}(AA[1:nx,              1:nx])
+	A2 = SMatrix{nx,ny,T,nx*ny}(AA[1:nx,              nx .+ (1:ny)])
+	A3 = SMatrix{ny,nx,T,nx*ny}(AA[nx .+ (1:ny),      1:nx])
+	A4 = SMatrix{ny,ny,T,ny*ny}(AA[nx .+ (1:ny),      nx .+ (1:ny)])
+	A5 = SMatrix{ny,nx,T,nx*ny}(AA[nx + ny .+ (1:ny), 1:nx])
+	A6 = SMatrix{ny,ny,T,ny*ny}(AA[nx + ny .+ (1:ny), nx .+ (1:ny)])
+
     return RZLin{T,nx,ny,nx^2,nx*ny,ny^2}(
         Dx,
         Dy1,
@@ -295,6 +323,12 @@ function RZLin(s::Simulation, rz0::AbstractMatrix{T}) where {T}
         y2,
         D,
         S,
+		A1,
+		A2,
+		A3,
+		A4,
+		A5,
+		A6,
         SVector{nx,Int}(ix),
         SVector{ny,Int}(iy1),
         SVector{ny,Int}(iy2),

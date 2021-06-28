@@ -25,7 +25,7 @@
     verbose::Bool = false
 end
 
-mutable struct Mehrotra{T} <: AbstractIPSolver
+mutable struct Mehrotra{nx,ny,T} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}                 # current point
@@ -60,9 +60,9 @@ mutable struct Mehrotra{T} <: AbstractIPSolver
     Δaff_y2 # view into Δaff corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
     Δ_y1 # view into Δ corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
     Δ_y2 # view into Δ corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
-    ix
-    iy1
-    iy2
+    ix::SVector{nx,T}
+    iy1::SVector{ny,T}
+    iy2::SVector{ny,T}
     ibil
     reg_pr
     reg_du
@@ -240,19 +240,17 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
 
 	nx = length(r.ix)
 	ny = length(r.iy1)
-	A = [r.Dx r.Dy1 zeros(nx,ny);
-		 r.Rx r.Ry1 Diagonal(r.Ry2);
-		 ]
-    comp && println("****  A:", scn(norm(A), digits=4))
-	x = [r.rdyn0; r.rrst0] - [r.rθdyn * δθ; r.rθrst * δθ]
-    comp && println("****  x:", scn(norm(x), digits=4))
-	wt = A' * ((A * A') \ x)
-    comp && println("**** wt:", scn(norm(wt), digits=4))
-    comp && println("**** Awt-x:", scn(norm(A*wt .- x), digits=4))
-    z[ix]  .= r.x0  + wt[ix]
-    z[iy1] .= r.y10 + wt[iy1]
-    z[iy2] .= r.y20 + wt[iy2]
-	# z[[ix; iy1; iy2]] .= [r.x0; r.y10; r.y20] + wt
+
+    δrdyn = r.rdyn0 - r.rθdyn * δθ
+	δrrst = r.rrst0 - r.rθrst * δθ
+
+    δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
+    δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
+    δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
+
+    z[ix]  .= r.x0  + δw1
+    z[iy1] .= r.y10 + δw2
+    z[iy2] .= r.y20 + δw3
     comp && println("**** z+wt:", scn(norm(z), digits=4))
 
     z .= initial_state!(z, ix, iy1, iy2, comp = comp)

@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1200#35000
+H_sim = 1200 # 35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -103,7 +103,54 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 
 telap = @elapsed status = simulate!(sim, verbose = true)
 # @profiler status = simulate!(sim, verbose = true)
-telap * 0.75 / 1200 / h
+(telap - 2.5)/ 1200 / h
+
+
+
+p.im_traj.ip[1]
+p.im_traj.ip[1].z
+p.im_traj.ip[1].z_y1
+p.im_traj.ip[1].z_y2
+p.im_traj.ip[1].iy2
+
+
+function test_ip1(ip::Mehrotra{T}) where {T}
+	test_1(ip.z, ip.iy1, ip.r.y10)
+	return nothing
+end
+
+function test_1(z::Vector{T}, iy1::SVector{ny,Int}, y10::SVector{ny,T}) where {ny,T}
+	z[iy1] = y10
+	return nothing
+end
+
+
+ip0 = deepcopy(p.im_traj.ip[1])
+test_ip1(ip0)
+@benchmark test_ip1($ip0)
+@code_warntype test_ip1(ip0)
+
+
+
+a = 10
+
+nx = length(r.ix)
+ny = length(r.iy1)
+
+δrdyn = r.rdyn0 - r.rθdyn * δθ
+δrrst = r.rrst0 - r.rθrst * δθ
+
+δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
+δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
+δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
+
+z[ix]  .= r.x0  + δw1
+z[iy1] .= r.y10 + δw2
+z[iy2] .= r.y20 + δw3
+comp && println("**** z+wt:", scn(norm(z), digits=4))
+
+z .= initial_state!(z, ix, iy1, iy2, comp = comp)
+
 
 
 # nz = num_var(s.model, s.env)
