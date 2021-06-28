@@ -17,15 +17,22 @@ nd = n * (T - 1)
 # indices
 u_idx = [(t - 1) * (m + n) .+ (1:m) for t = 1:T-1]
 x_idx = [(t - 1) * (m + n) + m .+ (1:n) for t = 1:T-1]
-d_idx = [(t - 1) * n .+ (1:n) for t = 1:T-1]
+n_idx = [(t - 1) * n .+ (1:n) for t = 1:T-1]
 
 # problem data
-Aa = [SMatrix{nq, nq}(Array(Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
-Ab = [SMatrix{nq, nq}(Array(Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
-Ac = [SMatrix{nq, nq}(Array(Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
-Ba = [SMatrix{nq,m}(rand(nq, m)) for t = 1:T-1]
+Aa = [SMatrix{nq, nq}(Array(-1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
+Ab = [SMatrix{nq, nq}(Array(-1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
+Ac = [SMatrix{nq, nq}(Array(Diagonal(ones(nq)))) for t = 1:T-1]
+Ba = [SMatrix{nq,m}(-1.0 * rand(nq, m)) for t = 1:T-1]
 Qa = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
 Qb = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
+
+Aas = [SMatrix{nq, nq}(Array(-1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
+Abs = [SMatrix{nq, nq}(Array(-1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
+Acs = [SMatrix{nq, nq}(Array(Diagonal(ones(nq)))) for t = 1:T-1]
+Bas = [SMatrix{nq,m}(-1.0 * rand(nq, m)) for t = 1:T-1]
+Qas = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
+Qbs = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
 
 Q = [Diagonal(SVector{n}(Array(diag(cat(Qa[t], Qb[t], dims=(1,2)))))) for t = 1:T]
 R = [Diagonal(SVector{m}(0.1 * rand(m) + ones(m))) for t = 1:T-1]
@@ -41,20 +48,15 @@ for t = 1:T-1
 	H[u_idx[t], u_idx[t]] = R[t]
 	H[x_idx[t], x_idx[t]] = Q[t+1]
 
-	C[d_idx[t], u_idx[t]] = B[t]
-	C[d_idx[t], x_idx[t]] = P[t]
+	C[n_idx[t], u_idx[t]] = B[t]
+	C[n_idx[t], x_idx[t]] = P[t]
 	t == 1 && continue
-	C[d_idx[t], x_idx[t-1]] = A[t]
+	C[n_idx[t], x_idx[t-1]] = A[t]
 end
 
 # build kkt system
 J = sparse([H C'; C -1.0e-16 * I])
 r = rand(nz + nd)
-
-# QDLDL
-solver_ldl = ldl_solver(J)
-Δldl = zeros(nz + nd)
-@benchmark linear_solve!($solver_ldl, $Δldl, $J, $r)
 
 # custom
 # objective inverse
@@ -71,95 +73,6 @@ for t = 1:T-1
 end
 
 norm(H̃ - inv(H))
-
-idx_n = [(t - 1) * n .+ (1:n) for t = 1:T-1]
-
-Y = zeros(n * (T - 1), n * (T - 1))
-Yii = [SMatrix{n,n}(zeros(n, n)) for t = 1:T-1]
-Yij = [SMatrix{n,n}(zeros(n, n)) for t = 1:T-1]
-tmp_nm = SMatrix{n,m}(zeros(n, m))
-tmp_nn = SMatrix{n,n}(zeros(n, n))
-tmp_nn2 = SMatrix{n,n}(zeros(n, n))
-
-function computeY!(Yii, Yij, A, B, P, Q̃, R̃, tmp_nn, tmp_nn2, tmp_nm, T)
-	for t = 1:T-1
-		if t == 1
-			# Yii[t] = B[t] * R̃[t] * B[t]' + P[t] * Q̃[t+1] * P[t]'
-
-			tmp_nn = P[t] * Q̃[t+1]
-			# mul!(tmp_nn, P[t], Q̃[t+1])
-			# tmp_nn .= P[t]
-			# rmul!(tmp_nn, Q̃[t+1])
-			Yii[t] = tmp_nn * transpose(P[t])
-			# mul!(Yii[t], tmp_nn, transpose(P[t]))
-
-			tmp_nm = B[t] * R̃[t]
-			# mul!(tmp_nm, B[t], R̃[t])
-			# tmp_nm .= B[t]
-			# rmul!(tmp_nm, R̃[t])
-
-			tmp_nn = tmp_nm * transpose(B[t])
-			Yii[t] += tmp_nn
-			# mul!(tmp_nn, tmp_nm, transpose(B[t]))
-			# Yii[t] .+= tmp_nn
-		else
-			# Yii[t] = A[t] * Q̃[t] * A[t]' + B[t] * R̃[t] * B[t]' + P[t] * Q̃[t+1] * P[t]'
-
-			tmp_nn = A[t] * Q̃[t]
-			# mul!(tmp_nn, A[t], Q̃[t])
-			# tmp_nn .= A[t]
-			# rmul!(tmp_nn, Q̃[t])
-
-			Yii[t] = tmp_nn * transpose(A[t])
-			# mul!(Yii[t], tmp_nn, transpose(A[t]))
-
-			tmp_nm = B[t] * R̃[t]
-			# mul!(tmp_nm, B[t], R̃[t])
-			# tmp_nm .= B[t]
-			# rmul!(tmp_nm, R̃[t])
-
-			tmp_nn = tmp_nm * transpose(B[t])
-			Yii[t] += tmp_nn
-			# mul!(tmp_nn, tmp_nm, transpose(B[t]))
-			# Yii[t] .+= tmp_nn
-
-			tmp_nn = P[t] * Q̃[t+1]
-			# mul!(tmp_nn, P[t], Q̃[t+1])
-			# tmp_nn .= P[t]
-			# rmul!(tmp_nn, Q̃[t+1])
-
-			tmp_nn2 = tmp_nn * transpose(P[t])
-			Yii[t] += tmp_nn2
-			# mul!(tmp_nn2, tmp_nn, transpose(P[t]))
-			# Yii[t] .+= tmp_nn2
-		end
-
-		t == T-1 && continue
-		# Yij[t] = P[t] * Q̃[t+1] * A[t+1]'
-
-		tmp_nn = P[t] * Q̃[t+1]
-		# mul!(tmp_nn, P[t], Q̃[t+1])
-		# tmp_nn .= P[t]
-		# rmul!(tmp_nn, Q̃[t+1])
-
-		Yij[t] = tmp_nn * transpose(A[t+1])
-		# mul!(Yij[t], tmp_nn, transpose(A[t+1]))
-	end
-	nothing
-end
-
-@benchmark computeY!($Yii, $Yij, $A, $B, $P, $Q̃, $R̃, $tmp_nn, $tmp_nn2, $tmp_nm, $T)
-@code_warntype computeY!(Yii, Yij, A, B, P, Q̃, R̃, tmp_nn, tmp_nn, tmp_nm, T)
-for t = 1:T-1
-	Y[idx_n[t], idx_n[t]] = Yii[t]
-
-	t == T-1 && continue
-
-	Y[idx_n[t], idx_n[t+1]] = Yij[t]
-	Y[idx_n[t+1], idx_n[t]] = Yij[t]'
-end
-
-norm((Y - C * H̃ * C'))#[1:2n, 1:2n])
 
 ### structured Y
 Ys = zeros(n * (T - 1), n * (T - 1))
