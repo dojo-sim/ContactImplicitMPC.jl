@@ -101,11 +101,39 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	ip_type = :interior_point,
     )
 
-# telap = @elapsed status = simulate!(sim, verbose = true)
+telap = @elapsed status = simulate!(sim, verbose = true)
 @profiler status = simulate!(sim, verbose = true)
 (telap - 2.5)/ 1200 / h
 
 
+
+
+function step_length_11(ip::Mehrotra{T}) where T
+	step_length_11(ip.z, ip.Δ, ip.iy1, ip.iy2)
+end
+
+function step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
+		iy1::SVector{n,Int}, iy2::SVector{n,Int}; τ::T=0.9995) where {n,T}
+    ατ_p = 1.0
+    ατ_d = 1.0
+    for i in eachindex(iy1)
+        if Δ[iy1[i]] > 0.0
+            ατ_p = min(ατ_p, τ * z[iy1[i]] / Δ[iy1[i]])
+        end
+        if Δ[iy2[i]] > 0.0
+            ατ_d = min(ατ_d, τ * z[iy2[i]] / Δ[iy2[i]])
+        end
+    end
+    α = min(ατ_p, ατ_d)
+    return α
+end
+
+
+
+ip0 = deepcopy(p.im_traj.ip[1])
+step_length_11(ip0)
+@code_warntype step_length_11(ip0)
+@benchmark step_length_11($ip0)
 
 
 
