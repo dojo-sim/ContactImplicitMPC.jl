@@ -400,7 +400,7 @@ end
 """
 	Update the Jacobian rz, and update its Schur complement factorization.
 """
-function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}) where {T,nx,ny,nxx,nxy,nyy}
+function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}; reg::T=0.0) where {T,nx,ny,nxx,nxy,nyy}
     # Unpack
     iy1 = rz.iy1
     iy2 = rz.iy2
@@ -412,7 +412,7 @@ function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}) where {T,nx,ny,nxx,nx
     rz.y1 = z[iy1]
     rz.y2 = z[iy2]
     # update D in Schur complement
-    rz.D = rz.Ry1 - Diagonal(rz.Ry2 .* rz.y2 ./ rz.y1)
+    rz.D = rz.Ry1 - Diagonal(rz.Ry2 .* rz.y2 ./ max.(rz.y1, reg))
     # update Schur complement
     schur_factorize!(rz.S, rz.D)
     return nothing

@@ -197,6 +197,42 @@ function corrector_direction(w1, w2, w3, z, δθ, σμ, Δw2aff, Δw3aff, data::
     return Δ
 end
 
+function regularized_direction(w1, w2, w3, z, δθ, κ, reg, Δw2aff, Δw3aff, data::ProblemData13)
+    n = data.n
+    m = data.m
+    δw1 = w1 - z[data.ix]
+    δw2 = w2 - z[data.iy1]
+    δw3 = w3 - z[data.iy2]
+
+    r_ = [- (data.E*δw1 + data.F*δw2 - data.b);
+          - (data.G*δw1 + data.H*δw2 + data.J*δw3 - data.c);]
+    r_ += - data.B*δθ
+    r = [r_;
+         - w2 .* w3 - Δw2aff .* Δw3aff .+ κ]
+
+    rdyn = r[1:n]
+    rrst = r[n .+ (1:m)]
+    rbil = r[n+m .+ (1:m)]
+
+
+    w2_reg = max.(w2, reg)
+    w3_reg = max.(w3, reg)
+
+    A = data.E
+    B = data.F
+    C = data.G
+    D = data.H - data.J * Diagonal(w3_reg ./ w2_reg)
+
+    u = rdyn
+    v = rrst - diag(data.J) .* rbil ./ w2_reg
+
+    temp = inv(D - C * inv(A) * B) * (C * (inv(A) * u) - v)
+    Δw1 = inv(A) * (u + B * temp)
+    Δw2 = - temp
+    Δw3 = (rbil .- w3_reg .* Δw2) ./ w2_reg
+    return [Δw1; Δw2; Δw3]
+end
+
 function unpack(Δ; n=n, m=m)
     off = 0
     w1 = Δ[off .+ (1:n)]; off += n
@@ -332,7 +368,8 @@ function initial_reg(w1t, w2t, w3t)
 end
 
 function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
-        newton_iter::Int=100, res_tol=1e-8, κ_tol = 1e-6, verbose::Bool=false, verbose_res = false, θamp=1.0, ϵ0=0.05, γ=Inf)
+        newton_iter::Int=100, res_tol=1e-8, κ_tol = 1e-6, verbose::Bool=false, verbose_res = false,
+        θamp=1.0, ϵ0=0.05, γ=Inf, reg_min = 1e-3)
     # ϵ0 ∈ [0.005, 0.25] # larger -> more robust, smaller -> faster
     # γ ∈ [1, Inf] # larger -> faster, smaller -> better conditionned
 
@@ -340,10 +377,10 @@ function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
 
     z = deepcopy(ref_traj.z[t])
     θ = deepcopy(ref_traj.θ[t])
-    δθ = θamp * θ
-    # @warn "changed δθ"
-    # δθ = θamp * (0.5 .- rand(length(θ)-0))
-    # δθ[end-1:end] .= max.(0.0, δθ[end-1:end])
+    # δθ = θamp * θ
+    @warn "changed δθ"
+    δθ = θamp * (0.5 .- rand(length(θ)-0))
+    δθ[end-1:end] .= max.(0.0, δθ[end-1:end])
     # δθ = θamp * [ones(length(θ) - 2); zeros(2)]
 
     data = get_data(s, z, θ, κ=κ)
@@ -391,7 +428,7 @@ function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
         B = data.F
         C = data.G
         # D = data.H - data.J * Diagonal(w3 ./ w2)
-        reg = κ_vio/γ
+        κ_vio < reg_min ? reg = κ_vio/γ : reg = 0.0
         D = data.H - data.J * Diagonal(w3 ./ (max.(w2, reg)))
         # for reg in 10 .^ (range(-15,stop=5,length=21))
         #     Dreg = data.H - data.J * Diagonal(w3 ./ (max.(w2, reg)))
@@ -405,7 +442,16 @@ function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
         verbose && println("**** cond:", scn(cnd, digits=4))
 
 
-        Δaff = affine_direction(w1, w2, w3, z, δθ, data, κ=0.0, verbose = verbose)
+        # Δaff = affine_direction(w1, w2, w3, z, δθ, data, κ=0.0, verbose = verbose)
+        # Δaff = regularized_direction(w1, w2, w3, z, δθ, 0.0, 0.0, zeros(m), zeros(m), data)
+        Δaff = regularized_direction(w1, w2, w3, z, δθ, 0.0, reg, zeros(m), zeros(m), data)
+        # verbose && println("**** Δaff - Δbis:", scn(norm((Δaff - Δbis)[1:n]), digits=4))
+        # verbose && println("**** Δaff - Δbis:", scn(norm((Δaff - Δbis)[n .+ (1:m)]), digits=4))
+        # verbose && println("**** Δaff - Δbis:", scn(norm((Δaff - Δbis)[n+m .+ (1:m)]), digits=4))
+        # verbose && println("**** Δaff - Δreg:", scn(norm((Δaff - Δreg)[1:n]), digits=4))
+        # verbose && println("**** Δaff - Δreg:", scn(norm((Δaff - Δreg)[n .+ (1:m)]), digits=4))
+        # verbose && println("**** Δaff - Δreg:", scn(norm((Δaff - Δreg)[n+m .+ (1:m)]), digits=4))
+
         Δw1aff, Δw2aff, Δw3aff = unpack(Δaff, n=n, m=m)
         # # verbose && println("**** κ:", scn(min(0.05, res^3), digits=4))
         # verbose && println("**** Δaff1:", scn(norm(Δw1aff), digits=4))
@@ -417,9 +463,18 @@ function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
         μ = w2'*w3 / m
         σ = (μaff / μ)^3
         verbose && println("**** σμ:", scn(σ*μ, digits=1))
-        @warn "this might be an effective regularization"
+        # @warn "this might be an effective regularization"
         # Δ = corrector_direction(w1, w2, w3, z, δθ, max(κ_tol/10, σ*μ), Δw2aff, Δw3aff, data)
-        Δ = corrector_direction(w1, w2, w3, z, δθ, σ*μ, Δw2aff, Δw3aff, data)
+        # Δ = corrector_direction(w1, w2, w3, z, δθ, σ*μ, Δw2aff, Δw3aff, data)
+        # Δ = regularized_direction(w1, w2, w3, z, δθ, σ*μ, 0.0, Δw2aff, Δw3aff, data)
+        Δ = regularized_direction(w1, w2, w3, z, δθ, σ*μ, reg, Δw2aff, Δw3aff, data)
+        # verbose && println("**** Δ - Δbis:", scn(norm((Δ - Δbis)[1:n]), digits=4))
+        # verbose && println("**** Δ - Δbis:", scn(norm((Δ - Δbis)[n .+ (1:m)]), digits=4))
+        # verbose && println("**** Δ - Δbis:", scn(norm((Δ - Δbis)[n+m .+ (1:m)]), digits=4))
+        # verbose && println("**** Δ - Δreg:", scn(norm((Δ - Δreg)[1:n]), digits=4))
+        # verbose && println("**** Δ - Δreg:", scn(norm((Δ - Δreg)[n .+ (1:m)]), digits=4))
+        # verbose && println("**** Δ - Δreg:", scn(norm((Δ - Δreg)[n+m .+ (1:m)]), digits=4))
+
         Δw1, Δw2, Δw3 = unpack(Δ, n=n, m=m)
         res = residual(w1, w2, w3, z, δθ, data)
         τ = progress_(res, ϵ0=ϵ0)
@@ -451,15 +506,15 @@ function mehrotra_solve(s::Simulation, ref_traj::ContactTraj, t::Int;
 end
 
 function baseline_solve(s::Simulation, ref_traj::ContactTraj, t::Int; newton_iter::Int=100,
-        res_tol=1e-8, κ_tol=1e-4, verbose::Bool=false, verbose_res = false, θamp=1.0, ϵ0 = 0.05, γ=Inf)
+        res_tol=1e-8, κ_tol=1e-4, verbose::Bool=false, verbose_res = false, θamp=1.0, ϵ0 = 0.05, γ=Inf, reg_min = 1e-3)
     κ = res_tol
 
     z = deepcopy(ref_traj.z[t])
     θ = deepcopy(ref_traj.θ[t])
-    δθ = θamp * θ
-    # @warn "changed δθ"
-    # δθ = θamp * (0.5 .- rand(length(θ)))
-    # δθ[end-1:end] .= max.(0.0, δθ[end-1:end])
+    # δθ = θamp * θ
+    @warn "changed δθ"
+    δθ = θamp * (0.5 .- rand(length(θ)))
+    δθ[end-1:end] .= max.(0.0, δθ[end-1:end])
     data = get_data(s, z, θ, κ=κ)
     ix, iy1, iy2 = linearization_var_index(s.model, s.env)
     n = data.n
@@ -468,8 +523,8 @@ function baseline_solve(s::Simulation, ref_traj::ContactTraj, t::Int; newton_ite
     res = residual(z[ix], z[iy1], z[iy2], z, δθ, data, verbose=verbose_res)
     # verbose && println("res: ", scn(res))
 
-    w1, w2, w3 = initial_state(z, δθ, data, verbose = verbose)
-    # w1, w2, w3 = unpack(1e-0ones(n + 2m), n=n, m=m)
+    # w1, w2, w3 = initial_state(z, δθ, data, verbose = verbose)
+    w1, w2, w3 = unpack(1e-0ones(n + 2m), n=n, m=m)
 
     rinit = residual_light(w1, w2, w3, z, δθ, data, verbose=verbose_res)
     # verbose && println("**** rinit:", scn(rinit, digits=4))
@@ -517,7 +572,7 @@ end
 
 function evaluate(s::Simulation, ref_traj::ContactTraj;
         algorithm::Symbol=:mehrotra_solve, newton_iter=100,
-        res_tol=1e-8, κ_tol=1e-8, θamp=1.0, verbose::Bool = false, ϵ0=0.05, γ = Inf)
+        res_tol=1e-8, κ_tol=1e-8, θamp=1.0, verbose::Bool = false, ϵ0=0.05, γ = Inf, reg_min = 1e-3)
 
     κ = res_tol
     H = ref_traj.H
@@ -533,19 +588,8 @@ function evaluate(s::Simulation, ref_traj::ContactTraj;
             θamp = θamp,
             verbose = verbose,
             ϵ0 = ϵ0,
-            γ = γ,)
-        try
-            it, su = eval(algorithm)(s, deepcopy(ref_traj), t,
-                newton_iter = newton_iter,
-                res_tol = res_tol,
-                κ_tol = κ_tol,
-                θamp = θamp,
-                verbose = verbose,
-                ϵ0 = ϵ0,
-                γ = γ,)
-        catch e
-            @show e
-        end
+            γ = γ,
+            reg_min = reg_min,)
         push!(iter, it)
         success += su
     end
@@ -610,7 +654,7 @@ res_tol = 1e-8
                                         res_tol=res_tol, θamp=θamp, verbose=true)
 
 
-function benchmark_mehrotra(ss, ref_trajs; plt = plot(), ϵ0 = 0.05, γ = Inf, color=:red,
+function benchmark_mehrotra(ss, ref_trajs; plt = plot(), ϵ0 = 0.05, γ = Inf, reg_min = 1e-3, color=:red,
         algorithm = :mehrotra_solve, ls=[:solid, :dash, :dot])
     n = length(ss)
     μ = [[] for i=1:n]
@@ -632,7 +676,8 @@ function benchmark_mehrotra(ss, ref_trajs; plt = plot(), ϵ0 = 0.05, γ = Inf, c
                                                     κ_tol = 1e-4,
                                                     θamp = θamp,
                                                     ϵ0 = ϵ0,
-                                                    γ = γ,)
+                                                    γ = γ,
+                                                    reg_min = reg_min,)
             push!(μ[i], μ_iter)
             push!(σ[i], σ_iter)
             push!(su[i], success_rate)
@@ -649,7 +694,7 @@ end
 
 ss = [s1, s2, s3]
 ref_trajs = [ref_traj1, ref_traj2, ref_traj3]
-plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.005, γ = 1.0, algorithm = :mehrotra_solve, color=:black)
+plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.005, γ = 1e1, algorithm = :mehrotra_solve, color=:black)
 plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.005, γ = Inf, algorithm = :mehrotra_solve, color=:green, plt=plt)
 plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.01, algorithm = :baseline_solve, color=:red, plt = plt)
 plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.02, color=:blue, plt = plt)
@@ -693,7 +738,8 @@ Random.seed!(100)
     verbose_res = false,
     θamp=1e-0,
     ϵ0=0.05,
-    γ = 1)
+    γ = 1e1,
+    reg_min = 1e-3)
 # @time baseline_solve(s, ref_traj, 1, newton_iter=30, res_tol=1e-8, verbose=true, θamp=0e-0, ϵ0=0.05)
 mean([norm(θ, 1)/length(θ) for θ in ref_traj1.θ])
 

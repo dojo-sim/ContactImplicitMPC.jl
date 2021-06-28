@@ -218,9 +218,9 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
     reg_du[1] = opts.reg_du_init
 
     δθ = θ - r.θ0
-    # comp = true
+    comp = true
     comp && println("**** δθ:", scn(norm(δθ), digits=4))
-    comp = false
+    # comp = false
     comp && println("****  θ[μ,h]:", scn.(θ[end-1:end], digits=4))
     comp && println("****  θ:", scn(norm(θ), digits=4))
     comp && println("****  z:", scn(norm(z), digits=4))
