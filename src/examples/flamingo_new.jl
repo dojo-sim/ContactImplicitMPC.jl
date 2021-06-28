@@ -101,34 +101,40 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	ip_type = :interior_point,
     )
 
-telap = @elapsed status = simulate!(sim, verbose = true)
-# @profiler status = simulate!(sim, verbose = true)
+# telap = @elapsed status = simulate!(sim, verbose = true)
+@profiler status = simulate!(sim, verbose = true)
 (telap - 2.5)/ 1200 / h
 
 
 
-p.im_traj.ip[1]
-p.im_traj.ip[1].z
-p.im_traj.ip[1].z_y1
-p.im_traj.ip[1].z_y2
-p.im_traj.ip[1].iy2
 
 
-function test_ip1(ip::Mehrotra{T}) where {T}
-	test_1(ip.z, ip.iy1, ip.r.y10)
+function least_squares!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
+	least_squares!(ip.z, ip.θ, ip.r, ip.rz)
 	return nothing
 end
 
-function test_1(z::Vector{T}, iy1::SVector{ny,Int}, y10::SVector{ny,T}) where {ny,T}
-	z[iy1] = y10
+function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
+	δθ = r.θ0 - θ
+	δrdyn = r.rdyn0 - r.rθdyn * δθ
+	δrrst = r.rrst0 - r.rθrst * δθ
+
+	δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
+	δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
+	δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
+
+	@. @inbounds z[r.ix]  .= r.x0  .+ δw1
+	@. @inbounds z[r.iy1] .= r.y10 .+ δw2
+	@. @inbounds z[r.iy2] .= r.y20 .+ δw3
 	return nothing
 end
+
 
 
 ip0 = deepcopy(p.im_traj.ip[1])
-test_ip1(ip0)
-@benchmark test_ip1($ip0)
-@code_warntype test_ip1(ip0)
+least_squares!(ip0)
+@code_warntype least_squares!(ip0)
+@benchmark least_squares!($ip0)
 
 
 
@@ -150,6 +156,24 @@ z[iy2] .= r.y20 + δw3
 comp && println("**** z+wt:", scn(norm(z), digits=4))
 
 z .= initial_state!(z, ix, iy1, iy2, comp = comp)
+
+function test_ip1(ip::Mehrotra{T}, r::RLin) where {T}
+	test_1(ip.z, ip.iy1, r.y10)
+	return nothing
+end
+
+function test_1(z::Vector{T}, iy1::SVector{ny,Int}, y10::SVector{ny,T}) where {ny,T}
+	z[iy1] = y10
+	return nothing
+end
+
+
+ip0 = deepcopy(p.im_traj.ip[1])
+test_ip1(ip0, ip0.r)
+@benchmark test_ip1($ip0, $ip0.r)
+@benchmark test_ip1($ip0)
+@code_warntype test_ip1(ip0, ip0.r)
+
 
 
 

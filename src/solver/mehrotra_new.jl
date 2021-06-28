@@ -25,21 +25,18 @@
     verbose::Bool = false
 end
 
-mutable struct Mehrotra{nx,ny,T} <: AbstractIPSolver
+mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}                 # current point
-    # z̄::Vector{T}                 # candidate point
     Δaff::Vector{T}              # affine search direction
     Δ::Vector{T}                 # corrector search direction
-    r                            # residual
-    # rm                           # corrector residual
+    r::R                          # residual
     rbil                         # corrector residual
     r_merit::T                   # residual norm
-    r̄ #useless                            # candidate residual
-    # r̄_merit::T                   # candidate residual norm
-    rz                           # residual Jacobian wrt z
-    rθ                           # residual Jacobian wrt θ
+    r̄::R #useless                            # candidate residual
+    rz::RZ                           # residual Jacobian wrt z
+    rθ::Rθ                           # residual Jacobian wrt θ
     idx_ineq::Vector{Int}        # indices for inequality constraints
     idx_soc::Vector{Vector{Int}} # indices for second-order cone constraints
     idx_pr::Vector{Int}          # indices for primal variables
@@ -50,7 +47,7 @@ mutable struct Mehrotra{nx,ny,T} <: AbstractIPSolver
     κ::Vector{T}                 # barrier parameter
     num_var::Int
     num_data::Int
-    nbil::Int
+    # nbil::Int #useless
     solver::LinearSolver
     v_pr # view
     v_du # view
@@ -60,9 +57,9 @@ mutable struct Mehrotra{nx,ny,T} <: AbstractIPSolver
     Δaff_y2 # view into Δaff corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
     Δ_y1 # view into Δ corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
     Δ_y2 # view into Δ corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
-    ix::SVector{nx,T}
-    iy1::SVector{ny,T}
-    iy2::SVector{ny,T}
+    ix::SVector{nx,Int}
+    iy1::SVector{ny,Int}
+    iy2::SVector{ny,Int}
     ibil
     reg_pr
     reg_du
@@ -70,7 +67,7 @@ mutable struct Mehrotra{nx,ny,T} <: AbstractIPSolver
     opts::MehrotraOptions
 end
 
-function mehrotra(z, θ;
+function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         s = Euclidean(length(z)),
         num_var = length(z),
         num_data = length(θ),
@@ -98,11 +95,13 @@ function mehrotra(z, θ;
     Δ = zeros(s.n)
 
     # Indices
-    nbil = length(iy1)
-    iy1 = SVector{nbil, Int}(iy1)
-    iy2 = SVector{nbil, Int}(iy2)
-    ibil = SVector{nbil, Int}(ibil)
-    nbil == 0 && @warn "nbil == 0, we will get NaNs during the Mehrotra solve."
+    nx = length(ix)
+    ny = length(iy1)
+    ix = SVector{nx, Int}(ix)
+    iy1 = SVector{ny, Int}(iy1)
+    iy2 = SVector{ny, Int}(iy2)
+    ibil = SVector{ny, Int}(ibil)
+    ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra solve."
 
     # Views
     z_y1 = view(z, iy1)
@@ -113,7 +112,8 @@ function mehrotra(z, θ;
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
     rbil = bilinear_res(r, ibil)
 
-    Mehrotra(
+    Ts = typeof.((r, rz, rθ))
+    Mehrotra{T,nx,ny,Ts...}(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
@@ -137,7 +137,6 @@ function mehrotra(z, θ;
         zeros(1),
         num_var,
         num_data,
-        nbil,
         eval(opts.solver)(rz),
         v_pr,
         v_du,
@@ -161,7 +160,7 @@ function bilinear_res(r::AbstractVector, ibil)
 end
 
 # interior point solver
-function interior_point_solve!(ip::Mehrotra{T}) where T
+function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
 
     # space
     s = ip.s
@@ -193,7 +192,7 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
     Δ = ip.Δ
     r = ip.r
     rbil = ip.rbil
-    nbil = ip.nbil
+    # nbil = ip.nbil
     r_merit = ip.r_merit
     # r̄ = ip.r̄
     # r̄_merit = ip.r̄_merit
@@ -238,25 +237,8 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
-	nx = length(r.ix)
-	ny = length(r.iy1)
-
-    δrdyn = r.rdyn0 - r.rθdyn * δθ
-	δrrst = r.rrst0 - r.rθrst * δθ
-
-    δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
-    δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
-    δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
-
-    z[ix]  .= r.x0  + δw1
-    z[iy1] .= r.y10 + δw2
-    z[iy2] .= r.y20 + δw3
-    comp && println("**** z+wt:", scn(norm(z), digits=4))
-
+    least_squares!(ip.z, ip.θ, ip.r, ip.rz)
     z .= initial_state!(z, ix, iy1, iy2, comp = comp)
-    comp && println("**** w1:", scn(norm(z[ix]), digits=4))
-    comp && println("**** w2:", scn(norm(z[iy1]), digits=4))
-    comp && println("**** w3:", scn(norm(z[iy2]), digits=4))
 
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
@@ -289,42 +271,10 @@ function interior_point_solve!(ip::Mehrotra{T}) where T
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r, reg = reg_val)
-            # A_ = [rz.Dx rz.Dy1 zeros(length(ix), length(iy1));
-            #       rz.Rx rz.Ry1 Diagonal(rz.Ry2)]
-            # M_ = [rz.Dx rz.Dy1 zeros(length(ix), length(iy1));
-            #       rz.Rx rz.Ry1 Diagonal(rz.Ry2);
-            #       zeros(length(iy2), length(ix)) Diagonal(rz.y2) Diagonal(rz.y1)]
-            # @warn "overwriting the linear_solve!"
-            # Δaff[[ix; iy1; iy2]] = M_ \ [r.rdyn; r.rrst; r.rbil]
 
-            # comp && println("**** A:", scn(norm(A_), digits=4))
-            # comp && println("**** M:", scn(norm(M_), digits=4))
-            # comp && println("**** cond(Dx):", scn(cond(rz.Dx), digits=4))
-            # comp && println("**** My1:", scn(norm(rz.y1), digits=4))
-            # comp && println("**** My2:", scn(norm(rz.y2), digits=4))
-            # comp && println("**** My1:", scn.(rz.y1, digits=1))
-            # comp && println("**** My2:", scn.(rz.y2, digits=1))
-            # comp && println("**** rdyn:", scn(norm(r.rdyn), digits=4))
-            # comp && println("**** rrst:", scn(norm(r.rrst), digits=4))
-            # comp && println("**** rbil:", scn(norm(r.rbil), digits=4))
-            #
-            # comp && println("**** Δaff1:", scn(norm(Δaff[ix]), digits=4))
-            # comp && println("**** Δaff2:", scn(norm(Δaff[iy1]), digits=4))
-            # comp && println("**** Δaff3:", scn(norm(Δaff[iy2]), digits=4))
-            # comp && println("**** Δaff2:", scn.(Δaff[iy1], digits=1))
-            # comp && println("**** Δaff3:", scn.(Δaff[iy2], digits=1))
-
-            # err = M_ * [Δaff[ix]; Δaff[iy1]; Δaff[iy2]] - [r.rdyn; r.rrst; r.rbil]
-            # err2 = M_ * [Δaff[ix]; Δaff[iy1]; Δaff[iy2]] - [r.rdyn; 0.0*r.rrst; 0.0*r.rbil]
-            # comp && println("**** err:", scn(norm(err), digits=4))
-            # comp && println("**** err2:", scn(norm(err2), digits=4))
-            # comp && println("**** errx:", scn(norm(err[ix]), digits=4))
-            # comp && println("**** erry1:", scn(norm(err[iy1]), digits=4))
-            # comp && println("**** erry2:", scn(norm(err[iy2]), digits=4))
-            # comp && println("**** err:", scn.(err, digits=1))
 
             αaff = step_length(z_y1, z_y2, Δaff_y1, Δaff_y2, τ=1.0)
-            μaff = (z_y1 - αaff * Δaff[iy1])' * (z_y2 - αaff * Δaff[iy2]) / nbil
+            μaff = (z_y1 - αaff * Δaff[iy1])' * (z_y2 - αaff * Δaff[iy2]) / ny
             # @show nbil
             # @show norm(αaff)
             # @show norm(μaff)
