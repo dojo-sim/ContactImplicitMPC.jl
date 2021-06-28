@@ -400,7 +400,7 @@ end
 """
 	Update the Jacobian rz, and update its Schur complement factorization.
 """
-function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}; reg::T = 0.0) where {T,nx,ny,nxx,nxy,nyy}
+function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}; reg::T=0.0) where {T,nx,ny,nxx,nxy,nyy}
     # Unpack
     iy1 = rz.iy1
     iy2 = rz.iy2
@@ -411,12 +411,8 @@ function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}; reg::T = 0.0) where {
     # Update the matrix
     rz.y1 = z[iy1]
     rz.y2 = z[iy2]
-
-	y1_reg = max.(rz.y1, reg)
-	y2_reg = max.(rz.y2, reg)
-
     # update D in Schur complement
-    rz.D = rz.Ry1 - Diagonal(rz.Ry2 .* y2_reg ./ y1_reg)
+    rz.D = rz.Ry1 - Diagonal(rz.Ry2 .* rz.y2 ./ max.(rz.y1, reg))
     # update Schur complement
     schur_factorize!(rz.S, rz.D)
     return nothing
@@ -427,7 +423,7 @@ end
 	so this step should be very fast.
 """
 function linear_solve!(Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
     # unpack
     rdyn = r.rdyn
     rrst = r.rrst
@@ -436,15 +432,12 @@ function linear_solve!(Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
     y1 = rz.y1
     y2 = rz.y2
 
-	y1_reg = max.(reg, y1)
-	y2_reg = max.(reg, y2)
-
     u = rdyn
-    v = rrst - Ry2 .*rbil ./ y1_reg
+    v = rrst - Ry2 .*rbil ./ y1
     schur_solve!(rz.S, u, v)
     Δ[rz.ix]  = rz.S.x
     Δ[rz.iy1] = rz.S.y
-    Δ[rz.iy2] = (rbil .- y2_reg .* Δ[rz.iy1]) ./ y1_reg
+    Δ[rz.iy2] = (rbil .- y2 .* Δ[rz.iy1]) ./ y1
     return nothing
 end
 
@@ -454,7 +447,7 @@ end
 	so this step should be ~ fast.
 """
 function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
     # unpack
 	rθdyn = rθ.rθdyn0
 	rθrst = rθ.rθrst0
@@ -466,9 +459,6 @@ function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
 	iy1 = rz.iy1
 	iy2 = rz.iy2
 
-	y1_reg = max.(reg, y1)
-	y2_reg = max.(reg, y2)
-
 	for i in eachindex(1:nθ)
 		# We remark that rθbil is empty by construction of rθ.
 		u = rθdyn[:,i]
@@ -477,7 +467,7 @@ function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
 		schur_solve!(rz.S, u, v)
 		@. δz[ix,i]  .= rz.S.x
 		@. δz[iy1,i] .= rz.S.y
-		δz[iy2,i] .= (rθbil[:,i] .- y2_reg .* δz[iy1,i]) ./ y1_reg
+		δz[iy2,i] .= (rθbil[:,i] .- y2 .* δz[iy1,i]) ./ y1
 		# @. δz[iy2,i] .= .- y2 .* δz[iy1,i] ./ y1
 	end
     return nothing
@@ -500,14 +490,14 @@ function norm(r::RLin, t::Real)
 end
 
 function linear_solve!(solver::EmptySolver, δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
-	linear_solve!(δz, rz, rθ, reg = reg)
+	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	linear_solve!(δz, rz, rθ)
 	return nothing
 end
 
 function linear_solve!(solver::EmptySolver, Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
-	linear_solve!(Δ, rz, r, reg = reg)
+        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+	linear_solve!(Δ, rz, r)
 	return nothing
 end
 
@@ -590,8 +580,8 @@ end
 # 	return nothing
 # end
 
-function rz!(rz::RZLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}; reg::T = 0.0) where {T}
-	rz!(rz, z, reg = reg)
+function rz!(rz::RZLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
+	rz!(rz, z)
 	return nothing
 end
 

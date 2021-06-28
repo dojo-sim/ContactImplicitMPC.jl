@@ -224,12 +224,13 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     reg_du = ip.reg_du
     solver = ip.solver
     ip.iterations = 0
+    comp = false
 
     if !(typeof(r) <: AbstractArray)
         δθ = θ - r.θ0
-        comp = true
+        # comp = true
         comp && println("**** δθ:", scn(norm(δθ), digits=4))
-        comp = false
+        # comp = false
         comp && println("****  θ[μ,h]:", scn.(θ[end-1:end], digits=4))
         comp && println("****  θ:", scn(norm(θ), digits=4))
         comp && println("****  z:", scn(norm(z), digits=4))
