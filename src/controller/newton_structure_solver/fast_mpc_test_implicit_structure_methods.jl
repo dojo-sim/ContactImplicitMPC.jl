@@ -189,83 +189,24 @@ update_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Yiiav, Yiibv, Yiicv, Y
 @code_warntype update_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Yiiav, Yiibv, Yiicv, Yiidv, Yijav, Yijbv, Yijcv, Yijdv, T)
 
 for t = 1:T-1
-	Ys[idx_n[t], idx_n[t]] = Ysii[t]
+	Ys[n_idx[t], n_idx[t]] = Ysii[t]
 
 	t == T-1 && continue
 
-	Ys[idx_n[t], idx_n[t+1]] = Ysij[t]
-	Ys[idx_n[t+1], idx_n[t]] = Ysij[t]'
+	Ys[n_idx[t], n_idx[t+1]] = Ysij[t]
+	Ys[n_idx[t+1], n_idx[t]] = Ysij[t]'
 end
 
-norm(Ys - Y)
 norm((Ys - C * H̃ * C'))#[1:2n, 1:2n])
 #####
-
-L = zeros(n * (T - 1), n * (T - 1))
-Lii = [zeros(n, n) for t = 1:T-1]
-Lji = [zeros(n, n) for t = 1:T-1]
-
-function computeL!(Lii, Lji, Yii, Yij, T)
-	for t = 1:T-1
-		# @show t
-		if t == 1
-			# Lii[t] = cholesky(Hermitian(Yii[t])).L
-
-			Lii[t] .= Yii[t]
-			LAPACK.potrf!('L', Lii[t])
-		else
-			# Lii[t] = cholesky(Hermitian(Yii[t] - Lji[t - 1] * Lji[t - 1]')).L
-
-			Lii[t] .= Yii[t]
-			mul!(Lii[t], transpose(Lji[t-1]), Lji[t-1], -1.0, 1.0)
-			LAPACK.potrf!('L', Lii[t])
-		end
-		# Lji[t] = (LowerTriangular(Lii[t]) \ Yij[t])'
-
-		Lji[t] .= Yij[t]
-		LAPACK.trtrs!('L', 'N', 'N', Lii[t], Lji[t])
-	end
-	nothing
-end
-
-function test_cholesky1(A)
-	B = copy(A)
-	cholesky(Hermitian(B)).L
-end
-
-function test_cholesky2(A)
-	B = copy(A)
-	LAPACK.potrf!('L', B)
-end
-
-cholesky(Hermitian(Yii[1])).L
-@benchmark test_cholesky1($Yii[1])
-
-_Y = Array(Yii[1])
-@benchmark test_cholesky2($_Y)
-
-@benchmark computeL!($Lii, $Lji, $Yii, $Yij, $T)
-@code_warntype computeL!(Lii, Lji, Yii, Yij, T)
-
-computeL!(Lii, Lji, Yii, Yij, T)
-
-for t = 1:T-1
-	L[idx_n[t], idx_n[t]] = LowerTriangular(Lii[t])
-
-	t == T-1 && continue
-
-	L[idx_n[t+1], idx_n[t]] = transpose(Lji[t])
-end
-
-norm(cholesky(Hermitian(Y)).L - L)
 
 ###
 L = zeros(n * (T - 1), n * (T - 1))
 Liis = [LowerTriangular(SMatrix{n,n}(zeros(n, n))) for t = 1:T-1]
 Ljis = [SMatrix{n,n}(zeros(n, n)) for t = 1:T-1]
 
-Yiis = [SMatrix{n,n}(Hermitian(Yii[t])) for t = 1:T-1]
-Yijs = [SMatrix{n,n}(Yij[t]) for t = 1:T-1]
+Yiis = [SMatrix{n,n}(Hermitian(Yiis[t])) for t = 1:T-1]
+Yijs = [SMatrix{n,n}(Yijs[t]) for t = 1:T-1]
 
 tmp_nn = SMatrix{n,n}(zeros(n,n))
 tmp_nn2 = SMatrix{n,n}(zeros(n,n))
@@ -296,14 +237,15 @@ end
 @code_warntype computeLs!(Liis, Ljis, Yiis, Yijs, tmp_nn, tmp_nn2, tmp_nn_a, T)
 
 for t = 1:T-1
-	L[idx_n[t], idx_n[t]] = LowerTriangular(Liis[t])
+	L[n_idx[t], n_idx[t]] = LowerTriangular(Liis[t])
 
 	t == T-1 && continue
 
-	L[idx_n[t+1], idx_n[t]] = transpose(Ljis[t])
+	L[n_idx[t+1], n_idx[t]] = transpose(Ljis[t])
 end
-norm(cholesky(Hermitian(Y)).L - L)
-
+norm(cholesky(Hermitian(Ys)).L - L)
+rank(Ys)
+Ys
 ###
 
 # solve system
@@ -313,7 +255,7 @@ norm(cholesky(Hermitian(Y)).L - L)
 rd = r[1:nz]
 rp = r[nz .+ (1:nd)]
 β = -rp + C * H̃ * rd
-b = [view(β, idx_n[t]) for t = 1:T-1]
+b = [view(β, n_idx[t]) for t = 1:T-1]
 Δν .= Y \ β
 # Δν .= β
 # LAPACK.potrs!('L', L, Δν)
@@ -326,12 +268,12 @@ y = [zeros(n) for t = 1:T-1]
 function forward_substitution!(y, Lii, Lji, b, T)
 	for t = 1:T-1
 		if t == 1
-			# y[1] .= Lii[1] \ β[idx_n[1]]
+			# y[1] .= Lii[1] \ β[n_idx[1]]
 
 			y[1] .= b[t]
 			LAPACK.trtrs!('L', 'N', 'N', Lii[t], y[1])
 		else
-			# y[t] .= Lii[t] \ (β[idx_n[t]] - Lji[t - 1] * y[t - 1])
+			# y[t] .= Lii[t] \ (β[n_idx[t]] - Lji[t - 1] * y[t - 1])
 
 			y[t] .= b[t]
 			mul!(y[t], transpose(Lji[t - 1]), y[t - 1], -1.0, 1.0)
@@ -346,16 +288,16 @@ end
 norm(vcat(y...) - L \ β, Inf)
 
 ys = [@SVector zeros(n) for t = 1:T-1]
-bs = [SVector{n}(β[idx_n[t]]) for t = 1:T-1]
+bs = [SVector{n}(β[n_idx[t]]) for t = 1:T-1]
 
 function forward_substitution_s!(y, Lii, Lji, b, T)
 	for t = 1:T-1
 		if t == 1
-			# y[1] .= Lii[1] \ β[idx_n[1]]
+			# y[1] .= Lii[1] \ β[n_idx[1]]
 
 			y[1] = Lii[1] \ b[1]
 		else
-			# y[t] .= Lii[t] \ (β[idx_n[t]] - Lji[t - 1] * y[t - 1])
+			# y[t] .= Lii[t] \ (β[n_idx[t]] - Lji[t - 1] * y[t - 1])
 
 			b[t] -= Lji[t - 1] * y[t - 1]
 			y[t] = Lii[t] \ b[t]
@@ -370,7 +312,7 @@ norm(vcat(y...) - L \ β, Inf)
 
 # backward substitution
 x_vec = zeros(n * (T-1))
-x = [view(x_vec, idx_n[t]) for t = 1:T-1]
+x = [view(x_vec, n_idx[t]) for t = 1:T-1]
 function backward_substitution!(x, Lii, Lji, y, T)
 	for t = T-1:-1:1
 		if t == T-1

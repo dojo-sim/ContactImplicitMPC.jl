@@ -7,10 +7,10 @@ using BenchmarkTools
 using InteractiveUtils
 
 # dimensions
-nq = 10
+nq = 3
 n = 2 * nq
-m = 10
-T = 20
+m = 2
+T = 3
 nz = m * (T - 1) + n * (T - 1)
 nd = n * (T - 1)
 
@@ -274,7 +274,7 @@ end
 update_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Yiiav, Yiibv, Yiicv, Yiidv, Yijav, Yijbv, Yijcv, Yijdv, T)
 @benchmark update_Y!($Yiia, $Yiib, $Yiic, $Yiid, $Yija, $Yijb, $Yijc, $Yijd, $Yiiav, $Yiibv, $Yiicv, $Yiidv, $Yijav, $Yijbv, $Yijcv, $Yijdv, $T)
 @code_warntype update_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Yiiav, Yiibv, Yiicv, Yiidv, Yijav, Yijbv, Yijcv, Yijdv, T)
-
+idx_n
 for t = 1:T-1
 	Ys[idx_n[t], idx_n[t]] = Ysii[t]
 
@@ -344,15 +344,15 @@ for t = 1:T-1
 	L[idx_n[t+1], idx_n[t]] = transpose(Lji[t])
 end
 
-norm(cholesky(Hermitian(Y)).L - L)
+norm(cholesky(Hermitian(Ys)).L - L)
 
 ###
 L = zeros(n * (T - 1), n * (T - 1))
 Liis = [LowerTriangular(SMatrix{n,n}(zeros(n, n))) for t = 1:T-1]
 Ljis = [SMatrix{n,n}(zeros(n, n)) for t = 1:T-1]
 
-Yiis = [SMatrix{n,n}(Hermitian(Yii[t])) for t = 1:T-1]
-Yijs = [SMatrix{n,n}(Yij[t]) for t = 1:T-1]
+Yiis = [SMatrix{n,n}(Hermitian(Yiis[t])) for t = 1:T-1]
+Yijs = [SMatrix{n,n}(Yijs[t]) for t = 1:T-1]
 
 tmp_nn = SMatrix{n,n}(zeros(n,n))
 tmp_nn2 = SMatrix{n,n}(zeros(n,n))
