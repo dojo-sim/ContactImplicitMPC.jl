@@ -619,6 +619,22 @@ function bilinear_res(r::RLin, ibil)
     r.rbil
 end
 
+function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
+	δθ = r.θ0 - θ
+	δrdyn = r.rdyn0 - r.rθdyn * δθ
+	δrrst = r.rrst0 - r.rθrst * δθ
+
+	δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
+	δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
+	δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
+
+	@. @inbounds z[r.ix]  .= r.x0  .+ δw1
+	@. @inbounds z[r.iy1] .= r.y10 .+ δw2
+	@. @inbounds z[r.iy2] .= r.y20 .+ δw3
+	return nothing
+end
+
+
 # function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 # 	r!(r, z, θ, κ)
 # 	return nothing

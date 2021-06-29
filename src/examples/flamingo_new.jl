@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1200 # 35000
+H_sim = 600 # 35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -39,7 +39,8 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 	# ip_type = :mehrotra,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
-        max_iter = 5),
+        max_iter = 5,
+		solver = :lu_solver,),
     mpc_opts = LinearizedMPCOptions(
         # live_plotting=true,
         # altitude_update = true,
@@ -56,8 +57,9 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 	# mode = :configuration,
 	ip_type = :mehrotra,
     n_opts = NewtonOptions(
-        r_tol = 3e-4,
-        max_iter = 5),
+		r_tol = 3e-4,
+		max_iter = 5,
+		solver = :lu_solver,),
     mpc_opts = LinearizedMPCOptions(
         # live_plotting=true,
         # altitude_update = true,
@@ -101,10 +103,10 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	ip_type = :interior_point,
     )
 
-telap = @elapsed status = simulate!(sim, verbose = true)
+# telap = @elapsed status = simulate!(sim, verbose = true)
 @profiler status = simulate!(sim, verbose = true)
-(telap - 2.5)/ 1200 / h
-
+telap = 5.21
+H_sim * h / (telap - 1.5)
 
 
 
@@ -130,7 +132,27 @@ end
 
 
 
+
+μ = z_y1'*z_y2 / length(z_y1)
+σ = (μaff / μ)^3
+
+
+function centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
+		iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T) where {n,T}
+	μaff = (z[iy1] - αaff * Δaff[iy1])' * (z[iy2] - αaff * Δaff[iy2]) / n
+	μ = z[iy1]' * z[iy2] / n
+	σ = (μaff / μ)^3
+	return σ, μ
+end
+
+
+
 ip0 = deepcopy(p.im_traj.ip[1])
+centering(ip0.z, ip0.Δaff, ip0.iy1, ip0.iy2, 1.0)
+@code_warntype centering(ip0.z, ip0.Δaff, ip0.iy1, ip0.iy2, 1.0)
+@benchmark centering($ip0.z, $ip0.Δaff, $ip0.iy1, $ip0.iy2, $1.0)
+
+
 step_length_11(ip0)
 @code_warntype step_length_11(ip0)
 @benchmark step_length_11($ip0)
