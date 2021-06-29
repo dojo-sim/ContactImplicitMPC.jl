@@ -34,9 +34,8 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
 	ip_type = :interior_point,
-	mode = :configurationforce,
-	# mode = :configuration,
-	# ip_type = :mehrotra,
+	# mode = :configurationforce,
+	mode = :configuration,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         max_iter = 5,
@@ -53,12 +52,13 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
-	mode = :configurationforce,
-	# mode = :configuration,
+	# mode = :configurationforce,
+	mode = :configuration,
 	ip_type = :mehrotra,
     n_opts = NewtonOptions(
 		r_tol = 3e-4,
 		max_iter = 5,
+		max_time = ref_traj.h, # HARD REAL TIME
 		solver = :lu_solver,),
     mpc_opts = LinearizedMPCOptions(
         # live_plotting=true,
@@ -103,144 +103,10 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	ip_type = :interior_point,
     )
 
-# telap = @elapsed status = simulate!(sim, verbose = true)
-@profiler status = simulate!(sim, verbose = true)
-telap = 5.21
-H_sim * h / (telap - 1.5)
-
-
-
-function step_length_11(ip::Mehrotra{T}) where T
-	step_length_11(ip.z, ip.Δ, ip.iy1, ip.iy2)
-end
-
-function step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		iy1::SVector{n,Int}, iy2::SVector{n,Int}; τ::T=0.9995) where {n,T}
-    ατ_p = 1.0
-    ατ_d = 1.0
-    for i in eachindex(iy1)
-        if Δ[iy1[i]] > 0.0
-            ατ_p = min(ατ_p, τ * z[iy1[i]] / Δ[iy1[i]])
-        end
-        if Δ[iy2[i]] > 0.0
-            ατ_d = min(ατ_d, τ * z[iy2[i]] / Δ[iy2[i]])
-        end
-    end
-    α = min(ατ_p, ατ_d)
-    return α
-end
-
-
-
-
-μ = z_y1'*z_y2 / length(z_y1)
-σ = (μaff / μ)^3
-
-
-function centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
-		iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T) where {n,T}
-	μaff = (z[iy1] - αaff * Δaff[iy1])' * (z[iy2] - αaff * Δaff[iy2]) / n
-	μ = z[iy1]' * z[iy2] / n
-	σ = (μaff / μ)^3
-	return σ, μ
-end
-
-
-
-ip0 = deepcopy(p.im_traj.ip[1])
-centering(ip0.z, ip0.Δaff, ip0.iy1, ip0.iy2, 1.0)
-@code_warntype centering(ip0.z, ip0.Δaff, ip0.iy1, ip0.iy2, 1.0)
-@benchmark centering($ip0.z, $ip0.Δaff, $ip0.iy1, $ip0.iy2, $1.0)
-
-
-step_length_11(ip0)
-@code_warntype step_length_11(ip0)
-@benchmark step_length_11($ip0)
-
-
-
-function least_squares!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
-	least_squares!(ip.z, ip.θ, ip.r, ip.rz)
-	return nothing
-end
-
-function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
-	δθ = r.θ0 - θ
-	δrdyn = r.rdyn0 - r.rθdyn * δθ
-	δrrst = r.rrst0 - r.rθrst * δθ
-
-	δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
-	δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
-	δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
-
-	@. @inbounds z[r.ix]  .= r.x0  .+ δw1
-	@. @inbounds z[r.iy1] .= r.y10 .+ δw2
-	@. @inbounds z[r.iy2] .= r.y20 .+ δw3
-	return nothing
-end
-
-
-
-ip0 = deepcopy(p.im_traj.ip[1])
-least_squares!(ip0)
-@code_warntype least_squares!(ip0)
-@benchmark least_squares!($ip0)
-
-
-
-a = 10
-
-nx = length(r.ix)
-ny = length(r.iy1)
-
-δrdyn = r.rdyn0 - r.rθdyn * δθ
-δrrst = r.rrst0 - r.rθrst * δθ
-
-δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
-δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
-δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
-
-z[ix]  .= r.x0  + δw1
-z[iy1] .= r.y10 + δw2
-z[iy2] .= r.y20 + δw3
-comp && println("**** z+wt:", scn(norm(z), digits=4))
-
-z .= initial_state!(z, ix, iy1, iy2, comp = comp)
-
-function test_ip1(ip::Mehrotra{T}, r::RLin) where {T}
-	test_1(ip.z, ip.iy1, r.y10)
-	return nothing
-end
-
-function test_1(z::Vector{T}, iy1::SVector{ny,Int}, y10::SVector{ny,T}) where {ny,T}
-	z[iy1] = y10
-	return nothing
-end
-
-
-ip0 = deepcopy(p.im_traj.ip[1])
-test_ip1(ip0, ip0.r)
-@benchmark test_ip1($ip0, $ip0.r)
-@benchmark test_ip1($ip0)
-@code_warntype test_ip1(ip0, ip0.r)
-
-
-
-
-# nz = num_var(s.model, s.env)
-# nθ = num_data(s.model)
-# clearconsole()
-# Random.seed!(100)
-# ip_ = deepcopy(sim.p.im_traj.ip[2])
-# ip_.opts.max_iter_inner = 10
-#
-# ip_
-#
-# z0_ = zeros(nz)
-# θ0_ = deepcopy(ip_.r.θ0) + 1e-2*[rand(nθ-2); zeros(2)]
-# z0_[[ip_.r.ix; ip_.r.iy1; ip_.r.iy2]] = [ip_.r.x0; ip_.r.y10; ip_.r.y20]
-#
-# interior_point_solve!(ip_, z0_, θ0_)
+telap = @elapsed status = simulate!(sim, verbose = true)
+# @profiler status = simulate!(sim, verbose = true)
+# telap = 2.75 # H_sim = 600
+H_sim * h / (telap - 1.10)
 
 
 l = 9
@@ -312,3 +178,136 @@ MeshCat.convert_frames_to_video(
 convert_video_to_gif(
     "/home/simon/Documents/$filename.mp4",
     "/home/simon/Documents/$filename.gif", overwrite=true)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	μ = z_y1'*z_y2 / length(z_y1)
+	σ = (μaff / μ)^3
+
+
+
+
+	ip0 = deepcopy(p.im_traj.ip[1])
+	centering(ip0.z, ip0.Δaff, ip0.iy1, ip0.iy2, 1.0)
+	@code_warntype centering(ip0.z, ip0.Δaff, ip0.iy1, ip0.iy2, 1.0)
+	@benchmark centering($ip0.z, $ip0.Δaff, $ip0.iy1, $ip0.iy2, $1.0)
+
+
+	step_length_11(ip0)
+	@code_warntype step_length_11(ip0)
+	@benchmark step_length_11($ip0)
+
+
+
+	function least_squares!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
+		least_squares!(ip.z, ip.θ, ip.r, ip.rz)
+		return nothing
+	end
+
+	function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
+		δθ = r.θ0 - θ
+		δrdyn = r.rdyn0 - r.rθdyn * δθ
+		δrrst = r.rrst0 - r.rθrst * δθ
+
+		δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
+		δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
+		δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
+
+		@. @inbounds z[r.ix]  .= r.x0  .+ δw1
+		@. @inbounds z[r.iy1] .= r.y10 .+ δw2
+		@. @inbounds z[r.iy2] .= r.y20 .+ δw3
+		return nothing
+	end
+
+
+
+	ip0 = deepcopy(p.im_traj.ip[1])
+	least_squares!(ip0)
+	@code_warntype least_squares!(ip0)
+	@benchmark least_squares!($ip0)
+
+
+
+	a = 10
+
+	nx = length(r.ix)
+	ny = length(r.iy1)
+
+	δrdyn = r.rdyn0 - r.rθdyn * δθ
+	δrrst = r.rrst0 - r.rθrst * δθ
+
+	δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
+	δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
+	δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
+
+	z[ix]  .= r.x0  + δw1
+	z[iy1] .= r.y10 + δw2
+	z[iy2] .= r.y20 + δw3
+	comp && println("**** z+wt:", scn(norm(z), digits=4))
+
+	z .= initial_state!(z, ix, iy1, iy2, comp = comp)
+
+	function test_ip1(ip::Mehrotra{T}, r::RLin) where {T}
+		test_1(ip.z, ip.iy1, r.y10)
+		return nothing
+	end
+
+	function test_1(z::Vector{T}, iy1::SVector{ny,Int}, y10::SVector{ny,T}) where {ny,T}
+		z[iy1] = y10
+		return nothing
+	end
+
+
+	ip0 = deepcopy(p.im_traj.ip[1])
+	test_ip1(ip0, ip0.r)
+	@benchmark test_ip1($ip0, $ip0.r)
+	@benchmark test_ip1($ip0)
+	@code_warntype test_ip1(ip0, ip0.r)
+
+
+
+
+	# nz = num_var(s.model, s.env)
+	# nθ = num_data(s.model)
+	# clearconsole()
+	# Random.seed!(100)
+	# ip_ = deepcopy(sim.p.im_traj.ip[2])
+	# ip_.opts.max_iter_inner = 10
+	#
+	# ip_
+	#
+	# z0_ = zeros(nz)
+	# θ0_ = deepcopy(ip_.r.θ0) + 1e-2*[rand(nθ-2); zeros(2)]
+	# z0_[[ip_.r.ix; ip_.r.iy1; ip_.r.iy2]] = [ip_.r.x0; ip_.r.y10; ip_.r.y20]
+	#
+	# interior_point_solve!(ip_, z0_, θ0_)

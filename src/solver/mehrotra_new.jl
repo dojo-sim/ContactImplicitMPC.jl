@@ -281,7 +281,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             # μaff = (z_y1 - αaff * Δaff[iy1])' * (z_y2 - αaff * Δaff[iy2]) / ny
             # μ = z_y1'*z_y2 / length(z_y1)
             # σ = (μaff / μ)^3
-            ip.σ, ip.μ = centering(z, Δaff, iy1, iy2, ip.αaff)
+            # ip.σ, ip.μ = centering(z, Δaff, iy1, iy2, ip.αaff)
+            centering!(ip, z, Δaff, iy1, iy2, ip.αaff)
 
             # Compute corrector residual
             rm!(r, z, Δaff, θ, ip.σ*ip.μ) # here we set κ = σ*μ, Δ = Δaff
@@ -289,7 +290,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
-            ip.τ = progress(r_merit, ϵ_min=ϵ_min)
+            progress!(ip, r_merit, ϵ_min=ϵ_min)
             ip.α = step_length(z, Δ, iy1, iy2, τ=ip.τ)
 
             comp && println("**** Δ1:", scn(norm(ip.α*Δ[ix]), digits=4))
@@ -363,11 +364,12 @@ function initial_state!(z, ix, iy1, iy2; comp::Bool=true)
     return z
 end
 
-function progress(merit; ϵ_min=0.05)
+
+function progress!(ip::Mehrotra{T}, merit::T; ϵ_min::T = 0.05) where {T}
     ϵ = min(ϵ_min, merit^2)
-    τ = 1 - ϵ
-    return τ
+    ip.τ = 1 - ϵ
 end
+
 
 function step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
 		iy1::SVector{n,Int}, iy2::SVector{n,Int}; τ::T=0.9995) where {n,T}
@@ -385,8 +387,11 @@ function step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
     return α
 end
 
-function least_squares!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
-	least_squares!(ip.z, ip.θ, ip.r, ip.rz)
+function centering!(ip::Mehrotra{T}, z::AbstractVector{T}, Δaff::AbstractVector{T},
+		iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T) where {n,T}
+	μaff = (z[iy1] - αaff * Δaff[iy1])' * (z[iy2] - αaff * Δaff[iy2]) / n
+	ip.μ = z[iy1]' * z[iy2] / n
+	ip.σ = (μaff / ip.μ)^3
 	return nothing
 end
 
