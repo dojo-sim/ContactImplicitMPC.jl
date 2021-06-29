@@ -226,15 +226,6 @@ end
         Dx, Dy1, Rx, Ry1, Ry2
     The variable parts:
         y1, y2.
-	We define matrix A, it is used to initialize the interior point solver with
-	a least square solution to the linearized constraints (i.e. excluding bilienar constraints).
-	A = [Dx  Dy1       0        ] -> Linearized dynamics constraints -> size = nx
-	    [Rx  Ry1       Diag(Ry2)] -> Rest of the linearized constraints -> size = ny
-	δz = A' * inv(A * A') * δr
-	We introduce the following notations:
-	A' * inv(A * A') = [A1 A2]
-					   |A3 A4|
-	                   [A5 A6]
 """
 mutable struct RZLin{T,nx,ny,nxx,nxy,nyy}
     # Reference residual jacobian rz0
@@ -249,14 +240,6 @@ mutable struct RZLin{T,nx,ny,nxx,nxy,nyy}
     # Schur complement
     D::SMatrix{ny,ny,T,nyy}
     S::Schur{T,nx,ny,nxx,nxy,nyy}
-
-	# Least Squares
-	A1::SMatrix{nx,nx,T,nxx}
-	A2::SMatrix{nx,ny,T,nxy}
-	A3::SMatrix{ny,nx,T,nxy}
-	A4::SMatrix{ny,ny,T,nyy}
-	A5::SMatrix{ny,nx,T,nxy}
-	A6::SMatrix{ny,ny,T,nyy}
 
     # Indices
     ix::SVector{nx,Int}
@@ -302,17 +285,6 @@ function RZLin(s::Simulation, rz0::AbstractMatrix{T}) where {T}
          Rx D  ]
     S = Schur(M; n=nx, m=ny)
 
-	# Least squares
-	A = [Dx Dy1 zeros(nx, ny);
-		 Rx Ry1 Diagonal(Ry2)]
-	AA = A' * inv(A * A')
-	A1 = SMatrix{nx,nx,T,nx*nx}(AA[1:nx,              1:nx])
-	A2 = SMatrix{nx,ny,T,nx*ny}(AA[1:nx,              nx .+ (1:ny)])
-	A3 = SMatrix{ny,nx,T,nx*ny}(AA[nx .+ (1:ny),      1:nx])
-	A4 = SMatrix{ny,ny,T,ny*ny}(AA[nx .+ (1:ny),      nx .+ (1:ny)])
-	A5 = SMatrix{ny,nx,T,nx*ny}(AA[nx + ny .+ (1:ny), 1:nx])
-	A6 = SMatrix{ny,ny,T,ny*ny}(AA[nx + ny .+ (1:ny), nx .+ (1:ny)])
-
     return RZLin{T,nx,ny,nx^2,nx*ny,ny^2}(
         Dx,
         Dy1,
@@ -323,12 +295,6 @@ function RZLin(s::Simulation, rz0::AbstractMatrix{T}) where {T}
         y2,
         D,
         S,
-		A1,
-		A2,
-		A3,
-		A4,
-		A5,
-		A6,
         SVector{nx,Int}(ix),
         SVector{ny,Int}(iy1),
         SVector{ny,Int}(iy2),
@@ -434,7 +400,7 @@ end
 """
 	Update the Jacobian rz, and update its Schur complement factorization.
 """
-function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}; reg::T = 0.0) where {T,nx,ny,nxx,nxy,nyy}
+function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}; reg::T=0.0) where {T,nx,ny,nxx,nxy,nyy}
     # Unpack
     iy1 = rz.iy1
     iy2 = rz.iy2
@@ -445,12 +411,8 @@ function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}; reg::T = 0.0) where {
     # Update the matrix
     rz.y1 = z[iy1]
     rz.y2 = z[iy2]
-
-	y1_reg = max.(rz.y1, reg)
-	y2_reg = max.(rz.y2, reg)
-
     # update D in Schur complement
-    rz.D = rz.Ry1 - Diagonal(rz.Ry2 .* y2_reg ./ y1_reg)
+    rz.D = rz.Ry1 - Diagonal(rz.Ry2 .* rz.y2 ./ max.(rz.y1, reg))
     # update Schur complement
     schur_factorize!(rz.S, rz.D)
     return nothing
@@ -461,7 +423,7 @@ end
 	so this step should be very fast.
 """
 function linear_solve!(Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
     # unpack
     rdyn = r.rdyn
     rrst = r.rrst
@@ -470,15 +432,12 @@ function linear_solve!(Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
     y1 = rz.y1
     y2 = rz.y2
 
-	y1_reg = max.(reg, y1)
-	y2_reg = max.(reg, y2)
-
     u = rdyn
-    v = rrst - Ry2 .*rbil ./ y1_reg
+    v = rrst - Ry2 .*rbil ./ y1
     schur_solve!(rz.S, u, v)
     Δ[rz.ix]  = rz.S.x
     Δ[rz.iy1] = rz.S.y
-    Δ[rz.iy2] = (rbil .- y2_reg .* Δ[rz.iy1]) ./ y1_reg
+    Δ[rz.iy2] = (rbil .- y2 .* Δ[rz.iy1]) ./ y1
     return nothing
 end
 
@@ -488,7 +447,7 @@ end
 	so this step should be ~ fast.
 """
 function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
     # unpack
 	rθdyn = rθ.rθdyn0
 	rθrst = rθ.rθrst0
@@ -500,9 +459,6 @@ function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
 	iy1 = rz.iy1
 	iy2 = rz.iy2
 
-	y1_reg = max.(reg, y1)
-	y2_reg = max.(reg, y2)
-
 	for i in eachindex(1:nθ)
 		# We remark that rθbil is empty by construction of rθ.
 		u = rθdyn[:,i]
@@ -511,7 +467,7 @@ function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
 		schur_solve!(rz.S, u, v)
 		@. δz[ix,i]  .= rz.S.x
 		@. δz[iy1,i] .= rz.S.y
-		δz[iy2,i] .= (rθbil[:,i] .- y2_reg .* δz[iy1,i]) ./ y1_reg
+		δz[iy2,i] .= (rθbil[:,i] .- y2 .* δz[iy1,i]) ./ y1
 		# @. δz[iy2,i] .= .- y2 .* δz[iy1,i] ./ y1
 	end
     return nothing
@@ -534,14 +490,14 @@ function norm(r::RLin, t::Real)
 end
 
 function linear_solve!(solver::EmptySolver, δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
-	linear_solve!(δz, rz, rθ, reg = reg)
+	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	linear_solve!(δz, rz, rθ)
 	return nothing
 end
 
 function linear_solve!(solver::EmptySolver, Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
-	linear_solve!(Δ, rz, r, reg = reg)
+        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+	linear_solve!(Δ, rz, r)
 	return nothing
 end
 
@@ -619,29 +575,13 @@ function bilinear_res(r::RLin, ibil)
     r.rbil
 end
 
-function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
-	δθ = r.θ0 - θ
-	δrdyn = r.rdyn0 - r.rθdyn * δθ
-	δrrst = r.rrst0 - r.rθrst * δθ
-
-	δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
-	δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
-	δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
-
-	@. @inbounds z[r.ix]  .= r.x0  .+ δw1
-	@. @inbounds z[r.iy1] .= r.y10 .+ δw2
-	@. @inbounds z[r.iy2] .= r.y20 .+ δw3
-	return nothing
-end
-
-
 # function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 # 	r!(r, z, θ, κ)
 # 	return nothing
 # end
 
-function rz!(rz::RZLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}; reg::T = 0.0) where {T}
-	rz!(rz, z, reg = reg)
+function rz!(rz::RZLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
+	rz!(rz, z)
 	return nothing
 end
 

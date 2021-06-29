@@ -1,7 +1,8 @@
 # Newton solver options
 @with_kw mutable struct NewtonOptions{T}
     r_tol::T = 1.0e-5            # primal dual residual tolerance
-    max_iter::Int = 10           # primal dual iter
+	max_iter::Int = 10           # maximum number of primal dual iter
+    max_time::T = 60.0           # maximum time spent in the Newton solver
     β_init::T = 1.0e-5           # initial dual regularization
     live_plotting::Bool = false  # visualize the trajectory during the solve
     verbose::Bool = false
@@ -169,7 +170,6 @@ function newton_solve!(core::Newton, s::Simulation,
     warm_start::Bool = false, initial_offset::Bool = false,
     q0 = ref_traj.q[1], q1 = ref_traj.q[2])
 
-    # @show "newton_solve!" #@@@
 	reset!(core, ref_traj, warm_start = warm_start,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
 
@@ -180,68 +180,73 @@ function newton_solve!(core::Newton, s::Simulation,
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
 
     r_norm = norm(core.res.r, 1)
+	elapsed_time = 0.0
 
     for l = 1:core.opts.max_iter
-        # check convergence
-        # println("lbefor = ", l, "  norm = ", r_norm / length(core.res.r)) #@@@
-        r_norm / length(core.res.r) < core.opts.r_tol && break
-        # Compute NewtonJacobian
-        update_jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
+		elapsed_time >= core.opts.max_time && break
+		# println("iter:", l, "  elapsed_time:", elapsed_time)
+		elapsed_time += @elapsed begin
+	        # check convergence
+	        r_norm / length(core.res.r) < core.opts.r_tol && break
+	        # Compute NewtonJacobian
+	        update_jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
 
-        # Compute Search Direction
-        linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)
+	        # Compute Search Direction
+	        linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)
 
-        # line search the step direction
-        α = 1.0
-        iter = 0
+	        # line search the step direction
+	        α = 1.0
+	        iter = 0
 
-        # candidate step
-        update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
+	        # candidate step
+	        update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
-        # Compute implicit dynamics for candidate
-		implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
-
-        # Compute residual for candidate
-        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
-        r_cand_norm = norm(core.res_cand.r, 1)
-
-        while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
-            α = 0.5 * α
-
-            iter += 1
-            if iter > 6
-                break
-            end
-
-            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
-
-            # Compute implicit dynamics about trial_traj
+	        # Compute implicit dynamics for candidate
 			implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
 
-            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
-            r_cand_norm = norm(core.res_cand.r, 1)
-        end
+	        # Compute residual for candidate
+	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
+	        r_cand_norm = norm(core.res_cand.r, 1)
 
-        # update
-        update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
-        core.res.r .= core.res_cand.r
-        r_norm = r_cand_norm
-        # println("lafter = ", l, "  norm = ", r_norm / length(core.res.r)) #@@@
+	        while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
+	            α = 0.5 * α
 
-        # regularization update
-        if iter > 6
-            core.β = min(core.β * 1.3, 1.0e2)
-        else
-            core.β = max(1.0e1, core.β / 1.3)
-        end
+	            iter += 1
+	            if iter > 6
+	                break
+	            end
 
-        # print status
-        core.opts.verbose && println(" l: ", l ,
-                "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits = 0),
-                "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits = 0),
-                "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
-                "     α: ", -Int(round(log(α))),
-                "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0))
+	            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
+
+	            # Compute implicit dynamics about trial_traj
+				implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
+
+	            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
+	            r_cand_norm = norm(core.res_cand.r, 1)
+	        end
+
+	        # update
+	        update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
+	        core.res.r .= core.res_cand.r
+	        r_norm = r_cand_norm
+	        # println("lafter = ", l, "  norm = ", r_norm / length(core.res.r)) #@@@
+
+	        # regularization update
+	        if iter > 6
+	            core.β = min(core.β * 1.3, 1.0e2)
+	        else
+	            core.β = max(1.0e1, core.β / 1.3)
+	        end
+
+	        # print status
+	        core.opts.verbose && println(" l: ", l ,
+					"     t: ", scn(elapsed_time), digits = 0,
+	                "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits = 0),
+	                "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits = 0),
+	                "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
+	                "     α: ", -Int(round(log(α))),
+	                "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0))
+		end
     end
 
     return nothing

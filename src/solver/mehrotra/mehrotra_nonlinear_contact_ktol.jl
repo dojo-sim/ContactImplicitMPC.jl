@@ -296,6 +296,14 @@ function initial_state(z, δθ, data::ProblemData13; verbose = false)
     verbose && println("**** wt:", scn(norm(wt), digits=4))
     verbose && println("**** Awt-x:", scn(norm(A*wt .- x), digits=4))
 
+    M = [data.E data.F]
+    w12_ = M' * ((M * M') \ x[1:n])
+    w1_ = w12_[1:n]
+    w2_ = w12_[n .+ (1:m)]
+    w3_ = data.J \ (x[n .+ (1:m)] - data.G*w1_ - data.H*w2_)
+    wt = [w12_; w3_]
+
+
     w1t, w2t, w3t = unpack(wt, n=n, m=m)
     w1t += z[data.ix]
     w2t += z[data.iy1]
@@ -695,6 +703,7 @@ end
 ss = [s1, s2, s3]
 ref_trajs = [ref_traj1, ref_traj2, ref_traj3]
 plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.005, γ = 1e1, algorithm = :mehrotra_solve, color=:black)
+plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.005, γ = 1e1, algorithm = :mehrotra_solve, color=:green, plt=plt)
 plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.005, γ = Inf, algorithm = :mehrotra_solve, color=:green, plt=plt)
 plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.01, algorithm = :baseline_solve, color=:red, plt = plt)
 plt = benchmark_mehrotra(ss, ref_trajs, ϵ0 = 0.02, color=:blue, plt = plt)
