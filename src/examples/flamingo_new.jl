@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 600 # 35000
+H_sim = 10000 # 35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -124,6 +124,7 @@ plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', colo
 # plot!(plt[3,1], hcat(Vector.([b[1:nb] for b in sim.traj.b]*N_sample)...)', color=:red, linewidth=1.0)
 
 plot_surface!(vis, env, xlims=[-0.5, 1.5], ylims = [-0.5, 0.5])
+plot_lines!(vis, model, sim.traj.q)
 # anim = visualize_robot!(vis, model, sim.traj, sample=10)
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=10)
 anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample=10)
