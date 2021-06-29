@@ -251,21 +251,24 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
 
-    r_merit = norm(r, res_norm)
+    # r_merit = norm(r, res_norm)
+    r_vio = max(maximum(r.rdyn), maximum(r.rrst))
+    κ_vio = maximum(r.rbil)
     elapsed_time = 0.0
 
     for j = 1:max_iter_inner
         elapsed_time >= max_time && break
         elapsed_time += @elapsed begin
             # check for converged residual
-            if r_merit < r_tol
+            # if r_merit < r_tol
+            if (r_vio < r_tol) && (κ_vio < κ_tol)
                 break
             end
             ip.iterations += 1
             comp && println("************************** ITERATION :", ip.iterations)
 
             # Compute regularization level
-            κ_vio = maximum(r.rbil)
+            κ_vio = maximum(r.rbil) # should be useless
             κ_vio < κ_reg ? ip.reg_val = κ_vio * γ_reg : ip.reg_val = 0.0
 
             # compute residual Jacobian
@@ -290,7 +293,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
-            progress!(ip, r_merit, ϵ_min=ϵ_min)
+            # progress!(ip, r_merit, ϵ_min=ϵ_min)
+            progress!(ip, max(r_vio, κ_vio), ϵ_min=ϵ_min)
             ip.α = step_length(z, Δ, iy1, iy2, τ=ip.τ)
 
             comp && println("**** Δ1:", scn(norm(ip.α*Δ[ix]), digits=4))
@@ -311,14 +315,17 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             candidate_point!(z, s, z, Δ, ip.α)
             # update
             r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
-            r_merit = norm(r, res_norm)
+            # r_merit = norm(r, res_norm)
+            r_vio = max(maximum(r.rdyn), maximum(r.rrst))
+            κ_vio = maximum(r.rbil)
         end
     end
     # verbose && println("iter : ", ip.iterations)
     # verbose && println("r final: ", scn(r_merit))
 
-    if r_merit > r_tol
-        @error "Mehrotra solver failed to reduce residual below r_tol."
+    # if r_merit > r_tol
+    if (r_vio > r_tol) || (κ_vio > κ_tol)
+        @error "Mehrotra solver failed to reduce residual below r_tol or κ_tol."
         return false
     end
 
