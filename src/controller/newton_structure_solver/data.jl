@@ -17,13 +17,13 @@ nd = n * (T - 1)
 # indices
 u_idx = [(t - 1) * (m + n) .+ (1:m) for t = 1:T-1]
 x_idx = [(t - 1) * (m + n) + m .+ (1:n) for t = 1:T-1]
-d_idx = [(t - 1) * n .+ (1:n) for t = 1:T-1]
+n_idx = [(t - 1) * n .+ (1:n) for t = 1:T-1]
 
 # problem data
-Aa = [SMatrix{nq, nq}(Array(Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
-Ab = [SMatrix{nq, nq}(Array(Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
-Ac = [SMatrix{nq, nq}(Array(Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
-Ba = [SMatrix{nq,m}(rand(nq, m)) for t = 1:T-1]
+Aa = [SMatrix{nq, nq}(Array(-1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
+Ab = [SMatrix{nq, nq}(Array(-1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
+Ac = [SMatrix{nq, nq}(Array(Diagonal(ones(nq)))) for t = 1:T-1]
+Ba = [SMatrix{nq,m}(-1.0 * rand(nq, m)) for t = 1:T-1]
 Qa = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
 Qb = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
 
@@ -41,10 +41,10 @@ for t = 1:T-1
 	H[u_idx[t], u_idx[t]] = R[t]
 	H[x_idx[t], x_idx[t]] = Q[t+1]
 
-	C[d_idx[t], u_idx[t]] = B[t]
-	C[d_idx[t], x_idx[t]] = P[t]
+	C[n_idx[t], u_idx[t]] = B[t]
+	C[n_idx[t], x_idx[t]] = P[t]
 	t == 1 && continue
-	C[d_idx[t], x_idx[t-1]] = A[t]
+	C[n_idx[t], x_idx[t-1]] = A[t]
 end
 
 # build kkt system
@@ -72,96 +72,6 @@ end
 
 norm(H̃ - inv(H))
 
-idx_n = [(t - 1) * n .+ (1:n) for t = 1:T-1]
-
-Y = zeros(n * (T - 1), n * (T - 1))
-Yii = [SMatrix{n,n}(zeros(n, n)) for t = 1:T-1]
-Yij = [SMatrix{n,n}(zeros(n, n)) for t = 1:T-1]
-tmp_nm = SMatrix{n,m}(zeros(n, m))
-tmp_nn = SMatrix{n,n}(zeros(n, n))
-tmp_nn2 = SMatrix{n,n}(zeros(n, n))
-
-function computeY!(Yii, Yij, A, B, P, Q̃, R̃, tmp_nn, tmp_nn2, tmp_nm, T)
-	for t = 1:T-1
-		if t == 1
-			# Yii[t] = B[t] * R̃[t] * B[t]' + P[t] * Q̃[t+1] * P[t]'
-
-			tmp_nn = P[t] * Q̃[t+1]
-			# mul!(tmp_nn, P[t], Q̃[t+1])
-			# tmp_nn .= P[t]
-			# rmul!(tmp_nn, Q̃[t+1])
-			Yii[t] = tmp_nn * transpose(P[t])
-			# mul!(Yii[t], tmp_nn, transpose(P[t]))
-
-			tmp_nm = B[t] * R̃[t]
-			# mul!(tmp_nm, B[t], R̃[t])
-			# tmp_nm .= B[t]
-			# rmul!(tmp_nm, R̃[t])
-
-			tmp_nn = tmp_nm * transpose(B[t])
-			Yii[t] += tmp_nn
-			# mul!(tmp_nn, tmp_nm, transpose(B[t]))
-			# Yii[t] .+= tmp_nn
-		else
-			# Yii[t] = A[t] * Q̃[t] * A[t]' + B[t] * R̃[t] * B[t]' + P[t] * Q̃[t+1] * P[t]'
-
-			tmp_nn = A[t] * Q̃[t]
-			# mul!(tmp_nn, A[t], Q̃[t])
-			# tmp_nn .= A[t]
-			# rmul!(tmp_nn, Q̃[t])
-
-			Yii[t] = tmp_nn * transpose(A[t])
-			# mul!(Yii[t], tmp_nn, transpose(A[t]))
-
-			tmp_nm = B[t] * R̃[t]
-			# mul!(tmp_nm, B[t], R̃[t])
-			# tmp_nm .= B[t]
-			# rmul!(tmp_nm, R̃[t])
-
-			tmp_nn = tmp_nm * transpose(B[t])
-			Yii[t] += tmp_nn
-			# mul!(tmp_nn, tmp_nm, transpose(B[t]))
-			# Yii[t] .+= tmp_nn
-
-			tmp_nn = P[t] * Q̃[t+1]
-			# mul!(tmp_nn, P[t], Q̃[t+1])
-			# tmp_nn .= P[t]
-			# rmul!(tmp_nn, Q̃[t+1])
-
-			tmp_nn2 = tmp_nn * transpose(P[t])
-			Yii[t] += tmp_nn2
-			# mul!(tmp_nn2, tmp_nn, transpose(P[t]))
-			# Yii[t] .+= tmp_nn2
-		end
-
-		t == T-1 && continue
-		# Yij[t] = P[t] * Q̃[t+1] * A[t+1]'
-
-		tmp_nn = P[t] * Q̃[t+1]
-		# mul!(tmp_nn, P[t], Q̃[t+1])
-		# tmp_nn .= P[t]
-		# rmul!(tmp_nn, Q̃[t+1])
-
-		Yij[t] = tmp_nn * transpose(A[t+1])
-		# mul!(Yij[t], tmp_nn, transpose(A[t+1]))
-	end
-	nothing
-end
-
-@benchmark computeY!($Yii, $Yij, $A, $B, $P, $Q̃, $R̃, $tmp_nn, $tmp_nn2, $tmp_nm, $T)
-@code_warntype computeY!(Yii, Yij, A, B, P, Q̃, R̃, tmp_nn, tmp_nn, tmp_nm, T)
-for t = 1:T-1
-	Y[idx_n[t], idx_n[t]] = Yii[t]
-
-	t == T-1 && continue
-
-	Y[idx_n[t], idx_n[t+1]] = Yij[t]
-	Y[idx_n[t+1], idx_n[t]] = Yij[t]'
-end
-
-norm((Y - C * H̃ * C'))#[1:2n, 1:2n])
-
-### structured Y
 Ys = zeros(n * (T - 1), n * (T - 1))
 Ysii = [zeros(n, n) for t = 1:T-1]
 Ysij = [zeros(n, n) for t = 1:T-1]
@@ -274,7 +184,7 @@ end
 update_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Yiiav, Yiibv, Yiicv, Yiidv, Yijav, Yijbv, Yijcv, Yijdv, T)
 @benchmark update_Y!($Yiia, $Yiib, $Yiic, $Yiid, $Yija, $Yijb, $Yijc, $Yijd, $Yiiav, $Yiibv, $Yiicv, $Yiidv, $Yijav, $Yijbv, $Yijcv, $Yijdv, $T)
 @code_warntype update_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Yiiav, Yiibv, Yiicv, Yiidv, Yijav, Yijbv, Yijcv, Yijdv, T)
-
+idx_n
 for t = 1:T-1
 	Ys[idx_n[t], idx_n[t]] = Ysii[t]
 
@@ -284,75 +194,15 @@ for t = 1:T-1
 	Ys[idx_n[t+1], idx_n[t]] = Ysij[t]'
 end
 
-norm(Ys - Y)
 norm((Ys - C * H̃ * C'))#[1:2n, 1:2n])
-#####
-
-L = zeros(n * (T - 1), n * (T - 1))
-Lii = [zeros(n, n) for t = 1:T-1]
-Lji = [zeros(n, n) for t = 1:T-1]
-
-function computeL!(Lii, Lji, Yii, Yij, T)
-	for t = 1:T-1
-		# @show t
-		if t == 1
-			# Lii[t] = cholesky(Hermitian(Yii[t])).L
-
-			Lii[t] .= Yii[t]
-			LAPACK.potrf!('L', Lii[t])
-		else
-			# Lii[t] = cholesky(Hermitian(Yii[t] - Lji[t - 1] * Lji[t - 1]')).L
-
-			Lii[t] .= Yii[t]
-			mul!(Lii[t], transpose(Lji[t-1]), Lji[t-1], -1.0, 1.0)
-			LAPACK.potrf!('L', Lii[t])
-		end
-		# Lji[t] = (LowerTriangular(Lii[t]) \ Yij[t])'
-
-		Lji[t] .= Yij[t]
-		LAPACK.trtrs!('L', 'N', 'N', Lii[t], Lji[t])
-	end
-	nothing
-end
-
-function test_cholesky1(A)
-	B = copy(A)
-	cholesky(Hermitian(B)).L
-end
-
-function test_cholesky2(A)
-	B = copy(A)
-	LAPACK.potrf!('L', B)
-end
-
-cholesky(Hermitian(Yii[1])).L
-@benchmark test_cholesky1($Yii[1])
-
-_Y = Array(Yii[1])
-@benchmark test_cholesky2($_Y)
-
-@benchmark computeL!($Lii, $Lji, $Yii, $Yij, $T)
-@code_warntype computeL!(Lii, Lji, Yii, Yij, T)
-
-computeL!(Lii, Lji, Yii, Yij, T)
-
-for t = 1:T-1
-	L[idx_n[t], idx_n[t]] = LowerTriangular(Lii[t])
-
-	t == T-1 && continue
-
-	L[idx_n[t+1], idx_n[t]] = transpose(Lji[t])
-end
-
-norm(cholesky(Hermitian(Y)).L - L)
 
 ###
 L = zeros(n * (T - 1), n * (T - 1))
 Liis = [LowerTriangular(SMatrix{n,n}(zeros(n, n))) for t = 1:T-1]
 Ljis = [SMatrix{n,n}(zeros(n, n)) for t = 1:T-1]
 
-Yiis = [SMatrix{n,n}(Hermitian(Yii[t])) for t = 1:T-1]
-Yijs = [SMatrix{n,n}(Yij[t]) for t = 1:T-1]
+Yiis = [SMatrix{n,n}(Hermitian(Ysii[t])) for t = 1:T-1]
+Yijs = [SMatrix{n,n}(Ysij[t]) for t = 1:T-1]
 
 tmp_nn = SMatrix{n,n}(zeros(n,n))
 tmp_nn2 = SMatrix{n,n}(zeros(n,n))
@@ -361,9 +211,9 @@ function computeLs!(Lii, Lji, Yii, Yij, tmp_nn, tmp_nn2, tmp_nn_a, T)
 	for t = 1:T-1
 		# @show t
 		if t == 1
-			# Lii[t] = cholesky(Hermitian(Yii[t])).L
+			Lii[t] = cholesky(Hermitian(Yii[t])).L
 
-			Lii[t] = cholesky(Yii[t]).L
+			# Lii[t] = cholesky(Yii[t]).L
 		else
 			# Lii[t] = cholesky(Hermitian(Yii[t] - Lji[t - 1] * Lji[t - 1]')).L
 
@@ -383,13 +233,13 @@ end
 @code_warntype computeLs!(Liis, Ljis, Yiis, Yijs, tmp_nn, tmp_nn2, tmp_nn_a, T)
 
 for t = 1:T-1
-	L[idx_n[t], idx_n[t]] = LowerTriangular(Liis[t])
+	L[n_idx[t], n_idx[t]] = LowerTriangular(Liis[t])
 
 	t == T-1 && continue
 
-	L[idx_n[t+1], idx_n[t]] = transpose(Ljis[t])
+	L[n_idx[t+1], n_idx[t]] = transpose(Ljis[t])
 end
-norm(cholesky(Hermitian(Y)).L - L)
+norm(cholesky(Hermitian(Ys)).L - L)
 
 ###
 
@@ -397,52 +247,72 @@ norm(cholesky(Hermitian(Y)).L - L)
 Δz = zeros(nz)
 Δν = zeros(nd)
 
-rd = r[1:nz]
-rp = r[nz .+ (1:nd)]
-β = -rp + C * H̃ * rd
-b = [view(β, idx_n[t]) for t = 1:T-1]
-Δν .= Y \ β
-# Δν .= β
-# LAPACK.potrs!('L', L, Δν)
-Δz .= H̃ * (rd - C' * Δν)
-norm(Δldl - [Δz; Δν])
+rlag = view(r, 1:nz)
+_rlagu = [view(rlag, u_idx[t]) for t = 1:T-1]
+_rlagx = [view(rlag, x_idx[t]) for t = 1:T-1]
+_rlagqa = [view(rlag, qa_idx[t]) for t = 1:T-1]
+_rlagqb = [view(rlag, qb_idx[t]) for t = 1:T-1]
 
-# forward subsitution
-y = [zeros(n) for t = 1:T-1]
+rlagu = [SVector{m}(zeros(m)) for t = 1:T-1]
+rlagqa = [SVector{nq}(zeros(nq)) for t = 1:T-1]
+rlagqb = [SVector{nq}(zeros(nq)) for t = 1:T-1]
 
-function forward_substitution!(y, Lii, Lji, b, T)
-	for t = 1:T-1
-		if t == 1
-			# y[1] .= Lii[1] \ β[idx_n[1]]
-
-			y[1] .= b[t]
-			LAPACK.trtrs!('L', 'N', 'N', Lii[t], y[1])
-		else
-			# y[t] .= Lii[t] \ (β[idx_n[t]] - Lji[t - 1] * y[t - 1])
-
-			y[t] .= b[t]
-			mul!(y[t], transpose(Lji[t - 1]), y[t - 1], -1.0, 1.0)
-			LAPACK.trtrs!('L', 'N', 'N', Lii[t], y[t])
-		end
-	end
-	nothing
+for t = 1:T-1
+	rlagu[t] = _rlagu[t]
+	rlagqa[t] = _rlagqa[t]
+	rlagqb[t] = _rlagqb[t]
 end
 
-@benchmark forward_substitution!($y, $Lii, $Lji, $b, $T)
-@code_warntype forward_substitution!(y, Lii, Lji, b, T)
-norm(vcat(y...) - L \ β, Inf)
+rdyn = view(r, nz .+ (1:nd))
+_rdyn1 = [view(rdyn[n_idx[t]], 1:nq) for t = 1:T-1]
+_rdyn2 = [view(rdyn[n_idx[t]], nq .+ (1:nq)) for t = 1:T-1]
+
+rdyn1 = [SVector{nq}(zeros(nq)) for t = 1:T-1]
+rdyn2 = [SVector{nq}(zeros(nq)) for t = 1:T-1]
+
+for t = 1:T-1
+	rdyn1[t] = _rdyn1[t]
+	rdyn2[t] = _rdyn2[t]
+end
+
+β = -rdyn + C * H̃ * rlag
+
+βn = [SVector{n}(zeros(n)) for t = 1:T-1]
+βd = [SVector{nq}(zeros(nq)) for t = 1:T-1]
+βe = [SVector{nq}(zeros(nq)) for t = 1:T-1]
+tmp_q_nn
+tmp_q_nm
+tmp_q_n = SVector{nq}(zeros(nq))
+
+function update_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, T)
+	for t = 1:T-1
+		if t == 1
+			βd[1] = -1.0 * rdyn1[1] + Ba[1] * R̃[1] * rlagu[1] + Ac[1] * Q̃b[2] * rlagqb[1]
+			βe[1] = -1.0 * rdyn2[1] + Q̃a[2] * rlagqa[1]
+		else
+			βd[t] = -1.0 * rdyn1[t] + Ba[t] * R̃[t] * rlagu[t] + Ac[t] * Q̃b[t+1] * rlagqb[t] + Aa[t] * Q̃a[t] * rlagqa[t-1] + Ab[t] * Q̃b[t] * rlagqb[t-1]
+			βe[t] = -1.0 * rdyn2[t] + Q̃a[t+1] * rlagqa[t] - Q̃b[t] * rlagqb[t-1]
+		end
+		βn[t] = [βd[t]; βe[t]]
+	end
+end
+
+@benchmark update_β!($βn, $βd, $βe, $rlagu, $rlagqa, $rlagqb, $rdyn1, $rdyn2, $Aa, $Ab, $Ac, $Ba, $Q̃a, $Q̃b, $R̃, $T)
+@code_warntype update_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, T)
+
+norm((β - vcat([[βd[t]; βe[t]] for t = 1:T-1]...)))
 
 ys = [@SVector zeros(n) for t = 1:T-1]
-bs = [SVector{n}(β[idx_n[t]]) for t = 1:T-1]
+b = [SVector{n}(view(β, idx_n[t])) for t = 1:T-1]
 
 function forward_substitution_s!(y, Lii, Lji, b, T)
 	for t = 1:T-1
 		if t == 1
-			# y[1] .= Lii[1] \ β[idx_n[1]]
+			# y[1] .= Lii[1] \ β[n_idx[1]]
 
 			y[1] = Lii[1] \ b[1]
 		else
-			# y[t] .= Lii[t] \ (β[idx_n[t]] - Lji[t - 1] * y[t - 1])
+			# y[t] .= Lii[t] \ (β[n_idx[t]] - Lji[t - 1] * y[t - 1])
 
 			b[t] -= Lji[t - 1] * y[t - 1]
 			y[t] = Lii[t] \ b[t]
@@ -451,40 +321,11 @@ function forward_substitution_s!(y, Lii, Lji, b, T)
 	nothing
 end
 
-@benchmark forward_substitution_s!($ys, $Liis, $Ljis, $bs, $T)
-@code_warntype forward_substitution_s!(ys, Liis, Ljis, bs, T)
-norm(vcat(y...) - L \ β, Inf)
-
-# backward substitution
-x_vec = zeros(n * (T-1))
-x = [view(x_vec, idx_n[t]) for t = 1:T-1]
-function backward_substitution!(x, Lii, Lji, y, T)
-	for t = T-1:-1:1
-		if t == T-1
-			# x[t] = LowerTriangular(Lii[t])' \ y[t]
-
-			x[t] .= y[t]
-			LAPACK.trtrs!('L', 'T', 'N', Lii[t], x[t])
-		else
-			# x[t] = LowerTriangular(Lii[t])' \ (y[t] - Lji[t]' * x[t+1])
-
-			x[t] .= y[t]
-			mul!(x[t], Lji[t], x[t+1], -1.0, 1.0)
-			LAPACK.trtrs!('L', 'T', 'N', Lii[t], x[t])
-		end
-	end
-	nothing
-end
-
-@benchmark backward_substitution!($x, $Lii, $Lji, $y, $T)
-@code_warntype backward_substitution!(x, Lii, Lji, y, T)
-
-norm(vcat(x...) - Y \ β, Inf)
-norm(vcat(x...) - L' \ (L \ β), Inf)
-norm(x_vec - L' \ (L \ β), Inf)
-norm(x_vec - L' \ (L \ β), Inf)
-
-xs = [SVector{n}(zeros(n)) for t = 1:T-1]
+@benchmark forward_substitution_s!($ys, $Liis, $Ljis, $b, $T)
+@code_warntype forward_substitution_s!(ys, Liis, Ljis, b, T)
+norm(vcat(ys...) - L \ β)
+vcat(ys...)
+Δνn = [SVector{n}(zeros(n)) for t = 1:T-1]
 function backward_substitution_s!(x, Lii, Lji, y, T)
 	for t = T-1:-1:1
 		if t == T-1
@@ -494,12 +335,44 @@ function backward_substitution_s!(x, Lii, Lji, y, T)
 		else
 			# x[t] = LowerTriangular(Lii[t])' \ (y[t] - Lji[t]' * x[t+1])
 
-			y[t] -= transpose(Lji[t]) * x[t+1]
+			y[t] -= transpose(Lji[t]) * x[t + 1]
 			x[t] = transpose(Lii[t]) \ y[t]
 		end
 	end
 	nothing
 end
 
-@benchmark backward_substitution_s!($xs, $Liis, $Ljis, $ys, $T)
-@code_warntype backward_substitution!(x, Lii, Lji, y, T)
+@benchmark backward_substitution_s!($Δνn, $Liis, $Ljis, $ys, $T)
+@code_warntype backward_substitution_s!(Δνn, Liis, Ljis, ys, T)
+
+Δν = zeros(nd)
+Δν .= Ys \ β
+
+Δνd = [SVector{nq}(view(Δν, n_idx[t][1:nq])) for t = 1:T-1]
+Δνe = [SVector{nq}(view(Δν, n_idx[t][nq .+ (1:nq)])) for t = 1:T-1]
+
+Δzu = [@SVector zeros(m) for t = 1:T-1]
+Δzqa = [@SVector zeros(nq) for t = 1:T-1]
+Δzqb = [@SVector zeros(nq) for t = 1:T-1]
+
+# Δν .= β
+# LAPACK.potrs!('L', L, Δν)
+Δz .= H̃ * (rlag - C' * Δν)
+
+function update_Δz!(Δzu, Δzqa, Δzqb, Δνd, Δνe, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, rlagu, rlagqa, rlagqb, T)
+	for t = 1:T-1
+		Δzu[t] = R̃[t] * (rlagu[t] - transpose(Ba[t]) * Δνd[t])
+		if t < T-1
+			Δzqa[t] = Q̃a[t+1] * (rlagqa[t] - Δνe[t] - transpose(Aa[t+1]) * Δνd[t+1])
+			Δzqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t] - transpose(Ab[t+1]) * Δνd[t+1] + Δνe[t+1])
+		else
+			Δzqa[t] = Q̃a[t+1] * (rlagqa[t] - Δνe[t])
+			Δzqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t])
+		end
+	end
+end
+
+@benchmark update_Δz!($Δzu, $Δzqa, $Δzqb, $Δνd, $Δνe, $Aa, $Ab, $Ac, $Ba, $Q̃a, $Q̃b, $R̃, $rlagu, $rlagqa, $rlagqb, $T)
+@code_warntype update_Δz!(Δzu, Δzqa, Δzqb, Δνd, Δνe, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, rlagu, rlagqa, rlagqb, T)
+
+norm((Δz - vcat([[Δzu[t]; Δzqa[t]; Δzqb[t]] for t = 1:T-1]...))[1:end])
