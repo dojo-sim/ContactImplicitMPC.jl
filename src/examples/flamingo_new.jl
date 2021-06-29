@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 4000 # 35000
+H_sim = 5000 # 35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -72,8 +72,8 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 		r_tol = 1.0e-6,
 		κ_tol = 3.0e-4,
 		diff_sol = true,
-		# κ_reg = 1e-3,
-		# γ_reg = 1e-1,
+		κ_reg = 5e-3,
+		γ_reg = 4e-1,
 		solver = :empty_solver,
 		),
     )
