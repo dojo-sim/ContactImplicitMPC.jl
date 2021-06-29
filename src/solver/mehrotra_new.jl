@@ -252,8 +252,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
 
     # r_merit = norm(r, res_norm)
-    r_vio = max(maximum(r.rdyn), maximum(r.rrst))
-    κ_vio = maximum(r.rbil)
+    r_vio = max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
+    κ_vio = norm(r.rbil, Inf)
     elapsed_time = 0.0
 
     for j = 1:max_iter_inner
@@ -268,7 +268,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             comp && println("************************** ITERATION :", ip.iterations)
 
             # Compute regularization level
-            κ_vio = maximum(r.rbil) # should be useless
+            κ_vio = norm(r.rbil, Inf) # should be useless
             κ_vio < κ_reg ? ip.reg_val = κ_vio * γ_reg : ip.reg_val = 0.0
 
             # compute residual Jacobian
@@ -281,11 +281,13 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             linear_solve!(solver, Δaff, rz, r, reg = ip.reg_val)
 
             ip.αaff = step_length(z, Δaff, iy1, iy2, τ=1.0)
-            # μaff = (z_y1 - αaff * Δaff[iy1])' * (z_y2 - αaff * Δaff[iy2]) / ny
+            # μaff = (z_y1 - ip.αaff * Δaff[iy1])' * (z_y2 - ip.αaff * Δaff[iy2]) / ny
             # μ = z_y1'*z_y2 / length(z_y1)
             # σ = (μaff / μ)^3
             # ip.σ, ip.μ = centering(z, Δaff, iy1, iy2, ip.αaff)
             centering!(ip, z, Δaff, iy1, iy2, ip.αaff)
+            # @show scn(abs(μ - ip.μ))
+            # @show scn(abs(σ - ip.σ))
 
             # Compute corrector residual
             rm!(r, z, Δaff, θ, ip.σ*ip.μ) # here we set κ = σ*μ, Δ = Δaff
@@ -316,8 +318,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             # update
             r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
             # r_merit = norm(r, res_norm)
-            r_vio = max(maximum(r.rdyn), maximum(r.rrst))
-            κ_vio = maximum(r.rbil)
+            r_vio = max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
+            κ_vio = norm(r.rbil, Inf)
         end
     end
     # verbose && println("iter : ", ip.iterations)
