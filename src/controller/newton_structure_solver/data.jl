@@ -17,6 +17,8 @@ nd = n * (T - 1)
 # indices
 u_idx = [(t - 1) * (m + n) .+ (1:m) for t = 1:T-1]
 x_idx = [(t - 1) * (m + n) + m .+ (1:n) for t = 1:T-1]
+qa_idx = [x_idx[t][1:nq] for t = 1:T-1]
+qb_idx = [x_idx[t][nq .+ (1:nq)] for t = 1:T-1]
 n_idx = [(t - 1) * n .+ (1:n) for t = 1:T-1]
 
 # problem data
@@ -184,7 +186,8 @@ end
 update_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Yiiav, Yiibv, Yiicv, Yiidv, Yijav, Yijbv, Yijcv, Yijdv, T)
 @benchmark update_Y!($Yiia, $Yiib, $Yiic, $Yiid, $Yija, $Yijb, $Yijc, $Yijd, $Yiiav, $Yiibv, $Yiicv, $Yiidv, $Yijav, $Yijbv, $Yijcv, $Yijdv, $T)
 @code_warntype update_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Yiiav, Yiibv, Yiicv, Yiidv, Yijav, Yijbv, Yijcv, Yijdv, T)
-idx_n
+
+idx_n = n_idx
 for t = 1:T-1
 	Ys[idx_n[t], idx_n[t]] = Ysii[t]
 
@@ -243,7 +246,7 @@ norm(cholesky(Hermitian(Ys)).L - L)
 
 ###
 
-# solve system
+#solve system
 Δz = zeros(nz)
 Δν = zeros(nd)
 
@@ -263,9 +266,10 @@ for t = 1:T-1
 	rlagqb[t] = _rlagqb[t]
 end
 
+
 rdyn = view(r, nz .+ (1:nd))
-_rdyn1 = [view(rdyn[n_idx[t]], 1:nq) for t = 1:T-1]
-_rdyn2 = [view(rdyn[n_idx[t]], nq .+ (1:nq)) for t = 1:T-1]
+_rdyn1 = [view(rdyn, n_idx[t][1:nq]) for t = 1:T-1]
+_rdyn2 = [view(rdyn, n_idx[t][nq .+ (1:nq)]) for t = 1:T-1]
 
 rdyn1 = [SVector{nq}(zeros(nq)) for t = 1:T-1]
 rdyn2 = [SVector{nq}(zeros(nq)) for t = 1:T-1]
@@ -280,8 +284,6 @@ end
 βn = [SVector{n}(zeros(n)) for t = 1:T-1]
 βd = [SVector{nq}(zeros(nq)) for t = 1:T-1]
 βe = [SVector{nq}(zeros(nq)) for t = 1:T-1]
-tmp_q_nn
-tmp_q_nm
 tmp_q_n = SVector{nq}(zeros(nq))
 
 function update_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, T)
@@ -299,8 +301,35 @@ end
 
 @benchmark update_β!($βn, $βd, $βe, $rlagu, $rlagqa, $rlagqb, $rdyn1, $rdyn2, $Aa, $Ab, $Ac, $Ba, $Q̃a, $Q̃b, $R̃, $T)
 @code_warntype update_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, T)
+norm(β - vcat([[βd[t]; βe[t]] for t = 1:T-1]...))
+norm((β - vcat(βn...)))
 
-norm((β - vcat([[βd[t]; βe[t]] for t = 1:T-1]...)))
+
+# forward subsitution
+y = [zeros(n) for t = 1:T-1]
+b = [SVector{n}(view(β, idx_n[t])) for t = 1:T-1]
+
+function forward_substitution!(y, Lii, Lji, b, T)
+	for t = 1:T-1
+		if t == 1
+			# y[1] .= Lii[1] \ β[idx_n[1]]
+
+			y[1] .= b[t]
+			LAPACK.trtrs!('L', 'N', 'N', Array(Lii[t]), y[1])
+		else
+			# y[t] .= Lii[t] \ (β[idx_n[t]] - Lji[t - 1] * y[t - 1])
+
+			y[t] .= b[t]
+			mul!(y[t], transpose(Array(Lji[t - 1])), y[t - 1], -1.0, 1.0)
+			LAPACK.trtrs!('L', 'N', 'N', Array(Lii[t]), y[t])
+		end
+	end
+	nothing
+end
+
+@benchmark forward_substitution!($y, $Liis, $Ljis, $b, $T)
+@code_warntype forward_substitution!(y, Liis, Ljis, b, T)
+norm(vcat(y...) - L \ β, Inf)
 
 ys = [@SVector zeros(n) for t = 1:T-1]
 b = [SVector{n}(view(β, idx_n[t])) for t = 1:T-1]
@@ -312,10 +341,11 @@ function forward_substitution_s!(y, Lii, Lji, b, T)
 
 			y[1] = Lii[1] \ b[1]
 		else
-			# y[t] .= Lii[t] \ (β[n_idx[t]] - Lji[t - 1] * y[t - 1])
-
-			b[t] -= Lji[t - 1] * y[t - 1]
-			y[t] = Lii[t] \ b[t]
+			# y[t] .= Lii[t] \ (β[n_idx[t]] - transpose(Lji[t - 1]) * y[t - 1])
+			# y[t] = b[t]
+			# b[t] -= transpose(Lji[t - 1]) * y[t - 1]
+			# y[t] = Lii[t] \ b[t]
+			y[t] = Lii[t] \ (b[t] - transpose(Lji[t - 1]) * y[t - 1])
 		end
 	end
 	nothing
@@ -323,8 +353,37 @@ end
 
 @benchmark forward_substitution_s!($ys, $Liis, $Ljis, $b, $T)
 @code_warntype forward_substitution_s!(ys, Liis, Ljis, b, T)
-norm(vcat(ys...) - L \ β)
-vcat(ys...)
+norm(vcat(ys...) - L \ β, Inf)
+
+# backward substitution
+x_vec = zeros(n * (T-1))
+x = [view(x_vec, idx_n[t]) for t = 1:T-1]
+function backward_substitution!(x, Lii, Lji, y, T)
+	for t = T-1:-1:1
+		if t == T-1
+			# x[t] = LowerTriangular(Lii[t])' \ y[t]
+
+			x[t] .= y[t]
+			LAPACK.trtrs!('L', 'T', 'N', Array(Lii[t]), x[t])
+		else
+			# x[t] = LowerTriangular(Lii[t])' \ (y[t] - Lji[t]' * x[t+1])
+
+			x[t] .= y[t]
+			mul!(x[t], Array(Lji[t]), x[t+1], -1.0, 1.0)
+			LAPACK.trtrs!('L', 'T', 'N', Array(Lii[t]), x[t])
+		end
+	end
+	nothing
+end
+
+@benchmark backward_substitution!($x, $Liis, $Ljis, $y, $T)
+@code_warntype backward_substitution!(x, Liis, Ljis, y, T)
+
+norm(vcat(x...) - Ys \ β, Inf)
+norm(vcat(x...) - L' \ (L \ β), Inf)
+norm(x_vec - L' \ (L \ β), Inf)
+norm(x_vec - L' \ (L \ β), Inf)
+
 Δνn = [SVector{n}(zeros(n)) for t = 1:T-1]
 function backward_substitution_s!(x, Lii, Lji, y, T)
 	for t = T-1:-1:1
@@ -333,10 +392,11 @@ function backward_substitution_s!(x, Lii, Lji, y, T)
 
 			x[t] = transpose(Lii[t]) \ y[t]
 		else
-			# x[t] = LowerTriangular(Lii[t])' \ (y[t] - Lji[t]' * x[t+1])
+			# x[t] = LowerTriangular(Lii[t])' \ (y[t] - Lji[t] * x[t+1])
 
-			y[t] -= transpose(Lji[t]) * x[t + 1]
-			x[t] = transpose(Lii[t]) \ y[t]
+			# y[t] -= Lji[t] * x[t + 1]
+			# x[t] = transpose(Lii[t]) \ y[t]
+			x[t] = transpose(Lii[t]) \ (y[t] - Lji[t] * x[t + 1])
 		end
 	end
 	nothing
@@ -345,8 +405,15 @@ end
 @benchmark backward_substitution_s!($Δνn, $Liis, $Ljis, $ys, $T)
 @code_warntype backward_substitution_s!(Δνn, Liis, Ljis, ys, T)
 
+norm(vcat(Δνn...) - Ys \ β, Inf)
+norm(vcat(x...) - L' \ (L \ β), Inf)
+norm(x_vec - L' \ (L \ β), Inf)
+norm(x_vec - L' \ (L \ β), Inf)
+
 Δν = zeros(nd)
 Δν .= Ys \ β
+
+Δν = vcat(Δνn...)
 
 Δνd = [SVector{nq}(view(Δν, n_idx[t][1:nq])) for t = 1:T-1]
 Δνe = [SVector{nq}(view(Δν, n_idx[t][nq .+ (1:nq)])) for t = 1:T-1]
