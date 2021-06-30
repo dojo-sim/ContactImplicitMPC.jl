@@ -31,7 +31,7 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     z::Vector{T}                 # current point
     Δaff::Vector{T}              # affine search direction
     Δ::Vector{T}                 # corrector search direction
-    r::R                          # residual
+    r::R                            # residual
     rbil                         # corrector residual
     r_merit::T                   # residual norm
     r̄::R #useless                            # candidate residual
@@ -47,7 +47,7 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     κ::Vector{T}                 # barrier parameter
     num_var::Int
     num_data::Int
-    # nbil::Int #useless
+    # nbil::Int # useless
     solver::LinearSolver
     v_pr # view
     v_du # view
@@ -245,27 +245,29 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
-    least_squares!(ip.z, ip.θ, ip.r, ip.rz)
-    z .= initial_state!(z, ix, iy1, iy2, comp = comp)
+    least_squares!(z, θ, r, rz)
+    z .= initial_state!(z, ix, iy1, iy2; comp = comp)
 
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
 
-    r_merit = norm(r, res_norm)
+    # r_merit = norm(r, res_norm)
+    r_vio = max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
+    κ_vio = norm(r.rbil, Inf)
     elapsed_time = 0.0
 
     for j = 1:max_iter_inner
         elapsed_time >= max_time && break
         elapsed_time += @elapsed begin
             # check for converged residual
-            if r_merit < r_tol
+            if (r_vio < r_tol) && (κ_vio < κ_tol)
                 break
             end
             ip.iterations += 1
             comp && println("************************** ITERATION :", ip.iterations)
 
             # Compute regularization level
-            κ_vio = maximum(r.rbil)
+            κ_vio = norm(r.rbil, Inf)
             κ_vio < κ_reg ? ip.reg_val = κ_vio * γ_reg : ip.reg_val = 0.0
 
             # compute residual Jacobian
@@ -276,26 +278,19 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r, reg = ip.reg_val)
-
-            ip.αaff = step_length(z, Δaff, iy1, iy2, τ=1.0)
-            # μaff = (z_y1 - αaff * Δaff[iy1])' * (z_y2 - αaff * Δaff[iy2]) / ny
-            # μ = z_y1'*z_y2 / length(z_y1)
-            # σ = (μaff / μ)^3
-            # ip.σ, ip.μ = centering(z, Δaff, iy1, iy2, ip.αaff)
-            centering!(ip, z, Δaff, iy1, iy2, ip.αaff)
+            αaff = step_length(z, Δaff, iy1, iy2; τ = 1.0)
+            centering!(ip, z, Δaff, iy1, iy2, αaff)
 
             # Compute corrector residual
-            rm!(r, z, Δaff, θ, ip.σ*ip.μ) # here we set κ = σ*μ, Δ = Δaff
-            # @show norm(Δaff)
-
+            rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
-            progress!(ip, r_merit, ϵ_min=ϵ_min)
-            ip.α = step_length(z, Δ, iy1, iy2, τ=ip.τ)
 
-            comp && println("**** Δ1:", scn(norm(ip.α*Δ[ix]), digits=4))
-            comp && println("**** Δ2:", scn(norm(ip.α*Δ[iy1]), digits=4))
-            comp && println("**** Δ3:", scn(norm(ip.α*Δ[iy2]), digits=4))
+            progress!(ip, max(r_vio, κ_vio), ϵ_min=ϵ_min)
+            α = step_length(z, Δ, iy1, iy2; τ = ip.τ)
+            comp && println("**** Δ1:", scn(norm(α*Δ[ix]), digits=4))
+            comp && println("**** Δ2:", scn(norm(α*Δ[iy1]), digits=4))
+            comp && println("**** Δ3:", scn(norm(α*Δ[iy2]), digits=4))
 
             # verbose && println("iter:", j,
             #     "  r: ", scn(norm(r, res_norm)),
@@ -304,26 +299,30 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             #     # "  Δ[iy1]: ", scn(norm(Δ[iy1])),
             #     # "  Δ[iy2]: ", scn(norm(Δ[iy2])),
             #     "  Δaff: ", scn(norm(Δaff)),
-            #     "  τ: ", scn(norm(ip.τ)),
+            #     "  τ: ", scn(norm(τ)),
             #     "  α: ", scn(norm(α)))
 
             # candidate point
-            candidate_point!(z, s, z, Δ, ip.α)
+            candidate_point!(z, s, z, Δ, α)
+
             # update
             r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
-            r_merit = norm(r, res_norm)
+
+            r_vio = max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
+            κ_vio = norm(r.rbil, Inf)
         end
     end
     # verbose && println("iter : ", ip.iterations)
-    # verbose && println("r final: ", scn(r_merit))
+    # verbose && println("r_vio: ", scn(r_vio))
+    # verbose && println("κ_vio: ", scn(κ_vio))
 
-    if r_merit > r_tol
+    if (r_vio > r_tol) || (κ_vio > κ_tol)
         @error "Mehrotra solver failed to reduce residual below r_tol."
         return false
     end
-
     # differentiate solution
     diff_sol && differentiate_solution!(ip, reg = ip.reg_val)
+
     return true
 end
 
@@ -364,12 +363,10 @@ function initial_state!(z, ix, iy1, iy2; comp::Bool=true)
     return z
 end
 
-
 function progress!(ip::Mehrotra{T}, merit::T; ϵ_min::T = 0.05) where {T}
     ϵ = min(ϵ_min, merit^2)
     ip.τ = 1 - ϵ
 end
-
 
 function step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
 		iy1::SVector{n,Int}, iy2::SVector{n,Int}; τ::T=0.9995) where {n,T}
@@ -394,7 +391,6 @@ function centering!(ip::Mehrotra{T}, z::AbstractVector{T}, Δaff::AbstractVector
 	ip.σ = (μaff / ip.μ)^3
 	return nothing
 end
-
 
 function interior_point_solve!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z

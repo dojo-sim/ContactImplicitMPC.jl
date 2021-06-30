@@ -2,7 +2,7 @@
 @with_kw mutable struct NewtonOptions{T}
     r_tol::T = 1.0e-5            # primal dual residual tolerance
 	max_iter::Int = 10           # maximum number of primal dual iter
-    max_time::T = 60.0           # maximum time spent in the Newton solver
+    max_time::T = 10000.0        # maximum time spent in the Newton solver
     β_init::T = 1.0e-5           # initial dual regularization
     live_plotting::Bool = false  # visualize the trajectory during the solve
     verbose::Bool = false
@@ -240,7 +240,7 @@ function newton_solve!(core::Newton, s::Simulation,
 
 	        # print status
 	        core.opts.verbose && println(" l: ", l ,
-					"     t: ", scn(elapsed_time), digits = 0,
+					"     t: ", scn(elapsed_time, digits = 0),
 	                "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits = 0),
 	                "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits = 0),
 	                "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
