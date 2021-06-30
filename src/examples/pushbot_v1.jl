@@ -1,7 +1,6 @@
 include(joinpath(@__DIR__, "..", "dynamics", "pushbot", "visuals.jl"))
-
 vis = Visualizer()
-render(vis)
+# render(vis)
 open(vis)
 
 s = get_simulation("pushbot", "flat_2D_lc", "flat")
@@ -99,7 +98,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     mpc_opts = LinearizedMPCOptions(),
 	ip_opts = MehrotraOptions(
 		max_iter_inner = 100,
-		verbose = true,
+		# verbose = true,
 		r_tol = 1.0e-4,
 		κ_tol = 1.0e-4,
 		diff_sol = true,
@@ -132,9 +131,9 @@ sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 telap = @elapsed status = ContactControl.simulate!(sim, verbose = true)
-# @profiler status = ContactControl.simulate!(sim)
-H_sim * h / (telap * 0.35)
-
+# @profiler status = ContactControl.simulate!(sim, verbose = true)
+H_sim * h / (telap * 0.97)
+#7.77
 
 l = 1
 lu = 1

@@ -176,18 +176,25 @@ function newton_solve!(core::Newton, s::Simulation,
     # Compute implicit dynamics about traj
 	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
 
+	@show scn.(im_traj.d[1])
     # Compute residual
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
 
     r_norm = norm(core.res.r, 1)
+	@show scn.(core.traj.q[1])
+	@show scn.(core.traj.q[2])
+	@show r_norm / length(core.res.r)
 	elapsed_time = 0.0
 
+	@show "10"
     for l = 1:core.opts.max_iter
 		elapsed_time >= core.opts.max_time && break
-		# println("iter:", l, "  elapsed_time:", elapsed_time)
+		println("iter:", l, "  elapsed_time:", elapsed_time)
 		elapsed_time += @elapsed begin
 	        # check convergence
+			@show "before"
 	        r_norm / length(core.res.r) < core.opts.r_tol && break
+			@show "after break"
 	        # Compute NewtonJacobian
 	        update_jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
 
@@ -249,5 +256,6 @@ function newton_solve!(core::Newton, s::Simulation,
 		end
     end
 
+	@show "10000"
     return nothing
 end

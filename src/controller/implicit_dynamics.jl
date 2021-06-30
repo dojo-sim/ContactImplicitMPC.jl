@@ -181,22 +181,9 @@ function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
 
 	# Threads.@threads for t = 1:traj.H
 	for t = 1:traj.H
-		# @show "-20"
-		# @show norm(im_traj.ip[t].r, Inf)
-		# @show norm(im_traj.ip[t].z)
-		# @show norm(im_traj.ip[t].Δ)
-
-		# @show "-15"
-		# @show norm(traj.q[t+2])
-
 		# initialized solver
 		z_initialize!(im_traj.ip[t].z, model, env, copy(traj.q[t+2])) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
-
-		# @show "-10"
-	    # @show norm(im_traj.ip[t].r, Inf)
-	    # @show norm(im_traj.ip[t].z)
-	    # @show norm(im_traj.ip[t].Δ)
 
 		# solve
 		status = interior_point_solve!(im_traj.ip[t])
