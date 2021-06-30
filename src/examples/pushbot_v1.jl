@@ -84,6 +84,31 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         max_iter = 10),
     mpc_opts = LinearizedMPCOptions())
 
+p = linearized_mpc_policy(ref_traj, s, obj,
+    H_mpc = H_mpc,
+    N_sample = N_sample,
+    κ_mpc = κ_mpc,
+	# mode = :configurationforce,
+	# mode = :configuration,
+	ip_type = :mehrotra,
+    n_opts = NewtonOptions(
+		r_tol = 3e-4,
+		max_iter = 10,
+		# verbose = true,
+		),
+    mpc_opts = LinearizedMPCOptions(),
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
+		verbose = true,
+		r_tol = 1.0e-4,
+		κ_tol = 1.0e-4,
+		diff_sol = true,
+		# κ_reg = 1e-3,
+		# γ_reg = 1e-1,
+		solver = :empty_solver,
+		),
+    )
+
 idx_d1 = 20
 idx_d2 = idx_d1 + 200
 idx_d3 = idx_d2 + 80
@@ -106,10 +131,26 @@ sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
         κ_tol = 2.0e-6),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
-@time status = ContactControl.simulate!(sim)
+telap = @elapsed status = ContactControl.simulate!(sim, verbose = true)
+# @profiler status = ContactControl.simulate!(sim)
+H_sim * h / (telap * 0.35)
+
+
+l = 1
+lu = 1
+plt = plot(layout=(3,1), legend=false)
+plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
+    color=:red, linewidth=3.0)
+plot!(plt[1,1], hcat(Vector.([q[l:l] for q in sim.traj.q])...)', color=:blue, linewidth=1.0)
+plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][lu:lu], N_sample) for i=1:H]...))...)',
+    color=:red, linewidth=3.0)
+plot!(plt[3,1], hcat(Vector.(vcat([fill(ref_traj.γ[i][1:nc], N_sample) for i=1:H]...))...)',
+    color=:red, linewidth=3.0)
+plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 
 sample = 1
-anim = visualize_robot!(vis, model, sim.traj, sample = sample, α=1.0)
+
+anim = visualize_robot!(vis, model, sim.traj, sample = 1)#, sample = sample, α=1.0)
 pθ_right = generate_pusher_traj(d, sim.traj, side=:right)
 pθ_left  = generate_pusher_traj(d, sim.traj, side=:left)
 visualize_disturbance!(vis, model, pθ_right, anim=anim, sample=sample, offset=0.05, name=:PusherRight)

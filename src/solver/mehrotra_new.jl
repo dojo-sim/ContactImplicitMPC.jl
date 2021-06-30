@@ -245,6 +245,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
+
     least_squares!(z, θ, r, rz)
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
 
@@ -283,9 +284,9 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
             # Compute corrector residual
             rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
-
             progress!(ip, max(r_vio, κ_vio), ϵ_min=ϵ_min)
             α = step_length(z, Δ, iy1, iy2; τ = ip.τ)
             comp && println("**** Δ1:", scn(norm(α*Δ[ix]), digits=4))
@@ -299,7 +300,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             #     # "  Δ[iy1]: ", scn(norm(Δ[iy1])),
             #     # "  Δ[iy2]: ", scn(norm(Δ[iy2])),
             #     "  Δaff: ", scn(norm(Δaff)),
-            #     "  τ: ", scn(norm(τ)),
+            #     "  τ: ", scn(norm(ip.τ)),
             #     "  α: ", scn(norm(α)))
 
             # candidate point
@@ -312,17 +313,23 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             κ_vio = norm(r.rbil, Inf)
         end
     end
-    # verbose && println("iter : ", ip.iterations)
-    # verbose && println("r_vio: ", scn(r_vio))
-    # verbose && println("κ_vio: ", scn(κ_vio))
+    verbose && println("iter : ", ip.iterations,
+                     "  r_vio: ", scn(r_vio),
+                     "  κ_vio: ", scn(κ_vio),
+                     )
 
     if (r_vio > r_tol) || (κ_vio > κ_tol)
         @error "Mehrotra solver failed to reduce residual below r_tol."
         return false
     end
     # differentiate solution
-    diff_sol && differentiate_solution!(ip, reg = ip.reg_val)
-
+    # @warn "wrong reg_val"
+    # diff_sol && differentiate_solution!(ip, reg = ip.reg_val)
+    # We regularize the Jacobian rz in the implicit function theorem to regularize the gradients.
+    # We choose reg = κ_tol * γ as this is small (typically 1e-5) and always strictly positive,
+    # avoiding NaN gradients when the bilinear constraints are satisfied perfectly rbil = 0.
+    # I think that κ_tol * γ_reg > ip.reg_val is ALWAYS true.
+    diff_sol && differentiate_solution!(ip, reg = max(ip.reg_val, κ_tol * γ_reg))
     return true
 end
 
@@ -333,10 +340,15 @@ end
 # 	return a, b
 # end
 
-function initial_state!(z, ix, iy1, iy2; comp::Bool=true)
+function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
+        iy1::SVector{ny,Int}, iy2::SVector{ny,Int}; comp::Bool=true, ϵ::T=1e-20) where {T,nx,ny}
+
     xt = z[ix]
     y1t = z[iy1]
     y2t = z[iy2]
+    comp && println("**** xt :", scn(norm(xt), digits=4))
+    comp && println("**** y1t :", scn(norm(y1t), digits=4))
+    comp && println("**** y2t :", scn(norm(y2t), digits=4))
 
     δy1 = max(-1.5 * minimum(y1t), 0)
     δy2 = max(-1.5 * minimum(y2t), 0)
@@ -348,8 +360,10 @@ function initial_state!(z, ix, iy1, iy2; comp::Bool=true)
     # comp && println("**** w2h:", scn.(y1h[1:3], digits=4))
     # comp && println("**** w3h:", scn.(y2h[1:3], digits=4))
 
-    δhy1 = 0.5 * y1h'*y2h / sum(y2h)
-    δhy2 = 0.5 * y1h'*y2h / sum(y1h)
+    δhy1 = 0.5 * y1h'*y2h / (sum(y2h) + ϵ)
+    δhy2 = 0.5 * y1h'*y2h / (sum(y1h) + ϵ)
+    comp && println("**** sum(y1h):", scn(sum(y1h), digits=4))
+    comp && println("**** sum(y2h):", scn(sum(y2h), digits=4))
     comp && println("****  dot:", scn(norm(0.5 * y1h'*y2h), digits=4))
     comp && println("**** δhw2:", scn(norm(δhy1), digits=4))
     comp && println("**** δhw3:", scn(norm(δhy2), digits=4))
