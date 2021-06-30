@@ -6,6 +6,274 @@ https://web.stanford.edu/~boyd/papers/pdf/fast_mpc.pdf
 using BenchmarkTools
 using InteractiveUtils
 
+struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,RA}
+	"""
+	[P C'; C 0] [Δz; Δν] = r
+	"""
+	# dimensions
+	n::Int  # state
+	m::Int  # control
+	nq::Int # configuration
+	H::Int  # horizon
+	nz::Int # decision variables
+	nd::Int # dual variables
+
+	# indices
+	# [u1, x2, u2, ..., xT]
+	x_idx::Vector{Vector{Int}}
+	u_idx::Vector{Vector{Int}}
+	qa_idx::Vector{Vector{Int}}
+	qb_idx::Vector{Vector{Int}}
+	n_idx::Vector{Vector{Int}}
+
+	# dynamics Jacobians
+	Aa::Vector{AA} # ∂ft/∂qt-1
+	Ab::Vector{AB} # ∂ft/∂qt
+	Ac::Vector{AC} # ∂ft/∂qt+1
+	Ba::Vector{BA} # ∂ft/∂ut
+
+	# objective
+	Qa::Vector{QA}
+	Qb::Vector{QB}
+	Ra::Vector{RA}
+
+	# objective inverse
+	Q̃a::Vector{QA}
+	Q̃b::Vector{QB}
+	R̃a::Vector{RA}
+
+	# Y = C * inv(H) * C' = [Y11 Y12...;Y21 Y22...;...;...YT-1T-1]
+	Yii::Vector{Matrix{T}}
+	Yiis::Vector{SMatrix{N,N,T,NN}}
+	Yij::Vector{Matrix{T}}
+	Yijs::Vector{SMatrix{N,N,T,NN}}
+
+	# Yii = [Yiia Yiib; Yiic Yiid]
+	Yiia::Vector{SMatrix{NQ,NQ,T,NQNQ}}
+	Yiib::Vector{SMatrix{NQ,NQ,T,NQNQ}}
+	Yiic::Vector{SMatrix{NQ,NQ,T,NQNQ}}
+	Yiid::Vector{SMatrix{NQ,NQ,T,NQNQ}}
+
+	Yiiav::Vector{SubArray{T,2,Matrix{T},Tuple{Vector{Int},Vector{Int}},false}}
+	Yiibv::Vector{SubArray{T,2,Matrix{T},Tuple{Vector{Int},Vector{Int}},false}}
+	Yiicv::Vector{SubArray{T,2,Matrix{T},Tuple{Vector{Int},Vector{Int}},false}}
+	Yiidv::Vector{SubArray{T,2,Matrix{T},Tuple{Vector{Int},Vector{Int}},false}}
+
+	# Yij = [Yija Yijb; Yijc Yijd]
+	Yija::Vector{SMatrix{NQ,NQ,T,NQNQ}}
+	Yijb::Vector{SMatrix{NQ,NQ,T,NQNQ}}
+	Yijc::Vector{SMatrix{NQ,NQ,T,NQNQ}}
+	Yijd::Vector{SMatrix{NQ,NQ,T,NQNQ}}
+
+	Yijav::Vector{SubArray{T,2,Matrix{T},Tuple{Vector{Int},Vector{Int}},false}}
+	Yijbv::Vector{SubArray{T,2,Matrix{T},Tuple{Vector{Int},Vector{Int}},false}}
+	Yijcv::Vector{SubArray{T,2,Matrix{T},Tuple{Vector{Int},Vector{Int}},false}}
+	Yijdv::Vector{SubArray{T,2,Matrix{T},Tuple{Vector{Int},Vector{Int}},false}}
+
+	# L = cholesky(Y)
+	Liis::Vector{LowerTriangular{T,SMatrix{N,N,T,NN}}}
+	Ljis::Vector{SMatrix{N,N,T,NN}}
+
+	# r = [rlag; rdyn]
+	# rlag = [rlagu; rlagqa; rlagqb]
+	rlagu::Vector{SVector{M,T}}
+	rlagqa::Vector{SVector{NQ,T}}
+	rlagqb::Vector{SVector{NQ,T}}
+
+	# rdyn = [rdyn1; rdyn2]
+	rdyn1::Vector{SVector{NQ,T}}
+	rdyn2::Vector{SVector{NQ,T}}
+
+	# β = -rdyn + C * inv(H) * rlag = [β1..., βT-1]; β1 = [βd1; βe1], ...
+	βn::Vector{SVector{N,T}}
+	βd::Vector{SVector{NQ,T}}
+	βe::Vector{SVector{NQ,T}}
+
+	# y = L \ β
+	y::Vector{SVector{N,T}}
+
+	# Δν = L' \ y
+	Δνn::Vector{SVector{N,T}}
+	Δνd::Vector{SVector{NQ,T}}
+	Δνe::Vector{SVector{NQ,T}}
+
+	# Δz = inv(H) * (rlag - C' * Δν)
+	Δzu::Vector{SVector{M,T}}
+	Δzqa::Vector{SVector{NQ,T}}
+	Δzqb::Vector{SVector{NQ,T}}
+
+	# temporary arrays
+	tmp_nn::SMatrix{N,N,T,NN}
+	tmp_nn2::SMatrix{N,N,T,NN}
+	tmp_nqnq::SMatrix{NQ,NQ,T,NQNQ}
+	tmp_nqnq2::SMatrix{NQ,NQ,T,NQNQ}
+	tmp_nm::SMatrix{N,M,T,NM}
+	tmp_nqm::SMatrix{NQ,M,T,NQM}
+	tmp_nq::SVector{NQ,T}
+end
+
+function newton_structure_solver(nq::Int, m::Int, H::Int, Q, R)
+	# dimensions
+	n = 2 * nq
+	nz = m * (H - 1) + n * (H - 1)
+	nd = n * (H - 1)
+
+	# indices
+	u_idx = [collect((t - 1) * (m + n) .+ (1:m)) for t = 1:H-1]
+	x_idx = [collect((t - 1) * (m + n) + m .+ (1:n)) for t = 1:H-1]
+	qa_idx = [collect(x_idx[t][1:nq]) for t = 1:H-1]
+	qb_idx = [collect(x_idx[t][nq .+ (1:nq)]) for t = 1:H-1]
+	n_idx = [collect((t - 1) * n .+ (1:n)) for t = 1:H-1]
+
+	# dynamics Jacobians
+	Aa = [SMatrix{nq, nq}(zeros(nq, nq)) for t = 1:H-1]
+	Ab = [SMatrix{nq, nq}(zeros(nq, nq)) for t = 1:H-1]
+	Ac = [SMatrix{nq, nq}(Diagonal(ones(nq))) for t = 1:H-1]
+	Ba = [SMatrix{nq,m}(zeros(nq, m)) for t = 1:H-1]
+
+	# objective # TODO fix objective
+	Qa = [SMatrix{nq,nq}(Q[t]) for t = 1:H]
+	Qb = [SMatrix{nq,nq}(Q[t]) for t = 1:H]
+	Ra = [SMatrix{m,m}(R[t]) for t = 1:H-1]
+
+	# objective inverse
+	Q̃a = [inv(Qa[t]) for t = 1:H]
+	Q̃b = [inv(Qb[t]) for t = 1:H]
+	R̃a = [inv(Ra[t]) for t = 1:H-1]
+
+	# Y
+	Yii = [zeros(n, n) for t = 1:H-1]
+	Yij = [zeros(n, n) for t = 1:H-1]
+	Yiis = [SMatrix{n,n}(zeros(n, n)) for t = 1:H-1]
+	Yijs = [SMatrix{n,n}(zeros(n, n)) for t = 1:H-1]
+
+	Yiiav = [view(Yii[t], collect(1:nq), collect(1:nq)) for t = 1:H-1]
+	Yiibv = [view(Yii[t], collect(1:nq), collect(nq .+ (1:nq))) for t = 1:H-1]
+	Yiicv = [view(Yii[t], collect(nq .+ (1:nq)), collect(1:nq)) for t = 1:H-1]
+	Yiidv = [view(Yii[t], collect(nq .+ (1:nq)), collect(nq .+ (1:nq))) for t = 1:H-1]
+
+	Yijav = [view(Yij[t], collect(1:nq), collect(1:nq)) for t = 1:H-1]
+	Yijbv = [view(Yij[t], collect(1:nq), collect(nq .+ (1:nq))) for t = 1:H-1]
+	Yijcv = [view(Yij[t], collect(nq .+ (1:nq)), collect(1:nq)) for t = 1:H-1]
+	Yijdv = [view(Yij[t], collect(nq .+ (1:nq)), collect(nq .+ (1:nq))) for t = 1:H-1]
+
+	Yiia = [SMatrix{nq,nq}(zeros(nq,nq)) for t = 1:H-1]
+	Yiib = [SMatrix{nq,nq}(zeros(nq,nq)) for t = 1:H-1]
+	Yiic = [SMatrix{nq,nq}(zeros(nq,nq)) for t = 1:H-1]
+	Yiid = [SMatrix{nq,nq}(zeros(nq,nq)) for t = 1:H-1]
+
+	Yija = [SMatrix{nq,nq}(zeros(nq,nq)) for t = 1:H-1]
+	Yijb = [SMatrix{nq,nq}(zeros(nq,nq)) for t = 1:H-1]
+	Yijc = [SMatrix{nq,nq}(zeros(nq,nq)) for t = 1:H-1]
+	Yijd = [SMatrix{nq,nq}(zeros(nq,nq)) for t = 1:H-1]
+
+	# L
+	Liis = [LowerTriangular(SMatrix{n,n}(zeros(n, n))) for t = 1:H-1]
+	Ljis = [SMatrix{n,n}(zeros(n, n)) for t = 1:H-1]
+
+	# r
+	rlagu = [SVector{m}(zeros(m)) for t = 1:H-1]
+	rlagqa = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	rlagqb = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+
+	rdyn1 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	rdyn2 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+
+	# β
+	βn = [SVector{n}(zeros(n)) for t = 1:H-1]
+	βd = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	βe = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+
+	# y
+	y = [SVector{n}(zeros(n)) for t = 1:H-1]
+
+	# Δν
+	Δνn = [SVector{n}(zeros(n)) for t = 1:H-1]
+	Δνd = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	Δνe = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+
+	# Δz
+	Δzu = [SVector{m}(zeros(m)) for t = 1:H-1]
+	Δzqa = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	Δzqb = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+
+	# temporary arrays
+	tmp_nn = SMatrix{n,n}(zeros(n, n))
+	tmp_nn2 = SMatrix{n,n}(zeros(n, n))
+	tmp_nqnq = SMatrix{nq,nq}(zeros(nq, nq))
+	tmp_nqnq2 = SMatrix{nq,nq}(zeros(nq, nq))
+	tmp_nm = SMatrix{n,m}(zeros(n, m))
+	tmp_nqm = SMatrix{nq,m}(zeros(nq, m))
+	tmp_nq = SVector{nq}(zeros(nq))
+
+	NewtonStructureSolver(
+		n,
+		m,
+		nq,
+		H,
+		nz,
+		nd,
+		x_idx,
+		u_idx,
+		qa_idx,
+		qb_idx,
+		n_idx,
+		Aa,
+		Ab,
+		Ac,
+		Ba,
+		Qa,
+		Qb,
+		Ra,
+		Q̃a,
+		Q̃b,
+		R̃a,
+		Yii,
+		Yiis,
+		Yij,
+		Yijs,
+		Yiia,
+		Yiib,
+		Yiic,
+		Yiid,
+		Yiiav,
+		Yiibv,
+		Yiicv,
+		Yiidv,
+		Yija,
+		Yijb,
+		Yijc,
+		Yijd,
+		Yijav,
+		Yijbv,
+		Yijcv,
+		Yijdv,
+		Liis,
+		Ljis,
+		rlagu,
+		rlagqa,
+		rlagqb,
+		rdyn1,
+		rdyn2,
+		βn,
+		βd,
+		βe,
+		y,
+		Δνn,
+		Δνd,
+		Δνe,
+		Δzu,
+		Δzqa,
+		Δzqb,
+		tmp_nn,
+		tmp_nn2,
+		tmp_nqnq,
+		tmp_nqnq2,
+		tmp_nm,
+		tmp_nqm,
+		tmp_nq)
+end
+
 # dimensions
 nq = 10
 n = 2 * nq
@@ -15,9 +283,9 @@ nz = m * (T - 1) + n * (T - 1)
 nd = n * (T - 1)
 
 # indices
-u_idx = [(t - 1) * (m + n) .+ (1:m) for t = 1:T-1]
-x_idx = [(t - 1) * (m + n) + m .+ (1:n) for t = 1:T-1]
-qa_idx = [x_idx[t][1:nq] for t = 1:T-1]
+u_idx = [collect((t - 1) * (m + n) .+ (1:m)) for t = 1:T-1]
+x_idx = [collect((t - 1) * (m + n) + m .+ (1:n)) for t = 1:T-1]
+qa_idx = [collect(x_idx[t][1:nq]) for t = 1:T-1]
 qb_idx = [x_idx[t][nq .+ (1:nq)] for t = 1:T-1]
 n_idx = [(t - 1) * n .+ (1:n) for t = 1:T-1]
 
@@ -74,6 +342,51 @@ end
 
 norm(H̃ - inv(H))
 
+
+###
+s = newton_structure_solver(nq, m, T, Qa, R)
+for t = 1:T
+	s.Q̃a[t] = Q̃a[t]
+	s.Q̃b[t] = Q̃b[t]
+
+	t == T && continue
+	s.Aa[t] = Aa[t]
+	s.Ab[t] = Ab[t]
+	s.Ac[t] = Ac[t]
+	s.Ba[t] = Ba[t]
+
+	s.R̃a[t] = R̃[t]
+end
+
+computeYs!(s.Yiia, s.Yiib, s.Yiic, s.Yiid, s.Yija, s.Yijb, s.Yijc, s.Yijd,
+	s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a,
+	s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.H)
+
+for t = 1:T-1
+	@show t
+	@show norm(Yiia[t] - s.Yiia[t])
+	@show norm(Yiib[t] - s.Yiib[t])
+	@show norm(Yiic[t] - s.Yiic[t])
+	@show norm(Yiid[t] - s.Yiid[t])
+
+	@show norm(Yija[t] - s.Yija[t])
+	@show norm(Yijb[t] - s.Yijb[t])
+	@show norm(Yijc[t] - s.Yijc[t])
+	@show norm(Yijd[t] - s.Yijd[t])
+
+	@show norm(Yiiav[t] - s.Yiia[t])
+	@show norm(Yiibv[t] - s.Yiib[t])
+	@show norm(Yiicv[t] - s.Yiic[t])
+	@show norm(Yiidv[t] - s.Yiid[t])
+
+	@show norm(Yijav[t] - s.Yija[t])
+	@show norm(Yijbv[t] - s.Yijb[t])
+	@show norm(Yijcv[t] - s.Yijc[t])
+	@show norm(Yijdv[t] - s.Yijd[t])
+end
+
+###
+
 Ys = zeros(n * (T - 1), n * (T - 1))
 Ysii = [zeros(n, n) for t = 1:T-1]
 Ysij = [zeros(n, n) for t = 1:T-1]
@@ -81,16 +394,16 @@ tmp_nm = zeros(n, m)
 tmp_nn = zeros(n, n)
 tmp_nn2 = zeros(n, n)
 
-Yiiav = [view(Ysii[t], 1:nq, 1:nq) for t = 1:T-1]
-Yiibv = [view(Ysii[t], 1:nq, nq .+ (1:nq)) for t = 1:T-1]
-Yiicv = [view(Ysii[t], nq .+ (1:nq), 1:nq) for t = 1:T-1]
-Yiidv = [view(Ysii[t], nq .+ (1:nq), nq .+ (1:nq)) for t = 1:T-1]
+Yiiav = [view(Ysii[t], collect(1:nq), collect(1:nq)) for t = 1:T-1]
+Yiibv = [view(Ysii[t], collect(1:nq), collect(nq .+ (1:nq))) for t = 1:T-1]
+Yiicv = [view(Ysii[t], collect(nq .+ (1:nq)), collect(1:nq)) for t = 1:T-1]
+Yiidv = [view(Ysii[t], collect(nq .+ (1:nq)), collect(nq .+ (1:nq))) for t = 1:T-1]
 
-Yijav = [view(Ysij[t], 1:nq, 1:nq) for t = 1:T-1]
-Yijbv = [view(Ysij[t], 1:nq, nq .+ (1:nq)) for t = 1:T-1]
-Yijcv = [view(Ysij[t], nq .+ (1:nq), 1:nq) for t = 1:T-1]
-Yijdv = [view(Ysij[t], nq .+ (1:nq), nq .+ (1:nq)) for t = 1:T-1]
-#
+Yijav = [view(Ysij[t], collect(1:nq), collect(1:nq)) for t = 1:T-1]
+Yijbv = [view(Ysij[t], collect(1:nq), collect(nq .+ (1:nq))) for t = 1:T-1]
+Yijcv = [view(Ysij[t], collect(nq .+ (1:nq)), collect(1:nq)) for t = 1:T-1]
+Yijdv = [view(Ysij[t], collect(nq .+ (1:nq)), collect(nq .+ (1:nq))) for t = 1:T-1]
+
 # tmp_q_nm = zeros(nq, m)
 # tmp_q_nn = zeros(nq, nq)
 # tmp_q_nn2 = zeros(nq, nq)
@@ -163,7 +476,7 @@ function computeYs!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 	end
 	nothing
 end
-
+Yiia[1]
 computeYs!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, tmp_q_nn, tmp_q_nn2, tmp_q_nm, T)
 @benchmark computeYs!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, tmp_q_nn, tmp_q_nn2, tmp_q_nm, T)
 @code_warntype computeYs!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, tmp_q_nn, tmp_q_nn2, tmp_q_nm, T)
@@ -197,7 +510,7 @@ for t = 1:T-1
 	Ys[idx_n[t+1], idx_n[t]] = Ysij[t]'
 end
 
-norm((Ys - C * H̃ * C'))#[1:2n, 1:2n])
+norm(Ys - C * H̃ * C')#[1:2n, 1:2n])
 
 ###
 L = zeros(n * (T - 1), n * (T - 1))
@@ -209,7 +522,7 @@ Yijs = [SMatrix{n,n}(Ysij[t]) for t = 1:T-1]
 
 tmp_nn = SMatrix{n,n}(zeros(n,n))
 tmp_nn2 = SMatrix{n,n}(zeros(n,n))
-tmp_nn_a = zeros(n,n)
+
 function computeLs!(Lii, Lji, Yii, Yij, tmp_nn, tmp_nn2, tmp_nn_a, T)
 	for t = 1:T-1
 		# @show t
