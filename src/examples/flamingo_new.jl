@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 5000 # 35000
+H_sim = 3000 #35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -34,12 +34,12 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
 	ip_type = :interior_point,
-	# mode = :configurationforce,
-	mode = :configuration,
+	mode = :configurationforce,
+	# mode = :configuration,
+	# ip_type = :mehrotra,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
-        max_iter = 5,
-		solver = :lu_solver,),
+        max_iter = 5),
     mpc_opts = LinearizedMPCOptions(
         # live_plotting=true,
         # altitude_update = true,
@@ -52,14 +52,14 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
-	mode = :configurationforce,
-	# mode = :configuration,
+	# mode = :configurationforce,
+	mode = :configuration,
 	ip_type = :mehrotra,
     n_opts = NewtonOptions(
-		r_tol = 3e-4,
-		max_iter = 5,
-		# max_time = ref_traj.h, # HARD REAL TIME
-		solver = :lu_solver,),
+        r_tol = 3e-4,
+        max_iter = 5,
+		max_time = ref_traj.h, # HARD REAL TIME
+		),
     mpc_opts = LinearizedMPCOptions(
         # live_plotting=true,
         # altitude_update = true,
@@ -69,11 +69,11 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 	ip_opts = MehrotraOptions(
 		max_iter_inner = 100,
 		verbose = true,
-		r_tol = 1.0e-6,
+		r_tol = 1.0e-4,
 		κ_tol = 1.0e-4,
 		diff_sol = true,
-		κ_reg = 1e-3,
-		γ_reg = 1e-1,
+		# κ_reg = 1e-3,
+		# γ_reg = 1e-1,
 		solver = :empty_solver,
 		),
     )
@@ -93,6 +93,7 @@ q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 #     sim_opts = SimulatorOptions(warmstart = true),
 # 	ip_type = :mehrotra,
 #     )
+
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = InteriorPointOptions(
@@ -105,8 +106,23 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 
 telap = @elapsed status = simulate!(sim, verbose = true)
 # @profiler status = simulate!(sim, verbose = true)
-# telap = 2.75 # H_sim = 600
-H_sim * h / (telap - 1.10)
+H_sim * h / (telap * 0.5)
+
+
+# nz = num_var(s.model, s.env)
+# nθ = num_data(s.model)
+# clearconsole()
+# Random.seed!(100)
+# ip_ = deepcopy(sim.p.im_traj.ip[2])
+# ip_.opts.max_iter_inner = 10
+#
+# ip_
+#
+# z0_ = zeros(nz)
+# θ0_ = deepcopy(ip_.r.θ0) + 1e-2*[rand(nθ-2); zeros(2)]
+# z0_[[ip_.r.ix; ip_.r.iy1; ip_.r.iy2]] = [ip_.r.x0; ip_.r.y10; ip_.r.y20]
+#
+# interior_point_solve!(ip_, z0_, θ0_)
 
 
 l = 9
@@ -125,9 +141,28 @@ plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', colo
 
 plot_surface!(vis, env, xlims=[-0.5, 1.5], ylims = [-0.5, 0.5])
 plot_lines!(vis, model, sim.traj.q)
-# anim = visualize_robot!(vis, model, sim.traj, sample=10)
+anim = visualize_robot!(vis, model, sim.traj, sample=10)
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=10)
 anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample=10)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Test robustness
@@ -169,8 +204,6 @@ end
 sul
 mean(itl)
 
-
-
 filename = "flamingo_mehrotra"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
@@ -179,136 +212,3 @@ MeshCat.convert_frames_to_video(
 convert_video_to_gif(
     "/home/simon/Documents/$filename.mp4",
     "/home/simon/Documents/$filename.gif", overwrite=true)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	μ = z_y1'*z_y2 / length(z_y1)
-	σ = (μaff / μ)^3
-
-
-
-
-	ip0 = deepcopy(p.im_traj.ip[1])
-	centering(ip0.z, ip0.Δaff, ip0.iy1, ip0.iy2, 1.0)
-	@code_warntype centering(ip0.z, ip0.Δaff, ip0.iy1, ip0.iy2, 1.0)
-	@benchmark centering($ip0.z, $ip0.Δaff, $ip0.iy1, $ip0.iy2, $1.0)
-
-
-	step_length_11(ip0)
-	@code_warntype step_length_11(ip0)
-	@benchmark step_length_11($ip0)
-
-
-
-	function least_squares!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
-		least_squares!(ip.z, ip.θ, ip.r, ip.rz)
-		return nothing
-	end
-
-	function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
-		δθ = r.θ0 - θ
-		δrdyn = r.rdyn0 - r.rθdyn * δθ
-		δrrst = r.rrst0 - r.rθrst * δθ
-
-		δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
-		δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
-		δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
-
-		@. @inbounds z[r.ix]  .= r.x0  .+ δw1
-		@. @inbounds z[r.iy1] .= r.y10 .+ δw2
-		@. @inbounds z[r.iy2] .= r.y20 .+ δw3
-		return nothing
-	end
-
-
-
-	ip0 = deepcopy(p.im_traj.ip[1])
-	least_squares!(ip0)
-	@code_warntype least_squares!(ip0)
-	@benchmark least_squares!($ip0)
-
-
-
-	a = 10
-
-	nx = length(r.ix)
-	ny = length(r.iy1)
-
-	δrdyn = r.rdyn0 - r.rθdyn * δθ
-	δrrst = r.rrst0 - r.rθrst * δθ
-
-	δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
-	δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
-	δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
-
-	z[ix]  .= r.x0  + δw1
-	z[iy1] .= r.y10 + δw2
-	z[iy2] .= r.y20 + δw3
-	comp && println("**** z+wt:", scn(norm(z), digits=4))
-
-	z .= initial_state!(z, ix, iy1, iy2, comp = comp)
-
-	function test_ip1(ip::Mehrotra{T}, r::RLin) where {T}
-		test_1(ip.z, ip.iy1, r.y10)
-		return nothing
-	end
-
-	function test_1(z::Vector{T}, iy1::SVector{ny,Int}, y10::SVector{ny,T}) where {ny,T}
-		z[iy1] = y10
-		return nothing
-	end
-
-
-	ip0 = deepcopy(p.im_traj.ip[1])
-	test_ip1(ip0, ip0.r)
-	@benchmark test_ip1($ip0, $ip0.r)
-	@benchmark test_ip1($ip0)
-	@code_warntype test_ip1(ip0, ip0.r)
-
-
-
-
-	# nz = num_var(s.model, s.env)
-	# nθ = num_data(s.model)
-	# clearconsole()
-	# Random.seed!(100)
-	# ip_ = deepcopy(sim.p.im_traj.ip[2])
-	# ip_.opts.max_iter_inner = 10
-	#
-	# ip_
-	#
-	# z0_ = zeros(nz)
-	# θ0_ = deepcopy(ip_.r.θ0) + 1e-2*[rand(nθ-2); zeros(2)]
-	# z0_[[ip_.r.ix; ip_.r.iy1; ip_.r.iy2]] = [ip_.r.x0; ip_.r.y10; ip_.r.y20]
-	#
-	# interior_point_solve!(ip_, z0_, θ0_)

@@ -620,7 +620,8 @@ function bilinear_res(r::RLin, ibil)
 end
 
 function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
-	δθ = r.θ0 - θ
+	# @warn "wrong"
+	δθ = θ - r.θ0
 	δrdyn = r.rdyn0 - r.rθdyn * δθ
 	δrrst = r.rrst0 - r.rθrst * δθ
 
