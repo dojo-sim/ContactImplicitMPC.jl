@@ -41,6 +41,8 @@ for t = 1:T-1
 	C[n_idx[t], x_idx[t-1]] = A[t]
 end
 
+Q̃a = [inv(Qa[t]) for t = 1:T]
+Q̃b = [inv(Qb[t]) for t = 1:T]
 Q̃ = [inv(Q[t]) for t = 1:T]
 R̃ = [inv(R[t]) for t = 1:T-1]
 S̃ = zeros(nz, nz)
