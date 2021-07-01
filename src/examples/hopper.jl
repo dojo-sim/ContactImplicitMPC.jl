@@ -1,3 +1,4 @@
+const ContactControl = Main
 include(joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "visuals.jl"))
 T = Float64
 vis = Visualizer()
@@ -62,9 +63,9 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 		),
     mpc_opts = LinearizedMPCOptions(
         # live_plotting=true,
-        altitude_update = true,
-        altitude_impact_threshold = 0.05,
-        altitude_verbose = true,
+        # altitude_update = true,
+        # altitude_impact_threshold = 0.05,
+        # altitude_verbose = true,
         ),
 	ip_opts = MehrotraOptions(
 		max_iter_inner = 100,
@@ -93,9 +94,20 @@ sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
         diff_sol = true),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
-telap = @elapsed status = ContactControl.simulate!(sim, verbose = true)
-# @profiler status = ContactControl.simulate!(sim, verbose = true)
-H_sim * h_sim / (telap * 0.83)
+
+status = ContactControl.simulate!(sim, verbose = true)
+
+################################################################################
+# Timing result
+################################################################################
+process!(sim)
+# Time budget
+ref_traj.h
+# Time used on average
+sim.stats.μ_dt
+# Speed ratio
+H_sim * h_sim / sum(sim.stats.dt)
+
 
 
 plt = plot(layout=(3,1), legend=false)

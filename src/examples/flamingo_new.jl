@@ -104,11 +104,18 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	ip_type = :interior_point,
     )
 
-telap = @elapsed status = simulate!(sim, verbose = true)
-# @profiler status = simulate!(sim, verbose = true)
-H_sim * h_sim / (telap * 0.5)
+status = ContactControl.simulate!(sim, verbose = true)
 
-
+################################################################################
+# Timing result
+################################################################################
+process!(sim)
+# Time budget
+ref_traj.h
+# Time used on average
+sim.stats.μ_dt
+# Speed ratio
+H_sim * h_sim / sum(sim.stats.dt)
 
 
 l = 9

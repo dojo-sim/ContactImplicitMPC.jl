@@ -95,9 +95,20 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
         κ_tol = 2.0e-8),
     sim_opts = SimulatorOptions(warmstart = true))
 
-telap = @elapsed status = ContactControl.simulate!(sim, verbose = true)
-# @profiler status = ContactControl.simulate!(sim, verbose = true)
-H_sim * h_sim / (telap * 0.70)
+status = ContactControl.simulate!(sim, verbose = true)
+
+################################################################################
+# Timing result
+################################################################################
+process!(sim)
+# Time budget
+ref_traj.h
+# Time used on average
+sim.stats.μ_dt
+# Speed ratio
+H_sim * h_sim / sum(sim.stats.dt)
+
+
 
 plot_surface!(vis, env, n=100, xlims=[-0.3, 1.5], ylims=[-1.1, 0.3])
 plot_lines!(vis, model, sim.traj.q, offset=0.0)
