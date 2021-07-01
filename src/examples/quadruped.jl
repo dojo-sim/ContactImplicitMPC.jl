@@ -89,7 +89,7 @@ sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 
 telap = @elapsed status = ContactControl.simulate!(sim, verbose = true)
 # @profiler status = ContactControl.simulate!(sim)
-H_sim * h / (telap * 0.35)
+H_sim * h_sim / (telap * 0.35)
 
 # @elapsed status = ContactControl.simulate!(sim)
 # @profiler status = ContactControl.simulate!(sim)

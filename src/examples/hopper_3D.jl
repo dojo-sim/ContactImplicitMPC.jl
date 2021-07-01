@@ -1,3 +1,4 @@
+const ContactControl = Main
 include(joinpath(@__DIR__, "..", "dynamics", "hopper_3D", "visuals.jl"))
 T = Float64
 vis = Visualizer()
@@ -15,9 +16,6 @@ env = s.env
 nq = model.dim.q
 nu = model.dim.u
 nc = model.dim.c
-nb = model.dim.c * friction_dim(env)
-nd = nq + nc + nb
-nr = nq + nu + nc + nb + nd
 
 # get trajectory
 # ref_traj = deepcopy(get_trajectory(s.model, s.env,
@@ -33,7 +31,7 @@ h = ref_traj.h
 N_sample = 10
 H_mpc = 20
 h_sim = h / N_sample
-H_sim = 12000# 12000
+H_sim = 1200 # 12000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -66,6 +64,36 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         )
     )
 
+p = linearized_mpc_policy(ref_traj, s, obj,
+    H_mpc = H_mpc,
+    N_sample = N_sample,
+    κ_mpc = κ_mpc,
+	# mode = :configurationforce,
+	mode = :configuration,
+	ip_type = :mehrotra,
+    n_opts = NewtonOptions(
+		r_tol = 3e-4,
+		max_iter = 5,
+		max_time = ref_traj.h, # HARD REAL TIME
+		),
+    mpc_opts = LinearizedMPCOptions(
+        # live_plotting=true,
+        altitude_update = true,
+        altitude_impact_threshold = 0.05,
+        altitude_verbose = true,
+        ),
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
+		verbose = false,
+		r_tol = 1.0e-4,
+		κ_tol = 1.0e-4,
+		diff_sol = true,
+		# κ_reg = 1e-3,
+		# γ_reg = 1e-1,
+		solver = :empty_solver,
+		),
+    )
+
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])
 q1_sim = SVector{model.dim.q}(q1_ref)
@@ -80,7 +108,9 @@ sim = simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
         κ_tol = 2.0e-8),
     sim_opts = SimulatorOptions(warmstart = true))
 
-@time status = simulate!(sim)
+telap = @elapsed status = ContactControl.simulate!(sim, verbose = true)
+# @profiler status = ContactControl.simulate!(sim)
+H_sim * h_sim / (telap * 0.35)
 
 plot_surface!(vis, env_sim, n=100, xlims=[-0.3, 1.5], ylims=[-1.1, 0.3])
 visualize_robot!(vis, model, sim.traj)
@@ -100,13 +130,11 @@ visualize_robot!(vis, model, sim.traj, sample=10)
 
 
 
-filename = "hopper_3d_sine"
-MeshCat.convert_frames_to_video(
-    "/home/simon/Downloads/$filename.tar",
-    "/home/simon/Documents/$filename.mp4", overwrite=true)
-
-convert_video_to_gif(
-    "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
-
-const ContactControl = Main
+# filename = "hopper_3d_sine"
+# MeshCat.convert_frames_to_video(
+#     "/home/simon/Downloads/$filename.tar",
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+#
+# convert_video_to_gif(
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)
