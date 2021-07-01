@@ -62,5 +62,7 @@ gait_path = joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "gaits", "gait_in_
 res = JLD2.jldopen(gait_path)
 loaded_traj = res["traj"]
 
-traj = get_trajectory("hopper_2D", "gait_in_place", load_type=:joint_traj)
+traj = get_trajectory(s.model, s.env,
+    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_in_place.jld2"),
+    load_type = :joint_traj)
 plot(hcat(Vector.(traj.q)...)')

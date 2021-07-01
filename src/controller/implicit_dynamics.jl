@@ -60,8 +60,8 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	ip =  [eval(ip_type)(
 			 # zeros(num_var(model, env)),
 			 # zeros(num_data(model)),
-			 ref_traj.z[t],
-			 ref_traj.θ[t],
+			 deepcopy(ref_traj.z[t]),
+			 deepcopy(ref_traj.θ[t]),
 			 idx_ineq = inequality_indices(model, env),
 			 ix = linearization_var_index(model, env)[1],
 			 iy1 = linearization_var_index(model, env)[2],
@@ -187,11 +187,15 @@ function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
 
 		# solve
 		status = interior_point_solve!(im_traj.ip[t])
+
 		# !status && error("implicit dynamics failure (t = $t)")
 		!status && (@warn "implicit dynamics failure (t = $t)")
 
 		# compute dynamics violation
+		# println("before!: im_traj.dq2[t] = ", scn.(im_traj.dq2[t]))
 		im_traj.dq2[t] .-= traj.q[t+2]
+		# println("implicit_dynamics!:    traj.q[t+2] = ", scn.(traj.q[t+2]))
+		# println(" after!: im_traj.dq2[t] = ", scn.(im_traj.dq2[t]))
 
 		if im_traj.mode == :configurationforce
 			im_traj.dγ1[t] .-= traj.γ[t]

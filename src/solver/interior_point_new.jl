@@ -335,6 +335,8 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
         if κ[1] <= κ_tol
             # differentiate solution
             diff_sol && differentiate_solution!(ip)
+            # println("ip.θ[1:4]: ", scn.(ip.θ[1:4]))
+            # println("ip.z[1:4]: ", scn.(ip.z[1:4]))
             return true
         else
             # update barrier parameter

@@ -175,7 +175,6 @@ function newton_solve!(core::Newton, s::Simulation,
 
     # Compute implicit dynamics about traj
 	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
-
     # Compute residual
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
 

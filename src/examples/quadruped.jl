@@ -1,7 +1,7 @@
 include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
 vis = Visualizer()
 open(vis)
-# render(vis)
+const ContactControl = Main
 
 s = get_simulation("quadruped", "flat_2D_lc", "flat")
 model = s.model
@@ -61,7 +61,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         ),
 	ip_opts = MehrotraOptions(
 		max_iter_inner = 100,
-		verbose = true,
+		verbose = false,
 		r_tol = 1.0e-4,
 		κ_tol = 1.0e-4,
 		diff_sol = true,
@@ -94,7 +94,7 @@ H_sim * h / (telap * 0.35)
 # @elapsed status = ContactControl.simulate!(sim)
 # @profiler status = ContactControl.simulate!(sim)
 
-plot_lines!(vis, model, sim.traj.q[1:5:end])
+plot_lines!(vis, model, sim.traj.q[1:1:end])
 plot_surface!(vis, env, ylims=[0.3, -0.05])
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=5)
 # anim = visualize_robot!(vis, model, sim.traj, anim=anim)
