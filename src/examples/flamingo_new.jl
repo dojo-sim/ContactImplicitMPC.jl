@@ -104,25 +104,18 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	ip_type = :interior_point,
     )
 
-telap = @elapsed status = simulate!(sim, verbose = true)
-# @profiler status = simulate!(sim, verbose = true)
-H_sim * h / (telap * 0.5)
+status = ContactControl.simulate!(sim, verbose = true)
 
-
-# nz = num_var(s.model, s.env)
-# nθ = num_data(s.model)
-# clearconsole()
-# Random.seed!(100)
-# ip_ = deepcopy(sim.p.im_traj.ip[2])
-# ip_.opts.max_iter_inner = 10
-#
-# ip_
-#
-# z0_ = zeros(nz)
-# θ0_ = deepcopy(ip_.r.θ0) + 1e-2*[rand(nθ-2); zeros(2)]
-# z0_[[ip_.r.ix; ip_.r.iy1; ip_.r.iy2]] = [ip_.r.x0; ip_.r.y10; ip_.r.y20]
-#
-# interior_point_solve!(ip_, z0_, θ0_)
+################################################################################
+# Timing result
+################################################################################
+process!(sim)
+# Time budget
+ref_traj.h
+# Time used on average
+sim.stats.μ_dt
+# Speed ratio
+H_sim * h_sim / sum(sim.stats.dt)
 
 
 l = 9
