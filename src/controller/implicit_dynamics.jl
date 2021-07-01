@@ -183,21 +183,42 @@ function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
 	for t = 1:traj.H
 		# initialized solver
 		z_initialize!(im_traj.ip[t].z, model, env, copy(traj.q[t+2])) #TODO: try alt. schemes
+		@warn "copy"
 		im_traj.ip[t].θ .= traj.θ[t]
+		# im_traj.ip[t].θ = deepcopy(traj.θ[t])
+		if t == 1
+			@show "before" traj.θ[t][1:4]
+			@show "before" im_traj.ip[t].θ[1:4]
+		end
 
 		# solve
 		status = interior_point_solve!(im_traj.ip[t])
+		if t == 1
+			@show " after" traj.θ[t][1:4]
+			@show " after" traj.q[t+2]
+			@show " after" im_traj.ip[t].θ[1:4]
+			@show " after" im_traj.ip[t].z[1:4]
+		end
 		# !status && error("implicit dynamics failure (t = $t)")
 		!status && (@warn "implicit dynamics failure (t = $t)")
 
 		# compute dynamics violation
+		# println("before!: im_traj.dq2[t] = ", scn.(im_traj.dq2[t]))
 		im_traj.dq2[t] .-= traj.q[t+2]
+		# println("implicit_dynamics!:    traj.q[t+2] = ", scn.(traj.q[t+2]))
+		# println(" after!: im_traj.dq2[t] = ", scn.(im_traj.dq2[t]))
 
 		if im_traj.mode == :configurationforce
 			im_traj.dγ1[t] .-= traj.γ[t]
 			im_traj.db1[t] .-= traj.b[t]
 		elseif im_traj.mode == :configuration
 			nothing
+		end
+		if t == 1
+			@show "after2" traj.θ[t][1:4]
+			@show "after2" traj.q[t+2]
+			@show "after2" im_traj.ip[t].θ[1:4]
+			@show "after2" im_traj.ip[t].z[1:4]
 		end
 	end
 	return nothing

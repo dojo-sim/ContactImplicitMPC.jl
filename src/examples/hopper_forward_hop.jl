@@ -30,13 +30,18 @@ obj = TrackingObjective(s.model, s.env, H,
 
 n_opts = NewtonOptions(r_tol=3e-8, max_iter=100, verbose = true)
 
-im_traj = ImplicitTraj(ref_traj, s, κ=κ)
+im_traj_ = ImplicitTraj(ref_traj, s, κ=κ)
 
-core = Newton(s, H, h, ref_traj, im_traj, obj = obj, opts = n_opts)
+core = Newton(s, H, h, ref_traj, im_traj_, obj = obj, opts = n_opts)
 
 q0_dist = deepcopy(ref_traj.q[1] + [-0.1,0.0,0,0])
 q1_dist = deepcopy(ref_traj.q[2] + [-0.1,0.0,0,0])
-newton_solve!(core, s, im_traj, ref_traj, q0=q0_dist, q1=q1_dist)
+newton_solve!(core, s, im_traj_, ref_traj, q0=q0_dist, q1=q1_dist)
+
+
+im_traj_.d[1]
+im_traj_.ip[1].θ
+core.traj.θ[1]
 
 l = 1
 lu = 1

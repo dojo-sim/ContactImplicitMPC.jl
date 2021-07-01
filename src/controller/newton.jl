@@ -173,8 +173,14 @@ function newton_solve!(core::Newton, s::Simulation,
 	reset!(core, ref_traj, warm_start = warm_start,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
 
+	@show "*********************************************************"
+	@show  scn.(core.traj.q[1])
+	@show  scn.(core.traj.q[2])
+	@show  scn.(core.traj.θ[1][1:4])
+	@show  scn.(im_traj.ip[1].θ[1:4])
     # Compute implicit dynamics about traj
 	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
+	@show  scn.(im_traj.ip[1].θ[1:4])
 
 	@show scn.(im_traj.d[1])
     # Compute residual
