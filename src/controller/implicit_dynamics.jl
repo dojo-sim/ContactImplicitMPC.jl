@@ -60,8 +60,8 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	ip =  [eval(ip_type)(
 			 # zeros(num_var(model, env)),
 			 # zeros(num_data(model)),
-			 ref_traj.z[t],
-			 ref_traj.θ[t],
+			 deepcopy(ref_traj.z[t]),
+			 deepcopy(ref_traj.θ[t]),
 			 idx_ineq = inequality_indices(model, env),
 			 ix = linearization_var_index(model, env)[1],
 			 iy1 = linearization_var_index(model, env)[2],

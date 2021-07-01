@@ -39,9 +39,9 @@ q1_dist = deepcopy(ref_traj.q[2] + [-0.1,0.0,0,0])
 newton_solve!(core, s, im_traj_, ref_traj, q0=q0_dist, q1=q1_dist)
 
 
-im_traj_.d[1]
-im_traj_.ip[1].θ
-core.traj.θ[1]
+# im_traj_.d[1]
+# im_traj_.ip[1].θ
+# core.traj.θ[1]
 
 l = 1
 lu = 1
@@ -56,11 +56,11 @@ plot!(plt[3,1], hcat(Vector.(vcat([fill(ref_traj.γ[i][1:nc], N_sample) for i=1:
 plot!(plt[2,1], hcat(Vector.([u[1:end] for u in core.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 
 
-implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
-norm.(im_traj.d)
-im_traj.d
-core.traj.θ[1]
-core.traj.θ[2]
+# implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
+# norm.(im_traj.d)
+# im_traj.d
+# core.traj.θ[1]
+# core.traj.θ[2]
 
 
 
