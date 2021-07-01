@@ -107,6 +107,10 @@ mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,R
 	tmp_nm::SMatrix{N,M,T,NM}
 	tmp_nqm::SMatrix{NQ,M,T,NQM}
 	tmp_nq::SVector{NQ,T}
+
+	# idx
+	idx_nq::SVector{nq, Int}
+	idx_nq2::SVector{nq, Int}
 end
 
 function newton_structure_solver(nq::Int, m::Int, H::Int)
@@ -203,6 +207,10 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 	tmp_nqm = SMatrix{nq,m}(zeros(nq, m))
 	tmp_nq = SVector{nq}(zeros(nq))
 
+	# idx
+	idx_nq = SVector{nq}(collect(1:nq))
+	idx_nq2 = SVector{nq}(collect(nq .+ (1:nq)))
+
 	NewtonStructureSolver(
 		n,
 		m,
@@ -268,10 +276,12 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 		tmp_nqnq2,
 		tmp_nm,
 		tmp_nqm,
-		tmp_nq)
+		tmp_nq,
+		idx_nq,
+		idx_nq2)
 end
 
-function computeYs!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃a, tmp_q_nn, tmp_q_nn2, tmp_q_nm, T)
+function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃a, tmp_q_nn, tmp_q_nn2, tmp_q_nm, T)
 
 	for t = 1:T-1
 		if t == 1
@@ -345,7 +355,7 @@ function update_Y!(Yiis, Yijs, Yii, Yij, Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yij
 	nothing
 end
 
-function computeLs!(Lii, Lji, Yii, Yij, tmp_nn, tmp_nn2, T)
+function compute_L!(Lii, Lji, Yii, Yij, tmp_nn, tmp_nn2, T)
 	for t = 1:T-1
 		if t == 1
 			Lii[t] = cholesky(Hermitian(Yii[t])).L
@@ -366,7 +376,7 @@ function computeLs!(Lii, Lji, Yii, Yij, tmp_nn, tmp_nn2, T)
 	nothing
 end
 
-function update_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, T)
+function compute_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, T)
 	for t = 1:T-1
 		if t == 1
 			βd[1] = -1.0 * rdyn1[1] + Ba[1] * R̃[1] * rlagu[1] + Ac[1] * Q̃b[2] * rlagqb[1]
@@ -379,7 +389,7 @@ function update_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, 
 	end
 end
 
-function forward_substitution_s!(y, Lii, Lji, b, T)
+function compute_y!(y, Lii, Lji, b, T)
 	for t = 1:T-1
 		if t == 1
 			# y[1] .= Lii[1] \ β[n_idx[1]]
@@ -394,7 +404,7 @@ function forward_substitution_s!(y, Lii, Lji, b, T)
 	nothing
 end
 
-function backward_substitution_s!(x, Lii, Lji, y, T)
+function compute_Δν!(x, x1, x2, Lii, Lji, y, idx1, idx2, T)
 	for t = T-1:-1:1
 		if t == T-1
 			# x[t] = LowerTriangular(Lii[t])' \ y[t]
@@ -405,11 +415,14 @@ function backward_substitution_s!(x, Lii, Lji, y, T)
 
 			x[t] = transpose(Lii[t]) \ (y[t] - Lji[t] * x[t + 1])
 		end
+
+		x1[t] = x[t][idx1]
+		x2[t] = x[t][idx2]
 	end
 	nothing
 end
 
-function update_Δz!(Δzu, Δzqa, Δzqb, Δνd, Δνe, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, rlagu, rlagqa, rlagqb, T)
+function compute_Δz!(Δzu, Δzqa, Δzqb, Δνd, Δνe, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, rlagu, rlagqa, rlagqb, T)
 	for t = 1:T-1
 		Δzu[t] = R̃[t] * (rlagu[t] - transpose(Ba[t]) * Δνd[t])
 		if t < T-1
@@ -420,4 +433,26 @@ function update_Δz!(Δzu, Δzqa, Δzqb, Δνd, Δνe, Aa, Ab, Ac, Ba, Q̃a, Q̃
 			Δzqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t])
 		end
 	end
+end
+
+function ContactControl.solve!(s::NewtonStructureSolver)
+	compute_Y!(s.Yiia, s.Yiib, s.Yiic, s.Yiid, s.Yija, s.Yijb, s.Yijc, s.Yijd,
+		s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a,
+		s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.H)
+
+	update_Y!(s.Yiis, s.Yijs, s.Yii, s.Yij, s.Yiia, s.Yiib, s.Yiic, s.Yiid,
+		s.Yija, s.Yijb, s.Yijc, s.Yijd, s.Yiiav, s.Yiibv, s.Yiicv, s.Yiidv,
+		s.Yijav, s.Yijbv, s.Yijcv, s.Yijdv, s.H)
+
+	compute_L!(s.Liis, s.Ljis, s.Yiis, s.Yijs, s.tmp_nn, s.tmp_nn2, s.H)
+
+	compute_β!(s.βn, s.βd, s.βe, s.rlagu, s.rlagqa, s.rlagqb,
+		s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a, s.H)
+
+	compute_y!(s.y, s.Liis, s.Ljis, s.βn, s.H)
+
+	compute_Δν!(s.Δνn, s.Δνd, s.Δνe, s.Liis, s.Ljis, s.y, s.idx_nq, s.idx_nq2, s.H)
+
+	compute_Δz!(s.Δzu, s.Δzqa, s.Δzqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba,
+		s.Q̃a, s.Q̃b, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
 end
