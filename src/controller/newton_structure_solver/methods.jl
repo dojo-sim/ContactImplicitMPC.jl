@@ -3,7 +3,7 @@ Fast MPC (modified for implicit dynamics (f(xt, ut, xt+1) = 0))
 https://web.stanford.edu/~boyd/papers/pdf/fast_mpc.pdf
 """
 
-mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,RA}
+mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,QV,QAI,QBI,QVI,RA}
 	"""
 	[S C'; C 0] [Δz; Δν] = r
 	"""
@@ -32,11 +32,13 @@ mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,R
 	# objective
 	Qa::Vector{QA}
 	Qb::Vector{QB}
+	Qv::Vector{QV}
 	Ra::Vector{RA}
 
 	# objective inverse
-	Q̃a::Vector{QA}
-	Q̃b::Vector{QB}
+	Q̃a::Vector{QAI}
+	Q̃b::Vector{QBI}
+	Q̃v::Vector{QVI}
 	R̃a::Vector{RA}
 
 	# Y = C * inv(S) * C' = [Y11 Y12...;Y21 Y22...;...;...YT-1T-1]
@@ -132,14 +134,18 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 	Ac = [SMatrix{nq, nq}(Diagonal(ones(nq))) for t = 1:H-1]
 	Ba = [SMatrix{nq,m}(zeros(nq, m)) for t = 1:H-1]
 
-	# objective # TODO fix objective
+	# objective
 	Qa = [SMatrix{nq,nq}(Diagonal(ones(nq))) for t = 1:H]
 	Qb = [SMatrix{nq,nq}(Diagonal(ones(nq))) for t = 1:H]
+	Qv = [SMatrix{nq,nq}(Diagonal(ones(nq))) for t = 1:H]
 	Ra = [SMatrix{m,m}(Diagonal(ones(m))) for t = 1:H-1]
 
 	# objective inverse
-	Q̃a = [inv(Qa[t]) for t = 1:H]
-	Q̃b = [inv(Qb[t]) for t = 1:H]
+	Q̃ = [inv(Array(Q[t])) for t = 1:H]
+
+	Q̃a = [SMatrix{nq,nq}(Q̃[t][1:nq, 1:nq]) for t = 1:H]
+	Q̃b = [SMatrix{nq,nq}(Q̃[t][nq .+ (1:nq), nq .+ (1:nq)]) for t = 1:H]
+	Q̃v = [SMatrix{nq,nq}(Q̃[t][1:nq, nq .+ (1:nq)]) for t = 1:H]
 	R̃a = [inv(Ra[t]) for t = 1:H-1]
 
 	# Y
@@ -229,9 +235,11 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 		Ba,
 		Qa,
 		Qb,
+		Qv,
 		Ra,
 		Q̃a,
 		Q̃b,
+		Q̃v,
 		R̃a,
 		Yii,
 		Yiis,
@@ -281,7 +289,7 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 		idx_nq2)
 end
 
-function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃a, tmp_q_nn, tmp_q_nn2, tmp_q_nm, T)
+function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, Ba, Q̃a, Q̃b, Q̃v, R̃a, tmp_q_nn, tmp_q_nn2, tmp_q_nm, T)
 
 	for t = 1:T-1
 		if t == 1
@@ -294,9 +302,17 @@ function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 			tmp_q_nn = tmp_q_nm * transpose(Ba[t])
 			Yiia[t] += tmp_q_nn
 
+			# Yiib = Ac[t] * Q̃v[t+1]'
+			Yiib[t] = Ac[t] * transpose(Q̃v[t+1])
+
+			# Yiic = Q̃v[t+1] * Ac[t]'
+			Yiic[t] = transpose(Yiib[t])
+
+			# Yiid
 			Yiid[t] = Q̃a[t+1]
+
 		else
-			#Yiia[t] = Aa[t] * Q̃a[t] * Aa[t]' + Ab[t] * Q̃b[t] * Ab[t]' + Ba[t] * R̃[t] * Ba[t]' + Ac[t] * Q̃[t+1] * Ac[t]'
+			#Yiia[t] = Aa[t] * Q̃a[t] * Aa[t]' + Ab[t] * Q̃b[t] * Ab[t]' + Ba[t] * R̃[t] * Ba[t]' + Ac[t] * Q̃b[t+1] * Ac[t]' + Aa[t] * Q̃v[t+1] * Ab[t]' + Ab[t] * Q̃v[t+1] * Aa[t+1]'
 
 			tmp_q_nn = Aa[t] * Q̃a[t]
 			Yiia[t] = tmp_q_nn * transpose(Aa[t])
@@ -312,10 +328,19 @@ function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 			tmp_q_nn2 = tmp_q_nn * transpose(Ac[t])
 			Yiia[t] += tmp_q_nn2
 
-			# Yiib[t] .= -Ab[t] * Q̃b[t]
-			Yiib[t] = -1.0 * Ab[t] * Q̃b[t]
+			tmp_q_nn = Aa[t] * Q̃v[t]
+			tmp_q_nn2 = tmp_q_nn * transpose(Ab[t])
+			Yiia[t] += tmp_q_nn2
+			tmp_q_nn = Ab[t] * transpose(Q̃v[t])
+			tmp_q_nn2 = tmp_q_nn * transpose(Aa[t])
+			Yiia[t] += tmp_q_nn2
 
-			# Yiic[t] .= -Q̃b[t] * Ab[t]'
+			# Yiib[t] .= -Ab[t] * Q̃b[t] - Aa[t] * Q̃v[t] + Ac[t] * Q̃v[t+1]
+			Yiib[t] = -1.0 * Ab[t] * Q̃b[t]
+			Yiib[t] += -1.0 * Aa[t] * Q̃v[t]
+			Yiib[t] += Ac[t] * Q̃v[t+1]
+
+			# Yiic[t] .= -Q̃b[t] * Ab[t]' - Q̃v[t]' * Ac[t]'
 			Yiic[t] = transpose(Yiib[t])
 
 			# Yiid[t] .= Q̃b[t] + Q̃a[t+1]
@@ -324,15 +349,23 @@ function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 		end
 
 		t == T-1 && continue
-		# Yija[t] = Ac[t] * Q̃b[t+1] * Ab[t+1]
+		# Yija[t] = Ac[t] * Q̃b[t+1] * Ab[t+1] + Ac[t] * Q̃v[t+1] * Aa[t+1]'
 		tmp_q_nn = Ac[t] * Q̃b[t+1]
 		Yija[t] = tmp_q_nn * transpose(Ab[t+1])
+		tmp_q_nn = Ac[t] * Q̃v[t+1]
+		tmp_q_nn2 = tmp_q_nn * transpose(Aa[t+1])
+		Yija[t] += tmp_q_nn2
 
 		# Yijb[t] = -Ac[t] * Q̃b[t+1]
 		Yijb[t] = -1.0 * Ac[t] * Q̃b[t+1]
 
-		# Yijc[t] = Q̃a[t+1] * Aa[t+1]
+		# Yijc[t] = Q̃a[t+1] * Aa[t+1] + Q̃v[t+1] * Ab[t+1]'
 		Yijc[t] = Q̃a[t+1] * Aa[t+1]
+		Yijc[t] += Q̃v[t+1] * transpose(Ab[t+1])
+
+		# Yijd[t] = -Q̃v[t+1]
+		Yijd[t] = -1.0 * Q̃v[t+1]
+
 	end
 	nothing
 end
@@ -376,14 +409,20 @@ function compute_L!(Lii, Lji, Yii, Yij, tmp_nn, tmp_nn2, T)
 	nothing
 end
 
-function compute_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, T)
+function compute_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, Ac, Ba, Q̃a, Q̃b, Q̃v, R̃, T)
 	for t = 1:T-1
 		if t == 1
 			βd[1] = -1.0 * rdyn1[1] + Ba[1] * R̃[1] * rlagu[1] + Ac[1] * Q̃b[2] * rlagqb[1]
+			βd[1] += Ac[1] * Q̃v[2] * rlagqa[1]
+
 			βe[1] = -1.0 * rdyn2[1] + Q̃a[2] * rlagqa[1]
+			βe[1] += Q̃v[2] * rlagqb[1]
 		else
 			βd[t] = -1.0 * rdyn1[t] + Ba[t] * R̃[t] * rlagu[t] + Ac[t] * Q̃b[t+1] * rlagqb[t] + Aa[t] * Q̃a[t] * rlagqa[t-1] + Ab[t] * Q̃b[t] * rlagqb[t-1]
+			βd[t] += Aa[t] * Q̃v[t] * rlagqb[t-1] + Ab[t] * transpose(Q̃v[t]) * rlagqa[t-1] + Ac[t] * Q̃v[t+1] * rlagqa[t]
+
 			βe[t] = -1.0 * rdyn2[t] + Q̃a[t+1] * rlagqa[t] - Q̃b[t] * rlagqb[t-1]
+			βe[t] += -1.0 * Q̃v[t] * rlagqa[t-1] + Q̃v[t+1] * rlagqb[t]
 		end
 		βn[t] = [βd[t]; βe[t]]
 	end
@@ -422,22 +461,29 @@ function compute_Δν!(x, x1, x2, Lii, Lji, y, idx1, idx2, T)
 	nothing
 end
 
-function compute_Δz!(Δzu, Δzqa, Δzqb, Δνd, Δνe, Aa, Ab, Ac, Ba, Q̃a, Q̃b, R̃, rlagu, rlagqa, rlagqb, T)
+function compute_Δz!(Δzu, Δzqa, Δzqb, Δνd, Δνe, Aa, Ab, Ac, Ba, Q̃a, Q̃b, Q̃v, R̃, rlagu, rlagqa, rlagqb, T)
 	for t = 1:T-1
 		Δzu[t] = R̃[t] * (rlagu[t] - transpose(Ba[t]) * Δνd[t])
+
 		if t < T-1
 			Δzqa[t] = Q̃a[t+1] * (rlagqa[t] - Δνe[t] - transpose(Aa[t+1]) * Δνd[t+1])
+			Δzqb[t] += transpose(Q̃v[t+1]) * (rlagqa[t] - Δνe[t] - transpose(Aa[t+1]) * Δνd[t+1])
+
 			Δzqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t] - transpose(Ab[t+1]) * Δνd[t+1] + Δνe[t+1])
+			Δzqa[t] += Q̃v[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t] - transpose(Ab[t+1]) * Δνd[t+1] + Δνe[t+1])
 		else
 			Δzqa[t] = Q̃a[t+1] * (rlagqa[t] - Δνe[t])
+			Δzqa[t] += transpose(Q̃v[t+1]) * (rlagqa[t] - Δνe[t])
+
 			Δzqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t])
+			Δzqb[t] += Q̃v[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t])
 		end
 	end
 end
 
 function ContactControl.solve!(s::NewtonStructureSolver)
 	compute_Y!(s.Yiia, s.Yiib, s.Yiic, s.Yiid, s.Yija, s.Yijb, s.Yijc, s.Yijd,
-		s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a,
+		s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a,
 		s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.H)
 
 	update_Y!(s.Yiis, s.Yijs, s.Yii, s.Yij, s.Yiia, s.Yiib, s.Yiic, s.Yiid,
@@ -447,12 +493,12 @@ function ContactControl.solve!(s::NewtonStructureSolver)
 	compute_L!(s.Liis, s.Ljis, s.Yiis, s.Yijs, s.tmp_nn, s.tmp_nn2, s.H)
 
 	compute_β!(s.βn, s.βd, s.βe, s.rlagu, s.rlagqa, s.rlagqb,
-		s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a, s.H)
+		s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.H)
 
 	compute_y!(s.y, s.Liis, s.Ljis, s.βn, s.H)
 
 	compute_Δν!(s.Δνn, s.Δνd, s.Δνe, s.Liis, s.Ljis, s.y, s.idx_nq, s.idx_nq2, s.H)
 
 	compute_Δz!(s.Δzu, s.Δzqa, s.Δzqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba,
-		s.Q̃a, s.Q̃b, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
+		s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
 end

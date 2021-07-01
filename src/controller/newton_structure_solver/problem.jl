@@ -13,6 +13,7 @@ Ac = [SMatrix{nq, nq}(Array(Diagonal(ones(nq)))) for t = 1:T-1]
 Ba = [SMatrix{nq,m}(-1.0 * rand(nq, m)) for t = 1:T-1]
 Qa = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
 Qb = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
+Qv = [0.0 * Diagonal(SVector{nq}(-1.0 * ones(nq) + 0.1 * rand(nq))) for t = 1:T]
 
 # indices
 u_idx = [collect((t - 1) * (m + n) .+ (1:m)) for t = 1:T-1]
@@ -21,7 +22,7 @@ qa_idx = [collect(x_idx[t][1:nq]) for t = 1:T-1]
 qb_idx = [x_idx[t][nq .+ (1:nq)] for t = 1:T-1]
 n_idx = [(t - 1) * n .+ (1:n) for t = 1:T-1]
 
-Q = [Diagonal(SVector{n}(Array(diag(cat(Qa[t], Qb[t], dims=(1,2)))))) for t = 1:T]
+Q = [[Qa[t] Qv[t]; Qv[t]' Qb[t]] for t = 1:T]
 R = [Diagonal(SVector{m}(0.1 * rand(m) + ones(m))) for t = 1:T-1]
 A = [SMatrix{n,n}([Aa[t] Ab[t]; zeros(nq, nq) -I]) for t = 1:T-1]
 B = [SMatrix{n,m}([Ba[t]; zeros(nq, m)]) for t = 1:T-1]
@@ -41,9 +42,12 @@ for t = 1:T-1
 	C[n_idx[t], x_idx[t-1]] = A[t]
 end
 
-Q̃a = [inv(Qa[t]) for t = 1:T]
-Q̃b = [inv(Qb[t]) for t = 1:T]
-Q̃ = [inv(Q[t]) for t = 1:T]
+Q̃ = [inv(Array(Q[t])) for t = 1:T]
+
+Q̃a = [Q̃[t][1:nq, 1:nq] for t = 1:T]
+Q̃b = [Q̃[t][nq .+ (1:nq), nq .+ (1:nq)] for t = 1:T]
+Q̃v = [Q̃[t][1:nq, nq .+ (1:nq)] for t = 1:T]
+
 R̃ = [inv(R[t]) for t = 1:T-1]
 S̃ = zeros(nz, nz)
 

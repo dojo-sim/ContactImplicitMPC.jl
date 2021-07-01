@@ -603,10 +603,13 @@ function update_β!(βn, βd, βe, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab, 
 	for t = 1:T-1
 		if t == 1
 			βd[1] = -1.0 * rdyn1[1] + Ba[1] * R̃[1] * rlagu[1] + Ac[1] * Q̃b[2] * rlagqb[1]
-			βe[1] = -1.0 * rdyn2[1] + Q̃a[2] * rlagqa[1]
+			βe[1] = -1.0 * rdyn2[1] + Q̃a[2] * rlagqa[1] + Q̃v[2] * rlagqb[1]
 		else
 			βd[t] = -1.0 * rdyn1[t] + Ba[t] * R̃[t] * rlagu[t] + Ac[t] * Q̃b[t+1] * rlagqb[t] + Aa[t] * Q̃a[t] * rlagqa[t-1] + Ab[t] * Q̃b[t] * rlagqb[t-1]
+			βd[t] += Aa[t] * Q̃v[t+1] * rlagqb[t-1] + Ab[t] * transpose(Q̃v[t-1]) * rlabqa[t-1] + Ac[t] * Q̃v[t+1] * rlagqa[t]
+
 			βe[t] = -1.0 * rdyn2[t] + Q̃a[t+1] * rlagqa[t] - Q̃b[t] * rlagqb[t-1]
+			βe[t] += -1.0 * Q̃v[t] * rlagqa[t-1] + Q̃v[t+1] * rlagqb[t]
 		end
 		βn[t] = [βd[t]; βe[t]]
 	end

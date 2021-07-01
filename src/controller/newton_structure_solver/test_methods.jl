@@ -15,6 +15,7 @@ s = newton_structure_solver(nq, m, T)
 for t = 1:T
 	s.Q̃a[t] = Q̃a[t]
 	s.Q̃b[t] = Q̃b[t]
+	s.Q̃v[t] = Q̃v[t]
 
 	t == T && continue
 	s.Aa[t] = Aa[t]
@@ -36,17 +37,18 @@ for t = 1:T
 end
 
 compute_Y!(s.Yiia, s.Yiib, s.Yiic, s.Yiid, s.Yija, s.Yijb, s.Yijc, s.Yijd,
-	s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a,
+	s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a,
 	s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.H)
 
 info = @benchmark compute_Y!($s.Yiia, $s.Yiib, $s.Yiic, $s.Yiid,
 	$s.Yija, $s.Yijb, $s.Yijc, $s.Yijd, $s.Aa, $s.Ab, $s.Ac, $s.Ba,
-	$s.Q̃a, $s.Q̃b, $s.R̃a, $s.tmp_nqnq, $s.tmp_nqnq2, $s.tmp_nqm, $s.H)
+	$s.Q̃a, $s.Q̃b, $s.Q̃v, $s.R̃a, $s.tmp_nqnq, $s.tmp_nqnq2, $s.tmp_nqm, $s.H)
+
 @test info.memory == 0
 @test info.allocs == 0
 
 @code_warntype compute_Y!(s.Yiia, s.Yiib, s.Yiic, s.Yiid,
-	s.Yija, s.Yijb, s.Yijc, s.Yijd, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a,
+	s.Yija, s.Yijb, s.Yijc, s.Yijd, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a,
 	s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.H)
 
 
@@ -79,6 +81,7 @@ end
 compute_L!(s.Liis, s.Ljis, s.Yiis, s.Yijs, s.tmp_nn, s.tmp_nn2, s.H)
 
 info = @benchmark compute_L!($s.Liis, $s.Ljis, $s.Yiis, $s.Yijs, $s.tmp_nn, $s.tmp_nn2, $s.H)
+
 @test info.memory == 0
 @test info.allocs == 0
 
@@ -96,16 +99,16 @@ end
 @test norm(cholesky(Hermitian(Y)).L - L) < 1.0e-12
 
 compute_β!(s.βn, s.βd, s.βe, s.rlagu, s.rlagqa, s.rlagqb,
-	s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a, s.H)
+	s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.H)
 
 info = @benchmark compute_β!($s.βn, $s.βd, $s.βe, $s.rlagu, $s.rlagqa, $s.rlagqb,
-	$s.rdyn1, $s.rdyn2, $s.Aa, $s.Ab, $s.Ac, $s.Ba, $s.Q̃a, $s.Q̃b, $s.R̃a, $s.H)
+	$s.rdyn1, $s.rdyn2, $s.Aa, $s.Ab, $s.Ac, $s.Ba, $s.Q̃a, $s.Q̃b, $s.Q̃v, $s.R̃a, $s.H)
 
 @test info.memory == 0
 @test info.allocs == 0
 
 @code_warntype compute_β!(s.βn, s.βd, s.βe, s.rlagu, s.rlagqa, s.rlagqb,
-	s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a, s.H)
+	s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.H)
 
 @test norm(β - vcat([[s.βd[t]; s.βe[t]] for t = 1:T-1]...)) < 1.0e-12
 @test norm((β - vcat(s.βn...))) < 1.0e-12
@@ -130,16 +133,21 @@ info = @benchmark compute_Δν!($s.Δνn, $s.Δνd, $s.Δνe, $s.Liis, $s.Ljis, 
 
 @code_warntype compute_Δν!(s.Δνn, s.Δνd, s.Δνe, s.Liis, s.Ljis, s.y, s.idx_nq, s.idx_nq2, s.H)
 
+@test norm(vcat(s.Δνn...) - Δν, Inf) < 1.0e-12
 @test norm(vcat(s.Δνn...) - Y \ β, Inf) < 1.0e-12
 @test norm(vcat(s.Δνn...) - L' \ (L \ β), Inf) < 1.0e-12
+@test norm(vcat([[s.Δνd[t]; s.Δνe[t]] for t = 1:T-1]...) - Y \ β, Inf) < 1.0e-12
 
-compute_Δz!(s.Δzu, s.Δzqa, s.Δzqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
-info = @benchmark compute_Δz!($s.Δzu, $s.Δzqa, $s.Δzqb, $s.Δνd, $s.Δνe, $s.Aa, $s.Ab, $s.Ac, $s.Ba, $s.Q̃a, $s.Q̃b, $s.R̃a, $s.rlagu, $s.rlagqa, $s.rlagqb, $s.H)
+compute_Δz!(s.Δzu, s.Δzqa, s.Δzqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
+info = @benchmark compute_Δz!($s.Δzu, $s.Δzqa, $s.Δzqb, $s.Δνd, $s.Δνe, $s.Aa, $s.Ab, $s.Ac, $s.Ba, $s.Q̃a, $s.Q̃b, $s.Q̃v, $s.R̃a, $s.rlagu, $s.rlagqa, $s.rlagqb, $s.H)
 
+norm(Δz[2*(m + n) .+ (1:m)] - s.Δzu[3])
+norm(Δz[m + nq .+ (1:nq)] - s.Δzqb[1])
+Δz[end-nq+1:end] - s.Δzqb[end]
 @test info.memory == 0
 @test info.allocs == 0
 
-@code_warntype compute_Δz!(s.Δzu, s.Δzqa, s.Δzqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
+@code_warntype compute_Δz!(s.Δzu, s.Δzqa, s.Δzqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
 
 @test norm((Δz - vcat([[s.Δzu[t]; s.Δzqa[t]; s.Δzqb[t]] for t = 1:T-1]...))) < 1.0e-12
 
