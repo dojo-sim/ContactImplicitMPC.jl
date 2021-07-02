@@ -13,7 +13,7 @@ Ac = [SMatrix{nq, nq}(Array(Diagonal(ones(nq)))) for t = 1:T-1]
 Ba = [SMatrix{nq,m}(-1.0 * rand(nq, m)) for t = 1:T-1]
 Qa = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
 Qb = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
-Qv = [0.0 * Diagonal(SVector{nq}(-1.0 * ones(nq) + 0.1 * rand(nq))) for t = 1:T]
+Qv = [Diagonal(SVector{nq}(-1.0 * ones(nq) + 0.1 * rand(nq))) for t = 1:T]
 
 # indices
 u_idx = [collect((t - 1) * (m + n) .+ (1:m)) for t = 1:T-1]
@@ -72,7 +72,7 @@ rdyn = view(r, nz .+ (1:nd))
 Δz = S̃ * (rlag - C' * Δν)
 
 # LU
-solver_lu = lu_solver(J)
+solver_lu = lu_solver(Js)
 Δlu = zeros(nz + nd)
 @benchmark linear_solve!($solver_lu, $Δlu, $J, $r)
 

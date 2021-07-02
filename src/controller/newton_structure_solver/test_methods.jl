@@ -126,7 +126,8 @@ info = @benchmark compute_y!($s.y, $s.Liis, $s.Ljis, $s.βn, $s.H)
 
 compute_Δν!(s.Δνn, s.Δνd, s.Δνe, s.Liis, s.Ljis, s.y, s.idx_nq, s.idx_nq2, s.H)
 
-info = @benchmark compute_Δν!($s.Δνn, $s.Δνd, $s.Δνe, $s.Liis, $s.Ljis, $s.y, $s.idx_nq, $s.idx_nq2, $s.H)
+info = @benchmark compute_Δν!($s.Δνn, $s.Δνd, $s.Δνe, $s.Liis, $s.Ljis,
+	$s.y, $s.idx_nq, $s.idx_nq2, $s.H)
 
 @test info.memory == 0
 @test info.allocs == 0
@@ -138,21 +139,22 @@ info = @benchmark compute_Δν!($s.Δνn, $s.Δνd, $s.Δνe, $s.Liis, $s.Ljis, 
 @test norm(vcat(s.Δνn...) - L' \ (L \ β), Inf) < 1.0e-12
 @test norm(vcat([[s.Δνd[t]; s.Δνe[t]] for t = 1:T-1]...) - Y \ β, Inf) < 1.0e-12
 
-compute_Δz!(s.Δzu, s.Δzqa, s.Δzqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
-info = @benchmark compute_Δz!($s.Δzu, $s.Δzqa, $s.Δzqb, $s.Δνd, $s.Δνe, $s.Aa, $s.Ab, $s.Ac, $s.Ba, $s.Q̃a, $s.Q̃b, $s.Q̃v, $s.R̃a, $s.rlagu, $s.rlagqa, $s.rlagqb, $s.H)
+compute_Δz!(s.Δu, s.Δqa, s.Δqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba,
+	s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
 
-norm(Δz[2*(m + n) .+ (1:m)] - s.Δzu[3])
-norm(Δz[m + nq .+ (1:nq)] - s.Δzqb[1])
-Δz[end-nq+1:end] - s.Δzqb[end]
+info = @benchmark compute_Δz!($s.Δu, $s.Δqa, $s.Δqb, $s.Δνd, $s.Δνe,
+	$s.Aa, $s.Ab, $s.Ac, $s.Ba, $s.Q̃a, $s.Q̃b, $s.Q̃v, $s.R̃a,
+	$s.rlagu, $s.rlagqa, $s.rlagqb, $s.H)
+
 @test info.memory == 0
 @test info.allocs == 0
 
-@code_warntype compute_Δz!(s.Δzu, s.Δzqa, s.Δzqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
+@code_warntype compute_Δz!(s.Δu, s.Δqa, s.Δqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
 
-@test norm((Δz - vcat([[s.Δzu[t]; s.Δzqa[t]; s.Δzqb[t]] for t = 1:T-1]...))) < 1.0e-12
+@test norm((Δz - vcat([[s.Δu[t]; s.Δqa[t]; s.Δqb[t]] for t = 1:T-1]...))) < 1.0e-12
 
 ContactControl.solve!(s)
 info = @benchmark ContactControl.solve!(s)
 @code_warntype ContactControl.solve!(s)
 
-@test norm(Δ - vcat(vcat([[s.Δzu[t]; s.Δzqa[t]; s.Δzqb[t]] for t = 1:T-1]...), vcat([[s.Δνd[t]; s.Δνe[t]] for t = 1:T-1]...)))  < 1.0e-12
+@test norm(Δ - vcat(vcat([[s.Δu[t]; s.Δqa[t]; s.Δqb[t]] for t = 1:T-1]...), vcat([[s.Δνd[t]; s.Δνe[t]] for t = 1:T-1]...)))  < 1.0e-12

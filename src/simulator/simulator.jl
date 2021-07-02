@@ -27,10 +27,6 @@ function process!(stats::SimulatorStatistics12, N_sample::Int)
     return nothing
 end
 
-function process!(sim::Simulator)
-    process!(sim.stats, sim.p.N_sample)
-end
-
 struct Simulator{T}
     s::Simulation
 
@@ -47,6 +43,10 @@ struct Simulator{T}
 
     opts::SimulatorOptions{T}
     stats::SimulatorStatistics12{T}
+end
+
+function process!(sim::Simulator)
+    process!(sim.stats, sim.p.N_sample)
 end
 
 function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
