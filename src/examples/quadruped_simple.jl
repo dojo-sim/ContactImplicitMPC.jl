@@ -1,49 +1,31 @@
 const ContactControl = Main
-include(joinpath(@__DIR__, "..", "dynamics", "quadrupedlinear", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "quadruped_simple", "visuals.jl"))
 vis = Visualizer()
 open(vis)
-# render(vis)
 
-# get model
-function get_model(name::String; model_name::String = name, surf::String = "flat", dynamics::String="dynamics")
-	#TODO: assert model exists
-	path = joinpath(@__DIR__, "..", "dynamics", name)
-	# include(joinpath(path, "model.jl"))
-	model = eval(Symbol(model_name * (surf != "flat" ? "_" * surf : "")))
-	instantiate_base!(model, joinpath(path, dynamics, "base.jld2"))
-	instantiate_dynamics!(model, joinpath(path, dynamics, "dynamics.jld2"))
-	instantiate_residual!(model, joinpath(path, surf, "residual.jld2"))
-	# instantiate_linearized!(model, joinpath(path, surf, "linearized.jld2"))
-	@load joinpath(path, surf, "sparse_jacobians.jld2") rz_sp rθ_sp
-	model.spa.rz_sp = rz_sp
-	model.spa.rθ_sp = rθ_sp
-	return model
-end
-model = get_model("quadrupedlinear")
-
-# get trajectory
-# ref_traj = get_trajectory("quadrupedlinear", "quadruped_v2_mirror_gait_fast2", load_type = :split_traj_alt)
-# ref_traj = get_trajectory("quadrupedlinear", "quadruped_v2_mirror_gait_fast", load_type = :split_traj_alt)
-ref_traj = get_trajectory("quadrupedlinear", "gait2_mit_2.5percent", load_type = :split_traj_alt)
-# ref_traj = get_trajectory("quadrupedlinear", "gait0_mit_10percent", load_type = :split_traj_alt)
-ref_traj_copy = deepcopy(ref_traj)
-
+s = get_simulation("quadruped_simple", "flat_3D_lc", "flat")
+model = s.model
+env = s.env
+ref_traj = deepcopy(ContactControl.get_trajectory(s.model, s.env,
+    joinpath(module_dir(), "src/dynamics/quadruped_simple/gaits/gait2_mit_2.5percent.jld2"),
+    load_type = :split_traj_alt))
 
 function check_traj(model::ContactModel, traj::ContactTraj)
     nq = model.dim.q
-    nz = num_var(model)
+    nz = num_var(model, env)
     d = [zeros(nq) for t=1:traj.H]
     r = [zeros(nz) for t=1:traj.H]
     for t = 1:ref_traj.H
         k = kinematics(model, traj.q[t+2])
-        λ = contact_forces(model, traj.γ[t], traj.b[t], traj.q[t+2], k)
-        d[t] = dynamics(model, traj.h, traj.q[t], traj.q[t+1], traj.u[t], traj.w[t], λ, traj.q[t+2])
-        r[t] = residual(model, traj.z[t], traj.θ[t], [1e-8])
+        λ = contact_forces(model, env, traj.γ[t], traj.b[t], traj.q[t+2], k)
+		Λ = transpose(J_func(model, env, traj.q[t+2])) * λ
+        d[t] = dynamics(model, traj.h, traj.q[t], traj.q[t+1], traj.u[t], traj.w[t], Λ, traj.q[t+2])
+        r[t] = residual(model, env, traj.z[t], traj.θ[t], [1e-8])
     end
     return d, r
 end
 ref_traj
-nz = num_var(model)
+nz = num_var(model, env)
 dvio, rvio = check_traj(model, ref_traj)
 plot(hcat([v[1:end] for v in dvio]...)')
 plot(hcat([v[1:1] for v in dvio]...)')
@@ -61,22 +43,24 @@ plot(hcat([v[[3,6,9,12]] for v in ref_traj.u]...)')
 # time
 H = ref_traj.H
 h = ref_traj.h
-N_sample = 1
+N_sample = 2
 H_mpc = 20
 h_sim = h / N_sample
-H_sim = 3000 #4000 #3000
+H_sim = 300 #4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
-obj = TrackingVelocityObjective(H_mpc, model.dim,
-    q = [Diagonal(1e-1 * [1e-1; 1e0; 1e0; 1e0*ones(3); 3.0 * ones(model.dim.q-6)]) for t = 1:H_mpc],
+obj = TrackingVelocityObjective(model, env, H_mpc,
+	q = [Diagonal(1e-1 * [1e-1; 1e0; 1e0; 1e0*ones(3); 3.0 * ones(model.dim.q-6)]) for t = 1:H_mpc],
+	# q = [Diagonal(1e-1 * [1e-1; 1e0; 1e0; 1e0*ones(3); [10,3,3]; [10,3,3]; [10,3,3]; [10,3,3]]) for t = 1:H_mpc],
 	v = [Diagonal(1e-2 * [1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 100.0 * ones(model.dim.q-6)]) for t = 1:H_mpc],
+	# v = [Diagonal(1e-2 * [1.0; 1.0; 1.0; 1.0; 1.0; 1.0; [30,3,30]; [30,3,30]; [30,3,30]; [30,3,30]]) for t = 1:H_mpc],
     u = [Diagonal(1e-2 * [1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 1e0]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.b)) for t = 1:H_mpc])
+    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-
+get_stride(model, ref_traj)
 
 # nz = num_var(model)
 # nθ = num_data(model)
@@ -161,18 +145,47 @@ obj = TrackingVelocityObjective(H_mpc, model.dim,
 # plot(Gray.(1e10*abs.(rθ0[irst,:])))
 # plot(Gray.(1e10*abs.(rθ0[ibil,:])))
 
-p = linearized_mpc_policy(ref_traj, model, obj,
+p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
-        solver = :ldl_solver,
+        # solver = :ldl_solver,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions(
 		# live_plotting=true
 		))
 
+p = linearized_mpc_policy(ref_traj, s, obj,
+    H_mpc = H_mpc,
+    N_sample = N_sample,
+    κ_mpc = κ_mpc,
+	# mode = :configurationforce,
+	mode = :configuration,
+	ip_type = :mehrotra,
+    n_opts = NewtonOptions(
+        r_tol = 3e-4,
+        max_iter = 5,
+		# max_time = ref_traj.h, # HARD REAL TIME
+		),
+    mpc_opts = LinearizedMPCOptions(
+        # live_plotting=true,
+        # altitude_update = true,
+        altitude_impact_threshold = 0.02,
+        altitude_verbose = true,
+        ),
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
+		# verbose = true,
+		r_tol = 1.0e-4,
+		κ_tol = 1.0e-4,
+		diff_sol = true,
+		# κ_reg = 1e-3,
+		# γ_reg = 1e-1,
+		solver = :empty_solver,
+		),
+    )
 
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])
@@ -180,26 +193,50 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-sim = ContactControl.simulator(model, q0_sim, q1_sim, h_sim, H_sim,
-    p = p,
-    ip_opts = ContactControl.InteriorPointOptions(
-        r_tol = 1.0e-8,
-        κ_init = 1.0e-6,
-        κ_tol = 2.0e-6,
-        diff_sol = true),
-    sim_opts = ContactControl.SimulatorOptions(
-		warmstart = true))
 
-time = @elapsed status = ContactControl.simulate!(sim)
-# @elapsed status = ContactControl.simulate!(sim)
-# @profiler status = ContactControl.simulate!(sim)
+sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
+    p = p,
+    ip_opts = InteriorPointOptions(
+        r_tol = 1.0e-8,
+        κ_init = 1.0e-8,
+        κ_tol = 2.0e-8),
+    sim_opts = SimulatorOptions(warmstart = true),
+	ip_type = :interior_point,
+    )
+#
+# rz0 = sim.p.im_traj.ip[1].rz
+# Ai0 = Array(rz0.S.Ai)
+# plot(Gray.(1e10*abs.(Ai0)))
+
+
+status = ContactControl.simulate!(sim, verbose = true)
+# @profiler status = ContactControl.simulate!(sim, verbose = true)
+
+################################################################################
+# Timing result
+################################################################################
+process!(sim)
+# Time budget
+ref_traj.h
+# Time used on average
+sim.stats.μ_dt
+# Speed ratio
+H_sim * h_sim / sum(sim.stats.dt)
+
 
 # plot_lines!(vis, model, sim.traj.q[1:25:end])
-plot_surface!(vis, model.env, ylims=[0.15, -0.15], xlims=[-1.0, 6.0])
+plot_surface!(vis, env, ylims=[0.15, -0.15], xlims=[-1.0, 6.0])
 anim = visualize_robot!(vis, model, ref_traj, name=:Ref, sample=1, α=0.5)
-anim = visualize_robot!(vis, model, sim.traj, anim=anim, sample=1)
+anim = visualize_robot!(vis, model, sim.traj, anim=anim, sample=N_sample)
 # anim = visualize_robot!(vis, model, sim.traj, anim=anim)
 # anim = visualize_force!(vis, model, sim.traj, anim=anim, h=h_sim)
+
+
+
+rep_ref_traj = repeat_ref_traj(ref_traj, 10; idx_shift = [1,7,10,13,16])
+anim = visualize_robot!(vis, model, rep_ref_traj, name=:Ref, sample=1, α=0.5)
+
+
 
 # Display ghosts
 t_ghosts = [1, 1333, 2666]
@@ -217,11 +254,11 @@ for (i,t) in enumerate(t_ghosts)
 end
 
 
-filename = "tablebot_demo"
-MeshCat.convert_frames_to_video(
-    "/home/simon/Downloads/$filename.tar",
-    "/home/simon/Documents/$filename.mp4", overwrite=true)
-
-convert_video_to_gif(
-    "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
+# filename = "tablebot_demo"
+# MeshCat.convert_frames_to_video(
+#     "/home/simon/Downloads/$filename.tar",
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+#
+# convert_video_to_gif(
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)

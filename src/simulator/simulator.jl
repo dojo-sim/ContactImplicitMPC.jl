@@ -4,27 +4,17 @@
     κ_warmstart::T = 0.001
 end
 
-mutable struct SimulatorStatistics12{T}
+mutable struct SimulatorStatistics{T}
     dt::AbstractVector{T}
     μ_dt::T
     σ_dt::T
 end
 
-function SimulatorStatistics12()
+function SimulatorStatistics()
     dt = zeros(0)
     μ_dt = 0.0
     σ_dt = 0.0
-    return SimulatorStatistics12(dt, μ_dt, σ_dt)
-end
-
-
-function process!(stats::SimulatorStatistics12, N_sample::Int)
-    H_sim = length(stats.dt)
-    H = Int(H_sim / N_sample)
-    dt = sum(reshape(stats.dt, (H, N_sample)), dims=2)
-    stats.μ_dt = mean(dt)
-    stats.σ_dt = sqrt(mean( (dt .- stats.μ_dt).^2 ))
-    return nothing
+    return SimulatorStatistics(dt, μ_dt, σ_dt)
 end
 
 struct Simulator{T}
@@ -42,7 +32,7 @@ struct Simulator{T}
     ip::AbstractIPSolver
 
     opts::SimulatorOptions{T}
-    stats::SimulatorStatistics12{T}
+    stats::SimulatorStatistics{T}
 end
 
 function process!(sim::Simulator)
@@ -98,7 +88,7 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
 
     # pre-allocate for gradients
     traj_deriv = contact_derivative_trajectory(model, env, ip.δz, H)
-    stats = SimulatorStatistics12()
+    stats = SimulatorStatistics()
 
     Simulator(
         s,
@@ -202,4 +192,17 @@ function simulate!(sim::Simulator; verbose = false)
     end
 
     return status
+end
+
+function process!(stats::SimulatorStatistics, N_sample::Int)
+    H_sim = length(stats.dt)
+    H = Int(H_sim / N_sample)
+    dt = sum(reshape(stats.dt, (H, N_sample)), dims=2)
+    stats.μ_dt = mean(dt)
+    stats.σ_dt = sqrt(mean( (dt .- stats.μ_dt).^2 ))
+    return nothing
+end
+
+function process!(sim::Simulator)
+    process!(sim.stats, sim.p.N_sample)
 end

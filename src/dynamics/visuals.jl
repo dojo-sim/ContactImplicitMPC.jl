@@ -202,11 +202,11 @@ end
 
 function animate_force!(vis::Visualizer, anim::MeshCat.Animation, model::ContactModel, env::Environment,
 	q::AbstractVector, γ::AbstractVector, b::AbstractVector;
-	name::Symbol=model_name(model))
+	name::Symbol=model_name(model), shift=-0.14)
 	E = Matrix(friction_mapping(env))
 	for t in 1:length(q)
 		MeshCat.atframe(anim, t) do
-			set_force!(vis, model, env, q[t], γ[t], b[t], name=name, E=E)
+			set_force!(vis, model, env, q[t], γ[t], b[t], name=name, E=E, shift=shift)
 		end
 	end
 	setanimation!(vis, anim)
@@ -216,19 +216,19 @@ end
 function visualize_force!(vis::Visualizer, model::ContactModel, env::Environment,
 		q::AbstractVector, γ::AbstractVector, b::AbstractVector; h=0.01,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
-		name::Symbol=model_name(model))
+		name::Symbol=model_name(model), shift=-0.14)
 
 	build_force!(vis, model, name=name)
-	animate_force!(vis, anim, model, env, q, γ, b, name=name)
+	animate_force!(vis, anim, model, env, q, γ, b, name=name, shift=shift)
 	return anim
 end
 
 function visualize_force!(vis::Visualizer, model::ContactModel, env::Environment,
 		traj::ContactTraj; sample=max(1,Int(floor(traj.H/100))), h=traj.h*sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
-		name::Symbol=model_name(model))
+		name::Symbol=model_name(model), shift=-0.14)
 
 	visualize_force!(vis, model, env, traj.q[3:sample:end], traj.γ[1:sample:end], traj.b[1:sample:end];
-			anim=anim, name=name, h=h)
+			anim=anim, name=name, h=h, shift=shift)
 	return anim
 end

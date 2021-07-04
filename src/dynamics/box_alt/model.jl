@@ -160,16 +160,20 @@ end
 
 function velocity_stack(model::Box, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	p1 = q1[1:3]
-	quat1 = q1[4:7]
+	mrp1 = q1[4:6]
 
 	p2 = q2[1:3]
-	quat2 = q2[4:7]
+	mrp2 = q2[4:6]
 
 	v = J_func(model, env, q2) * (q2 - q1) / h[1]
+	# @show size((q2 - q1) / h[1])
+	# @show size(J_func(model, env, q2))
+	# @show size(v)
+	# @show size(rotation(env, k))
+	# @show rotation(env, k)
+	v1_surf = vcat([rotation(env, k) * v[(i-1)*3 .+ (1:3)] for i = 1:8]...)
 
-	v1_surf = rotation(env, k) * v
-
-	SVector{16}([transpose(friction_mapping(env)) * v1_surf[1:2];
+	SVector{32}([transpose(friction_mapping(env)) * v1_surf[1:2];
 	            transpose(friction_mapping(env)) * v1_surf[4:5];
 				transpose(friction_mapping(env)) * v1_surf[7:8];
 				transpose(friction_mapping(env)) * v1_surf[10:11];
@@ -178,6 +182,7 @@ function velocity_stack(model::Box, env::Environment{<:World, LinearizedCone}, q
 				transpose(friction_mapping(env)) * v1_surf[19:20];
 				transpose(friction_mapping(env)) * v1_surf[22:23]])
 end
+
 
 function velocity_stack(model::Box, env::Environment{<:World,NonlinearCone}, q1, q2, k, h)
 	nc = model.dim.c

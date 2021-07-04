@@ -107,6 +107,38 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 		# live_plotting=true
 		))
 
+p = linearized_mpc_policy(ref_traj, s, obj,
+    H_mpc = H_mpc,
+    N_sample = N_sample,
+    κ_mpc = κ_mpc,
+	# mode = :configurationforce,
+	mode = :configuration,
+	ip_type = :mehrotra,
+    n_opts = NewtonOptions(
+        r_tol = 3e-4,
+        max_iter = 5,
+		# max_time = ref_traj.h, # HARD REAL TIME
+		),
+    mpc_opts = LinearizedMPCOptions(
+        # live_plotting=true,
+        # altitude_update = true,
+        # altitude_impact_threshold = 0.02,
+        # altitude_verbose = true,
+        ),
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
+		# verbose = true,
+		r_tol = 1.0e-4,
+		κ_tol = 1.0e-4,
+		diff_sol = true,
+		# κ_reg = 1e-3,
+		# γ_reg = 1e-1,
+		solver = :empty_solver,
+		),
+    )
+
+
+
 p.κ
 p.traj.κ[1]
 p.ref_traj.κ[1]
