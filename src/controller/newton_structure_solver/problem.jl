@@ -74,6 +74,10 @@ rdyn = view(r, nz .+ (1:nd))
 # LU
 solver_lu = lu_solver(Js)
 Δlu = zeros(nz + nd)
+@benchmark linear_solve!($solver_lu, $Δlu, $Js, $r)
+
+solver_lu = lu_solver(J)
+Δlu = zeros(nz + nd)
 @benchmark linear_solve!($solver_lu, $Δlu, $J, $r)
 
 # # QDLDL

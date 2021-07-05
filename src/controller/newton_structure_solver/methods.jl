@@ -28,16 +28,16 @@ mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,Q
 	qa::Vector{SVector{NQ,T}}
 	qb::Vector{SVector{NQ,T}}
 
-	νd::Vector{SVector{NQ,T}}
-	νe::Vector{SVector{NQ,T}}
+	ν1::Vector{SVector{NQ,T}}
+	ν2::Vector{SVector{NQ,T}}
 
 	# candidate trajectories
 	u_cand::Vector{SVector{M,T}}
 	qa_cand::Vector{SVector{NQ,T}}
 	qb_cand::Vector{SVector{NQ,T}}
 
-	νd_cand::Vector{SVector{NQ,T}}
-	νe_cand::Vector{SVector{NQ,T}}
+	ν1_cand::Vector{SVector{NQ,T}}
+	ν2_cand::Vector{SVector{NQ,T}}
 
 	# dynamics Jacobians
 	Aa::Vector{AA} # ∂ft/∂qt-1
@@ -46,6 +46,9 @@ mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,Q
 	Ba::Vector{BA} # ∂ft/∂ut
 
 	# objective
+	q_ref::Vector{SVector{NQ,T}}
+	u_ref::Vector{SVector{M,T}}
+
 	Qa::Vector{QA}
 	Qb::Vector{QB}
 	Qv::Vector{QV}
@@ -118,8 +121,8 @@ mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,Q
 
 	# Δν = L' \ y
 	Δνn::Vector{SVector{N,T}}
-	Δνd::Vector{SVector{NQ,T}}
-	Δνe::Vector{SVector{NQ,T}}
+	Δν1::Vector{SVector{NQ,T}}
+	Δν2::Vector{SVector{NQ,T}}
 
 	# Δz = inv(S) * (rlag - C' * Δν)
 	Δu::Vector{SVector{M,T}}
@@ -158,16 +161,16 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 	qa = [SVector{nq}(zeros(nq)) for t = 1:H]
 	qb = [SVector{nq}(zeros(nq)) for t = 1:H]
 
-	νd = [SVector{nq}(zeros(nq)) for t = 1:H-1]
-	νe = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	ν1 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	ν2 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
 
 	# candidate trajectories
 	u_cand = [SVector{m}(zeros(m)) for t = 1:H-1]
 	qa_cand = [SVector{nq}(zeros(nq)) for t = 1:H]
 	qb_cand = [SVector{nq}(zeros(nq)) for t = 1:H]
 
-	νd_cand = [SVector{nq}(zeros(nq)) for t = 1:H-1]
-	νe_cand = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	ν1_cand = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	ν2_cand = [SVector{nq}(zeros(nq)) for t = 1:H-1]
 
 	# dynamics Jacobians
 	Aa = [SMatrix{nq, nq}(zeros(nq, nq)) for t = 1:H-1]
@@ -176,6 +179,9 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 	Ba = [SMatrix{nq,m}(zeros(nq, m)) for t = 1:H-1]
 
 	# objective
+	q_ref = [SVector{nq}(zeros(nq)) for t = 1:H+1]
+	u_ref = [SVector{m}(zeros(m)) for t = 1:H-1]
+
 	Qa = [SMatrix{nq,nq}(Diagonal(ones(nq))) for t = 1:H]
 	Qb = [SMatrix{nq,nq}(Diagonal(ones(nq))) for t = 1:H]
 	Qv = [SMatrix{nq,nq}(Diagonal(0.1 * ones(nq))) for t = 1:H]
@@ -245,8 +251,8 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 
 	# Δν
 	Δνn = [SVector{n}(zeros(n)) for t = 1:H-1]
-	Δνd = [SVector{nq}(zeros(nq)) for t = 1:H-1]
-	Δνe = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	Δν1 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	Δν2 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
 
 	# Δz
 	Δu = [SVector{m}(zeros(m)) for t = 1:H-1]
@@ -281,17 +287,19 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 		u,
 		qa,
 		qb,
-		νd,
-		νe,
+		ν1,
+		ν2,
 		u_cand,
 		qa_cand,
 		qb_cand,
-		νd_cand,
-		νe_cand,
+		ν1_cand,
+		ν2_cand,
 		Aa,
 		Ab,
 		Ac,
 		Ba,
+		q_ref,
+		u_ref,
 		Qa,
 		Qb,
 		Qv,
@@ -337,8 +345,8 @@ function newton_structure_solver(nq::Int, m::Int, H::Int)
 		βe,
 		y,
 		Δνn,
-		Δνd,
-		Δνe,
+		Δν1,
+		Δν2,
 		Δu,
 		Δqa,
 		Δqb,
@@ -525,22 +533,22 @@ function compute_Δν!(x, x1, x2, Lii, Lji, y, idx1, idx2, T)
 	nothing
 end
 
-function compute_Δz!(Δu, Δqa, Δqb, Δνd, Δνe, Aa, Ab, Ac, Ba, Q̃a, Q̃b, Q̃v, R̃, rlagu, rlagqa, rlagqb, T)
+function compute_Δz!(Δu, Δqa, Δqb, Δν1, Δν2, Aa, Ab, Ac, Ba, Q̃a, Q̃b, Q̃v, R̃, rlagu, rlagqa, rlagqb, T)
 	for t = 1:T-1
-		Δu[t] = R̃[t] * (rlagu[t] - transpose(Ba[t]) * Δνd[t])
+		Δu[t] = R̃[t] * (rlagu[t] - transpose(Ba[t]) * Δν1[t])
 
 		if t < T-1
-			Δqa[t] = Q̃a[t+1] * (rlagqa[t] - Δνe[t] - transpose(Aa[t+1]) * Δνd[t+1])
-			Δqa[t] += Q̃v[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t] - transpose(Ab[t+1]) * Δνd[t+1] + Δνe[t+1])
+			Δqa[t] = Q̃a[t+1] * (rlagqa[t] - Δν2[t] - transpose(Aa[t+1]) * Δν1[t+1])
+			Δqa[t] += Q̃v[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δν1[t] - transpose(Ab[t+1]) * Δν1[t+1] + Δν2[t+1])
 
-			Δqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t] - transpose(Ab[t+1]) * Δνd[t+1] + Δνe[t+1])
-			Δqb[t] += transpose(Q̃v[t+1]) * (rlagqa[t] - Δνe[t] - transpose(Aa[t+1]) * Δνd[t+1])
+			Δqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δν1[t] - transpose(Ab[t+1]) * Δν1[t+1] + Δν2[t+1])
+			Δqb[t] += transpose(Q̃v[t+1]) * (rlagqa[t] - Δν2[t] - transpose(Aa[t+1]) * Δν1[t+1])
 		else
-			Δqa[t] = Q̃a[t+1] * (rlagqa[t] - Δνe[t])
-			Δqa[t] += Q̃v[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t])
+			Δqa[t] = Q̃a[t+1] * (rlagqa[t] - Δν2[t])
+			Δqa[t] += Q̃v[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δν1[t])
 
-			Δqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δνd[t])
-			Δqb[t] += transpose(Q̃v[t+1]) * (rlagqa[t] - Δνe[t])
+			Δqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δν1[t])
+			Δqb[t] += transpose(Q̃v[t+1]) * (rlagqa[t] - Δν2[t])
 		end
 	end
 end
@@ -561,9 +569,9 @@ function ContactControl.solve!(s::NewtonStructureSolver)
 
 	compute_y!(s.y, s.Liis, s.Ljis, s.βn, s.H)
 
-	compute_Δν!(s.Δνn, s.Δνd, s.Δνe, s.Liis, s.Ljis, s.y, s.idx_nq, s.idx_nq2, s.H)
+	compute_Δν!(s.Δνn, s.Δν1, s.Δν2, s.Liis, s.Ljis, s.y, s.idx_nq, s.idx_nq2, s.H)
 
-	compute_Δz!(s.Δu, s.Δqa, s.Δqb, s.Δνd, s.Δνe, s.Aa, s.Ab, s.Ac, s.Ba,
+	compute_Δz!(s.Δu, s.Δqa, s.Δqb, s.Δν1,  s.Δν2, s.Aa, s.Ab, s.Ac, s.Ba,
 		s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
 end
 
@@ -602,4 +610,84 @@ function update_objective!(s::NewtonStructureSolver, obj::QuadraticObjective)
 		s.Q̃b[t] = Q̃[t][nq .+ (1:nq), nq .+ (1:nq)]
 		s.Q̃v[t] = Q̃[t][1:nq, nq .+ (1:nq)]
 	end
+end
+
+function update_dynamics_jacobian!(s::NewtonStructureSolver, lci_traj::LCIDynamicsTrajectory)
+	for t = 1:s.H-1
+		s.Aa[t] = lci_traj.δq0[t]
+		s.Ab[t] = lci_traj.δq1[t]
+		# s.Ac[t] = I # pre-allocated
+		s.Ba[t] = lci_traj.δu1[t]
+	end
+	return nothing
+end
+
+function dynamics_constraints_linear!(s::NewtonStructureSolver, lci_traj::LCIDynamicsTrajectory)
+	# update implicit dynamics
+
+	for t = 1:s.H-1
+		# q^{t+1}_{t-1} - q^t_t = 0
+		s.rdyn1[t] = s.qa[t+1] - s.qb[t]
+
+		# q^{t+1}_t - s(q^t_{t-1}, q^t_{t}, u_t)
+		s.rdyn2[t] = s.qb[t+1] - s.Aa[t] * s.qa[t] - s.Ab[t] * s.qb[t] - s.Ba[t] * s.u[t]
+	end
+	return nothing
+end
+
+function dynamics_constraints!(s::NewtonStructureSolver, lci_traj::ImplicitTraj)
+	# update implicit dynamics
+
+	for t = 1:s.H-1
+		# q^{t+1}_{t-1} - q^t_t = 0
+		s.rdyn1[t] = s.qa[t+1] - s.qb[t]
+
+		# q^{t+1}_t - s(q^t_{t-1}, q^t_{t}, u_t)
+		s.rdyn2[t] = s.qb[t+1] - lci_traj.dq2[t] #s.Aa[t] * s.qa[t] - s.Ab[t] * s.qb[t] - s.Ba[t] * s.u[t]
+	end
+	return nothing
+end
+
+function lagrangian_gradient!(s::NewtonStructureSolver)
+	# objective terms
+	for t = 1:s.H-1
+		s.rlagu[t] = s.Ra[t] * (s.u[t] - s.u_ref[t])
+
+		s.rlagqa[t] = s.Qa[t+1] * (s.qa[t+1] - s.q_ref[t+1])
+		s.rlagqb[t] = s.Qb[t+1] * (s.qb[t+1] - s.q_ref[t+2])
+
+		s.rlagqa[t] += s.Qv[t+1] * s.qb[t+1]
+		s.rlagqb[t] += transpose(s.Qv[t+1]) * s.qa[t+1]
+	end
+
+	# configuration equality terms
+	for t = 1:s.H-1
+		s.rlagqa[t] += s.ν1[t]
+		t == 1 && continue
+		s.rlagqb[t-1] -= s.ν1[t]
+	end
+
+	# dynamics terms
+	for t = 1:s.H-1
+		s.rlagu[t] -= transpose(s.Ba[t]) * s.ν2[t]
+		s.rlagqb[t] += s.ν2[t]
+		t == 1 && continue
+		s.rlagqa[t-1] -= transpose(s.Aa[t]) * s.ν2[t]
+		s.rlagqb[t-1] -= transpose(s.Ab[t]) * s.ν2[t]
+	end
+	return nothing
+end
+
+function compute_residual!(s::NewtonStructureSolver, lci_traj::LCIDynamicsTrajectory)
+
+	# update lci_traj
+
+	# update static Jacobians
+	update_dynamics_jacobian!(s, lci_traj)
+
+	# update constraints
+	dynamics_constraints!(s, lci_traj)
+
+	# update gradient of Lagrangian
+	lagrangian_gradient!(s)
 end
