@@ -12,7 +12,7 @@ Ks 1 1 1
 Ns 30
 illum 7
 
-newmtl Car wheels rubber by fahd
+newmtl Car_wheels_rubber_by_fahd
 Ka 1 1 1
 Kd 0.00999999977648 0.00999999977648 0.00999999977648
 Ks 1 1 1
@@ -31,7 +31,7 @@ Ks 1 1 1
 Ns 30
 illum 7
 
-newmtl Material #256
+newmtl Material_#256
 Ka 1 1 1
 Kd 0.89999997615814 0.09899999946356 0.09899999946356
 Ks 1 1 1
@@ -50,7 +50,7 @@ Ks 1 1 1
 Ns 30
 illum 7
 
-newmtl Object Glass | Colored
+newmtl Object_Glass_|_Colored
 Ka 1 1 1
 Kd 0.80000001192093 0.80000001192093 0.80000001192093
 Ks 1 1 1
@@ -112,7 +112,7 @@ Ks 1 1 1
 Ns 50
 illum 7
 
-newmtl Black Paint
+newmtl Black_Paint
 Ka 1 1 1
 Kd 0.18000000715256 0.18000000715256 0.18000000715256
 Ks 1 1 1
@@ -131,14 +131,14 @@ Ks 1 1 1
 Ns 30
 illum 7
 
-newmtl Aluminium Car Interior_by Amleto74
+newmtl Aluminium_Car_Interior_by_Amleto74
 Ka 1 1 1
 Kd 0.41999998688698 0.41999998688698 0.41999998688698
 Ks 1 1 1
 Ns 50
 illum 7
 
-newmtl 09 - Default
+newmtl 09_-_Default
 Kd 0.02352941408753 0.02352941408753 0.02352941408753
 illum 7
 

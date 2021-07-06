@@ -29,10 +29,6 @@ function contact_forces(model::ContactModel, env::Environment{<:World,Linearized
 	nb = nc * friction_dim(env)
 	nf = Int(nb / nc)
 	ne = dim(env)
-	@show size(γ1)
-	@show size(b1)
-	@show size(q2)
-	@show size(k)
 	λ1 = vcat([transpose(rotation(env, k[(i-1) * (ne - 1) .+ (1:ne)])) * [friction_mapping(env) * b1[(i-1) * nf .+ (1:nf)]; γ1[i]] for i = 1:nc]...) # TODO: make efficient
 end
 
