@@ -1,5 +1,6 @@
-using Test
 using ContactControl
+
+using Test
 using ForwardDiff
 using JLD2
 using QDLDL
@@ -17,22 +18,22 @@ include("solver/qdldl.jl")
 include("solver/random_qp.jl")
 include("solver/lu.jl")
 include("solver/gs.jl")
-# include("solver/schur.jl")
+include("solver/schur.jl")
 include("solver/soc.jl")
-include("solver/mehrotra.jl")
+include("solver/mehrotra.jl") #NEED TO BE FIXED
 
 # Dynamics
 # include("dynamics/lagrangian.jl") #NEED FIX
 include("dynamics/model.jl")
 include("dynamics/particle.jl")
-include("dynamics/quadruped.jl")
+include("dynamics/quadruped.jl") #NEED TO BE FIXED
 include("dynamics/quaternion.jl")
 
 # Simulator
 include("simulator/rotations.jl")
 include("simulator/environment.jl")
 include("simulator/trajectory.jl")
-include("simulator/simulator.jl")
+include("simulator/simulator.jl") #NEED TO BE FIXED
 # include("simulator/particle.jl") #NEED FIX
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model #NEED FIX
 # include("simulator/hopper_3D.jl") #NEED FIX
@@ -49,6 +50,6 @@ include("controller/implicit_dynamics.jl")
 include("controller/newton.jl")
 
 # MPC examples
-include("controller/mpc_quadruped.jl")
+include("controller/mpc_quadruped.jl") #NEED TO BE FIXED
 include("controller/mpc_flamingo.jl")
 # const ContactControl = Main

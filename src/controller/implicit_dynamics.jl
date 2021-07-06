@@ -181,7 +181,6 @@ function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
 
 	# Threads.@threads for t = 1:traj.H
 	for t = 1:traj.H
-		@show traj.H
 		# initialized solver
 		z_initialize!(im_traj.ip[t].z, model, env, copy(traj.q[t+2])) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
