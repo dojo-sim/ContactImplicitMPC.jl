@@ -319,17 +319,33 @@ expr_dyn = generate_dynamics_expressions(model)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
-
 ################################################################################
-# RaceCar
+# Unicycle
 ################################################################################
-dir = joinpath(@__DIR__, "racecar")
-model = deepcopy(racecar)
+dir = joinpath(@__DIR__, "unicycle")
+model = deepcopy(unicycle)
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
 
-expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=false)
+expr_base = generate_base_expressions(model, M_analytical=false, C_analytical=false)
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
+
+################################################################################
+# Bicycle
+################################################################################
+dir = joinpath(@__DIR__, "bicycle")
+model = deepcopy(bicycle)
+
+path_base = joinpath(dir, "dynamics/base.jld2")
+path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+
+expr_base = generate_base_expressions(model, M_analytical=false, C_analytical=false)
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
