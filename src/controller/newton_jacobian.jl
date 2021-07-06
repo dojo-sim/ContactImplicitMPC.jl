@@ -1,7 +1,7 @@
 
 # Configurations and forces
-struct NewtonJacobianConfigurationForce{T,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vreg} <: NewtonJacobian
-    R#::SparseMatrixCSC{T,Int}                 # jacobian
+struct NewtonJacobianConfigurationForce{T,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vpr,Vdu} <: NewtonJacobian
+    R::SparseMatrixCSC{T,Int}                 # jacobian
 
     obj_q2::Vector{Vq}                          # obj views
     obj_u1::Vector{Vu}                          # obj views
@@ -19,7 +19,8 @@ struct NewtonJacobianConfigurationForce{T,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,
     q1T::Vector{Vq1T}                       # dynamics q1 views transposed
     u1::Vector{Vu1}                         # dynamics u1 views
     u1T::Vector{Vu1T}                       # dynamics u1 views transposed
-    reg::Vector{Vreg}                       # dual regularization views
+    reg_pr::Vpr                             # primal regularization views
+    reg_du::Vdu                             # dual regularization views
 end
 
 function NewtonJacobianConfigurationForce(model::ContactModel, env::Environment, H::Int)
@@ -62,19 +63,18 @@ function NewtonJacobianConfigurationForce(model::ContactModel, env::Environment,
     q1T = [view(R, (t - 2) * nr .+ iq, H * nr + (t - 1) * nd .+ iν) for t = 2:H]
     u1  = [view(R, H * nr + (t - 1) * nd .+ iν, (t - 1) * nr .+ iu) for t = 1:H]
     u1T = [view(R, (t - 1) * nr .+ iu, H * nr + (t - 1) * nd .+ iν) for t = 1:H]
-    reg = [view(R, CartesianIndex.(H * nr + (t - 1) * nd .+ iν, H * nr + (t - 1) * nd .+ iν)) for t = 1:H] # TODO: Cartesian indices to only grab diagonals
+    reg_pr = view(R, CartesianIndex.(1:H*nr, 1:H*nr))
+    reg_du = view(R, CartesianIndex.(H * nr .+ (1:H * nd), H * nr .+ (1:H * nd)))
 
-    return NewtonJacobianConfigurationForce{eltype(R),
-        eltype.((obj_q2, obj_u1, obj_γ1, obj_b1))...,
-        eltype.((IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg))...}(
+    return NewtonJacobianConfigurationForce(
         R, obj_q2, obj_u1, obj_γ1, obj_b1,
         obj_q1q2, obj_q2q1,
-        IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg)
+        IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg_pr, reg_du)
 end
 
 # Configurations
-struct NewtonJacobianConfiguration{T,Vq,Vu,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vreg} <: NewtonJacobian
-    R#::SparseMatrixCSC{T,Int}                 # jacobian
+struct NewtonJacobianConfiguration{T,Vq,Vu,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vpr,Vdu} <: NewtonJacobian
+    R::SparseMatrixCSC{T,Int}                 # jacobian
 
     obj_q2::Vector{Vq}                          # obj views
     obj_u1::Vector{Vu}                          # obj views
@@ -90,7 +90,8 @@ struct NewtonJacobianConfiguration{T,Vq,Vu,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vre
     q1T::Vector{Vq1T}                       # dynamics q1 views transposed
     u1::Vector{Vu1}                         # dynamics u1 views
     u1T::Vector{Vu1T}                       # dynamics u1 views transposed
-    reg::Vector{Vreg}                       # dual regularization views
+    reg_pr::Vpr                             # primal regularization views
+    reg_du::Vdu                             # dual regularization views
 end
 
 function NewtonJacobianConfiguration(model::ContactModel, env::Environment, H::Int)
@@ -127,14 +128,13 @@ function NewtonJacobianConfiguration(model::ContactModel, env::Environment, H::I
     q1T = [view(R, (t - 2) * nr .+ iq, H * nr + (t - 1) * nd .+ iν) for t = 2:H]
     u1  = [view(R, H * nr + (t - 1) * nd .+ iν, (t - 1) * nr .+ iu) for t = 1:H]
     u1T = [view(R, (t - 1) * nr .+ iu, H * nr + (t - 1) * nd .+ iν) for t = 1:H]
-    reg = [view(R, CartesianIndex.(H * nr + (t - 1) * nd .+ iν, H * nr + (t - 1) * nd .+ iν)) for t = 1:H] # TODO: Cartesian indices to only grab diagonals
+    reg_pr = view(R, CartesianIndex.(1:H*nr, 1:H*nr))
+    reg_du = view(R, CartesianIndex.(H * nr .+ (1:H * nd), H * nr .+ (1:H * nd)))
 
-    return NewtonJacobianConfiguration{eltype(R),
-        eltype.((obj_q2, obj_u1))...,
-        eltype.((IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg))...}(
+    return NewtonJacobianConfiguration(
         R, obj_q2, obj_u1,
         obj_q1q2, obj_q2q1,
-        IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg)
+        IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg_pr, reg_du)
 end
 
 function NewtonJacobian(model::ContactModel, env::Environment, H::Int;
@@ -183,8 +183,9 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objec
         fill!(jac.u1[t], 0.0)
         fill!(jac.u1T[t], 0.0)
 
-        # Dual regularization
-        fill!(jac.reg[t], 0.0)
+        # regularization
+        fill!(jac.reg_pr, 0.0)
+        fill!(jac.reg_du, 0.0)
     end
 
     for t = 1:H
@@ -202,7 +203,8 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objec
         jac.u1T[t] .+= im_traj.δu1[t]'
 
         # Dual regularization
-        jac.reg[t] .-= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+        jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+        jac.reg_du .-= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
     end
 
     return nothing
