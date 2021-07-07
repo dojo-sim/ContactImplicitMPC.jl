@@ -615,7 +615,8 @@ function update!(rθ::RθLin{T}, rθ0::AbstractMatrix{T}) where {T}
 	return nothing
 end
 
-function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
+function least_squares!(ip::Mehrotra{T}, z::Vector{T}, θ::AbstractVector{T},
+		r::RLin{T}, rz::RZLin{T}) where {T}
 	# @warn "wrong"
 	δθ = θ - r.θ0
 	δrdyn = r.rdyn0 - r.rθdyn * δθ

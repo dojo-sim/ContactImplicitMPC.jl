@@ -142,6 +142,8 @@ function interior_point(z, θ;
         ix = collect(1:0), # useless
         iy1 = collect(1:0), # useless
         iy2 = collect(1:0), # useless
+        idyn = collect(1:0), # useless
+        irst = collect(1:0), # useless
         ibil = collect(1:0), # useless
         opts::InteriorPointOptions = InteriorPointOptions()) where T
 

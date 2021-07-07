@@ -250,7 +250,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     # @show typeof(θ)
     # @show typeof(r)
     # @show typeof(rz)
-    least_squares!(z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
+    least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
 
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
@@ -345,10 +345,10 @@ end
 # 	return a, b
 # end
 
-function least_squares!(z::AbstractVector{T}, θ::AbstractVector{T},
+function least_squares!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T},
         r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
-    A = rz[[idyn; irst], [ix; iy1; iy2]]
-    z[[ix; iy1; iy2]] .= A' * ((A * A') \ r[[idyn; irst]])
+    A = rz[[ip.idyn; ip.irst], [ip.ix; ip.iy1; ip.iy2]]
+    z[[ip.ix; ip.iy1; ip.iy2]] .= A' * ((A * A') \ r[[ip.idyn; ip.irst]])
     return nothing
 end
 
