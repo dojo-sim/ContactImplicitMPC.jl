@@ -115,21 +115,16 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
     Δaff_y2 = view(Δaff, iy2) # TODO this should be in Δ space
     Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
-    # rbil = bilinear_res(r, ibil)
 
     Ts = typeof.((r, rz, rθ))
     Mehrotra{T,nx,ny,Ts...}(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
-        # zeros(length(z)),
         Δaff,
         Δ,
         r,
-        # rbil,
-        # 0.0,
         deepcopy(r), #useless
-        # 0.0,
         rz,
         rθ,
         idx_ineq,
@@ -179,10 +174,10 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     s = ip.s
 
     # methods
-    r! = ip.methods.r!
-    rm! = ip.methods.rm!
-    rz! = ip.methods.rz!
-    rθ! = ip.methods.rθ!
+    # r! = ip.methods.r!
+    # rm! = ip.methods.rm!
+    # rz! = ip.methods.rz!
+    # rθ! = ip.methods.rθ!
 
     # options
     opts = ip.opts
@@ -203,8 +198,6 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     Δaff = ip.Δaff
     Δ = ip.Δ
     r = ip.r
-    # rbil = ip.rbil
-    # r_merit = ip.r_merit
     rz = ip.rz
     idx_ineq = ip.idx_ineq
     idx_soc = ip.idx_soc
@@ -234,22 +227,10 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     reg_pr[1] = opts.reg_pr_init
     reg_du[1] = opts.reg_du_init
 
-    # δθ = θ - r.θ0
-    # # comp = true
-    # comp && println("**** δθ:", scn(norm(δθ), digits=4))
-    # # comp = false
-    # comp && println("****  θ[μ,h]:", scn.(θ[end-1:end], digits=4))
-    # comp && println("****  θ:", scn(norm(θ), digits=4))
-    # comp && println("****  z:", scn(norm(z), digits=4))
-
     # compute residual, residual Jacobian
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
-    # @show typeof(z)
-    # @show typeof(θ)
-    # @show typeof(r)
-    # @show typeof(rz)
     least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
 
@@ -258,8 +239,6 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
     r_vio = residual_violation(ip, r)
     κ_vio = bilinear_violation(ip, r)
-    # r_vio = max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
-    # κ_vio = norm(r.rbil, Inf)
     elapsed_time = 0.0
 
     for j = 1:max_iter_inner
@@ -277,7 +256,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             ip.reg_val = κ_vio < κ_reg ? κ_vio * γ_reg : 0.0
 
             # compute residual Jacobian
-            rz!(rz, z, θ, reg = ip.reg_val)
+            rz!(ip, rz, z, θ, reg = ip.reg_val)
 
             # regularize (fixed, TODO: adaptive)
             reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
@@ -288,7 +267,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             centering!(ip, z, Δaff, iy1, iy2, αaff)
 
             # Compute corrector residual
-            rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
 
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
@@ -298,21 +277,21 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             comp && println("**** Δ2:", scn(norm(α*Δ[iy1]), digits=4))
             comp && println("**** Δ3:", scn(norm(α*Δ[iy2]), digits=4))
 
-            # verbose && println("iter:", j,
-            #     "  r: ", scn(norm(r, res_norm)),
-            #     "  Δ: ", scn(norm(Δ)),
-            #     # "  Δ[ix]: ", scn(norm(Δ[ix])),
-            #     # "  Δ[iy1]: ", scn(norm(Δ[iy1])),
-            #     # "  Δ[iy2]: ", scn(norm(Δ[iy2])),
-            #     "  Δaff: ", scn(norm(Δaff)),
-            #     "  τ: ", scn(norm(ip.τ)),
-            #     "  α: ", scn(norm(α)))
+            verbose && println("iter:", j,
+                "  r: ", scn(norm(r, res_norm)),
+                "  Δ: ", scn(norm(Δ)),
+                # "  Δ[ix]: ", scn(norm(Δ[ix])),
+                # "  Δ[iy1]: ", scn(norm(Δ[iy1])),
+                # "  Δ[iy2]: ", scn(norm(Δ[iy2])),
+                "  Δaff: ", scn(norm(Δaff)),
+                "  τ: ", scn(norm(ip.τ)),
+                "  α: ", scn(norm(α)))
 
             # candidate point
             candidate_point!(z, s, z, Δ, α)
 
             # update
-            r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
+            ip.methods.r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
 
             r_vio = residual_violation(ip, r)
             κ_vio = bilinear_violation(ip, r)
@@ -432,6 +411,15 @@ function interior_point_solve!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::Abstra
     interior_point_solve!(ip)
 end
 
+function rz!(ip::Mehrotra{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
+        θ::AbstractVector{T}; reg = 0.0) where {T}
+    z_reg = deepcopy(z)
+    z_reg[ip.iy1] = max.(z[ip.iy1], reg)
+    z_reg[ip.iy2] = max.(z[ip.iy2], reg)
+    ip.methods.rz!(rz, z_reg, θ)
+    return nothing
+end
+
 function differentiate_solution!(ip::Mehrotra; reg = 0.0)
     s = ip.s
     z = ip.z
@@ -443,8 +431,8 @@ function differentiate_solution!(ip::Mehrotra; reg = 0.0)
 
     κ = ip.κ
 
-    ip.methods.rz!(rz, z, θ, reg = reg)
-    ip.methods.rθ!(rθ, z, θ)
+    rz!(ip, rz, z, θ, reg = reg)
+    rθ!(ip, rθ, z, θ)
 
     linear_solve!(ip.solver, δzs, rz, rθ, reg = reg)
     @inbounds @views @. δzs .*= -1.0

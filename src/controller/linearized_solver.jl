@@ -645,11 +645,13 @@ end
 # 	return nothing
 # end
 
-function rz!(rz::RZLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}; reg::T = 0.0) where {T}
+function rz!(ip::Mehrotra{T}, rz::RZLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}; reg::T = 0.0) where {T}
 	rz!(rz, z, reg = reg)
 	return nothing
 end
 
-function rθ!(rθ::RθLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
+function rθ!(ip::Mehrotra{T}, rθ::RθLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}) where {T}
 	return nothing
 end

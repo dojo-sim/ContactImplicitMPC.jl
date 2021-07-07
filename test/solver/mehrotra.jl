@@ -110,7 +110,7 @@ ip2 = mehrotra(z2, θ2,
         max_iter_inner=100,
         r_tol=1e-8,
         κ_tol=2e-8,
-		# verbose=true
+		verbose=true
 		))
 interior_point_solve!(ip2)
 # r2 = zeros(nz)
@@ -178,7 +178,7 @@ im_traj2 = ImplicitTraj(ref_traj, s;
 			max_iter_inner=100,
 			ϵ_min=0.05,
 			solver=:empty_solver,
-			# verbose=true
+			verbose=true
 			))
 z2, θ2 = get_initialization(ref_traj, t)
 ip2 = deepcopy(im_traj2.ip[10])
