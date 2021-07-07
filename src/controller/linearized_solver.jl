@@ -615,10 +615,6 @@ function update!(rθ::RθLin{T}, rθ0::AbstractMatrix{T}) where {T}
 	return nothing
 end
 
-function bilinear_res(r::RLin, ibil)
-    r.rbil
-end
-
 function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
 	# @warn "wrong"
 	δθ = θ - r.θ0
@@ -635,6 +631,13 @@ function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZL
 	return nothing
 end
 
+function residual_violation(ip::Mehrotra{T}, r::RLin{T}) where {T}
+    max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
+end
+
+function bilinear_violation(ip::Mehrotra{T}, r::RLin{T}) where {T}
+    norm(r.rbil, Inf)
+end
 
 # function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 # 	r!(r, z, θ, κ)

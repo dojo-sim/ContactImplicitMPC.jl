@@ -3,11 +3,7 @@
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
     κ_init::T = 1.0                   # useless
-    # κ_scale::T = 0.1                  # useless
-    # ls_scale::T = 0.5                 # useless
     max_iter_inner::Int = 100
-    # max_iter_outer::Int = 1           # useless
-    # max_ls::Int = 50                  # useless
     max_time::T = 60.0
     diff_sol::Bool = false
     res_norm::Real = Inf
@@ -32,8 +28,6 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     Δaff::Vector{T}              # affine search direction
     Δ::Vector{T}                 # corrector search direction
     r::R                            # residual
-    rbil                         # corrector residual
-    r_merit::T                   # residual norm
     r̄::R #useless                            # candidate residual
     rz::RZ                           # residual Jacobian wrt z
     rθ::Rθ                           # residual Jacobian wrt θ
@@ -47,7 +41,6 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     κ::Vector{T}                 # barrier parameter
     num_var::Int
     num_data::Int
-    # nbil::Int # useless
     solver::LinearSolver
     v_pr # view
     v_du # view
@@ -60,7 +53,9 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     ix::SVector{nx,Int}
     iy1::SVector{ny,Int}
     iy2::SVector{ny,Int}
-    ibil
+    idyn::SVector{nx,Int}
+    irst::SVector{ny,Int}
+    ibil::SVector{ny,Int}
     reg_pr
     reg_du
     reg_val::T
@@ -84,6 +79,8 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         ix = collect(1:0),
         iy1 = collect(1:0),
         iy2 = collect(1:0),
+        idyn = collect(1:0),
+        irst = collect(1:0),
         ibil = collect(1:0),
         r! = r!, rm! = rm!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
@@ -106,6 +103,8 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
     ix = SVector{nx, Int}(ix)
     iy1 = SVector{ny, Int}(iy1)
     iy2 = SVector{ny, Int}(iy2)
+    idyn = SVector{nx, Int}(idyn)
+    irst = SVector{ny, Int}(irst)
     ibil = SVector{ny, Int}(ibil)
     ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra solve."
 
@@ -116,7 +115,7 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
     Δaff_y2 = view(Δaff, iy2) # TODO this should be in Δ space
     Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
-    rbil = bilinear_res(r, ibil)
+    # rbil = bilinear_res(r, ibil)
 
     Ts = typeof.((r, rz, rθ))
     Mehrotra{T,nx,ny,Ts...}(
@@ -127,8 +126,8 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         Δaff,
         Δ,
         r,
-        rbil,
-        0.0,
+        # rbil,
+        # 0.0,
         deepcopy(r), #useless
         # 0.0,
         rz,
@@ -155,6 +154,8 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         ix,
         iy1,
         iy2,
+        idyn,
+        irst,
         ibil,
         reg_pr, reg_du,
         0.0,
@@ -167,9 +168,9 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         opts)
 end
 
-function bilinear_res(r::AbstractVector, ibil)
-    view(r, ibil)
-end
+# function bilinear_res(r::AbstractVector, ibil)
+#     view(r, ibil)
+# end
 
 # interior point solver
 function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
@@ -202,8 +203,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     Δaff = ip.Δaff
     Δ = ip.Δ
     r = ip.r
-    rbil = ip.rbil
-    r_merit = ip.r_merit
+    # rbil = ip.rbil
+    # r_merit = ip.r_merit
     rz = ip.rz
     idx_ineq = ip.idx_ineq
     idx_soc = ip.idx_soc
@@ -245,16 +246,20 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
-
-    least_squares!(z, θ, r, rz)
+    # @show typeof(z)
+    # @show typeof(θ)
+    # @show typeof(r)
+    # @show typeof(rz)
+    least_squares!(z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
 
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
 
-    # r_merit = norm(r, res_norm)
-    r_vio = max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
-    κ_vio = norm(r.rbil, Inf)
+    r_vio = residual_violation(ip, r)
+    κ_vio = bilinear_violation(ip, r)
+    # r_vio = max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
+    # κ_vio = norm(r.rbil, Inf)
     elapsed_time = 0.0
 
     for j = 1:max_iter_inner
@@ -268,8 +273,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             comp && println("************************** ITERATION :", ip.iterations)
 
             # Compute regularization level
-            κ_vio = norm(r.rbil, Inf)
-            κ_vio < κ_reg ? ip.reg_val = κ_vio * γ_reg : ip.reg_val = 0.0
+            κ_vio = bilinear_violation(ip, r)
+            ip.reg_val = κ_vio < κ_reg ? κ_vio * γ_reg : 0.0
 
             # compute residual Jacobian
             rz!(rz, z, θ, reg = ip.reg_val)
@@ -309,8 +314,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             # update
             r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
 
-            r_vio = max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
-            κ_vio = norm(r.rbil, Inf)
+            r_vio = residual_violation(ip, r)
+            κ_vio = bilinear_violation(ip, r)
         end
     end
     verbose && println("iter : ", ip.iterations,
@@ -339,6 +344,21 @@ end
 # 	b = norm(rbil, t)
 # 	return a, b
 # end
+
+function least_squares!(z::AbstractVector{T}, θ::AbstractVector{T},
+        r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
+    A = rz[[idyn; irst], [ix; iy1; iy2]]
+    z[[ix; iy1; iy2]] .= A' * ((A * A') \ r[[idyn; irst]])
+    return nothing
+end
+
+function residual_violation(ip::Mehrotra{T}, r::AbstractVector{T}) where {T}
+    max(norm(r[ip.idyn], Inf), norm(r[ip.irst], Inf))
+end
+
+function bilinear_violation(ip::Mehrotra{T}, r::AbstractVector{T}) where {T}
+    norm(r[ip.ibil], Inf)
+end
 
 function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
         iy1::SVector{ny,Int}, iy2::SVector{ny,Int}; comp::Bool=true, ϵ::T=1e-20) where {T,nx,ny}
@@ -377,8 +397,8 @@ function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
     return z
 end
 
-function progress!(ip::Mehrotra{T}, merit::T; ϵ_min::T = 0.05) where {T}
-    ϵ = min(ϵ_min, merit^2)
+function progress!(ip::Mehrotra{T}, violation::T; ϵ_min::T = 0.05) where {T}
+    ϵ = min(ϵ_min, violation^2)
     ip.τ = 1 - ϵ
 end
 
