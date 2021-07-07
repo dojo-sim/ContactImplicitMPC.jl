@@ -39,7 +39,7 @@ include("simulator/trajectory.jl")
 # include("simulator/hopper_3D.jl") #NEED FIX
 include("simulator/quadruped.jl")
 include("simulator/open_loop.jl")
-# include("simulator/biped.jl") #TODO: improve this test #NEED FIX
+# include("simulator/biped.jl") #TODO:  improve this test #NEED FIX
 # include("simulator/flamingo.jl") #TODO: add this test #NEED FIX
 
 # Controller
