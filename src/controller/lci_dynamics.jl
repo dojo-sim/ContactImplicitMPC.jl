@@ -12,13 +12,20 @@ mutable struct LCIDynamicsTrajectory{T}
 	δq0::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}} # q0 solution gradient length=H
 	δq1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # q1 solution gradient length=H
 	δu1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # u1 solution gradient length=H
+	model::ContactModel
+	env::Environment
+	w
+	μ
+	h
 	ip::Vector{<:AbstractIPSolver}
+	κ::T
 end
 
 function LCIDynamicsTrajectory(ref_traj::ContactTraj, s::Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 60.0,
 	ip_type::Symbol = :interior_point,
+	μ = s.model.μ_world,
 	opts = eval(interior_point_options(ip_type))(
 			κ_init = κ[1],
 			κ_tol = 2.0 * κ[1],
@@ -72,7 +79,7 @@ function LCIDynamicsTrajectory(ref_traj::ContactTraj, s::Simulation;
 	δq1 = [view(ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
 	δu1 = [view(ip[t].δz, 1:nd, off .+ (1:nu)) for t = 1:H]; off += nu
 
-	return LCIDynamicsTrajectory(H, lin, d, dq2, δq0, δq1, δu1, ip)
+	return LCIDynamicsTrajectory(H, lin, d, dq2, δq0, δq1, δu1, model, env, zeros(model.dim.w), μ, ref_traj.h, ip, κ)
 end
 
 
@@ -144,18 +151,16 @@ end
 """
 Compute the evaluations and Jacobians of the linear contact-implicit dynamics
 """
-function linear_contact_implicit_dynamics!(lci_traj::LCIDynamicsTrajectory,
-	s::Simulation,
-	traj; κ = traj.κ) where {T, D}
+function linear_contact_implicit_dynamics!(lci_traj::LCIDynamicsTrajectory, u, qa, qb, H)
 
-	model = s.model
-	env = s.env
+	model = lci_traj.model
+	env = lci_traj.env
 
-	# Threads.@threads for t = 1:traj.H
-	for t = 1:traj.H
+	for t = 1:H-1
 		# initialized solver
-		z_initialize!(lci_traj.ip[t].z, model, env, copy(traj.q[t+2])) #TODO: try alt. schemes
-		lci_traj.ip[t].θ .= traj.θ[t]
+		z_initialize!(lci_traj.ip[t].z, model, env, copy(qb[t+1])) #TODO: try alt. schemes
+		θ_initialize!(lci_traj.ip[t].θ, model, qa[t], qb[t], u[t],
+			lci_traj.w, lci_traj.μ, lci_traj.h)
 
 		# solve
 		status = interior_point_solve!(lci_traj.ip[t])

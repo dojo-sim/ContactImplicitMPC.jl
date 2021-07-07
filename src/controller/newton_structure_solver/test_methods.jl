@@ -38,18 +38,18 @@ end
 
 compute_Y!(s.Yiia, s.Yiib, s.Yiic, s.Yiid, s.Yija, s.Yijb, s.Yijc, s.Yijd,
 	s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a,
-	s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.H)
+	s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.Inq, s.H)
 
 info = @benchmark compute_Y!($s.Yiia, $s.Yiib, $s.Yiic, $s.Yiid,
 	$s.Yija, $s.Yijb, $s.Yijc, $s.Yijd, $s.Aa, $s.Ab, $s.Ac, $s.Ba,
-	$s.Q̃a, $s.Q̃b, $s.Q̃v, $s.R̃a, $s.tmp_nqnq, $s.tmp_nqnq2, $s.tmp_nqm, $s.H)
+	$s.Q̃a, $s.Q̃b, $s.Q̃v, $s.R̃a, $s.tmp_nqnq, $s.tmp_nqnq2, $s.tmp_nqm, $s.Inq, $s.H)
 
 @test info.memory == 0
 @test info.allocs == 0
 
 @code_warntype compute_Y!(s.Yiia, s.Yiib, s.Yiic, s.Yiid,
 	s.Yija, s.Yijb, s.Yijc, s.Yijd, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a,
-	s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.H)
+	s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.Inq, s.H)
 
 
 update_Y!(s.Yiis, s.Yijs, s.Yii, s.Yij, s.Yiia, s.Yiib, s.Yiic, s.Yiid,
@@ -110,8 +110,8 @@ info = @benchmark compute_β!($s.βn, $s.βd, $s.βe, $s.rlagu, $s.rlagqa, $s.rl
 @code_warntype compute_β!(s.βn, s.βd, s.βe, s.rlagu, s.rlagqa, s.rlagqb,
 	s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.H)
 
-@test norm(β - vcat([[s.βd[t]; s.βe[t]] for t = 1:T-1]...)) < 1.0e-12
-@test norm((β - vcat(s.βn...))) < 1.0e-12
+@test norm((β - vcat([[s.βd[t]; s.βe[t]] for t = 1:T-1]...))) < 1.0e-12
+@test norm((β - vcat(s.βn...))[1:s.nq]) < 1.0e-12
 
 compute_y!(s.y, s.Liis, s.Ljis, s.βn, s.H)
 
@@ -153,8 +153,12 @@ info = @benchmark compute_Δz!($s.Δu, $s.Δqa, $s.Δqb, $s.Δν1, $s.Δν2,
 
 @test norm((Δz - vcat([[s.Δu[t]; s.Δqa[t]; s.Δqb[t]] for t = 1:T-1]...))) < 1.0e-12
 
+factorize!(s)
+info = @benchmark factorize!($s)
+@code_warntype factorize!(s)
+
 ContactControl.solve!(s)
-info = @benchmark ContactControl.solve!(s)
+info = @benchmark ContactControl.solve!($s)
 @code_warntype ContactControl.solve!(s)
 
 @test norm(Δ - vcat(vcat([[s.Δu[t]; s.Δqa[t]; s.Δqb[t]] for t = 1:T-1]...), vcat([[s.Δν1[t]; s.Δν2[t]] for t = 1:T-1]...)))  < 1.0e-12
@@ -164,26 +168,29 @@ sim = get_simulation("flamingo", "flat_2D_lc", "flat")
 model = sim.model
 env = sim.env
 
-H_mpc = 10
-s = newton_structure_solver(model.dim.q, model.dim.u, H_mpc)
-obj_mpc = quadratic_objective(model, H_mpc)
+ref_traj = deepcopy(ContactControl.get_trajectory(model, flat_2D_lc,
+    joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
+    load_type = :split_traj_alt))
 
+H_mpc = 10
+s = newton_structure_solver(model.dim.q, model.dim.u, H_mpc, ρ = 1.0e-5)
+obj_mpc = quadratic_objective(model, H_mpc)
 update_objective!(s, obj_mpc)
 
 # random fill
 for t = 1:s.H
-	s.qa[t] = randn(s.nq)
-	s.qb[t] = randn(s.nq)
+	s.qa[t] = ref_traj.q[t]
+	s.qb[t] = ref_traj.q[t+1]
 	t == s.H && continue
-	s.u[t] = rand(s.m)
-	s.ν1[t] = randn(s.nq)
-	s.ν2[t] = randn(s.nq)
+	s.u[t] = ref_traj.u[t]
+	s.ν1[t] = zeros(s.nq)
+	s.ν2[t] = zeros(s.nq)
 end
 
 for t = 1:s.H+1
-	s.q_ref[t] = randn(s.nq)
+	s.q_ref[t] = ref_traj.q[t]
 	t >= s.H && continue
-	s.u_ref[t] = randn(s.m)
+	s.u_ref[t] = ref_traj.u[t]
 end
 
 z0 = zeros(s.nz + s.nd)
@@ -195,12 +202,6 @@ for t = 1:s.H-1
 	z0[s.nz .+ (t-1) * 2 * s.nq + s.nq .+ (1:s.nq)] = s.ν2[t]
 end
 
-ref_traj = deepcopy(ContactControl.get_trajectory(model, flat_2D_lc,
-    joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
-    load_type = :split_traj_alt))
-
-traj = deepcopy(ref_traj)
-
 ip_opts = eval(interior_point_options(:interior_point))(
 			κ_init = 1.0e-4,
 			κ_tol = 2.0 * 1.0e-4,
@@ -208,17 +209,24 @@ ip_opts = eval(interior_point_options(:interior_point))(
 			diff_sol = true,
 			solver = :empty_solver)
 
-lci_traj = LCIDynamicsTrajectory(traj, sim,
+lci_traj = LCIDynamicsTrajectory(ref_traj, sim,
 	ip_type = :interior_point,
 	κ = 1.0e-4,
 	opts=ip_opts)
 
-linear_contact_implicit_dynamics!(lci_traj, sim, traj, κ = [1.0e-4])
+linear_contact_implicit_dynamics!(lci_traj, s.u, s.qa, s.qb, s.H)
 
 update_dynamics_jacobian!(s, lci_traj)
 info = @benchmark update_dynamics_jacobian!($s, $lci_traj)
 @code_warntype update_dynamics_jacobian!(s, lci_traj)
 
+@test info.memory == 0
+@test info.allocs == 0
+
+dynamics_constraints!(s, s.qa, s.qb, lci_traj.dq2)
+
+info = @benchmark dynamics_constraints!($s, $s.qa, $s.qb, $lci_traj.dq2)
+@code_warntype dynamics_constraints!(s, s.qa, s.qb, lci_traj.dq2)
 @test info.memory == 0
 @test info.allocs == 0
 
@@ -228,9 +236,9 @@ info = @benchmark dynamics_constraints_linear!($s, $lci_traj)
 @test info.memory == 0
 @test info.allocs == 0
 
-lagrangian_gradient!(s)
-info = @benchmark lagrangian_gradient!($s)
-@code_warntype lagrangian_gradient!(s)
+lagrangian_gradient!(s, s.u, s.qa, s.qb, s.ν1, s.ν2)
+info = @benchmark lagrangian_gradient!($s, $s.u, $s.qa, $s.qb, $s.ν1, $s.ν2)
+@code_warntype lagrangian_gradient!(s, s.u, s.qa, s.qb, s.ν1, s.ν2)
 
 @test info.memory == 0
 @test info.allocs == 0
@@ -272,6 +280,14 @@ lag_grad_fd = ForwardDiff.gradient(lagrangian_dynamics, z0)
 @test norm((lag_grad - lag_grad_fd)[1:s.nz]) < 1.0e-12
 @test norm((lag_grad - lag_grad_fd)[s.nz .+ (1:s.nd)]) < 1.0e-12
 
-compute_residual!(s, lci_traj)
-info = @benchmark compute_residual!($s, $lci_traj)
-@code_warntype compute_residual!(s, lci_traj)
+compute_residual!(s, s.u, s.qa, s.qb, s.ν1, s.ν2, lci_traj)
+info = @benchmark compute_residual!($s, $s.u, $s.qa, $s.qb, $s.ν1, $s.ν2,  $lci_traj)
+@code_warntype compute_residual!(s, s.u, s.qa, s.qb, s.ν1, s.ν2, lci_traj)
+
+factorize!(s)
+ContactControl.solve!(s)
+
+α = 1.0
+step!(s, α)
+@code_warntype step!(s, α)
+info = @benchmark step!($s, $α)
