@@ -7,10 +7,10 @@ nz = m * (T - 1) + n * (T - 1)
 nd = n * (T - 1)
 
 # problem data
-Aa = [SMatrix{nq, nq}(Array(-1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
-Ab = [SMatrix{nq, nq}(Array(-1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
+Aa = [SMatrix{nq, nq}(Array(1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
+Ab = [SMatrix{nq, nq}(Array(1.0 * Diagonal(0.1 * rand(nq) + ones(nq)))) for t = 1:T-1]
 Ac = [SMatrix{nq, nq}(Array(Diagonal(ones(nq)))) for t = 1:T-1]
-Ba = [SMatrix{nq,m}(-1.0 * rand(nq, m)) for t = 1:T-1]
+Ba = [SMatrix{nq,m}(1.0 * rand(nq, m)) for t = 1:T-1]
 Qa = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
 Qb = [Diagonal(SVector{nq}(0.1 * rand(nq) + ones(nq))) for t = 1:T]
 Qv = [Diagonal(SVector{nq}(-1.0 * ones(nq) + 0.1 * rand(nq))) for t = 1:T]
@@ -24,9 +24,9 @@ n_idx = [(t - 1) * n .+ (1:n) for t = 1:T-1]
 
 Q = [[Qa[t] Qv[t]; Qv[t]' Qb[t]] for t = 1:T]
 R = [Diagonal(SVector{m}(0.1 * rand(m) + ones(m))) for t = 1:T-1]
-A = [SMatrix{n,n}([Aa[t] Ab[t]; zeros(nq, nq) -I]) for t = 1:T-1]
-B = [SMatrix{n,m}([Ba[t]; zeros(nq, m)]) for t = 1:T-1]
-P = [SMatrix{n,n}([zeros(nq, nq) Ac[t]; I zeros(nq, nq)]) for t = 1:T-1]
+A = [SMatrix{n,n}([zeros(nq, nq) I; Aa[t] Ab[t]]) for t = 1:T-1]
+B = [SMatrix{n,m}([zeros(nq, m); Ba[t];]) for t = 1:T-1]
+P = [SMatrix{n,n}([I zeros(nq, nq); zeros(nq, nq) Ac[t]]) for t = 1:T-1]
 
 # direct problem
 S = zeros(nz, nz)
@@ -36,10 +36,10 @@ for t = 1:T-1
 	S[u_idx[t], u_idx[t]] = R[t]
 	S[x_idx[t], x_idx[t]] = Q[t+1]
 
-	C[n_idx[t], u_idx[t]] = B[t]
+	C[n_idx[t], u_idx[t]] = -B[t]
 	C[n_idx[t], x_idx[t]] = P[t]
 	t == 1 && continue
-	C[n_idx[t], x_idx[t-1]] = A[t]
+	C[n_idx[t], x_idx[t-1]] = -A[t]
 end
 
 Q̃ = [inv(Array(Q[t])) for t = 1:T]
@@ -63,6 +63,7 @@ J = [S C'; C zeros(nd, nd)]
 Js = sparse(J)
 r = rand(nz + nd)
 Δ = J \ r
+		t == 1 && continue
 
 Y = C * S̃ * C'
 rlag = view(r, 1:nz)

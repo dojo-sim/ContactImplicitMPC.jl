@@ -59,10 +59,10 @@ end
 
 function update_dynamics_jacobian!(s::NewtonStructureSolver, lci_traj::LCIDynamicsTrajectory)
 	for t = 1:s.H-1
-		s.Aa[t] = lci_traj.δq0[t]
-		s.Ab[t] = lci_traj.δq1[t]
+		s.Aa[t] = -lci_traj.δq0[t]
+		s.Ab[t] = -lci_traj.δq1[t]
 		# s.Ac[t] = I # pre-allocated
-		s.Ba[t] = lci_traj.δu1[t]
+		s.Ba[t] = -lci_traj.δu1[t]
 	end
 	return nothing
 end

@@ -184,7 +184,7 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objec
         fill!(jac.u1T[t], 0.0)
 
         # regularization
-        fill!(jac.reg_pr, 0.0)
+        # fill!(jac.reg_pr, 0.0)
         fill!(jac.reg_du, 0.0)
     end
 
@@ -203,7 +203,7 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objec
         jac.u1T[t] .+= im_traj.δu1[t]'
 
         # Dual regularization
-        jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+        # jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
         jac.reg_du .-= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
     end
 

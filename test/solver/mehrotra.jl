@@ -1,6 +1,6 @@
 using Random
 using LinearAlgebra
-
+const ContactControl = Main
 
 ################################################################################
 # Test Utils
@@ -92,8 +92,11 @@ end
 
 z2, θ2 = get_initialization(ref_traj, t)
 ip2 = mehrotra(z2, θ2,
+	ix = linearization_var_index(model, env)[1],
 	iy1 = linearization_var_index(model, env)[2],
 	iy2 = linearization_var_index(model, env)[3],
+	idyn = linearization_term_index(model, env)[1],
+	irst = linearization_term_index(model, env)[2],
 	ibil = linearization_term_index(model, env)[3],
     idx_ineq = inequality_indices(model, env),
     idx_soc = soc_indices(model, env),
