@@ -19,7 +19,7 @@ include("solver/lu.jl")
 include("solver/gs.jl")
 # include("solver/schur.jl")
 include("solver/soc.jl")
-include("solver/mehrotra.jl")
+# include("solver/mehrotra.jl")
 
 # Dynamics
 # include("dynamics/lagrangian.jl") #NEED FIX

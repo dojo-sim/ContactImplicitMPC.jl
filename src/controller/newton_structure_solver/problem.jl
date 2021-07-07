@@ -63,6 +63,7 @@ J = [S C'; C zeros(nd, nd)]
 Js = sparse(J)
 r = rand(nz + nd)
 Δ = J \ r
+		t == 1 && continue
 
 Y = C * S̃ * C'
 rlag = view(r, 1:nz)

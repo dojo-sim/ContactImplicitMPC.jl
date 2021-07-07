@@ -47,18 +47,16 @@ lci_traj = LCIDynamicsTrajectory(ref_traj, sim,
 	μ = 0.1,
 	opts=ip_opts)
 
+im_traj =ImplicitTraj(ref_traj, sim,
+	ip_type = :interior_point,
+	κ = 1.0e-4,
+	mode = :configuration,
+	opts=ip_opts)
+
 linear_contact_implicit_dynamics!(lci_traj, s.u, s.qa, s.qb, s.H-1)
-s.H
-s.Aa
-s.Ab
-s.Ba
-s.u
-s.rdyn1
-s.rdyn2
-s.u
-s.qa
-s.qb
-lci_traj
+implicit_dynamics!(im_traj, sim, ref_traj, κ = 1.0e-4)
+norm(lci_traj.ip[1].θ - im_traj.ip[1].θ)
+norm(lci_traj.ip[1].z - im_traj.ip[1].z)
 compute_residual!(s, s.u, s.qa, s.qb, s.ν1, s.ν2, lci_traj)
 
 
@@ -73,7 +71,7 @@ residual_norm(s)
 factorize!(s)
 ContactControl.solve!(s)
 
-α = 0.25
+α = 1.0
 step!(s, α)
 
 compute_residual!(s, s.u_cand, s.qa_cand, s.qb_cand, s.ν1_cand, s.ν2_cand, lci_traj)
