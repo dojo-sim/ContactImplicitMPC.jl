@@ -26,14 +26,14 @@ include("solver/mehrotra.jl") #NEED TO BE FIXED
 # include("dynamics/lagrangian.jl") #NEED FIX
 include("dynamics/model.jl")
 include("dynamics/particle.jl")
-include("dynamics/quadruped.jl") #NEED TO BE FIXED
+include("dynamics/quadruped.jl")
 include("dynamics/quaternion.jl")
 
 # Simulator
 include("simulator/rotations.jl")
 include("simulator/environment.jl")
 include("simulator/trajectory.jl")
-include("simulator/simulator.jl") #NEED TO BE FIXED
+# include("simulator/simulator.jl") #NEED TO BE FIXED
 # include("simulator/particle.jl") #NEED FIX
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model #NEED FIX
 # include("simulator/hopper_3D.jl") #NEED FIX
@@ -50,6 +50,6 @@ include("controller/implicit_dynamics.jl")
 include("controller/newton.jl")
 
 # MPC examples
-include("controller/mpc_quadruped.jl") #NEED TO BE FIXED
+# include("controller/mpc_quadruped.jl") #NEED TO BE FIXED
 include("controller/mpc_flamingo.jl")
 # const ContactControl = Main

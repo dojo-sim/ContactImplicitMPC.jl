@@ -177,7 +177,8 @@ export
     Particle,
     tracking_error,
     repeat_ref_traj,
-    schur_factorize,
-    schur_solve
+    Schur,
+    schur_factorize!,
+    schur_solve!
 
 end # module

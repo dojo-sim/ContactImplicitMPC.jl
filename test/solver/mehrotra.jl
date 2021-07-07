@@ -1,6 +1,6 @@
 using Random
 using LinearAlgebra
-const ContactControl = Main
+# const ContactControl = Main
 
 ################################################################################
 # Test Utils
@@ -9,6 +9,7 @@ const ContactControl = Main
 function get_initialization(ref_traj, t)
 	Random.seed!(10)
 	z = deepcopy(ref_traj.z[t])
+	# @warn "changed"
 	z += rand(length(z))
 	θ = deepcopy(ref_traj.θ[t])
 	return z, θ
@@ -107,9 +108,9 @@ ip2 = mehrotra(z2, θ2,
     rz = s.rz,
     rθ = s.rθ,
     opts = MehrotraOptions(
-        max_iter_inner=100,
-        r_tol=1e-8,
-        κ_tol=2e-8,
+        max_iter_inner=10,
+        r_tol=1e-5,
+        κ_tol=2e-5,
 		verbose=true
 		))
 interior_point_solve!(ip2)

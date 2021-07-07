@@ -248,7 +248,6 @@ function get_trajectory(model::ContactModel, env::Environment, gait_path::String
 		traj.θ .= [pack_θ(model, q[t], q[t+1], u[t], zeros(nw), model.μ_world, h) for t = 1:T]
 	elseif load_type == :split_traj_alt
 		q, u, γ, b, ψ, η, μ, h = res["qm"], res["um"], res["γm"], res["bm"], res["ψm"], res["ηm"], res["μm"], res["hm"]
-		@show μ
 		T = length(u)
 
 		traj = contact_trajectory(model, env, T, h)

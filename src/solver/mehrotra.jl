@@ -221,7 +221,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     # Initialization
     ip.iterations = 0
     ip.reg_val = 0.0
-    comp = false
+    comp = true
 
     # initialize regularization
     reg_pr[1] = opts.reg_pr_init
@@ -231,7 +231,9 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
+    # @warn "changed"
     least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
+    # @warn "changed"
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
 
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
@@ -267,7 +269,9 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             centering!(ip, z, Δaff, iy1, iy2, αaff)
 
             # Compute corrector residual
+            # @warn "changed"
             ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            # ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, 0.0)) # here we set κ = σ*μ, Δ = Δaff
 
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
@@ -279,6 +283,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
             verbose && println("iter:", j,
                 "  r: ", scn(norm(r, res_norm)),
+                "  r_vio: ", scn(r_vio),
+                "  κ_vio: ", scn(κ_vio),
                 "  Δ: ", scn(norm(Δ)),
                 # "  Δ[ix]: ", scn(norm(Δ[ix])),
                 # "  Δ[iy1]: ", scn(norm(Δ[iy1])),

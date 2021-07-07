@@ -47,13 +47,13 @@ end
     C = rz0[irst, ix]
     D = rz0[irst, iy1] - rz0[irst, iy2] * Diagonal(z0[iy2] ./ z0[iy1])
     M = [A B ; C D]
-    S = Schur(M, n=nx, m=ny)
+    S = ContactControl.Schur(M, n=nx, m=ny)
 
     u = r0[idyn]
     v = r0[irst] - r0[ibil] ./ z0[iy1]
 
     # @benchmark schur_factorize!(S, D)
-    schur_factorize!(S, D)
+    ContactControl.schur_factorize!(S, D)
     # @benchmark ContactControl.schur_solve!(S, u, v)
     ContactControl.schur_solve!(S, u, v)
     M1 = [S.A S.B; S.C D]
