@@ -38,14 +38,14 @@
     berr > 0.0871 * 1.2 && @warn "simulator regression: b"
 
     qerr, uerr, γerr, berr = tracking_error(ref_traj, sim_m.traj, 1, idx_shift = 1)
-    @test qerr < 0.0170 * 1.5
+    @test qerr < 0.0374 * 1.5
     @test uerr < 0.0001 * 1.5
-    @test γerr < 0.0138 * 1.5
-    @test berr < 0.0660 * 1.5
-    qerr > 0.0170 * 1.2 && @warn "simulator regression: q"
+    @test γerr < 0.0389 * 1.5
+    @test berr < 0.0787 * 1.5
+    qerr > 0.0374 * 1.2 && @warn "simulator regression: q"
     uerr > 0.0001 * 1.2 && @warn "simulator regression: u"
-    γerr > 0.0138 * 1.2 && @warn "simulator regression: γ"
-    berr > 0.0660 * 1.2 && @warn "simulator regression: b"
+    γerr > 0.0389 * 1.2 && @warn "simulator regression: γ"
+    berr > 0.0787 * 1.2 && @warn "simulator regression: b"
 
 
     # @btime simulate!(deepcopy(sim_b))

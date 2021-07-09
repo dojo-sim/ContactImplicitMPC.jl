@@ -25,7 +25,7 @@ include("solver/soc.jl")
 include("solver/mehrotra.jl")
 
 # Dynamics
-# include("dynamics/lagrangian.jl") #NEED FIX
+include("dynamics/lagrangian.jl")
 include("dynamics/model.jl")
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
@@ -35,8 +35,8 @@ include("dynamics/quaternion.jl")
 include("simulator/rotations.jl")
 include("simulator/environment.jl")
 include("simulator/trajectory.jl")
-# include("simulator/simulator.jl") #NEED TO BE FIXED
-# include("simulator/particle.jl") #NEED FIX
+include("simulator/simulator.jl")
+include("simulator/particle.jl")
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model #NEED FIX
 # include("simulator/hopper_3D.jl") #NEED FIX
 include("simulator/quadruped.jl")
@@ -48,9 +48,9 @@ include("simulator/open_loop.jl")
 include("controller/objective.jl")
 include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
-# include("controller/linearized_solver.jl") #NEED FIX
+include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 
 # MPC examples
-# include("controller/mpc_quadruped.jl") #NEED TO BE FIXED
+include("controller/mpc_quadruped.jl")
 include("controller/mpc_flamingo.jl")
