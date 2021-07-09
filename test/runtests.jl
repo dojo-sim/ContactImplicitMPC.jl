@@ -25,7 +25,7 @@ include("solver/soc.jl")
 include("solver/mehrotra.jl")
 
 # Dynamics
-include("dynamics/lagrangian.jl")
+# include("dynamics/lagrangian.jl") Need fix on github actions
 include("dynamics/model.jl")
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
