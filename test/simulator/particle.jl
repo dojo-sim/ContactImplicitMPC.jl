@@ -247,7 +247,7 @@ end
     dir_sim = joinpath(module_dir(), "src/simulation/particle")
     model2 = deepcopy(ContactControl.particle)
     model2.μ_world = 0.1
-    env2 = deepcopy(quadratic_bowl_3D_lc)
+    env2 = deepcopy(ContactControl.quadratic_bowl_3D_lc)
     s2 = Simulation(model2, env2)
 
     path_base = joinpath(dir_dyn, "dynamics/base.jld2")

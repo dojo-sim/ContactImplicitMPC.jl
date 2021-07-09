@@ -1,4 +1,4 @@
-include(joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "visuals.jl"))
+include(joinpath(module_dir(), "src", "dynamics", "hopper_2D", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)
@@ -11,8 +11,8 @@ nq = s.model.dim.q
 nu = model.dim.u
 nc = model.dim.c
 nb = nc * friction_dim(env)
-nd = nq + nc + nb
-nr = nq + nu + nc + nb + nd
+nz = num_var(model, env)
+nθ = num_data(model)
 
 H = 92
 # h = 0.04

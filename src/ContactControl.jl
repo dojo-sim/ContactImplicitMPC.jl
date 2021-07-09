@@ -174,8 +174,6 @@ export
     generate_residual_expressions,
     instantiate_residual!,
     ϕ_func,
-    # Particle,
-    # Particle2D,
     tracking_error,
     repeat_ref_traj,
     Schur,
