@@ -36,7 +36,7 @@ include("simulator/rotations.jl")
 include("simulator/environment.jl")
 include("simulator/trajectory.jl")
 include("simulator/simulator.jl")
-include("simulator/particle.jl")
+# include("simulator/particle.jl")
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model #NEED FIX
 # include("simulator/hopper_3D.jl") #NEED FIX
 include("simulator/quadruped.jl")
