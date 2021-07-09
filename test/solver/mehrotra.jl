@@ -9,35 +9,23 @@ using LinearAlgebra
 function get_initialization(ref_traj, t)
 	Random.seed!(10)
 	z = deepcopy(ref_traj.z[t])
-	# @warn "changed"
 	z += rand(length(z))
 	θ = deepcopy(ref_traj.θ[t])
 	return z, θ
 end
 
-function interior_point_timing(ref_traj, t, im_traj1)
+function interior_point_timing(ref_traj, t, ip0)
 	e1 = @belapsed begin
-		z1, θ1 = get_initialization(ref_traj, t)
-		ip1 = deepcopy(im_traj1.ip[10])
+		z, θ = get_initialization(ref_traj, t)
+		ip = deepcopy(ip1)
 	end
 	e2 = @belapsed begin
-		z1, θ1 = get_initialization(ref_traj, t)
-		ip1 = deepcopy(im_traj1.ip[10])
-		interior_point_solve!(ip1, z1, θ1)
+		z, θ = get_initialization(ref_traj, t)
+		ip = deepcopy(ip1)
+		interior_point_solve!(ip, z, θ)
 	end
-	return e2 - e1
-end
-
-function mehrotra_timing(ref_traj, t, im_traj2)
-	e1 = @belapsed begin
-		z2, θ2 = get_initialization(ref_traj, t)
-		ip2 = deepcopy(im_traj2[10])
-	end
-	e2 = @belapsed begin
-		z2, θ2 = get_initialization(ref_traj, t)
-		ip2 = deepcopy(im_traj2[10])
-		interior_point_solve!(ip2, z2, θ2)
-	end
+	@show e1
+	@show e2
 	return e2 - e1
 end
 
@@ -83,7 +71,8 @@ s.res.r!(r1, ip1.z, ip1.θ, 0.0)
 @testset "Interior Point Non Linear" begin
 	@test norm(r1, Inf) < 1e-7
 end
-# e_ip = 1e6 * interior_point_timing(ref_traj, t, im_traj1)
+norm(r1, Inf)
+# e_ip = 1e6 * interior_point_timing(ref_traj, t, ip1)
 
 
 
@@ -108,26 +97,30 @@ ip2 = mehrotra(z2, θ2,
     rz = s.rz,
     rθ = s.rθ,
     opts = MehrotraOptions(
-        max_iter_inner=10,
-        r_tol=1e-5,
-        κ_tol=2e-5,
-		verbose=true
+        max_iter_inner=30,
+        r_tol=1e-8,
+        κ_tol=1e-8,
+		# verbose=true
 		))
-interior_point_solve!(ip2)
-# r2 = zeros(nz)
-# s.res.r!(r2, ip2.z, ip2.θ, 0.0)
-# @testset "Mehrotra Non Linear" begin
-# 	@test norm(r2, Inf) < 1e-8
-# 	@test (norm(r2, Inf) - 1.4e-14) < 1e-15
-# 	@test ip2.iterations == 8
-# end
+interior_point_solve!(ip2, z2, θ2)
+r2 = zeros(nz)
+ip2.methods.r!(r2, ip2.z, ip2.θ, 0.0)
+@testset "Mehrotra Nonlinear" begin
+	@test norm(r2, Inf) < 1e-8
+	@test abs(norm(r2, Inf) - 7.84e-9) < 1e-11
+	@test ip2.iterations == 9
+end
 
-# e_me = 1e6 * mehrotra_timing(ref_traj, t, im_traj2)
+# e_me = 1e6 * interior_point_timing(ref_traj, t, im_traj2.ip[t])
 
-# @profiler for k = 1:3000
-# 	z2, θ2 = get_initialization(ref_traj, t)
-# 	interior_point_solve!(ip2, z2, θ2)
-# end
+@profiler for k = 1:3000
+	z2, θ2 = get_initialization(ref_traj, t)
+	interior_point_solve!(ip2, z2, θ2)
+end
+@elapsed for k = 1:3000
+	z2, θ2 = get_initialization(ref_traj, t)
+	interior_point_solve!(ip2, z2, θ2)
+end
 
 
 ################################################################################
@@ -155,7 +148,7 @@ s.res.r!(r1, ip1.z, ip1.θ, 0.0)
 	@test norm(r1, Inf) < 1e-7
 end
 
-# e_ip = 1e6 * interior_point_timing(ref_traj, t, im_traj1)
+# e_ip = 1e6 * interior_point_timing(ref_traj, t, im_traj1.ip[t])
 
 # @profiler for k = 1:5000
 # 	z1, θ1 = get_initialization(ref_traj, t)
@@ -179,7 +172,7 @@ im_traj2 = ImplicitTraj(ref_traj, s;
 			max_iter_inner=100,
 			ϵ_min=0.05,
 			solver=:empty_solver,
-			verbose=true
+			# verbose=true
 			))
 z2, θ2 = get_initialization(ref_traj, t)
 ip2 = deepcopy(im_traj2.ip[10])
@@ -192,10 +185,14 @@ s.res.r!(r2, ip2.z, ip2.θ, 0.0)
 	@test ip2.iterations == 3
 end
 
-# e_me = 1e6 * mehrotra_timing(ref_traj, t, im_traj2)
+# e_me = 1e6 * mehrotra_timing(ref_traj, t, im_traj2.ip[t])
 
 # @profiler for k = 1:5000
 # 	z2, θ2 = get_initialization(ref_traj, t)
 # 	ip2 = deepcopy(im_traj2[10])
+# 	interior_point_solve!(ip2, z2, θ2)
+# end
+# @elapsed for k = 1:3000
+# 	z2, θ2 = get_initialization(ref_traj, t)
 # 	interior_point_solve!(ip2, z2, θ2)
 # end

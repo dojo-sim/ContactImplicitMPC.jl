@@ -11,6 +11,8 @@ using Random
 using SparseArrays
 using BenchmarkTools
 using Quaternions
+# const ContactControl = Main
+
 
 # Solver
 include("solver/gs.jl")
@@ -20,7 +22,7 @@ include("solver/lu.jl")
 include("solver/gs.jl")
 include("solver/schur.jl")
 include("solver/soc.jl")
-include("solver/mehrotra.jl") #NEED TO BE FIXED
+include("solver/mehrotra.jl")
 
 # Dynamics
 # include("dynamics/lagrangian.jl") #NEED FIX
@@ -52,4 +54,3 @@ include("controller/newton.jl")
 # MPC examples
 # include("controller/mpc_quadruped.jl") #NEED TO BE FIXED
 include("controller/mpc_flamingo.jl")
-# const ContactControl = Main

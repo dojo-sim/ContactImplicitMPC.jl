@@ -534,13 +534,17 @@ function norm(r::RLin, t::Real)
 end
 
 function linear_solve!(solver::EmptySolver, δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0, fact::Bool = true) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	# fact is useless here, since the factorization only happens once,
+	# but necessary to be consistent with lu_solver
 	linear_solve!(δz, rz, rθ, reg = reg)
 	return nothing
 end
 
 function linear_solve!(solver::EmptySolver, Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0, fact::Bool = true) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+	# fact is useless here, since the factorization only happens once,
+	# but necessary to be consistent with lu_solver
 	linear_solve!(Δ, rz, r, reg = reg)
 	return nothing
 end

@@ -163,10 +163,6 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         opts)
 end
 
-# function bilinear_res(r::AbstractVector, ibil)
-#     view(r, ibil)
-# end
-
 # interior point solver
 function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
 
@@ -221,7 +217,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     # Initialization
     ip.iterations = 0
     ip.reg_val = 0.0
-    comp = true
+    comp = false
 
     # initialize regularization
     reg_pr[1] = opts.reg_pr_init
@@ -231,10 +227,10 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
-    # @warn "changed"
     least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
-    # @warn "changed"
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
+
+    # println("z: ", scn.(z[[10,12,15]], digits=4))
 
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
@@ -265,16 +261,22 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r, reg = ip.reg_val)
+            # @show scn(norm(rz * Δaff - r, Inf))
+
             αaff = step_length(z, Δaff, iy1, iy2; τ = 1.0)
+            # println("αaff: ", scn(αaff, digits=6))
+
             centering!(ip, z, Δaff, iy1, iy2, αaff)
 
             # Compute corrector residual
             # @warn "changed"
             ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
             # ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, 0.0)) # here we set κ = σ*μ, Δ = Δaff
+            # println("μ: ", scn(ip.μ, digits=6))
+            # println("σ: ", scn(ip.σ, digits=6))
 
             # Compute corrector search direction
-            linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
+            linear_solve!(solver, Δ, rz, r, reg = ip.reg_val, fact=false)
             progress!(ip, max(r_vio, κ_vio), ϵ_min=ϵ_min)
             α = step_length(z, Δ, iy1, iy2; τ = ip.τ)
             comp && println("**** Δ1:", scn(norm(α*Δ[ix]), digits=4))
@@ -323,17 +325,11 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     return true
 end
 
-# TODO maybe we will need to implement this merit function to use κ_tol > b and r_tol > a
-# function merit(rlin::AbstractVector, rbil::AbstractVector, t::Real)
-# 	a = norm(rlin, t)
-# 	b = norm(rbil, t)
-# 	return a, b
-# end
-
 function least_squares!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T},
         r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
-    A = rz[[ip.idyn; ip.irst], [ip.ix; ip.iy1; ip.iy2]]
-    z[[ip.ix; ip.iy1; ip.iy2]] .= A' * ((A * A') \ r[[ip.idyn; ip.irst]])
+    # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
+        # A = rz[[ip.idyn; ip.irst], [ip.ix; ip.iy1; ip.iy2]]
+        # z[[ip.ix; ip.iy1; ip.iy2]] .+= A' * ((A * A') \ r[[ip.idyn; ip.irst]])
     return nothing
 end
 

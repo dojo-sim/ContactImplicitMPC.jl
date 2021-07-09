@@ -19,9 +19,6 @@ env_load = s_load.env
 nq = model.dim.q
 nu = model.dim.u
 nc = model.dim.c
-nb = model.dim.b
-nd = nq + nc + nb
-nr = nq + nu + nc + nb + nd
 
 @testset "Check Quadruped Load" begin
     @test (model_load.m_torso - model_no_load.m_torso) == 3.0
@@ -43,7 +40,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 2100 #220 #5000
+H_sim = 2100
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -72,21 +69,6 @@ p = linearized_mpc_policy(ref_traj, s_no_load, obj,
         )
     )
 
-# p = linearized_mpc_policy(ref_traj, model, obj,
-#     H_mpc = H_mpc,
-#     N_sample = N_sample,
-#     κ_mpc = κ_mpc,
-#     n_opts = NewtonOptions(
-#         r_tol = 3e-4,
-#         max_iter = 5),
-#     mpc_opts = LinearizedMPCOptions(
-#         # live_plotting=true,
-#         altitude_update = true,
-#         altitude_impact_threshold = 0.05,
-#         altitude_verbose = true,
-#         )
-#     )
-
 # Test open loop policy to see the impact of the load
 # p = open_loop_policy(deepcopy(ref_traj.u), N_sample=N_sample)
 
@@ -108,16 +90,16 @@ sim_load = simulator(s_load, q0_sim, q1_sim, h_sim, H_sim,
 time = @elapsed status = ContactControl.simulate!(sim_load)
 
 
-# sim_no_load = simulator(s_no_load, q0_sim, q1_sim, h_sim, H_sim,
-#     p = p,
-#     ip_opts = InteriorPointOptions(
-#         r_tol = 1.0e-8,
-#         κ_init = 1.0e-6,
-#         κ_tol = 2.0e-6,
-#         diff_sol = false,
-#         verbose = false),
-#     sim_opts = SimulatorOptions(warmstart = true))
-# time = @elapsed status = ContactControl.simulate!(sim_no_load)
+sim_no_load = simulator(s_no_load, q0_sim, q1_sim, h_sim, H_sim,
+    p = p,
+    ip_opts = InteriorPointOptions(
+        r_tol = 1.0e-8,
+        κ_init = 1.0e-6,
+        κ_tol = 2.0e-6,
+        diff_sol = false,
+        verbose = false),
+    sim_opts = SimulatorOptions(warmstart = true))
+time = @elapsed status = ContactControl.simulate!(sim_no_load)
 
 
 
@@ -136,17 +118,17 @@ plot_lines!(vis, model, sim_load.traj.q[1:1:end], name=:Payload, offset=-0.15)
 ext_ref_traj = repeat_ref_traj(ref_traj, 7; idx_shift = (1:1))
 plot_lines!(vis, model, ext_ref_traj.q, offset=-0.17, name=:Ref, col=false,)
 
-anim = visualize_meshrobot!(vis, s_load.model, sim_load.traj, anim=anim, sample=5, name=:Payload)
-anim = visualize_meshrobot!(vis, s_no_load.model, sim_no_load.traj, sample=5, name=:NoPayload)
-anim = visualize_payload!(vis, model, sim_load.traj, anim=anim, sample=5, name=:Payload, object=:mesh)
+anim = visualize_meshrobot!(vis, s_load.model, sim_load.traj, anim=anim, sample=1, name=:Payload)
+anim = visualize_meshrobot!(vis, s_no_load.model, sim_no_load.traj, sample=1, name=:NoPayload)
+anim = visualize_payload!(vis, model, sim_load.traj, anim=anim, sample=1, name=:Payload, object=:mesh)
 # anim = visualize_force!(vis, model, sim_no_load.traj, anim=anim, sample=5, h=h_sim, name=:NoPayload)
 # anim = visualize_force!(vis, model, sim_load.traj, anim=anim, sample=5, h=h_sim, name=:Payload)
 
-anim = visualize_meshrobot!(vis, model, sim_load.traj, sample=5, name=:Payload)
-anim = visualize_payload!(vis, model, sim_load.traj, anim=anim, sample=5, name=:Payload, object=:mesh)
-settransform!(vis["/Cameras/default"],
-        compose(Translation(0.0, -25.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
+anim = visualize_meshrobot!(vis, model, sim_load.traj, sample=1, name=:Payload)
+anim = visualize_payload!(vis, model, sim_load.traj, anim=anim, sample=1, name=:Payload, object=:mesh)
+# settransform!(vis["/Cameras/default"],
+#         compose(Translation(0.0, -25.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
 
 
 # Display ghosts
@@ -169,7 +151,7 @@ end
 anim = visualize_load!(vis, model, sim_load.traj, anim=anim, sample=5, name=:Payload)
 
 
-filename = "quadruped_payload_3kg_vs_ref"
+filename = "quadruped_payload_slow"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
     "/home/simon/Documents/$filename.mp4", overwrite=true)
