@@ -35,10 +35,6 @@ struct Simulator{T}
     stats::SimulatorStatistics{T}
 end
 
-function process!(sim::Simulator)
-    process!(sim.stats, sim.p.N_sample)
-end
-
 function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
     p = no_policy(s.model),
     uL = -Inf * ones(s.model.dim.u),
