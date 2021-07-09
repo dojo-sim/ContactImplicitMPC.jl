@@ -8,7 +8,7 @@
 	ref_traj = get_trajectory(s.model, s.env,
 		joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait1.jld2"),
 		load_type = :split_traj_alt)
-	update_friction_coefficient!(ref_traj, model, env)
+	ContactControl.update_friction_coefficient!(ref_traj, model, env)
 
 	for t = 1:ref_traj.H
 		r = ContactControl.residual(model, env, ref_traj.z[t], ref_traj.θ[t], 0.0)
@@ -26,7 +26,7 @@
 	"""
 	    PD tracking policy
 	"""
-	mutable struct PD2 <: Policy
+	mutable struct PDPolicy <: ContactControl.Policy
 		model::ContactModel
 	    traj::ContactTraj
 		q0::AbstractVector
@@ -36,10 +36,10 @@
 	end
 
 	function pd_policy(model, traj; N_sample = 1)
-	    PD2(model, traj, copy(traj.q[1]), 0, N_sample, N_sample)
+	    PDPolicy(model, traj, copy(traj.q[1]), 0, N_sample, N_sample)
 	end
 
-	function policy(p::PD2, x, traj, t)
+	function ContactControl.policy(p::PDPolicy, x, traj, t)
 	    # reset
 	    if t == 1
 	        p.idx = 0
@@ -55,7 +55,6 @@
 	    p.cnt += 1
 
 		u = p.traj.u[p.idx]
-		# @show u
 		# PD
 		kp = 1.0 * ones(p.model.dim.u)
 		kp[1] *= 100.0
@@ -71,7 +70,7 @@
 	p = pd_policy(model, ref_traj)
 
 	# simulator
-	sim = ContactControl.simulator(s, q0, q1, h, 30,
+	sim = ContactControl.simulator(s, q0, q1, h, 24,
 	    p = p,
 	    ip_opts = ContactControl.InteriorPointOptions(
 			r_tol = 1.0e-8,

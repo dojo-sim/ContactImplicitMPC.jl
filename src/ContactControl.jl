@@ -149,7 +149,6 @@ export
     save_expressions,
     instantiate_dynamics!,
     environment_3D_flat,
-    # RigidBody,
     friction_dim,
     dim,
     sqrt_quat,
