@@ -71,7 +71,6 @@ s.res.r!(r1, ip1.z, ip1.θ, 0.0)
 @testset "Interior Point Non Linear" begin
 	@test norm(r1, Inf) < 1e-7
 end
-norm(r1, Inf)
 # e_ip = 1e6 * interior_point_timing(ref_traj, t, ip1)
 
 
@@ -113,14 +112,14 @@ end
 
 # e_me = 1e6 * interior_point_timing(ref_traj, t, im_traj2.ip[t])
 
-@profiler for k = 1:3000
-	z2, θ2 = get_initialization(ref_traj, t)
-	interior_point_solve!(ip2, z2, θ2)
-end
-@elapsed for k = 1:3000
-	z2, θ2 = get_initialization(ref_traj, t)
-	interior_point_solve!(ip2, z2, θ2)
-end
+# @profiler for k = 1:3000
+# 	z2, θ2 = get_initialization(ref_traj, t)
+# 	interior_point_solve!(ip2, z2, θ2)
+# end
+# @elapsed for k = 1:3000
+# 	z2, θ2 = get_initialization(ref_traj, t)
+# 	interior_point_solve!(ip2, z2, θ2)
+# end
 
 
 ################################################################################

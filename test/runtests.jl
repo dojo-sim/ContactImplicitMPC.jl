@@ -51,7 +51,6 @@ include("controller/implicit_dynamics.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 
-
 # MPC examples
 include("controller/mpc_quadruped.jl")
 include("controller/mpc_flamingo.jl")
