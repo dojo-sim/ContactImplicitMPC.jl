@@ -152,8 +152,7 @@ mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,Q
 	opts::NewtonOptions{T}
 end
 
-function newton_structure_solver(nq::Int, m::Int, H::Int;
-	opts = NewtonOptions(), ρ::T = 0.0) where T
+function newton_structure_solver(nq::Int, m::Int, H::Int; opts = NewtonOptions())
 	# dimensions
 	n = 2 * nq
 	nz = m * (H - 1) + n * (H - 1)
@@ -275,9 +274,9 @@ function newton_structure_solver(nq::Int, m::Int, H::Int;
 	idx_nq2 = SVector{nq}(collect(nq .+ (1:nq)))
 
 	# regularization
-	In = Diagonal(SVector{n}(ρ * ones(n)))
-	Inq = Diagonal(SVector{nq}(ρ * ones(nq)))
-	Im = Diagonal(SVector{m}(ρ * ones(m)))
+	In = Diagonal(SVector{n}(opts.β_init * ones(n)))
+	Inq = Diagonal(SVector{nq}(opts.β_init * ones(nq)))
+	Im = Diagonal(SVector{m}(opts.β_init * ones(m)))
 
 	# data
 	θ = [zeros(0) for t = 1:H-1]
@@ -375,6 +374,15 @@ function newton_structure_solver(nq::Int, m::Int, H::Int;
 		opts)
 end
 
+function NewtonStructure(sim::Simulation, H::Int, traj::ContactTraj, obj, κ; opts = NewtonOptions())
+
+	s = newton_structure_solver(sim.model.dim.q, sim.model.dim.u, H, opts = opts)
+	update_objective!(s, obj)
+	initialize_trajectories!(s, traj, traj.q[1], traj.q[2], warm_start_duals = false)
+
+	return s
+end
+
 function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, Ba, Q̃a, Q̃b, Q̃v, R̃a, tmp_q_nn, tmp_q_nn2, tmp_q_nm, Inq, T)
 
 	for t = 1:T-1
@@ -420,9 +428,9 @@ function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 			Yiid[t] += tmp_q_nn * transpose(Ab[t])
 		end
 
-		# # regularization
-		# Yiia[t] += Inq
-		# Yiid[t] += Inq
+		# regularization
+		Yiia[t] += Inq
+		Yiid[t] += Inq
 
 		t == T-1 && continue
 		Yija[t] = -Q̃v[t+1]
@@ -804,7 +812,7 @@ function newton_solve!(s::NewtonStructureSolver, sim::Simulation,
 	# start timer
 	elapsed_time = 0.0
 
-    for l = 1:10
+    for l = 1:s.opts.max_iter
 		# check timer
 		elapsed_time >= s.opts.max_time && break
 

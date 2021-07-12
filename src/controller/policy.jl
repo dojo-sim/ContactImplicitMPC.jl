@@ -66,7 +66,7 @@ function linearized_mpc_policy(traj, s, obj;
 	if newton_mode == :direct
 		newton = Newton(s, H_mpc, traj.h, traj, im_traj, obj = obj, opts = n_opts)
 	elseif newton_mode == :structure
-		newton = NewtonStructure(s, H_mpc, traj, obj, 1.0e-4)
+		newton = NewtonStructure(s, H_mpc, traj, obj, κ_mpc, opts = n_opts)
 	else
 		@error "invalid Newton solver specified"
 	end
