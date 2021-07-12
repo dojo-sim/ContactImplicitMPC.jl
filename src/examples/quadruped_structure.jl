@@ -1,5 +1,5 @@
-include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
-include(joinpath(pwd(), "src/controller/newton_structure_solver/methods.jl"))
+include(joinpath(module_dir(), "src", "dynamics", "quadruped", "visuals.jl"))
+include(joinpath(module_dir(), "src/controller/newton_structure_solver/methods.jl"))
 
 vis = Visualizer()
 open(vis)
@@ -21,7 +21,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1000 #4000 #3000
+H_sim = 9000 #4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -30,7 +30,7 @@ obj_mpc = quadratic_objective(model, H_mpc,
     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc+2],
     v = [Diagonal(0.0 * ones(model.dim.q)) for t = 1:H_mpc],
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc-1])
-# obj = TrackingObjective(model, env, H_mpc,
+# obj_mpc = TrackingObjective(model, env, H_mpc,
 #     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
 #     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
 #     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
@@ -50,36 +50,36 @@ p = linearized_mpc_policy(ref_traj, s, obj_mpc,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions())
 
-# p = linearized_mpc_policy(ref_traj, s, obj_mpc,
-#     H_mpc = H_mpc,
-#     N_sample = N_sample,
-#     κ_mpc = κ_mpc,
-# 	# mode = :configurationforce,
-# 	mode = :configuration,
-# 	ip_type = :mehrotra,
-#     n_opts = NewtonOptions(
-# 		solver = :ldl_solver,
-# 		r_tol = 3e-4,
-# 		max_iter = 5,
-# 		max_time = ref_traj.h, # HARD REAL TIME
-# 		),
-#     mpc_opts = LinearizedMPCOptions(
-#         # live_plotting=true,
-#         # altitude_update = true,
-#         # altitude_impact_threshold = 0.05,
-#         # altitude_verbose = true,
-#         ),
-# 	ip_opts = MehrotraOptions(
-# 		max_iter_inner = 100,
-# 		verbose = false,
-# 		r_tol = 1.0e-4,
-# 		κ_tol = 1.0e-4,
-# 		diff_sol = true,
-# 		# κ_reg = 1e-3,
-# 		# γ_reg = 1e-1,
-# 		solver = :empty_solver,
-# 		),
-#     )
+p = linearized_mpc_policy(ref_traj, s, obj_mpc,
+    H_mpc = H_mpc,
+    N_sample = N_sample,
+    κ_mpc = κ_mpc,
+	# mode = :configurationforce,
+	mode = :configuration,
+	ip_type = :mehrotra,
+    n_opts = NewtonOptions(
+		solver = :lu_solver,
+		r_tol = 3e-4,
+		max_iter = 5,
+		max_time = ref_traj.h, # HARD REAL TIME
+		),
+    mpc_opts = LinearizedMPCOptions(
+        # live_plotting=true,
+        # altitude_update = true,
+        # altitude_impact_threshold = 0.05,
+        # altitude_verbose = true,
+        ),
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
+		verbose = false,
+		r_tol = 1.0e-4,
+		κ_tol = 1.0e-4,
+		diff_sol = true,
+		# κ_reg = 1e-3,
+		# γ_reg = 1e-1,
+		solver = :empty_solver,
+		),
+    )
 
 
 q1_ref = copy(ref_traj.q[2])
@@ -134,3 +134,14 @@ for (i,t) in enumerate(t_ghosts)
     name = Symbol("ghost$i")
     set_meshrobot!(vis, mvis_ghosts[i], model, sim.traj.q[t], name=name)
 end
+
+
+
+filename = "quadruped_struct_fail"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)

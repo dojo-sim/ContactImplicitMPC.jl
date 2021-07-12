@@ -3,6 +3,8 @@ vis = Visualizer()
 open(vis)
 const ContactControl = Main
 
+
+
 s = get_simulation("quadruped", "flat_2D_lc", "flat")
 model = s.model
 env = s.env
@@ -19,7 +21,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1000 #4000 #3000
+H_sim = 9000 #4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -51,7 +53,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 	mode = :configuration,
 	ip_type = :mehrotra,
     n_opts = NewtonOptions(
-		solver = :ldl_solver,
+		solver = :lu_solver,
 		r_tol = 3e-4,
 		max_iter = 5,
 		max_time = ref_traj.h, # HARD REAL TIME
