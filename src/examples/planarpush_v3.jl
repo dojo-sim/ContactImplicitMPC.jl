@@ -59,6 +59,44 @@ plot(hcat([x[1:nb] for x in sim0.traj.b]...)')
 
 
 
+
+
+
+t = 1
+z = deepcopy(ref_traj.z[t])
+θ = deepcopy(ref_traj.θ[t]) + [1e-3rand(nθ-2); zeros(2)]
+model = s.model
+env = s.env
+ip_opts = MehrotraOptions(
+				verbose = true,
+				r_tol = 1e-8,
+				κ_tol = 1e-8,
+				)
+ip = mehrotra(
+		 z,
+		 θ,
+		 idx_ineq = inequality_indices(model, env),
+		 idx_soc = soc_indices(model, env),
+		 ix = linearization_var_index(model, env)[1],
+		 iy1 = linearization_var_index(model, env)[2],
+		 iy2 = linearization_var_index(model, env)[3],
+		 idyn = linearization_term_index(model, env)[1],
+		 irst = linearization_term_index(model, env)[2],
+		 ibil = linearization_term_index(model, env)[3],
+		 r! = s.res.r!,
+		 rm! = s.res.rm!,
+		 rz! = s.res.rz!,
+		 rθ! = s.res.rθ!,
+		 rz = rz,
+		 rθ = rθ,
+		 opts = ip_opts)
+
+interior_point_solve!(ip, z, θ)
+residual_violation(ip, ip.r)
+bilinear_violation(ip, ip.r)
+ip.iterations
+M_fast(s.model, q0)
+
 ################################################################################
 # MPC Control
 ################################################################################
@@ -128,8 +166,8 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 	ip_opts = MehrotraOptions(
 		max_iter_inner = 100,
 		# verbose = true,
-		r_tol = 1.0e-4,
-		κ_tol = 1.0e-4,
+		r_tol = 3.0e-4,
+		κ_tol = 3.0e-4,
 		diff_sol = true,
 		# κ_reg = 1e-3,
 		# γ_reg = 1e-1,
@@ -137,25 +175,12 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 		),
     )
 
-
-
-# p.κ
-# p.traj.κ[1]
-# p.ref_traj.κ[1]
-# p.im_traj.lin[1].κ[1]
-# p.newton.traj.κ[1]
-# p.newton.traj_cand.κ[1]
-# p.im_traj.ip[1].κ[1]
-# p.im_traj.ip[1].opts.κ_init[1]
-# p.im_traj.ip[1].opts.κ_tol[1]
-
-
 # p = open_loop_policy(fill(SVector{nu}([40*h, -0.0]), H*2), N_sample=N_sample)
 using Random
 Random.seed!(100)
 # d = open_loop_disturbances([[0.05*rand(), 0.0, 0.4*rand()] for t=1:H_sim], N_sample)
-d = open_loop_disturbances([[0.0, 0.0, 0.25*rand()+0.5] for t=1:H_sim], N_sample)
-d = open_loop_disturbances([[0.0, 0.0, 0.25*rand()+0.5] for t=1:H_sim], N_sample)
+# d = open_loop_disturbances([[0.0, 0.0, 0.25*rand()+0.5] for t=1:H_sim], N_sample)
+d = open_loop_disturbances([[0.0, 0.0, 0.0] for t=1:H_sim], N_sample)
 
 q0_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 1e-4, 0.0]
 q1_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 1e-4, 0.0]

@@ -1,6 +1,6 @@
 """
     PlanarPush
-        s = (x, y, t, xp, yp)
+        s = (x, y, z, t, xp, yp, zp)
             x  - x position of the object
             y  - y position of the object
             z  - z position of the object
@@ -248,4 +248,4 @@ planarpush = PlanarPush(Dimensions(nq, nu, nw, nc),
 			  μ_world, μ_joint, g,
 			  m, J, mp, r, rp,
 			  BaseMethods(), DynamicsMethods(),
-			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]))
+			  SVector{nq}(zeros(nq)))

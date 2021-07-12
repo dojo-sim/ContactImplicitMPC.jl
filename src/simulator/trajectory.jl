@@ -221,7 +221,7 @@ function get_trajectory(name::String, gait::String; model_name = name, load_type
 end
 
 function get_trajectory(model::ContactModel, env::Environment, gait_path::String;
-		load_type::Symbol=:split_traj)
+		load_type::Symbol = :split_traj, update_friction::Bool = false)
 	#TODO: assert model exists
 
 	nq = model.dim.q
@@ -260,7 +260,7 @@ function get_trajectory(model::ContactModel, env::Environment, gait_path::String
 	elseif load_type == :joint_traj
 		traj = res["traj"]
 	end
-
+	update_friction && update_friction_coefficient!(traj, model, env)
 	return traj
 end
 
