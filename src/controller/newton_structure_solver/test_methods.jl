@@ -98,19 +98,19 @@ end
 
 @test norm(cholesky(Hermitian(Y)).L - L) < 1.0e-12
 
-compute_β!(s.βn, s.βd, s.βe, s.rlagu, s.rlagqa, s.rlagqb,
+compute_β!(s.βn, s.β1, s.β2, s.rlagu, s.rlagqa, s.rlagqb,
 	s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.H)
 
-info = @benchmark compute_β!($s.βn, $s.βd, $s.βe, $s.rlagu, $s.rlagqa, $s.rlagqb,
+info = @benchmark compute_β!($s.βn, $s.β1, $s.β2, $s.rlagu, $s.rlagqa, $s.rlagqb,
 	$s.rdyn1, $s.rdyn2, $s.Aa, $s.Ab, $s.Ac, $s.Ba, $s.Q̃a, $s.Q̃b, $s.Q̃v, $s.R̃a, $s.H)
 
 @test info.memory == 0
 @test info.allocs == 0
 
-@code_warntype compute_β!(s.βn, s.βd, s.βe, s.rlagu, s.rlagqa, s.rlagqb,
+@code_warntype compute_β!(s.βn, s.β1, s.β2, s.rlagu, s.rlagqa, s.rlagqb,
 	s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.H)
 
-@test norm((β - vcat([[s.βd[t]; s.βe[t]] for t = 1:T-1]...))) < 1.0e-12
+@test norm((β - vcat([[s.β1[t]; s.β2[t]] for t = 1:T-1]...))) < 1.0e-12
 @test norm((β - vcat(s.βn...))[1:s.nq]) < 1.0e-12
 
 compute_y!(s.y, s.Liis, s.Ljis, s.βn, s.H)

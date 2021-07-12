@@ -5,8 +5,12 @@ https://web.stanford.edu/~boyd/papers/pdf/fast_mpc.pdf
 
 mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,QV,QAI,QBI,QVI,RA}
 	"""
-	[S + ρI C'; C -ρI] [Δz; Δν] = r
+	[S  C'; C] [Δz; Δν] = r
+
+	qa = [q0, q1, ..., qT-1]
+	qb = [q1, q2, ..., qT]
 	"""
+
 	# dimensions
 	n::Int  # state
 	m::Int  # control
@@ -102,19 +106,10 @@ mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,Q
 	rdyn1::Vector{SVector{NQ,T}}
 	rdyn2::Vector{SVector{NQ,T}}
 
-	# candidate residual
-	rlagu_cand::Vector{SVector{M,T}}
-	rlagqa_cand::Vector{SVector{NQ,T}}
-	rlagqb_cand::Vector{SVector{NQ,T}}
-
-	# rdyn = [rdyn1; rdyn2]
-	rdyn1_cand::Vector{SVector{NQ,T}}
-	rdyn2_cand::Vector{SVector{NQ,T}}
-
-	# β = -rdyn + C * inv(S) * rlag = [β1..., βT-1]; β1 = [βd1; βe1], ...
+	# β = -rdyn + C * inv(S) * rlag = [β1..., βT-1]; β1 = [β11; β21], ...
 	βn::Vector{SVector{N,T}}
-	βd::Vector{SVector{NQ,T}}
-	βe::Vector{SVector{NQ,T}}
+	β1::Vector{SVector{NQ,T}}
+	β2::Vector{SVector{NQ,T}}
 
 	# y = L \ β
 	y::Vector{SVector{N,T}}
@@ -146,9 +141,19 @@ mutable struct NewtonStructureSolver{N,M,NQ,NN,NM,NQNQ,NQM,T,AA,AB,AC,BA,QA,QB,Q
 	In::Diagonal{T, SVector{N,T}}
 	Inq::Diagonal{T, SVector{NQ,T}}
 	Im::Diagonal{T, SVector{M,T}}
+
+	# data
+	θ::Vector{Vector{T}}
+
+	# dual fill
+	dual_fill::SVector{NQ,T}
+
+	# options
+	opts::NewtonOptions{T}
 end
 
-function newton_structure_solver(nq::Int, m::Int, H::Int; ρ::T = 0.0) where T
+function newton_structure_solver(nq::Int, m::Int, H::Int;
+	opts = NewtonOptions(), ρ::T = 0.0) where T
 	# dimensions
 	n = 2 * nq
 	nz = m * (H - 1) + n * (H - 1)
@@ -238,18 +243,10 @@ function newton_structure_solver(nq::Int, m::Int, H::Int; ρ::T = 0.0) where T
 	rdyn1 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
 	rdyn2 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
 
-	# r
-	rlagu_cand = [SVector{m}(zeros(m)) for t = 1:H-1]
-	rlagqa_cand = [SVector{nq}(zeros(nq)) for t = 1:H-1]
-	rlagqb_cand = [SVector{nq}(zeros(nq)) for t = 1:H-1]
-
-	rdyn1_cand = [SVector{nq}(zeros(nq)) for t = 1:H-1]
-	rdyn2_cand = [SVector{nq}(zeros(nq)) for t = 1:H-1]
-
 	# β
 	βn = [SVector{n}(zeros(n)) for t = 1:H-1]
-	βd = [SVector{nq}(zeros(nq)) for t = 1:H-1]
-	βe = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	β1 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
+	β2 = [SVector{nq}(zeros(nq)) for t = 1:H-1]
 
 	# y
 	y = [SVector{n}(zeros(n)) for t = 1:H-1]
@@ -281,6 +278,12 @@ function newton_structure_solver(nq::Int, m::Int, H::Int; ρ::T = 0.0) where T
 	In = Diagonal(SVector{n}(ρ * ones(n)))
 	Inq = Diagonal(SVector{nq}(ρ * ones(nq)))
 	Im = Diagonal(SVector{m}(ρ * ones(m)))
+
+	# data
+	θ = [zeros(0) for t = 1:H-1]
+
+	# dual fill
+	dual_fill = SVector{nq}(zeros(nq))
 
 	NewtonStructureSolver(
 		n,
@@ -345,14 +348,9 @@ function newton_structure_solver(nq::Int, m::Int, H::Int; ρ::T = 0.0) where T
 		rlagqb,
 		rdyn1,
 		rdyn2,
-		rlagu_cand,
-		rlagqa_cand,
-		rlagqb_cand,
-		rdyn1_cand,
-		rdyn2_cand,
 		βn,
-		βd,
-		βe,
+		β1,
+		β2,
 		y,
 		Δνn,
 		Δν1,
@@ -371,7 +369,10 @@ function newton_structure_solver(nq::Int, m::Int, H::Int; ρ::T = 0.0) where T
 		idx_nq2,
 		In,
 		Inq,
-		Im)
+		Im,
+		θ,
+		dual_fill,
+		opts)
 end
 
 function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, Ba, Q̃a, Q̃b, Q̃v, R̃a, tmp_q_nn, tmp_q_nn2, tmp_q_nm, Inq, T)
@@ -382,7 +383,7 @@ function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 
 			Yiib[t] = Q̃v[t+1]
 
-			Yiic[t] = transpose(Q̃v[t+1])
+			Yiic[t] = Q̃v[t+1]
 
 			Yiid[t] = Q̃b[t+1]
 			tmp_q_nm = Ba[t] * R̃a[t]
@@ -394,7 +395,7 @@ function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 
 			Yiib[t] = Q̃v[t+1]
 
-			Yiic[t] = transpose(Q̃v[t+1])
+			Yiic[t] = Q̃v[t+1]
 
 			Yiid[t] = Q̃b[t+1]
 			tmp_q_nm = Ba[t] * R̃a[t]
@@ -403,7 +404,7 @@ function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 
 			Yiia[t] += Q̃b[t]
 
-			Yiib[t] += transpose(Q̃v[t]) * transpose(Aa[t])
+			Yiib[t] += Q̃v[t] * transpose(Aa[t])
 			Yiib[t] += Q̃b[t] * transpose(Ab[t])
 
 			Yiic[t] += Aa[t] * Q̃v[t]
@@ -413,7 +414,7 @@ function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 			Yiid[t] += tmp_q_nn * transpose(Aa[t])
 			tmp_q_nn = Aa[t] * Q̃v[t]
 			Yiid[t] += tmp_q_nn * transpose(Ab[t])
-			tmp_q_nn = Ab[t] * transpose(Q̃v[t])
+			tmp_q_nn = Ab[t] * Q̃v[t]
 			Yiid[t] += tmp_q_nn * transpose(Aa[t])
 			tmp_q_nn = Ab[t] * Q̃b[t]
 			Yiid[t] += tmp_q_nn * transpose(Ab[t])
@@ -430,7 +431,7 @@ function compute_Y!(Yiia, Yiib, Yiic, Yiid, Yija, Yijb, Yijc, Yijd, Aa, Ab, Ac, 
 
 		Yijc[t] = -Q̃b[t+1]
 
-		Yijd[t] = -transpose(Q̃v[t+1]) * transpose(Aa[t+1]) - Q̃b[t+1] * transpose(Ab[t+1])
+		Yijd[t] = -Q̃v[t+1] * transpose(Aa[t+1]) - Q̃b[t+1] * transpose(Ab[t+1])
 
 	end
 	nothing
@@ -482,13 +483,13 @@ function compute_β!(βn, β1, β2, rlagu, rlagqa, rlagqb, rdyn1, rdyn2, Aa, Ab,
 			β1[1] += Q̃v[2] * rlagqb[1]
 
 			β2[1] = -1.0 * rdyn2[1] - Ba[1] * R̃[1] * rlagu[1] + Ac[1] * Q̃b[2] * rlagqb[1]
-			β2[1] += Ac[1] * transpose(Q̃v[2]) * rlagqa[1]
+			β2[1] += Ac[1] * Q̃v[2] * rlagqa[1]
 		else
 			β1[t] = -1.0 * rdyn1[t] + Q̃a[t+1] * rlagqa[t] - Q̃b[t] * rlagqb[t-1]
 			β1[t] += -1.0 * Q̃v[t] * rlagqa[t-1] + Q̃v[t+1] * rlagqb[t]
 
 			β2[t] = -1.0 * rdyn2[t] - Ba[t] * R̃[t] * rlagu[t] + Ac[t] * Q̃b[t+1] * rlagqb[t] - Aa[t] * Q̃a[t] * rlagqa[t-1] - Ab[t] * Q̃b[t] * rlagqb[t-1]
-			β2[t] += -Aa[t] * Q̃v[t] * rlagqb[t-1] - Ab[t] * transpose(Q̃v[t]) * rlagqa[t-1] + Ac[t] * Q̃v[t+1] * rlagqa[t]
+			β2[t] += -Aa[t] * Q̃v[t] * rlagqb[t-1] - Ab[t] * Q̃v[t] * rlagqa[t-1] + Ac[t] * Q̃v[t+1] * rlagqa[t]
 		end
 		βn[t] = [β1[t]; β2[t]]
 	end
@@ -536,13 +537,13 @@ function compute_Δz!(Δu, Δqa, Δqb, Δν1, Δν2, Aa, Ab, Ac, Ba, Q̃a, Q̃b,
 			Δqa[t] += Q̃v[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δν2[t] + transpose(Ab[t+1]) * Δν2[t+1] + Δν1[t+1])
 
 			Δqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δν2[t] + transpose(Ab[t+1]) * Δν2[t+1] + Δν1[t+1])
-			Δqb[t] += transpose(Q̃v[t+1]) * (rlagqa[t] - Δν1[t] + transpose(Aa[t+1]) * Δν2[t+1])
+			Δqb[t] += Q̃v[t+1] * (rlagqa[t] - Δν1[t] + transpose(Aa[t+1]) * Δν2[t+1])
 		else
 			Δqa[t] = Q̃a[t+1] * (rlagqa[t] - Δν1[t])
 			Δqa[t] += Q̃v[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δν2[t])
 
 			Δqb[t] = Q̃b[t+1] * (rlagqb[t] - transpose(Ac[t]) * Δν2[t])
-			Δqb[t] += transpose(Q̃v[t+1]) * (rlagqa[t] - Δν1[t])
+			Δqb[t] += Q̃v[t+1] * (rlagqa[t] - Δν1[t])
 		end
 	end
 end
@@ -560,7 +561,7 @@ function factorize!(s::NewtonStructureSolver)
 end
 
 function ContactControl.solve!(s::NewtonStructureSolver)
-	compute_β!(s.βn, s.βd, s.βe, s.rlagu, s.rlagqa, s.rlagqb,
+	compute_β!(s.βn, s.β1, s.β2, s.rlagu, s.rlagqa, s.rlagqb,
 		s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.H)
 
 	compute_y!(s.y, s.Liis, s.Ljis, s.βn, s.H)
@@ -591,8 +592,11 @@ function update_objective!(s::NewtonStructureSolver, obj::QuadraticObjective)
 	nq = s.nq
 	H = s.H
 
-	Q = [[(t > 1 ? 0.5 : 1.0) * obj.q[t] + obj.v[t]  -1.0 * obj.v[t];
+	# build objective for state representation: x = (qa, qb)
+	Q = [[(t > 1 ? 0.5 : 1.0) * obj.q[t] + obj.v[t] -1.0 * obj.v[t];
 	      -1.0 * obj.v[t]' (t < H ? 0.5 : 1.0) * obj.q[t] + obj.v[t]] + s.In for t = 1:H]
+
+
 	Q̃ = [inv(Array(Q[t])) for t = 1:H]
 
 	R = [obj.u[t] + s.Im for t = 1:H-1]
@@ -614,40 +618,25 @@ function update_objective!(s::NewtonStructureSolver, obj::QuadraticObjective)
 	end
 end
 
-function update_dynamics_jacobian!(s::NewtonStructureSolver, lci_traj::LCIDynamicsTrajectory)
+function update_dynamics_jacobian!(s::NewtonStructureSolver, im_traj::ImplicitTraj)
 	for t = 1:s.H-1
-		s.Aa[t] = lci_traj.δq0[t]
-		s.Ab[t] = lci_traj.δq1[t]
+		s.Aa[t] = im_traj.δq0[t]
+		s.Ab[t] = im_traj.δq1[t]
 		# s.Ac[t] = Diagonal(SVector{s.nq}(ones(s.nq))) # pre-allocated
-		s.Ba[t] = lci_traj.δu1[t]
-	end
-	return nothing
-end
-
-function dynamics_constraints_linear!(s::NewtonStructureSolver, lci_traj::LCIDynamicsTrajectory)
-	# update implicit dynamics
-
-	for t = 1:s.H-1
-		# q^{t+1}_{t-1} - q^t_t = 0
-		s.rdyn1[t] = s.qa[t+1] - s.qb[t]
-
-		# q^{t+1}_t - s(q^t_{t-1}, q^t_{t}, u_t)
-		s.rdyn2[t] = s.qb[t+1] - s.Aa[t] * s.qa[t] - s.Ab[t] * s.qb[t] - s.Ba[t] * s.u[t]
+		s.Ba[t] = im_traj.δu1[t]
 	end
 	return nothing
 end
 
 function dynamics_constraints!(s::NewtonStructureSolver, u, qa, qb, d)
 	# update implicit dynamics
-	print(length(qa))
-	print(length(qb))
-	print(length(s.Ba))
 	for t = 1:s.H-1
 		# q^{t+1}_{t-1} - q^t_t = 0
 		s.rdyn1[t] = qa[t+1] - qb[t]
 
 		# q^{t+1}_t - s(q^t_{t-1}, q^t_{t}, u_t)
-		s.rdyn2[t] = qb[t+1] - s.Aa[t] * qa[t] - s.Ab[t] * qb[t] - s.Ba[t] * u[t]
+		# println(norm(qb[t+1] - d[t], 1))
+		s.rdyn2[t] = qb[t+1] - d[t]
 	end
 	return nothing
 end
@@ -660,8 +649,8 @@ function lagrangian_gradient!(s::NewtonStructureSolver, u, qa, qb, ν1, ν2)
 		s.rlagqa[t] = s.Qa[t+1] * (qa[t+1] - s.q_ref[t+1])
 		s.rlagqb[t] = s.Qb[t+1] * (qb[t+1] - s.q_ref[t+2])
 
-		s.rlagqa[t] += s.Qv[t+1] * qb[t+1]
-		s.rlagqb[t] += transpose(s.Qv[t+1]) * qa[t+1]
+		s.rlagqa[t] -= s.Qv[t+1] * (qb[t+1] - qa[t+1])
+		s.rlagqb[t] += s.Qv[t+1] * (qb[t+1] - qa[t+1])
 	end
 
 	# configuration equality terms
@@ -682,16 +671,39 @@ function lagrangian_gradient!(s::NewtonStructureSolver, u, qa, qb, ν1, ν2)
 	return nothing
 end
 
-function compute_residual!(s::NewtonStructureSolver, u, qa, qb, ν1, ν2, lci_traj::LCIDynamicsTrajectory)
+function implicit_dynamics!(im_traj::ImplicitTraj, model, env, u, qa, qb, H, θ; κ = traj.κ) where {T, D}
 
-	# update lci_traj
-	linear_contact_implicit_dynamics!(lci_traj, u, qa, qb, s.H)
+	nq = model.dim.q
+	m = model.dim.u
+
+	for t = 1:H-1
+		θ[t][1:nq] = copy(qa[t])
+		θ[t][nq .+ (1:nq)] = copy(qb[t])
+		θ[t][2nq .+ (1:m)] = copy(u[t])
+
+		# initialized solver
+		z_initialize!(im_traj.ip[t].z, model, env, copy(qb[t])) #TODO: try alt. schemes
+		im_traj.ip[t].θ .= copy(θ[t])
+
+		# solve
+		status = interior_point_solve!(im_traj.ip[t])
+
+		# !status && error("implicit dynamics failure (t = $t)")
+		!status && (@warn "implicit dynamics failure (t = $t)")
+	end
+	return nothing
+end
+
+function compute_residual!(s::NewtonStructureSolver, u, qa, qb, ν1, ν2, H, im_traj::ImplicitTraj, model, env, κ)
+
+	# update
+	implicit_dynamics!(im_traj, model, env, u, qa, qb, H, s.θ, κ = κ)
 
 	# update static Jacobians
-	update_dynamics_jacobian!(s, lci_traj)
+	update_dynamics_jacobian!(s, im_traj)
 
 	# update constraints
-	dynamics_constraints!(s, u, qa, qb, lci_traj.dq2)
+	dynamics_constraints!(s, u, qa, qb, im_traj.dq2)
 
 	# update gradient of Lagrangian
 	lagrangian_gradient!(s, u, qa, qb, ν1, ν2)
@@ -729,4 +741,133 @@ function residual_norm(s, mode = 1)
 		e += norm(s.rdyn2[t], mode)
 	end
 	return e
+end
+
+function initialize_trajectories!(s::NewtonStructureSolver, ref_traj::ContactTraj, q0, q1;
+	warm_start_duals = True)
+
+	tmp_nq = SVector{s.nq}(zeros(s.nq)) # TODO: preallocate
+
+	# initialize trajectories
+	for t = 1:s.H
+		s.qa[t] = ref_traj.q[t]
+		s.qb[t] = ref_traj.q[t+1]
+		s.qa_cand[t] = ref_traj.q[t]
+		s.qb_cand[t] = ref_traj.q[t+1]
+
+		t >= s.H && continue
+		s.u[t] = ref_traj.u[t]
+		s.u_cand[t] = ref_traj.u[t]
+
+		if !warm_start_duals
+			s.ν1[t] = s.dual_fill
+			s.ν2[t] = s.dual_fill
+
+			s.ν1_cand[t] = s.dual_fill
+			s.ν2_cand[t] = s.dual_fill
+		end
+
+		s.θ[t] = ref_traj.θ[t]
+	end
+
+	# initialize reference trajectory
+	for t = 1:s.H+1
+		s.q_ref[t] = ref_traj.q[t]
+		t >= s.H && continue
+		s.u_ref[t] = ref_traj.u[t]
+	end
+
+	# initial conditions
+	s.qa[1] = q0
+	s.qb[1] = q1
+	s.qa_cand[1] = q0
+	s.qb_cand[1] = q1
+
+	return nothing
+end
+
+function newton_solve!(s::NewtonStructureSolver, sim::Simulation,
+    im_traj::ImplicitTraj, ref_traj::ContactTraj; q0 = ref_traj.q[1], q1 = ref_traj.q[2],
+    warm_start::Bool = false,
+	κ = 1.0e-4)
+
+	# copy_traj = deepcopy(ref_traj) # TODO: preallocate
+
+	initialize_trajectories!(s, ref_traj, warm_start_duals = warm_start,
+		q0, q1)
+
+    # compute residual
+	compute_residual!(s, s.u, s.qa, s.qb, s.ν1, s.ν2, s.H, im_traj, sim.model, sim.env, κ)
+    r_norm = residual_norm(s, 1)
+
+	# println("initialize!")
+	# start timer
+	elapsed_time = 0.0
+
+    for l = 1:10
+		# check timer
+		elapsed_time >= s.opts.max_time && break
+
+		# update timer
+		elapsed_time += @elapsed begin
+
+		# check convergence
+		r_norm / (s.nz + s.nd) < s.opts.r_tol && break
+
+		# factorize system
+		factorize!(s)
+
+		# solve system
+		ContactControl.solve!(s)
+
+		# line search the step direction
+		α = 1.0
+		iter = 0
+		step!(s, α)
+
+		# println("step!")
+
+		# compute candidate residual
+		compute_residual!(s, s.u_cand, s.qa_cand, s.qb_cand, s.ν1_cand, s.ν2_cand, s.H, im_traj, sim.model, sim.env, κ)
+		residual_norm(s, 1)
+		r_cand_norm = residual_norm(s, 1)
+
+		# backtrack
+        while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
+            α = 0.5 * α
+
+            iter += 1
+            if iter > 6
+                break
+            end
+
+			# step
+			step!(s, α)
+
+			# compute candiate residual
+			compute_residual!(s, s.u_cand, s.qa_cand, s.qb_cand, s.ν1_cand, s.ν2_cand, s.H, im_traj, sim.model, sim.env, κ)
+			r_cand_norm = residual_norm(s, 1)
+        end
+
+        # upate
+		accept_step!(s)
+		r_norm = r_cand_norm
+
+        # # regularization update
+        # if iter > 6
+        #     core.β = min(core.β * 1.3, 1.0e2)
+        # else
+        #     core.β = max(1.0e1, core.β / 1.3)
+        # end
+
+        s.opts.verbose && println(" l: ", l ,
+				"     t: ", scn(elapsed_time, digits = 0),
+                "     r: ", scn(r_norm / (s.nz + s.nd), digits = 0),
+                # "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
+                "     α: ", -Int(round(log(α))),
+                "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0))
+	end
+    end
+
+    return nothing
 end

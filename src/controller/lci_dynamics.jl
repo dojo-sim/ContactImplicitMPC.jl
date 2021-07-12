@@ -14,9 +14,7 @@ mutable struct LCIDynamicsTrajectory{T}
 	δu1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # u1 solution gradient length=H
 	model::ContactModel
 	env::Environment
-	w
-	μ
-	h
+	ref_traj::ContactModel
 	ip::Vector{<:AbstractIPSolver}
 	κ::T
 end
@@ -79,7 +77,7 @@ function LCIDynamicsTrajectory(ref_traj::ContactTraj, s::Simulation;
 	δq1 = [view(ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
 	δu1 = [view(ip[t].δz, 1:nd, off .+ (1:nu)) for t = 1:H]; off += nu
 
-	return LCIDynamicsTrajectory(H, lin, d, dq2, δq0, δq1, δu1, model, env, zeros(model.dim.w), μ, ref_traj.h, ip, κ)
+	return LCIDynamicsTrajectory(H, lin, d, dq2, δq0, δq1, δu1, model, env, deepcopy(ref_traj), ip, κ)
 end
 
 

@@ -19,6 +19,7 @@ mutable struct LinearizedMPC <: Policy
 	altitude
 	κ
 	newton
+	newton_mode
 	s
 	q0
 	N_sample
@@ -32,6 +33,7 @@ function linearized_mpc_policy(traj, s, obj;
 	κ_mpc = traj.κ[1],
 	ip_type = :interior_point,
 	mode = :configurationforce,
+	newton_mode = :direct,
 	n_opts = NewtonOptions(
 		r_tol = 3e-4,
 		max_iter = 5,
@@ -61,9 +63,15 @@ function linearized_mpc_policy(traj, s, obj;
 	altitude = zeros(s.model.dim.c)
 	# @info "not sure why we need to do this update."
 	# update!(im_traj, traj, s, altitude, κ = κ_mpc)
-	newton = Newton(s, H_mpc, traj.h, traj, im_traj, obj = obj, opts = n_opts)
+	if newton_mode == :direct
+		newton = Newton(s, H_mpc, traj.h, traj, im_traj, obj = obj, opts = n_opts)
+	elseif newton_mode == :structure
+		newton = NewtonStructure(s, H_mpc, traj, obj, 1.0e-4)
+	else
+		@error "invalid Newton solver specified"
+	end
 
-	LinearizedMPC(traj, ref_traj, im_traj, H_mpc, stride, altitude, κ_mpc, newton, s, copy(ref_traj.q[1]),
+	LinearizedMPC(traj, ref_traj, im_traj, H_mpc, stride, altitude, κ_mpc, newton, newton_mode, s, copy(ref_traj.q[1]),
 		N_sample, N_sample, mpc_opts)
 end
 
@@ -94,5 +102,11 @@ function policy(p::LinearizedMPC, x, traj, t)
 
     p.cnt += 1
 
-    return p.newton.traj.u[1] / p.N_sample # rescale output
+	if p.newton_mode == :direct
+    	return p.newton.traj.u[1] / p.N_sample # rescale output
+	elseif p.newton_mode == :structure
+		return p.newton.u[1] / p.N_sample
+	else
+		@error "newton mode specified not available"
+	end
 end
