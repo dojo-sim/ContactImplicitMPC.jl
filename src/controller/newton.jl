@@ -167,11 +167,10 @@ end
 
 function newton_solve!(core::Newton, s::Simulation,
     im_traj::ImplicitTraj, ref_traj::ContactTraj;
-    warm_start::Bool = false, initial_offset::Bool = false,
+    warm_start::Bool = false,
     q0 = ref_traj.q[1], q1 = ref_traj.q[2])
 
-	reset!(core, ref_traj, warm_start = warm_start,
-        initial_offset = initial_offset, q0 = q0, q1 = q1)
+	reset!(core, ref_traj, warm_start = warm_start, q0 = q0, q1 = q1)
 
     # Compute implicit dynamics about traj
 	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
@@ -249,4 +248,13 @@ function newton_solve!(core::Newton, s::Simulation,
     end
 
     return nothing
+end
+
+function NewtonStructure(sim::Simulation, H::Int, traj::ContactTraj, obj, κ)
+
+	s = newton_structure_solver(sim.model.dim.q, sim.model.dim.u, H)
+	update_objective!(s, obj)
+	initialize_trajectories!(s, traj, traj.q[1], traj.q[2], warm_start_duals = false)
+
+	return s
 end

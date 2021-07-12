@@ -1,4 +1,6 @@
 include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
+include(joinpath(pwd(), "src/controller/newton_structure_solver/methods.jl"))
+
 vis = Visualizer()
 open(vis)
 const ContactControl = Main
@@ -24,17 +26,22 @@ H_sim = 1000 #4000 #3000
 # barrier parameter
 κ_mpc = 1.0e-4
 
-obj = TrackingObjective(model, env, H_mpc,
-    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+obj_mpc = quadratic_objective(model, H_mpc,
+    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc+2],
+    v = [Diagonal(0.0 * ones(model.dim.q)) for t = 1:H_mpc],
+    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc-1])
+# obj = TrackingObjective(model, env, H_mpc,
+#     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
+#     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
+#     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
+#     b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-p = linearized_mpc_policy(ref_traj, s, obj,
+p = linearized_mpc_policy(ref_traj, s, obj_mpc,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
 	mode = :configuration,
+	newton_mode = :structure,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
 		# β_init = 1.0e-5,
@@ -43,36 +50,36 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions())
 
-p = linearized_mpc_policy(ref_traj, s, obj,
-    H_mpc = H_mpc,
-    N_sample = N_sample,
-    κ_mpc = κ_mpc,
-	# mode = :configurationforce,
-	mode = :configuration,
-	ip_type = :mehrotra,
-    n_opts = NewtonOptions(
-		solver = :ldl_solver,
-		r_tol = 3e-4,
-		max_iter = 5,
-		max_time = ref_traj.h, # HARD REAL TIME
-		),
-    mpc_opts = LinearizedMPCOptions(
-        # live_plotting=true,
-        # altitude_update = true,
-        # altitude_impact_threshold = 0.05,
-        # altitude_verbose = true,
-        ),
-	ip_opts = MehrotraOptions(
-		max_iter_inner = 100,
-		verbose = false,
-		r_tol = 1.0e-4,
-		κ_tol = 1.0e-4,
-		diff_sol = true,
-		# κ_reg = 1e-3,
-		# γ_reg = 1e-1,
-		solver = :empty_solver,
-		),
-    )
+# p = linearized_mpc_policy(ref_traj, s, obj_mpc,
+#     H_mpc = H_mpc,
+#     N_sample = N_sample,
+#     κ_mpc = κ_mpc,
+# 	# mode = :configurationforce,
+# 	mode = :configuration,
+# 	ip_type = :mehrotra,
+#     n_opts = NewtonOptions(
+# 		solver = :ldl_solver,
+# 		r_tol = 3e-4,
+# 		max_iter = 5,
+# 		max_time = ref_traj.h, # HARD REAL TIME
+# 		),
+#     mpc_opts = LinearizedMPCOptions(
+#         # live_plotting=true,
+#         # altitude_update = true,
+#         # altitude_impact_threshold = 0.05,
+#         # altitude_verbose = true,
+#         ),
+# 	ip_opts = MehrotraOptions(
+# 		max_iter_inner = 100,
+# 		verbose = false,
+# 		r_tol = 1.0e-4,
+# 		κ_tol = 1.0e-4,
+# 		diff_sol = true,
+# 		# κ_reg = 1e-3,
+# 		# γ_reg = 1e-1,
+# 		solver = :empty_solver,
+# 		),
+#     )
 
 
 q1_ref = copy(ref_traj.q[2])

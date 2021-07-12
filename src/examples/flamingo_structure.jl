@@ -17,32 +17,25 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1000#35000
+H_sim = 2000#35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
-obj = TrackingVelocityObjective(model, env, H_mpc,
-    v = [Diagonal(1e-3 * [1e0,1,1e4,1,1,1,1,1e4,1e4]) for t = 1:H_mpc],
-    q = [Diagonal(1e-1 * [3e2, 1e-6, 3e2, 1, 1, 1, 1, 0.1, 0.1]) for t = 1:H_mpc],
-    u = [Diagonal(3e-1 * [0.1; 0.1; 0.3; 0.3; ones(model.dim.u-6); 2; 2]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+obj_mpc = quadratic_objective(model, H_mpc,
+    q = [Diagonal(0.1 * ones(model.dim.q)) for t = 1:H_mpc+2],
+    v = [Diagonal(0.001 * ones(model.dim.q)) for t = 1:H_mpc],
+    u = [Diagonal(0.01 * ones(model.dim.u)) for t = 1:H_mpc-1])
 
-# obj = TrackingVelocityObjective(model, env, H_mpc,
-#     v = [Diagonal(1e-3 * [1e0,1,1e4,1,1,1,1,1e4,1e4]) for t = 1:H_mpc],
-#     q = [Diagonal(1e-1 * [3e2, 1e-6, 3e2, 1, 1, 1, 1, 0.1, 0.1]) for t = 1:H_mpc],
-#     u = [Diagonal(3e-1 * [0.1; 0.1; 0.3; 0.3; ones(model.dim.u-6); 2; 2]) for t = 1:H_mpc])
-#   γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-#   b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-p = linearized_mpc_policy(ref_traj, s, obj,
+p = linearized_mpc_policy(ref_traj, s, obj_mpc,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
 	ip_type = :interior_point,
 	# mode = :configurationforce,
 	mode = :configuration,
+	newton_mode = :structure,
 	# ip_type = :mehrotra,
     n_opts = NewtonOptions(
 		# solver = :ldl_solver,

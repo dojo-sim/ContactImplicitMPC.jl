@@ -14,23 +14,6 @@ function lagrangian_derivatives(model::ContactModel, q, v)
 	return D1L, D2L
 end
 
-# function dynamics(model::ContactModel, h, q0, q1, u1, w1, λ1, q2)
-# 	# evalutate at midpoint
-# 	qm1 = 0.5 * (q0 + q1)
-#     vm1 = (q1 - q0) / h[1]
-#     qm2 = 0.5 * (q1 + q2)
-#     vm2 = (q2 - q1) / h[1]
-#
-# 	D1L1, D2L1 = lagrangian_derivatives(model, qm1, vm1)
-# 	D1L2, D2L2 = lagrangian_derivatives(model, qm2, vm2)
-#
-# 	return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
-# 		+ transpose(B_fast(model, qm2)) * u1
-# 		+ transpose(A_fast(model, qm2)) * w1
-# 		+ transpose(J_fast(model, q2)) * λ1
-# 		- h[1] * model.joint_friction .* vm2)
-# end
-
 function dynamics(model::ContactModel, h, q0, q1, u1, w1, Λ1, q2)
 	# evalutate at midpoint
 	qm1 = 0.5 * (q0 + q1)

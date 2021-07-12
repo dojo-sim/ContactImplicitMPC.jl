@@ -2,6 +2,7 @@
 module ContactControl
 
 using BenchmarkTools
+using InteractiveUtils
 using Colors
 using FFMPEG
 using ForwardDiff
@@ -112,6 +113,7 @@ include("controller/newton_jacobian.jl")
 # include("controller/newton_configuration.jl")
 include("controller/mpc_utils.jl")
 include("controller/policy.jl")
+include("controller/newton_structure_solver/methods.jl")
 
 # Visuals
 include("dynamics/visuals.jl")
