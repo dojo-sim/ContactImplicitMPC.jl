@@ -6,7 +6,6 @@ Manifest.toml
 /src/simulation/hopper_3D/sinusoidal/
 /src/simulation/biped/sinusoidal/
 /src/simulation/quadruped/piecewise/
-/src/simulation/quadruped/sinusoidal/
 /src/simulation/flamingo/sinusoidal/
 /src/simulation/flamingo/smooth_slope/
 /src/simulation/flamingo/piecewise/

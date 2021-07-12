@@ -534,13 +534,17 @@ function norm(r::RLin, t::Real)
 end
 
 function linear_solve!(solver::EmptySolver, δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0, fact::Bool = true) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
+	# fact is useless here, since the factorization only happens once,
+	# but necessary to be consistent with lu_solver
 	linear_solve!(δz, rz, rθ, reg = reg)
 	return nothing
 end
 
 function linear_solve!(solver::EmptySolver, Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+        r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0, fact::Bool = true) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+	# fact is useless here, since the factorization only happens once,
+	# but necessary to be consistent with lu_solver
 	linear_solve!(Δ, rz, r, reg = reg)
 	return nothing
 end
@@ -615,11 +619,8 @@ function update!(rθ::RθLin{T}, rθ0::AbstractMatrix{T}) where {T}
 	return nothing
 end
 
-function bilinear_res(r::RLin, ibil)
-    r.rbil
-end
-
-function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZLin{T}) where {T}
+function least_squares!(ip::Mehrotra{T}, z::Vector{T}, θ::AbstractVector{T},
+		r::RLin{T}, rz::RZLin{T}) where {T}
 	# @warn "wrong"
 	δθ = θ - r.θ0
 	δrdyn = r.rdyn0 - r.rθdyn * δθ
@@ -635,17 +636,37 @@ function least_squares!(z::Vector{T}, θ::AbstractVector{T}, r::RLin{T}, rz::RZL
 	return nothing
 end
 
+function residual_violation(ip::Mehrotra{T}, r::RLin{T}) where {T}
+    max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
+end
+
+function bilinear_violation(ip::Mehrotra{T}, r::RLin{T}) where {T}
+    norm(r.rbil, Inf)
+end
 
 # function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 # 	r!(r, z, θ, κ)
 # 	return nothing
 # end
 
-function rz!(rz::RZLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}; reg::T = 0.0) where {T}
+function rz!(ip::Mehrotra{T}, rz::RZLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}; reg::T = 0.0) where {T}
+	rz!(rz, z, θ, reg = reg)
+	return nothing
+end
+
+function rz!(rz::RZLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}; reg::T = 0.0) where {T}
 	rz!(rz, z, reg = reg)
 	return nothing
 end
 
-function rθ!(rθ::RθLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where {T}
+function rθ!(ip::Mehrotra{T}, rθ::RθLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}) where {T}
+	return nothing
+end
+
+function rθ!(rθ::RθLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}) where {T}
 	return nothing
 end

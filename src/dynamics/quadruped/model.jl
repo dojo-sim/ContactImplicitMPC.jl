@@ -452,7 +452,6 @@ function J_func(model::Quadruped, env::Environment, q)
 	J_calf_2 = jacobian_2(model, q, body = :calf_2, mode = :ee)
 	J_calf_3 = jacobian_3(model, q, body = :calf_3, mode = :ee)
 	J_calf_4 = jacobian_3(model, q, body = :calf_4, mode = :ee)
-	# map = [1.0; -1.0]
 
 	return [J_calf_1;
 			J_calf_2;

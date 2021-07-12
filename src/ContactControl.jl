@@ -35,8 +35,8 @@ include("utils.jl")
 
 # Solver
 include("solver/cones.jl")
-include("solver/interior_point_new.jl")
-include("solver/mehrotra_new.jl")
+include("solver/interior_point.jl")
+include("solver/mehrotra.jl")
 include("solver/lu.jl")
 include("solver/gn.jl")
 include("solver/ldl.jl")
@@ -149,7 +149,6 @@ export
     save_expressions,
     instantiate_dynamics!,
     environment_3D_flat,
-    RigidBody,
     friction_dim,
     dim,
     sqrt_quat,
@@ -174,10 +173,10 @@ export
     generate_residual_expressions,
     instantiate_residual!,
     ϕ_func,
-    Particle,
     tracking_error,
     repeat_ref_traj,
-    schur_factorize,
-    schur_solve
+    Schur,
+    schur_factorize!,
+    schur_solve!
 
 end # module

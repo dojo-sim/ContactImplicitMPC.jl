@@ -142,6 +142,8 @@ function interior_point(z, θ;
         ix = collect(1:0), # useless
         iy1 = collect(1:0), # useless
         iy2 = collect(1:0), # useless
+        idyn = collect(1:0), # useless
+        irst = collect(1:0), # useless
         ibil = collect(1:0), # useless
         opts::InteriorPointOptions = InteriorPointOptions()) where T
 
@@ -224,6 +226,17 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     reg_du = ip.reg_du
     solver = ip.solver
     ip.iterations = 0
+    comp = false
+
+    if !(typeof(r) <: AbstractArray)
+        δθ = θ - r.θ0
+        # comp = true
+        comp && println("**** δθ:", scn(norm(δθ), digits=4))
+        # comp = false
+        comp && println("****  θ[μ,h]:", scn.(θ[end-1:end], digits=4))
+        comp && println("****  θ:", scn(norm(θ), digits=4))
+        comp && println("****  z:", scn(norm(z), digits=4))
+    end
 
     # initialize barrier parameter
     κ[1] = κ_init
@@ -324,6 +337,8 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
         if κ[1] <= κ_tol
             # differentiate solution
             diff_sol && differentiate_solution!(ip)
+            # println("ip.θ[1:4]: ", scn.(ip.θ[1:4]))
+            # println("ip.z[1:4]: ", scn.(ip.z[1:4]))
             return true
         else
             # update barrier parameter

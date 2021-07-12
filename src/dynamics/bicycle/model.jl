@@ -206,11 +206,11 @@ end
 
 function ϕ_func(model::Bicycle11, env::Environment, q)
 	# assumes point of contact is on the suspension axis (flat ground)
-	x_front, z_front = kinematics(model, q, body = :front)
-	x_rear,  z_rear  = kinematics(model, q, body = :rear)
+	p_front = kinematics_3(model, q, body = :front_contact)
+	p_rear  = kinematics_3(model, q, body = :rear_contact)
 	SVector{2}([
-		z_front - model.rw - env.surf(x_front),
-		z_rear  - model.rw - env.surf(x_rear),
+		p_front[2] - env.surf(p_front[1]),
+		p_rear[2]  - env.surf(p_rear[1]),
 		])
 end
 

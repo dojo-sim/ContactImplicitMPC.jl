@@ -88,21 +88,12 @@ struct RandomDisturbance{W, T} <: Disturbances
     t::Vector{T}     # time trajectory
 end
 
-# function random_disturbances(model::ContactModel, w_amp::Vector{T}, H::Int, h::T) where {T}
-#     @assert length(w_amp) == model.dim.w
-#     w = [-rand(model.dim.w) * w_amp for i=1:H]
-#     RandomDisturbance(w_amp, w, [(t - 1) * h for t = 1:H])
-# end
 
 function random_disturbances(model::ContactModel, w_amp::Vector{T}, H::Int, h::T) where {T}
     if length(w_amp) == model.dim.w
         w = [rand(model.dim.w) .* w_amp for i=1:H]
-        # wr = rand(model.dim.w) .* w_amp
-        # w = [wr for i=1:H]
     elseif length(w_amp) == 1
         w = [rand(model.dim.w) .* w_amp[1] for i=1:H]
-        # wr = rand(model.dim.w) .* w_amp[1]
-        # w = [wr for i=1:H]
     else
         @warn "w_amp is not of the correct size."
     end

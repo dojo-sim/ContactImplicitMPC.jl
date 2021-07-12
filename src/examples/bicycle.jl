@@ -50,26 +50,11 @@ plot!(hcat(Vector.([u[1:2] for u in sim.traj.u])...)', color=:red, linewidth=1.0
 # kinematics_3(model, q0_ref, body = :rear_contact)
 
 
-filename = "bicycle_slide"
-MeshCat.convert_frames_to_video(
-    "/home/simon/Downloads/$filename.tar",
-    "/home/simon/Documents/$filename.mp4", overwrite=true)
-
-convert_video_to_gif(
-    "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
-
-
-
-
-vis = Visualizer()
-open(vis)
-
-filename = joinpath(module_dir(), "src", "dynamics", "bicycle", "mesh", "untitled.obj")
-supra_obj = MeshFileObject(filename)
-# supra_obj = MeshFileGeometry(filename)
-
-i = 4
-setobject!(vis["supra$i"], supra_obj)
-settransform!(vis["supra$i"], compose(Translation(0,0,0.1), LinearMap(RotX(π/2))))
-default_background!(vis)
+# filename = "bicycle_slide"
+# MeshCat.convert_frames_to_video(
+#     "/home/simon/Downloads/$filename.tar",
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+#
+# convert_video_to_gif(
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)
