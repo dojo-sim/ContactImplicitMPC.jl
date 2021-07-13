@@ -700,7 +700,34 @@ save_expressions(expr_res, path_res, overwrite=true)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
-# Box
+# Box (QUAT + LC)
+################################################################################
+dir_model = joinpath(module_dir(), "src/dynamics/box")
+dir_sim   = joinpath(module_dir(), "src/simulation/box")
+include(joinpath(module_dir(), "src/dynamics/box/model.jl"))
+model = deepcopy(box)
+env = deepcopy(flat_3D_lc)
+sim = Simulation(model, env)
+
+path_base = joinpath(dir_model, "dynamics/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+path_res = joinpath(dir_sim, "flat_lc/residual.jld2")
+path_jac = joinpath(dir_sim, "flat_lc/jacobians.jld2")
+
+instantiate_base!(sim.model, path_base)
+instantiate_dynamics!(sim.model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(
+	sim.model,
+	sim.env,
+	mapping = Gz_func,
+	nv = model.dim.q - 1)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(sim, path_res, path_jac)
+
+################################################################################
+# Box (QUAT + NC)
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/box")
 dir_sim   = joinpath(module_dir(), "src/simulation/box")

@@ -17,19 +17,6 @@ mutable struct Box{T} <: ContactModel
 	joint_friction::SVector
 end
 
-# Kinematics
-r = 0.5
-c1 = @SVector [r, r, r]
-c2 = @SVector [r, r, -r]
-c3 = @SVector [r, -r, r]
-c4 = @SVector [r, -r, -r]
-c5 = @SVector [-r, r, r]
-c6 = @SVector [-r, r, -r]
-c7 = @SVector [-r, -r, r]
-c8 = @SVector [-r, -r, -r]
-
-corner_offset = @SVector [c1, c2, c3, c4, c5, c6, c7, c8]
-
 function lagrangian(model::Box, q, q̇)
 	m = 1.0
 	J = Diagonal([1.0, 1.0, 1.0])
@@ -233,6 +220,20 @@ function dynamics(model::Box, env::Environment, h, q0, q1, u1, w1, λ1, q2)
 	Λ1 = transpose(J_func(model, env, q2)) * λ1
 	dynamics(model, h, q0, q1, u1, w1, Λ1, q2)
 end
+
+
+# Kinematics
+r = 0.5
+c1 = @SVector [r, r, r]
+c2 = @SVector [r, r, -r]
+c3 = @SVector [r, -r, r]
+c4 = @SVector [r, -r, -r]
+c5 = @SVector [-r, r, r]
+c6 = @SVector [-r, r, -r]
+c7 = @SVector [-r, -r, r]
+c8 = @SVector [-r, -r, -r]
+
+corner_offset = @SVector [c1, c2, c3, c4, c5, c6, c7, c8]
 
 # Model
 box_alt = Box(Dimensions(6, 3, 3, 8),

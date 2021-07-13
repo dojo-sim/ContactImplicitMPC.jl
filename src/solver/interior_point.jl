@@ -267,8 +267,6 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
                 end
                 ip.iterations += 1
 
-                # @show r_norm
-
                 # compute residual Jacobian
                 rz!(rz, z, θ)
 
@@ -276,16 +274,17 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
                 reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
                 # compute step
+                @show size(Δ)
+                @show size(rz)
+                @show size(r)
                 linear_solve!(solver, Δ, rz, r)
 
-                # @show Δ
                 # initialize step length
                 α = 1.0
 
                 # candidate point
                 candidate_point!(z̄, s, z, Δ, α)
 
-                # @show z̄
                 # check cones
                 iter = 0
                 while cone_check(z̄, idx_ineq, idx_soc)
