@@ -1,15 +1,11 @@
 # interior-point solver options
-@with_kw mutable struct MehrotraOptions{T} <: AbstractIPOptions
+@with_kw mutable struct Mehrotra12Options{T} <: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
-    κ_init::T = 1.0                   # useless
-    max_iter_inner::Int = 100
+    max_iter_inner::Int = 100 #TODO rename
     max_time::T = 60.0
     diff_sol::Bool = false
-    res_norm::Real = Inf
     reg::Bool = false
-    reg_pr_init = 0.0
-    reg_du_init = 0.0
     ϵ_min = 0.05 # ∈ [0.005, 0.25]
         # smaller -> faster
         # larger  -> slower, more robust
@@ -19,9 +15,15 @@
         # 0.1 -> slower & better-conditioned
     solver::Symbol = :lu_solver
     verbose::Bool = false
+
+
+    res_norm::Real = Inf #useless
+    κ_init::T = 1.0   # useless
+    reg_pr_init = 0.0 #useless
+    reg_du_init = 0.0 #useless
 end
 
-mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
+mutable struct Mehrotra12{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}                 # current point
@@ -56,8 +58,8 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     idyn::SVector{nx,Int}
     irst::SVector{ny,Int}
     ibil::SVector{ny,Int}
-    reg_pr
-    reg_du
+    reg_pr #useless
+    reg_du #useless
     reg_val::T
     τ::T
     σ::T
@@ -65,7 +67,7 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     αaff::T
     α::T
     iterations::Int
-    opts::MehrotraOptions
+    opts::Mehrotra12Options
 end
 
 function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
@@ -89,7 +91,7 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts::MehrotraOptions = MehrotraOptions()) where T
+        opts::Mehrotra12Options = Mehrotra12Options()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
@@ -106,7 +108,7 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
     idyn = SVector{nx, Int}(idyn)
     irst = SVector{ny, Int}(irst)
     ibil = SVector{ny, Int}(ibil)
-    ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra solve."
+    ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra12 solve."
 
     # Views
     z_y1 = view(z, iy1)
@@ -117,7 +119,7 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
 
     Ts = typeof.((r, rz, rθ))
-    Mehrotra{T,nx,ny,Ts...}(
+    Mehrotra12{T,nx,ny,Ts...}(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
@@ -160,18 +162,19 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         0.0,
         0.0,
         0,
-        opts)
+        opts,
+        )
 end
 
 # interior point solver
 
-function interior_point_solve!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function interior_point_solve!(ip::Mehrotra12{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
     interior_point_solve!(ip)
 end
 
-function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
+function interior_point_solve!(ip::Mehrotra12{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
 
     # space
     s = ip.s
@@ -310,7 +313,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
                      )
 
     if (r_vio > r_tol) || (κ_vio > κ_tol)
-        @error "Mehrotra solver failed to reduce residual below r_tol."
+        @error "Mehrotra12 solver failed to reduce residual below r_tol."
         return false
     end
     # differentiate solution
@@ -324,7 +327,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     return true
 end
 
-function least_squares!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T},
+function least_squares!(ip::Mehrotra12{T}, z::AbstractVector{T}, θ::AbstractVector{T},
         r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
     # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
         # A = rz[[ip.idyn; ip.irst], [ip.ix; ip.iy1; ip.iy2]]
@@ -332,11 +335,11 @@ function least_squares!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVecto
     return nothing
 end
 
-function residual_violation(ip::Mehrotra{T}, r::AbstractVector{T}) where {T}
+function residual_violation(ip::Mehrotra12{T}, r::AbstractVector{T}) where {T}
     max(norm(r[ip.idyn], Inf), norm(r[ip.irst], Inf))
 end
 
-function bilinear_violation(ip::Mehrotra{T}, r::AbstractVector{T}) where {T}
+function bilinear_violation(ip::Mehrotra12{T}, r::AbstractVector{T}) where {T}
     norm(r[ip.ibil], Inf)
 end
 
@@ -377,7 +380,7 @@ function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
     return z
 end
 
-function progress!(ip::Mehrotra{T}, violation::T; ϵ_min::T = 0.05) where {T}
+function progress!(ip::Mehrotra12{T}, violation::T; ϵ_min::T = 0.05) where {T}
     ϵ = min(ϵ_min, violation^2)
     ip.τ = 1 - ϵ
 end
@@ -398,7 +401,7 @@ function step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
     return α
 end
 
-function centering!(ip::Mehrotra{T}, z::AbstractVector{T}, Δaff::AbstractVector{T},
+function centering!(ip::Mehrotra12{T}, z::AbstractVector{T}, Δaff::AbstractVector{T},
 		iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T) where {n,T}
 	μaff = (z[iy1] - αaff * Δaff[iy1])' * (z[iy2] - αaff * Δaff[iy2]) / n
 	ip.μ = z[iy1]' * z[iy2] / n
@@ -406,7 +409,7 @@ function centering!(ip::Mehrotra{T}, z::AbstractVector{T}, Δaff::AbstractVector
 	return nothing
 end
 
-function rz!(ip::Mehrotra{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
+function rz!(ip::Mehrotra12{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
         θ::AbstractVector{T}; reg = 0.0) where {T}
     z_reg = deepcopy(z)
     z_reg[ip.iy1] = max.(z[ip.iy1], reg)
@@ -415,7 +418,7 @@ function rz!(ip::Mehrotra{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
     return nothing
 end
 
-function differentiate_solution!(ip::Mehrotra; reg = 0.0)
+function differentiate_solution!(ip::Mehrotra12; reg = 0.0)
     s = ip.s
     z = ip.z
     θ = ip.θ
@@ -437,15 +440,71 @@ function differentiate_solution!(ip::Mehrotra; reg = 0.0)
 end
 
 
+################################################################################
+# Linearized Solver
+################################################################################
+
+function least_squares!(ip::Mehrotra12{T}, z::Vector{T}, θ::AbstractVector{T},
+		r::RLin{T}, rz::RZLin{T}) where {T}
+	# @warn "wrong"
+	δθ = θ - r.θ0
+	δrdyn = r.rdyn0 - r.rθdyn * δθ
+	δrrst = r.rrst0 - r.rθrst * δθ
+
+	δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
+	δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
+	δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
+
+	@. @inbounds z[r.ix]  .= r.x0  .+ δw1
+	@. @inbounds z[r.iy1] .= r.y10 .+ δw2
+	@. @inbounds z[r.iy2] .= r.y20 .+ δw3
+	return nothing
+end
+
+function residual_violation(ip::Mehrotra12{T}, r::RLin{T}) where {T}
+    max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
+end
+
+function bilinear_violation(ip::Mehrotra12{T}, r::RLin{T}) where {T}
+    norm(r.rbil, Inf)
+end
+
+function rz!(ip::Mehrotra12{T}, rz::RZLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}; reg::T = 0.0) where {T}
+	rz!(rz, z, θ, reg = reg)
+	return nothing
+end
+
+function rz!(rz::RZLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}; reg::T = 0.0) where {T}
+	rz!(rz, z, reg = reg)
+	return nothing
+end
+
+function rθ!(ip::Mehrotra12{T}, rθ::RθLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}) where {T}
+	return nothing
+end
+
+function rθ!(rθ::RθLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}) where {T}
+	return nothing
+end
+
+
+
+
+
+
 
 ################################################################################
-# Mehrotra Structure
+# Mehrotra12 Structure
 ################################################################################
 
 # STRUCT
 #
-# Mehrotra
-# MehrotraOptions
+# Mehrotra12
+# Mehrotra12Options
 #
 #
 # METHODS
