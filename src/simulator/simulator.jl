@@ -58,8 +58,6 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
     traj = contact_trajectory(model, env, H, h)
     traj.q[1] = q0
     traj.q[2] = q1
-    # traj.u[1] = control_saturation(policy(p, traj.q[2], traj, 1), uL, uU) #@@@
-    # traj.w[1] = disturbances(d, traj.q[2], 1) #@@@
 
     # initialize interior point solver (for pre-factorization)
     z = zeros(num_var(model, s.env))
@@ -90,20 +88,6 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
 			 v_du = view(zeros(1,1), 1,1),
 			 opts = ip_opts)
 
-    # ip = eval(ip_type)(z, θ,
-        # s = space,
-        # idx_ineq = inequality_indices(model, env),
-        # idx_soc = soc_indices(model, env),
-        # r! = r!,
-		# rm! = rm!,
-        # rz! = rz!,
-        # rθ! = rθ!,
-        # rz = rz,
-        # rθ = rθ,
-        # iy1 = linearization_var_index(model, env)[2],
-        # iy2 = linearization_var_index(model, env)[3],
-        # ibil = linearization_term_index(model, env)[3],
-        # opts = ip_opts)
 
     # pre-allocate for gradients
     traj_deriv = contact_derivative_trajectory(model, env, ip.δz, H)

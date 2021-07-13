@@ -1,5 +1,5 @@
-include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
-include(joinpath(pwd(), "src/controller/newton_structure_solver/methods.jl"))
+include(joinpath(module_dir(), "src", "dynamics", "quadruped", "visuals.jl"))
+include(joinpath(module_dir(), "src/controller/newton_structure_solver/methods.jl"))
 
 vis = Visualizer()
 open(vis)
@@ -46,40 +46,42 @@ p = linearized_mpc_policy(ref_traj, s, obj_mpc,
         r_tol = 1.0e-5,
 		β_init = 1.0e-5,
         # solver = :ldl_solver,
-        # verbose=true,
+        verbose=true,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions())
 
-# p = linearized_mpc_policy(ref_traj, s, obj_mpc,
-#     H_mpc = H_mpc,
-#     N_sample = N_sample,
-#     κ_mpc = κ_mpc,
-# 	# mode = :configurationforce,
-# 	mode = :configuration,
-# 	ip_type = :mehrotra,
-#     n_opts = NewtonOptions(
-# 		solver = :ldl_solver,
-# 		r_tol = 3e-4,
-# 		max_iter = 5,
-# 		max_time = ref_traj.h, # HARD REAL TIME
-# 		),
-#     mpc_opts = LinearizedMPCOptions(
-#         # live_plotting=true,
-#         # altitude_update = true,
-#         # altitude_impact_threshold = 0.05,
-#         # altitude_verbose = true,
-#         ),
-# 	ip_opts = MehrotraOptions(
-# 		max_iter_inner = 100,
-# 		verbose = false,
-# 		r_tol = 1.0e-4,
-# 		κ_tol = 1.0e-4,
-# 		diff_sol = true,
-# 		# κ_reg = 1e-3,
-# 		# γ_reg = 1e-1,
-# 		solver = :empty_solver,
-# 		),
-#     )
+p = linearized_mpc_policy(ref_traj, s, obj_mpc,
+    H_mpc = H_mpc,
+    N_sample = N_sample,
+    κ_mpc = κ_mpc,
+	# mode = :configurationforce,
+	mode = :configuration,
+	newton_mode = :structure,
+	ip_type = :mehrotra,
+    n_opts = NewtonOptions(
+		verbose = true,
+		solver = :lu_solver,
+		r_tol = 3e-4,
+		max_iter = 5,
+		max_time = ref_traj.h, # HARD REAL TIME
+		),
+    mpc_opts = LinearizedMPCOptions(
+        # live_plotting=true,
+        # altitude_update = true,
+        # altitude_impact_threshold = 0.05,
+        # altitude_verbose = true,
+        ),
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
+		verbose = false,
+		r_tol = 1.0e-4,
+		κ_tol = 1.0e-4,
+		diff_sol = true,
+		# κ_reg = 1e-3,
+		# γ_reg = 1e-1,
+		solver = :empty_solver,
+		),
+    )
 
 
 q1_ref = copy(ref_traj.q[2])
@@ -134,3 +136,14 @@ for (i,t) in enumerate(t_ghosts)
     name = Symbol("ghost$i")
     set_meshrobot!(vis, mvis_ghosts[i], model, sim.traj.q[t], name=name)
 end
+
+
+
+filename = "quadruped_struct_fail"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/$filename.mp4",
+    "/home/simon/Documents/$filename.gif", overwrite=true)
