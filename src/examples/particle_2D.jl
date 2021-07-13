@@ -1,5 +1,5 @@
 const ContactControl = Main
-include(joinpath(module_dir(), "src/dynamics/box_alt/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/box_mrp/visuals.jl"))
 vis = Visualizer()
 # render(vis)
 open(vis)

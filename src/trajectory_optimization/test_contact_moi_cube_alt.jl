@@ -1,8 +1,8 @@
 include(joinpath(pwd(), "src/trajectory_optimization/moi.jl"))
 include(joinpath(pwd(), "src/trajectory_optimization/utils.jl"))
-include(joinpath(pwd(), "src/dynamics/box_alt/model.jl"))
+include(joinpath(pwd(), "src/dynamics/box_mrp/model.jl"))
 
-s = get_simulation("box_alt", "flat_3D_nc", "flat_nc")
+s = get_simulation("box_mrp", "flat_3D_nc", "flat_nc")
 s.model.μ_world = 1.0
 model = s.model
 env = s.env
@@ -528,7 +528,7 @@ u_traj = [z_sol[u_idx[t]] for t = 1:T-2]
 plot(hcat(x_traj...)')
 plot(hcat(u_traj...)', linetype = :steppost)
 
-include(joinpath(@__DIR__, "..", "dynamics", "box_alt", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "box_mrp", "visuals.jl"))
 vis = Visualizer()
 render(vis)
 anim = visualize!(vis, s.model, x_traj, Δt = h)

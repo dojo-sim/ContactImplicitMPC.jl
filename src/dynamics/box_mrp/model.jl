@@ -236,7 +236,7 @@ c8 = @SVector [-r, -r, -r]
 corner_offset = @SVector [c1, c2, c3, c4, c5, c6, c7, c8]
 
 # Model
-box_alt = Box(Dimensions(6, 3, 3, 8),
+box_mrp = Box(Dimensions(6, 3, 3, 8),
 	1.0, [1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0)], 9.81, 1.0, 8, corner_offset,
 	BaseMethods(), DynamicsMethods(),
 	SVector{6}(zeros(6)))

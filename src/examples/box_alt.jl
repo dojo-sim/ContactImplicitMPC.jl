@@ -1,4 +1,4 @@
-s = get_simulation("box_alt", "flat_3D_nc", "flat_nc")
+s = get_simulation("box_mrp", "flat_3D_nc", "flat_nc")
 s.model.μ_world = 1.0
 
 # time
@@ -24,7 +24,7 @@ sim = ContactControl.simulator(s, q0, q1, h, T,
 @time status = ContactControl.simulate!(sim)
 @test status
 
-include(joinpath(module_dir(), "src/dynamics/box_alt/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/box_mrp/visuals.jl"))
 vis = Visualizer()
 render(vis)
 # open(vis)

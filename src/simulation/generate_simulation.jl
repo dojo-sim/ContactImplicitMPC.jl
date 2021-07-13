@@ -756,10 +756,10 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Box (MRP) LC
 ################################################################################
-dir_model = joinpath(module_dir(), "src/dynamics/box_alt")
-dir_sim   = joinpath(module_dir(), "src/simulation/box_alt")
-include(joinpath(module_dir(), "src/dynamics/box_alt/model.jl"))
-model = deepcopy(box_alt)
+dir_model = joinpath(module_dir(), "src/dynamics/box_mrp")
+dir_sim   = joinpath(module_dir(), "src/simulation/box_mrp")
+include(joinpath(module_dir(), "src/dynamics/box_mrp/model.jl"))
+model = deepcopy(box_mrp)
 env = deepcopy(flat_3D_lc)
 sim = Simulation(model, env)
 
@@ -779,10 +779,10 @@ instantiate_residual!(sim, path_res, path_jac)
 ################################################################################
 # Box (MRP)
 ################################################################################
-dir_model = joinpath(module_dir(), "src/dynamics/box_alt")
-dir_sim   = joinpath(module_dir(), "src/simulation/box_alt")
-include(joinpath(module_dir(), "src/dynamics/box_alt/model.jl"))
-model = deepcopy(box_alt)
+dir_model = joinpath(module_dir(), "src/dynamics/box_mrp")
+dir_sim   = joinpath(module_dir(), "src/simulation/box_mrp")
+include(joinpath(module_dir(), "src/dynamics/box_mrp/model.jl"))
+model = deepcopy(box_mrp)
 env = deepcopy(flat_3D_nc)
 sim = Simulation(model, env)
 
