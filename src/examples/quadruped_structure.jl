@@ -21,15 +21,15 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1000 #4000 #3000
+H_sim = 10000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
 
 obj_mpc = quadratic_objective(model, H_mpc,
-    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc+2],
-    v = [Diagonal(0.0 * ones(model.dim.q)) for t = 1:H_mpc],
-    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc-1])
+    q = [Diagonal(5e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc+2],
+    v = [Diagonal(1.0e-4 * ones(model.dim.q)) for t = 1:H_mpc],
+    u = [Diagonal(10e-2 * ones(model.dim.u)) for t = 1:H_mpc-1])
 # obj = TrackingObjective(model, env, H_mpc,
 #     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
 #     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
@@ -43,8 +43,8 @@ p = linearized_mpc_policy(ref_traj, s, obj_mpc,
 	mode = :configuration,
 	newton_mode = :structure,
     n_opts = NewtonOptions(
-        r_tol = 3e-4,
-		β_init = 0.0e-5,
+        r_tol = 1.0e-5,
+		β_init = 1.0e-5,
         # solver = :ldl_solver,
         # verbose=true,
         max_iter = 5),
