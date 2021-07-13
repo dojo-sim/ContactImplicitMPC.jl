@@ -28,7 +28,7 @@ H_sim = 9000 #4000 #3000
 
 obj_mpc = quadratic_objective(model, H_mpc,
     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc+2],
-    v = [Diagonal(0.0 * ones(model.dim.q)) for t = 1:H_mpc],
+    v = [Diagonal(0.0  * ones(model.dim.q)) for t = 1:H_mpc],
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc-1])
 obj_mpc_ = TrackingObjective(model, env, H_mpc,
     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
@@ -46,18 +46,20 @@ p = linearized_mpc_policy(ref_traj, s, obj_mpc,
         r_tol = 3e-4,
 		β_init = 0.0e-5,
         # solver = :ldl_solver,
-        # verbose=true,
+        verbose=true,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions())
 
-p = linearized_mpc_policy(ref_traj, s, obj_mpc_,
+p = linearized_mpc_policy(ref_traj, s, obj_mpc,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
 	# mode = :configurationforce,
 	mode = :configuration,
+	newton_mode = :structure,
 	ip_type = :mehrotra,
     n_opts = NewtonOptions(
+		verbose = true,
 		solver = :lu_solver,
 		r_tol = 3e-4,
 		max_iter = 5,
