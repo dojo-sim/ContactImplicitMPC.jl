@@ -49,7 +49,7 @@ include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
-include("controller/newton_structure_solver.jl")
+# include("controller/newton_structure_solver.jl")
 
 # MPC examples
 include("controller/mpc_quadruped.jl")
