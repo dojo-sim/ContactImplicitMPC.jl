@@ -105,14 +105,6 @@ g = 9.81            # gravity
 # Model parameters
 m = 1.0             # mass
 
-
-planarpush = PlanarPush(Dimensions(nq, nu, nw, nc),
-			  μ_world, μ_joint, g,
-			  m, J, mp, r, rp,
-			  BaseMethods(), DynamicsMethods(),
-			  SVector{nq}(zeros(nq)))
-
-
 # Model (flat surface)
 particle_nonlinear = Particle(Dimensions(nq, nu, nw, nc),
  	m, g, μ_world, μ_joint,
