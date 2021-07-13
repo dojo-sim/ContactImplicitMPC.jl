@@ -90,15 +90,32 @@ function velocity_stack(model::Particle, env::Environment{<:World, LinearizedCon
 	SVector{2}(v1_surf[1:2])
 end
 
-# Model (flat surface)
-particle_nonlinear = Particle(Dimensions(3, 3, 3, 1, 2), 1.0, 9.81, 1.0, 0.0,
-	BaseMethods(), DynamicsMethods(), ContactMethods(),
-	ResidualMethods(), ResidualMethods(),
-	SparseStructure(spzeros(0,0),spzeros(0,0)),
-	SVector{3}(zeros(3)),
-	environment_3D_flat())
 
-particle_nonlinear_quadratic = Particle(Dimensions(3, 3, 3, 1, 2),
-	1.0, 9.81, 0.1, 0.0,
+# Dimensions
+nq = 3              # configuration dimension
+nu = 3              # control dimension
+nw = 3              # disturbance dimension
+nc = 1              # number of contact points
+
+# World parameters
+μ_world = 0.10      # coefficient of friction
+μ_joint = 0.0       # joint friction
+g = 9.81            # gravity
+
+# Model parameters
+m = 1.0             # mass
+
+
+planarpush = PlanarPush(Dimensions(nq, nu, nw, nc),
+			  μ_world, μ_joint, g,
+			  m, J, mp, r, rp,
+			  BaseMethods(), DynamicsMethods(),
+			  SVector{nq}(zeros(nq)))
+
+
+# Model (flat surface)
+particle_nonlinear = Particle(Dimensions(nq, nu, nw, nc),
+ 	m, g, μ_world, μ_joint,
 	BaseMethods(), DynamicsMethods(),
-	SVector{3}(zeros(3)))
+	μ_joint * SVector{3}(ones(3)),
+	)
