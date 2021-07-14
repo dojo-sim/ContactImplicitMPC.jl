@@ -107,7 +107,6 @@ expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(sim, path_res, path_jac)
-sim.rθ
 
 ################################################################################
 # Particle 2D (slope)

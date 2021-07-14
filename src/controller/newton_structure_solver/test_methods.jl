@@ -10,7 +10,8 @@ include(joinpath(module_dir(),
 include(joinpath(module_dir(),
 	"src/controller/newton_structure_solver/methods.jl"))
 
-s = ContactControl.newton_structure_solver(nq, m, T)
+s = ContactControl.newton_structure_solver(nq, m, T,
+	opts = NewtonOptions(β_init = 0.0))
 
 for t = 1:T
 	s.Q̃a[t] = Q̃a[t]

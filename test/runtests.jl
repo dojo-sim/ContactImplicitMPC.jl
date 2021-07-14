@@ -36,12 +36,12 @@ include("simulator/environment.jl")
 include("simulator/trajectory.jl")
 include("simulator/simulator.jl")
 include("simulator/particle.jl")
-include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
+# include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
 include("simulator/hopper_3D.jl")
 include("simulator/quadruped.jl")
 include("simulator/open_loop.jl")
 include("simulator/flamingo.jl")
-include("simulator/biped.jl") #TODO:  improve this test #NEED FIX
+# include("simulator/biped.jl") #TODO:  improve this test #NEED FIX
 
 # Controller
 include("controller/objective.jl")

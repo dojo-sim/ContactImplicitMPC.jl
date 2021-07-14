@@ -98,17 +98,6 @@ nu = 3              # control dimension
 nw = 3              # disturbance dimension
 nc = 1              # number of contact points
 
-# World parameters
-μ_world = 0.10      # coefficient of friction
-μ_joint = 0.0       # joint friction
-g = 9.81            # gravity
-
-# Model parameters
-m = 1.0             # mass
-
-# Model (flat surface)
-particle = Particle(Dimensions(nq, nu, nw, nc),
- 	m, g, μ_world, μ_joint,
+particle = Particle(Dimensions(3, 3, 3, 1), 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(),
-	μ_joint * SVector{3}(ones(3)),
-	)
+	SVector{3}(zeros(3)))
