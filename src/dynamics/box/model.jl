@@ -10,25 +10,11 @@ mutable struct Box{T} <: ContactModel
 	n_corners::Int
 	corner_offset
 
-
 	base::BaseMethods
 	dyn::DynamicsMethods
 
 	joint_friction::SVector
 end
-
-# Kinematics
-r = 0.5
-c1 = @SVector [r, r, r]
-c2 = @SVector [r, r, -r]
-c3 = @SVector [r, -r, r]
-c4 = @SVector [r, -r, -r]
-c5 = @SVector [-r, r, r]
-c6 = @SVector [-r, r, -r]
-c7 = @SVector [-r, -r, r]
-c8 = @SVector [-r, -r, -r]
-
-corner_offset = @SVector [c1, c2, c3, c4, c5, c6, c7, c8]
 
 function lagrangian(model::Box, q, q̇)
 	m = 1.0
@@ -98,13 +84,13 @@ function ϕ_func(model::Box, env::Environment, q)
     k = kinematics(model, q)
 
     SVector{model.n_corners}([k[3] - env.surf(k[1:2]),
-							 k[6]  - env.surf(k[4:5]),
-							 k[9]  - env.surf(k[7:8]),
-							 k[12] - env.surf(k[10:11]),
-							 k[15] - env.surf(k[13:14]),
-							 k[18] - env.surf(k[16:17]),
-							 k[21] - env.surf(k[19:20]),
-							 k[24] - env.surf(k[22:23])])
+							  k[6]  - env.surf(k[4:5]),
+							  k[9]  - env.surf(k[7:8]),
+							  k[12] - env.surf(k[10:11]),
+							  k[15] - env.surf(k[13:14]),
+							  k[18] - env.surf(k[16:17]),
+							  k[21] - env.surf(k[19:20]),
+							  k[24] - env.surf(k[22:23])])
 end
 
 # control Jacobian
@@ -125,7 +111,7 @@ end
 
 # contact Jacobian
 function J_func(model::Box, env::Environment, q)
-	k(z) = kinematics(model, z)
+	k(q_) = kinematics(model, q_)
 	ForwardDiff.jacobian(k, q) * G_func(model, q)
 end
 
@@ -165,16 +151,23 @@ function velocity_stack(model::Box, env::Environment{<:World, LinearizedCone}, q
 
 	v = J_func(model, env, q2) * [(p2 - p1) / h[1]; ω_finite_difference(quat1, quat2, h[1])]
 
-	v1_surf = rotation(env, k) * v
+	v1_surf = rotation(env, k[1:3])   * v[1:3]
+	v2_surf = rotation(env, k[4:6])   * v[4:6]
+	v3_surf = rotation(env, k[7:9])   * v[7:9]
+	v4_surf = rotation(env, k[10:12]) * v[10:12]
+	v5_surf = rotation(env, k[13:15]) * v[13:15]
+	v6_surf = rotation(env, k[16:18]) * v[16:18]
+	v7_surf = rotation(env, k[19:21]) * v[19:21]
+	v8_surf = rotation(env, k[22:24]) * v[22:24]
 
-	SVector{16}([transpose(friction_mapping(env)) * v1_surf[1:2];
-	            transpose(friction_mapping(env)) * v1_surf[4:5];
-				transpose(friction_mapping(env)) * v1_surf[7:8];
-				transpose(friction_mapping(env)) * v1_surf[10:11];
-				transpose(friction_mapping(env)) * v1_surf[13:14];
-				transpose(friction_mapping(env)) * v1_surf[16:17];
-				transpose(friction_mapping(env)) * v1_surf[19:20];
-				transpose(friction_mapping(env)) * v1_surf[22:23]])
+	SVector{32}([transpose(friction_mapping(env)) * v1_surf[1:2];
+	             transpose(friction_mapping(env)) * v2_surf[1:2];
+				 transpose(friction_mapping(env)) * v3_surf[1:2];
+				 transpose(friction_mapping(env)) * v4_surf[1:2];
+				 transpose(friction_mapping(env)) * v5_surf[1:2];
+				 transpose(friction_mapping(env)) * v6_surf[1:2];
+				 transpose(friction_mapping(env)) * v7_surf[1:2];
+				 transpose(friction_mapping(env)) * v8_surf[1:2]])
 end
 
 function velocity_stack(model::Box, env::Environment{<:World,NonlinearCone}, q1, q2, k, h)
@@ -249,8 +242,49 @@ function Gz_func(model::Box, env, z)
 	 zeros(nz - 7, 6) I]
 end
 
+
+function residual_mehrotra(model::Box, env::Environment, z, Δz, θ, κ)
+	@warn "dummy residual mehrotra: need to implement it"
+	# ix, iy1, iy2 = linearization_var_index(model, env)
+	# idyn, irst, ibil, ialt = linearization_term_index(model, env)
+	rm = residual(model, env, z, θ, κ)
+	# rm[ibil] .+= Δz[iy1] .* Δz[iy2]
+	return rm
+end
+
+# # Kinematics
+# r = 0.5
+# c1 = @SVector [r, r, r]
+# c2 = @SVector [r, r, -r]
+# c3 = @SVector [r, -r, r]
+# c4 = @SVector [r, -r, -r]
+# c5 = @SVector [-r, r, r]
+# c6 = @SVector [-r, r, -r]
+# c7 = @SVector [-r, -r, r]
+# c8 = @SVector [-r, -r, -r]
+#
+# corner_offset = @SVector [c1, c2, c3, c4, c5, c6, c7, c8]
+
+
 # Model
-box = Box(Dimensions(7, 3, 3, 8),
-	1.0, [1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0)], 9.81, 1.0, 8, corner_offset,
+box = Box(
+	Dimensions(7, 3, 3, 8),
+	1.0,
+	[1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0)],
+	9.81,
+	1.0,
+	8,
+	corner_offset,
 	BaseMethods(), DynamicsMethods(),
 	SVector{6}(zeros(6)))
+
+
+
+# h = 0.05
+# box
+# env = flat_3D_lc
+# q1 = [rand(3); 1.0; 0.0; 0.0; 0.0]
+# q2 = [rand(3); 1.0; 0.0; 0.0; 0.0]
+# k = kinematics(box, q2)
+# rotation(env, k)
+# velocity_stack(box, env, q1, q2, k, h)

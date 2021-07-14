@@ -225,7 +225,7 @@ end
 	        diff_sol = true),
 	    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
-	status = ContactControl.simulate!(sim, verbose = true)
+	status = ContactControl.simulate!(sim, verbose = false)
 
 	qerr, uerr, γerr, berr = tracking_error(ref_traj, sim.traj, N_sample, idx_shift = [1])
 	@test qerr < 0.0202 * 1.5 # 0.0201

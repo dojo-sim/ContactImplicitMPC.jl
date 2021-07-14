@@ -1,11 +1,11 @@
 const ContactControl = Main
-include(joinpath(module_dir(), "src/dynamics/box_alt/visuals.jl"))
+include(joinpath(module_dir(), "src/dynamics/box_mrp/visuals.jl"))
 vis = Visualizer()
 # render(vis)
 open(vis)
 
-# s = get_simulation("box_alt", "flat_3D_nc", "flat_nc")
-s = get_simulation("box_alt", "flat_3D_lc", "flat")
+# s = get_simulation("box_mrp", "flat_3D_nc", "flat_nc")
+s = get_simulation("box_mrp", "flat_3D_lc", "flat")
 s.model.μ_world = 1.0
 
 # time

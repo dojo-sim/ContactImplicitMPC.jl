@@ -302,9 +302,9 @@ instantiate_dynamics!(model, path_dyn)
 ################################################################################
 # Box (MRP)
 ################################################################################
-dir = joinpath(@__DIR__, "box_alt")
-model = deepcopy(box_alt)
-include(joinpath(module_dir(), "src/dynamics/box_alt/model.jl"))
+dir = joinpath(@__DIR__, "box_mrp")
+model = deepcopy(box_mrp)
+include(joinpath(module_dir(), "src/dynamics/box_mrp/model.jl"))
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")

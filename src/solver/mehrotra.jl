@@ -12,7 +12,7 @@
     reg_du_init = 0.0
     ϵ_min = 0.05 # ∈ [0.005, 0.25]
         # smaller -> faster
-        # larger -> slower, more robust
+        # larger  -> slower, more robust
     κ_reg = 1e-3 # bilinear constraint violation level at which regularization is triggered [1e-3, 1e-4]
     γ_reg = 1e-1 # regularization scaling parameters ∈ [0, 0.1]:
         # 0   -> faster & ill-conditioned
@@ -164,16 +164,17 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
 end
 
 # interior point solver
+
+function interior_point_solve!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+    ip.z .= z
+    ip.θ .= θ
+    interior_point_solve!(ip)
+end
+
 function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
 
     # space
     s = ip.s
-
-    # methods
-    # r! = ip.methods.r!
-    # rm! = ip.methods.rm!
-    # rz! = ip.methods.rz!
-    # rθ! = ip.methods.rθ!
 
     # options
     opts = ip.opts
@@ -229,8 +230,6 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
     least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
-
-    # println("z: ", scn.(z[[10,12,15]], digits=4))
 
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
@@ -407,12 +406,6 @@ function centering!(ip::Mehrotra{T}, z::AbstractVector{T}, Δaff::AbstractVector
 	return nothing
 end
 
-function interior_point_solve!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
-    ip.z .= z
-    ip.θ .= θ
-    interior_point_solve!(ip)
-end
-
 function rz!(ip::Mehrotra{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
         θ::AbstractVector{T}; reg = 0.0) where {T}
     z_reg = deepcopy(z)
@@ -442,3 +435,30 @@ function differentiate_solution!(ip::Mehrotra; reg = 0.0)
 
     nothing
 end
+
+
+
+################################################################################
+# Mehrotra Structure
+################################################################################
+
+# STRUCT
+#
+# Mehrotra
+# MehrotraOptions
+#
+#
+# METHODS
+#
+# mehrotra
+# interior_point_solve!
+# least_squares!
+# residual_violation
+# bilinear_violation
+# initial_state!
+# progress!
+# step_length!
+# centering!
+# interior_point_solve!
+# rz!
+# differentiate_solution!
