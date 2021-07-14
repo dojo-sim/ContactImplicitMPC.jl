@@ -38,7 +38,7 @@
 # Interior Point Roadmap
 ## full friction cone
 ### models 
-- [ ] create particle models with/without linear friction cone
+- [x] create particle models with/without linear friction cone
 - [x] create box with/without linear friction cone
 - [ ] check with Zac how to finite difference MRPs
 ### algorithm
