@@ -754,7 +754,7 @@ save_expressions(expr_res, path_res, overwrite=true)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
-# Box (MRP) LC
+# Box (MRP + LC)
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/box_mrp")
 dir_sim   = joinpath(module_dir(), "src/simulation/box_mrp")
@@ -765,8 +765,8 @@ sim = Simulation(model, env)
 
 path_base = joinpath(dir_model, "dynamics/base.jld2")
 path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
-path_res = joinpath(dir_sim, "flat/residual.jld2")
-path_jac = joinpath(dir_sim, "flat/jacobians.jld2")
+path_res = joinpath(dir_sim, "flat_lc/residual.jld2")
+path_jac = joinpath(dir_sim, "flat_lc/jacobians.jld2")
 
 instantiate_base!(sim.model, path_base)
 instantiate_dynamics!(sim.model, path_dyn)
@@ -777,7 +777,7 @@ save_expressions(expr_res, path_res, overwrite=true)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
-# Box (MRP)
+# Box (MRP + NC)
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/box_mrp")
 dir_sim   = joinpath(module_dir(), "src/simulation/box_mrp")

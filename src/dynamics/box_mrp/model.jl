@@ -1,5 +1,5 @@
-# rigid body with quaternion representation (sphere w/ radius r)
-mutable struct Box{T} <: ContactModel
+# rigid body with MRP representation (sphere w/ radius r)
+mutable struct BoxMRP{T} <: ContactModel
     dim::Dimensions
 
     m::T # mass
@@ -10,14 +10,15 @@ mutable struct Box{T} <: ContactModel
 	n_corners::Int
 	corner_offset
 
-
 	base::BaseMethods
 	dyn::DynamicsMethods
 
 	joint_friction::SVector
 end
 
-function lagrangian(model::Box, q, q̇)
+function lagrangian(model::BoxMRP, q, q̇)
+	# TODO verify how qdot is computed: finite difference?
+
 	m = 1.0
 	J = Diagonal([1.0, 1.0, 1.0])
 
@@ -38,7 +39,7 @@ function lagrangian(model::Box, q, q̇)
 	return L
 end
 
-function kinematics(model::Box, q)
+function kinematics(model::BoxMRP, q)
     p = q[1:3]
     mrp = q[4:6]
 
@@ -65,14 +66,16 @@ function kinematics(model::Box, q)
 end
 
 # mass matrix
-function M_func(model::Box, q)
+function M_func(model::BoxMRP, q)
     m = model.m
 	J = model.J
     Diagonal(SVector{6}([m, m, m, J...]))
 end
 
 # gravity
-function C_func(model::Box, q, q̇)
+function C_func(model::BoxMRP, q, q̇)
+	# TODO verify how qdot is computed: finite difference?
+
     m = model.m
     g = model.g
 
@@ -82,21 +85,21 @@ function C_func(model::Box, q, q̇)
 end
 
 # signed distance function
-function ϕ_func(model::Box, env::Environment, q)
+function ϕ_func(model::BoxMRP, env::Environment, q)
     k = kinematics(model, q)
 
-    SVector{model.n_corners}([k[3] - env.surf(k[1:2]),
-							 k[6]  - env.surf(k[4:5]),
-							 k[9]  - env.surf(k[7:8]),
-							 k[12] - env.surf(k[10:11]),
-							 k[15] - env.surf(k[13:14]),
-							 k[18] - env.surf(k[16:17]),
-							 k[21] - env.surf(k[19:20]),
-							 k[24] - env.surf(k[22:23])])
+    SVector{model.n_corners}([k[3]  - env.surf(k[1:2]),
+							  k[6]  - env.surf(k[4:5]),
+							  k[9]  - env.surf(k[7:8]),
+							  k[12] - env.surf(k[10:11]),
+							  k[15] - env.surf(k[13:14]),
+							  k[18] - env.surf(k[16:17]),
+							  k[21] - env.surf(k[19:20]),
+							  k[24] - env.surf(k[22:23])])
 end
 
 # control Jacobian
-function B_func(::Box, q)
+function B_func(::BoxMRP, q)
     mrp = q[4:6]
     # R = MRP(mrp...)
 	R = mrp_rotation_matrix(mrp)
@@ -106,19 +109,19 @@ function B_func(::Box, q)
 end
 
 # disturbance Jacobian
-function A_func(model::Box, q)
+function A_func(model::BoxMRP, q)
 	SMatrix{3, 6}([1.0 0.0 0.0 0.0 0.0 0.0
 				   0.0 1.0 0.0 0.0 0.0 0.0
 				   0.0 0.0 1.0 0.0 0.0 0.0])
 end
 
 # contact Jacobian
-function J_func(model::Box, env::Environment, q)
+function J_func(model::BoxMRP, env::Environment, q)
 	k(z) = kinematics(model, z)
 	ForwardDiff.jacobian(k, q)
 end
 
-function contact_forces(model::Box, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
+function contact_forces(model::BoxMRP, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
 	k = kinematics(model, q2)
 	m = friction_mapping(env)
 
@@ -132,46 +135,36 @@ function contact_forces(model::Box, env::Environment{<:World, LinearizedCone}, �
 				 transpose(rotation(env, k[22:23])) * [m * b1[29:32]; γ1[8]]])
 end
 
-function contact_forces(model::Box, env::Environment{<:World, NonlinearCone}, γ1, b1, q2, k)
-	k = kinematics(model, q2)
-
-	SVector{24}([transpose(rotation(env, k[1:2]))   * [b1[1:2];   γ1[1]];
-				 transpose(rotation(env, k[4:5]))   * [b1[3:4];   γ1[2]];
-				 transpose(rotation(env, k[7:8]))   * [b1[5:6];   γ1[3]];
-				 transpose(rotation(env, k[10:11])) * [b1[7:8];   γ1[4]];
-				 transpose(rotation(env, k[13:14])) * [b1[9:10];  γ1[5]];
-				 transpose(rotation(env, k[16:17])) * [b1[11:12]; γ1[6]];
-				 transpose(rotation(env, k[19:20])) * [b1[13:14]; γ1[7]];
-				 transpose(rotation(env, k[22:23])) * [b1[15:16]; γ1[8]]])
-end
-
-function velocity_stack(model::Box, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
+function velocity_stack(model::BoxMRP, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	p1 = q1[1:3]
 	mrp1 = q1[4:6]
 
 	p2 = q2[1:3]
 	mrp2 = q2[4:6]
 
+	# TODO verify this finite difference
 	v = J_func(model, env, q2) * (q2 - q1) / h[1]
-	# @show size((q2 - q1) / h[1])
-	# @show size(J_func(model, env, q2))
-	# @show size(v)
-	# @show size(rotation(env, k))
-	# @show rotation(env, k)
-	v1_surf = vcat([rotation(env, k) * v[(i-1)*3 .+ (1:3)] for i = 1:8]...)
+
+	v1_surf = rotation(env, k[1:3])   * v[1:3]
+	v2_surf = rotation(env, k[4:6])   * v[4:6]
+	v3_surf = rotation(env, k[7:9])   * v[7:9]
+	v4_surf = rotation(env, k[10:12]) * v[10:12]
+	v5_surf = rotation(env, k[13:15]) * v[13:15]
+	v6_surf = rotation(env, k[16:18]) * v[16:18]
+	v7_surf = rotation(env, k[19:21]) * v[19:21]
+	v8_surf = rotation(env, k[22:24]) * v[22:24]
 
 	SVector{32}([transpose(friction_mapping(env)) * v1_surf[1:2];
-	            transpose(friction_mapping(env)) * v1_surf[4:5];
-				transpose(friction_mapping(env)) * v1_surf[7:8];
-				transpose(friction_mapping(env)) * v1_surf[10:11];
-				transpose(friction_mapping(env)) * v1_surf[13:14];
-				transpose(friction_mapping(env)) * v1_surf[16:17];
-				transpose(friction_mapping(env)) * v1_surf[19:20];
-				transpose(friction_mapping(env)) * v1_surf[22:23]])
+	             transpose(friction_mapping(env)) * v2_surf[1:2];
+				 transpose(friction_mapping(env)) * v3_surf[1:2];
+				 transpose(friction_mapping(env)) * v4_surf[1:2];
+				 transpose(friction_mapping(env)) * v5_surf[1:2];
+				 transpose(friction_mapping(env)) * v6_surf[1:2];
+				 transpose(friction_mapping(env)) * v7_surf[1:2];
+				 transpose(friction_mapping(env)) * v8_surf[1:2]])
 end
 
-
-function velocity_stack(model::Box, env::Environment{<:World,NonlinearCone}, q1, q2, k, h)
+function velocity_stack(model::BoxMRP, env::Environment{<:World,NonlinearCone}, q1, q2, k, h)
 	nc = model.dim.c
 	ne = dim(env)
 
@@ -187,7 +180,7 @@ function velocity_stack(model::Box, env::Environment{<:World,NonlinearCone}, q1,
 	vT_stack = vcat([v_surf[i][1:ne-1] for i = 1:nc]...)
 end
 
-function dynamics(model::Box, h, q0, q1, u1, w1, Λ1, q2)
+function dynamics(model::BoxMRP, h, q0, q1, u1, w1, Λ1, q2)
 
 	# p0 = q0[1:3]
 	# quat0 = q0[4:7]
@@ -202,6 +195,7 @@ function dynamics(model::Box, h, q0, q1, u1, w1, Λ1, q2)
 	# ω1 = ω_finite_difference(quat0, quat1, h)
 	# ω2 = ω_finite_difference(quat1, quat2, h)
 
+	# TODO verify that those finite differences are correct
 	qm1 = 0.5 * (q0 + q1)
     vm1 = (q1 - q0) / h[1]
     qm2 = 0.5 * (q1 + q2)
@@ -216,7 +210,7 @@ function dynamics(model::Box, h, q0, q1, u1, w1, Λ1, q2)
 		+ Λ1)
 end
 
-function dynamics(model::Box, env::Environment, h, q0, q1, u1, w1, λ1, q2)
+function dynamics(model::BoxMRP, env::Environment, h, q0, q1, u1, w1, λ1, q2)
 	Λ1 = transpose(J_func(model, env, q2)) * λ1
 	dynamics(model, h, q0, q1, u1, w1, Λ1, q2)
 end
@@ -236,7 +230,14 @@ c8 = @SVector [-r, -r, -r]
 corner_offset = @SVector [c1, c2, c3, c4, c5, c6, c7, c8]
 
 # Model
-box_mrp = Box(Dimensions(6, 3, 3, 8),
-	1.0, [1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0)], 9.81, 1.0, 8, corner_offset,
-	BaseMethods(), DynamicsMethods(),
+box_mrp = BoxMRP(
+	Dimensions(6, 3, 3, 8),
+	1.0,
+	[1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0), 1.0 / 12.0 * (1.0^2.0 + 1.0^2.0)],
+	9.81,
+	1.0,
+	8,
+	corner_offset,
+	BaseMethods(),
+	DynamicsMethods(),
 	SVector{6}(zeros(6)))
