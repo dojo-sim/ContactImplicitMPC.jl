@@ -10,7 +10,8 @@ include(joinpath(module_dir(),
 include(joinpath(module_dir(),
 	"src/controller/newton_structure_solver/methods.jl"))
 
-s = ContactControl.newton_structure_solver(nq, m, T)
+s = ContactControl.newton_structure_solver(nq, m, T,
+	opts = NewtonOptions(β_init = 0.0))
 
 for t = 1:T
 	s.Q̃a[t] = Q̃a[t]
@@ -50,7 +51,6 @@ info = @benchmark ContactControl.compute_Y!($s.Yiia, $s.Yiib, $s.Yiic, $s.Yiid,
 @code_warntype ContactControl.compute_Y!(s.Yiia, s.Yiib, s.Yiic, s.Yiid,
 	s.Yija, s.Yijb, s.Yijc, s.Yijd, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a,
 	s.tmp_nqnq, s.tmp_nqnq2, s.tmp_nqm, s.Inq, s.H)
-
 
 ContactControl.update_Y!(s.Yiis, s.Yijs, s.Yii, s.Yij, s.Yiia, s.Yiib, s.Yiic, s.Yiid,
 	s.Yija, s.Yijb, s.Yijc, s.Yijd, s.Yiiav, s.Yiibv, s.Yiicv, s.Yiidv,

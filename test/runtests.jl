@@ -36,7 +36,7 @@ include("simulator/environment.jl")
 include("simulator/trajectory.jl")
 include("simulator/simulator.jl")
 include("simulator/particle.jl")
-include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
+# include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
 include("simulator/hopper_3D.jl")
 include("simulator/quadruped.jl")
 include("simulator/open_loop.jl")
@@ -49,7 +49,7 @@ include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
-# include("controller/newton_structure_solver.jl") # fails on github actions
+include("controller/newton_structure_solver.jl") # fails on github actions
 
 # MPC examples
 include("controller/mpc_quadruped.jl")
