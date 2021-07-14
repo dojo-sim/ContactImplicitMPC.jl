@@ -274,9 +274,9 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
                 reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
                 # compute step
-                @show size(Δ)
-                @show size(rz)
-                @show size(r)
+                # @show size(Δ)
+                # @show size(rz)
+                # @show size(r)
                 linear_solve!(solver, Δ, rz, r)
 
                 # initialize step length

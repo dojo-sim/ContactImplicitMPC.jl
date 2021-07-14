@@ -23,9 +23,6 @@ function visualize!(vis, model::Particle2D, q;
         end
     end
 
-	# settransform!(vis["/Cameras/default"],
-	#     compose(Translation(-2.5, 7.5, 1.0),LinearMap(RotZ(0.0))))
-
     MeshCat.setanimation!(vis, anim)
 end
 
@@ -43,9 +40,9 @@ function plot_lines!(vis::Visualizer, model::Particle2D, q::AbstractVector;
 	# Set lines
 	orange_mat, blue_mat, black_mat = get_line_material(size)
 	if col
-		setobject!(vis[name]["/lines/com"], MeshCat.Line(com_point, orange_mat))
+		setobject!(vis[name]["lines"]["com"], MeshCat.Line(com_point, orange_mat))
 	else
-		setobject!(vis[name]["/lines/com"], MeshCat.Line(com_point, black_mat))
+		setobject!(vis[name]["lines"]["com"], MeshCat.Line(com_point, black_mat))
 	end
 	return nothing
 end
