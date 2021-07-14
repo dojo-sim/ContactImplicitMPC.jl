@@ -249,12 +249,3 @@ function newton_solve!(core::Newton, s::Simulation,
 
     return nothing
 end
-
-function NewtonStructure(sim::Simulation, H::Int, traj::ContactTraj, obj, κ)
-
-	s = newton_structure_solver(sim.model.dim.q, sim.model.dim.u, H)
-	update_objective!(s, obj)
-	initialize_trajectories!(s, traj, traj.q[1], traj.q[2], warm_start_duals = false)
-
-	return s
-end
