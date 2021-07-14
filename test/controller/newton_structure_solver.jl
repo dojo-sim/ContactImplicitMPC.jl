@@ -71,7 +71,8 @@
 	Δν = Y \ β
 	Δz = S̃ * (rlag - C' * Δν)
 
-	s = ContactControl.newton_structure_solver(nq, m, T)
+	s = ContactControl.newton_structure_solver(nq, m, T,
+		opts = NewtonOptions(β_init = 0.0))
 
 	for t = 1:T
 		s.Q̃a[t] = Q̃a[t]
@@ -144,7 +145,8 @@
 
 	@test norm((Δz - vcat([[s.Δu[t]; s.Δqa[t]; s.Δqb[t]] for t = 1:T-1]...))) < 1.0e-12
 
-	s = ContactControl.newton_structure_solver(nq, m, T)
+	s = ContactControl.newton_structure_solver(nq, m, T,
+		opts = NewtonOptions(β_init = 0.0))
 
 	for t = 1:T
 		s.Q̃a[t] = Q̃a[t]

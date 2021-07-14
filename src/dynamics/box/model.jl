@@ -252,18 +252,18 @@ function residual_mehrotra(model::Box, env::Environment, z, Δz, θ, κ)
 	return rm
 end
 
-# # Kinematics
-# r = 0.5
-# c1 = @SVector [r, r, r]
-# c2 = @SVector [r, r, -r]
-# c3 = @SVector [r, -r, r]
-# c4 = @SVector [r, -r, -r]
-# c5 = @SVector [-r, r, r]
-# c6 = @SVector [-r, r, -r]
-# c7 = @SVector [-r, -r, r]
-# c8 = @SVector [-r, -r, -r]
-#
-# corner_offset = @SVector [c1, c2, c3, c4, c5, c6, c7, c8]
+# Kinematics
+r = 0.5
+c1 = @SVector [r, r, r]
+c2 = @SVector [r, r, -r]
+c3 = @SVector [r, -r, r]
+c4 = @SVector [r, -r, -r]
+c5 = @SVector [-r, r, r]
+c6 = @SVector [-r, r, -r]
+c7 = @SVector [-r, -r, r]
+c8 = @SVector [-r, -r, -r]
+
+corner_offset = @SVector [c1, c2, c3, c4, c5, c6, c7, c8]
 
 
 # Model

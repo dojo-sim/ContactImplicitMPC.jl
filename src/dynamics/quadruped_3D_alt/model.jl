@@ -414,11 +414,12 @@ quadruped = Quadruped3DAlt(Dimensions(nq, nu, nw, nc),
 				BaseMethods(), DynamicsMethods(),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
-
-lagrangian(quadruped, rand(quadruped.dim.q), rand(quadruped.dim.q))
+using BenchmarkTools, InteractiveUtils
+# lagrangian(quadruped, rand(quadruped.dim.q), rand(quadruped.dim.q))
 model = quadruped
-
-
+q0 = rand(model.dim.q)
+q̇0 = rand(model.dim.q)
+v0 = rand(model.dim.q)
 
 nv = model.dim.q
 
@@ -430,93 +431,166 @@ nc = model.dim.c
 # Declare variables
 @variables q[1:nq]
 @variables q̇[1:nv]
+@variables v[1:nv]
 
 L(z) = lagrangian(model, z[1:nq], z[nq .+ (1:nq)])
-ForwardDiff.gradient(L, [q; q̇])
+# ForwardDiff.gradient(L, [q; q̇])
 
 # Lagrangian
-L = lagrangian(model, q, q̇)
+l = lagrangian(model, q, q̇)
 # L = Symbolics.simplify.(L, expand = true)
 
-dLq = Symbolics.gradient(L, q) # including mapping for orientation (e.g., attitude Jacobian)
+dLq = Symbolics.gradient(l, q) # including mapping for orientation (e.g., attitude Jacobian)
 # dLq = simplify.(dLq, expand = true)
-dLq̇ = Symbolics.gradient(L, q̇)
+dLq̇ = Symbolics.gradient(l, q̇)
 # dLq̇ = simplify.(dLq, expand = true)
-ddL = Symbolics.hessian(L, [q; q̇])
+ddL = Symbolics.hessian(l, [q; q̇])
 # ddL = simplify.(ddL, expand = true)
-# ddLq̇q = ddL[nq .+ (1:nv), 1:nq]
+ddLq̇q = ddL[nq .+ (1:nv), 1:nq]
 
 M = ddL[nq .+ (1:nv), nq .+ (1:nv)]
 
-# Coriolis and Centrifugal forces Jacobians
-C = ddLq̇q * q̇ - dLq
-C = Symbolics.simplify.(C, expand = true)
+dlq̇v = transpose(dLq̇) * v
+ddlq̇v = Symbolics.gradient(dlq̇v, q̇)
+Mv = eval(Symbolics.build_function(ddlq̇v, q, v)[1])
+
+# Coriolis and Centrifugal forces Jacobians (option 1)
+C1 = ddLq̇q * q̇ - dLq
+C1 = Symbolics.simplify.(C1)
+
+cf1 = eval(Symbolics.build_function(C1, q, q̇)[1])
+@benchmark cf1($q0, $q̇0)
+
+
+tmp1 = transpose(dLq̇) * q̇
+C2 = Symbolics.gradient(tmp1, q) - dLq
+C2 = Symbolics.gradient(tmp1 - l, q)
+cf2 = eval(Symbolics.build_function(C2, q, q̇)[1])
+@benchmark cf2($q0, $q̇0)
+
 
 # Control input Jacobian
 B = B_func(model, q)
 B = reshape(B, (nu, nv))
-B = Symbolics.simplify.(B, expand = true)
+B = Symbolics.simplify.(B)
 
 # Disturbance input Jacobian
 A = A_func(model, q)
 A = reshape(A, (nw, nv))
-A = Symbolics.simplify.(A, expand = true)
+A = Symbolics.simplify.(A)
 
 # Contact Jacobian
 J = J_func(model, q)
 J = reshape(J, size(J_func(model, zeros(nq))))
-J = Symbolics.simplify.(J, expand = true)
+J = Symbolics.simplify.(J)
 
 # Kinematics
 k = kinematics(model, q)
-k = simplify.(k, expand = true)
+k = simplify.(k)
 
 # Build function
 expr = Dict{Symbol, Expr}()
-expr[:L]    = build_function([L], q, q̇)[1] # need to transpose to get a line vector
+expr[:L]    = build_function([l], q, q̇)[1] # need to transpose to get a line vector
 expr[:M]    = build_function(M, q)[1]
 expr[:B]    = build_function(B, q)[1]
 expr[:A]    = build_function(A, q)[1]
 expr[:J]    = build_function(J, q)[1]
-expr[:C]    = build_function(C, q, q̇)[1]
+expr[:C]    = build_function(C1, q, q̇)[1]
 expr[:k]    = build_function(k, q)[1]
 
-################################################################################
-dir = joinpath(pwd(), "src/dynamics/quadruped_3D_alt")
-model = deepcopy(quadruped)
-path_base = joinpath(dir, "dynamics/base.jld2")
-path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+Mf = eval(expr[:M])
+Cf = eval(expr[:C])
+norm(eval(expr[:M])(q0) * v0 - Mv(q0, v0))
+@benchmark Mf($q0) * $v0
+@benchmark Mv($q0, $v0)
 
-# expr_base = generate_base_expressions(model, M_analytical = false)
-save_expressions(expr, path_base, overwrite=true)
-instantiate_base!(model, path_base)
 
-expr_dyn = generate_dynamics_expressions(model)
-save_expressions(expr_dyn, path_dyn, overwrite=true)
-instantiate_dynamics!(model, path_dyn)
+Mv(q0, v0)
+# function lagrangian_derivatives(q, v)
+# 	D1L = -1.0 * Cf(q, v)
+#     D2L = Mv(q, v)
+# 	return D1L, D2L
+# end
+#
+# lagrangian_derivatives(q, v)
+#
+function dynamics(h, q0, q1, u1, q2)
+	# evalutate at midpoint
+	qm1 = 0.5 * (q0 + q1)
+    vm1 = (q1 - q0) / h[1]
+    qm2 = 0.5 * (q1 + q2)
+    vm2 = (q2 - q1) / h[1]
 
-# model.base.C(rand(model.dim.q), rand(model.dim.q))
-# M_fast(model, rand(model.dim.q))
-# J_fast(model, rand(model.dim.q))
-# C_fast(model, rand(model.dim.q), rand(model.dim.q))
-# nq = model.dim.q
-# nu = model.dim.u
-# nw = model.dim.w
-# nc = model.dim.c
-# ncf = size(J_func(model, zeros(nq)))[1]
+	D1L1 = -1.0 * Cf(qm1, vm1)
+	D2L1 = Mv(qm1, vm1)
+	# lagrangian_derivatives(qm1, vm1)
+	D1L2 = -1.0 * Cf(qm2, vm2)
+	D2L2 = Mv(qm2, vm2)
+	# = lagrangian_derivatives(qm2, vm2)
+
+	# return 0.0
+	return 0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
+		# + transpose(B_fast(model, qm2)) * u1
+		# + transpose(A_fast(model, qm2)) * w1
+		# # + transpose(J_fast(model, q2)) * λ1
+		# + Λ1
+		# - h[1] * model.joint_friction .* vm2)
+end
+
+@variables h[1:1]
+@variables q0[1:nq]
+@variables q1[1:nq]
+@variables q2[1:nq]
+@variables u1[1:model.dim.u]
+
+d = dynamics(h, q0, q1, u1, q2)
 #
-# # Declare variables
-# @variables q0[1:nq]
-# @variables q1[1:nq]
-# @variables u1[1:nu]
-# @variables w1[1:nw]
-# @variables λ1[1:ncf]
-# @variables q2[1:nq]
-# @variables h[1:1]
 #
-# # Expressions
-# expr = Dict{Symbol, Expr}()
 #
-# # Dynamics
-# d = dynamics(model, h, q0, q1, u1, w1, λ1, q2)
-# d = Symbolics.simplify.(d)
+#
+#
+#
+#
+#
+#
+#
+#
+# ################################################################################
+# dir = joinpath(pwd(), "src/dynamics/quadruped_3D_alt")
+# model = deepcopy(quadruped)
+# path_base = joinpath(dir, "dynamics/base.jld2")
+# path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+#
+# # expr_base = generate_base_expressions(model, M_analytical = false)
+# save_expressions(expr, path_base, overwrite=true)
+# instantiate_base!(model, path_base)
+#
+# expr_dyn = generate_dynamics_expressions(model)
+# save_expressions(expr_dyn, path_dyn, overwrite=true)
+# instantiate_dynamics!(model, path_dyn)
+#
+# # model.base.C(rand(model.dim.q), rand(model.dim.q))
+# # M_fast(model, rand(model.dim.q))
+# # J_fast(model, rand(model.dim.q))
+# # C_fast(model, rand(model.dim.q), rand(model.dim.q))
+# # nq = model.dim.q
+# # nu = model.dim.u
+# # nw = model.dim.w
+# # nc = model.dim.c
+# # ncf = size(J_func(model, zeros(nq)))[1]
+# #
+# # # Declare variables
+# # @variables q0[1:nq]
+# # @variables q1[1:nq]
+# # @variables u1[1:nu]
+# # @variables w1[1:nw]
+# # @variables λ1[1:ncf]
+# # @variables q2[1:nq]
+# # @variables h[1:1]
+# #
+# # # Expressions
+# # expr = Dict{Symbol, Expr}()
+# #
+# # # Dynamics
+# # d = dynamics(model, h, q0, q1, u1, w1, λ1, q2)
+# # d = Symbolics.simplify.(d)

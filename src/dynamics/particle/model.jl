@@ -107,7 +107,7 @@ g = 9.81            # gravity
 m = 1.0             # mass
 
 # Model (flat surface)
-particle_nonlinear = Particle(Dimensions(nq, nu, nw, nc),
+particle = Particle(Dimensions(nq, nu, nw, nc),
  	m, g, μ_world, μ_joint,
 	BaseMethods(), DynamicsMethods(),
 	μ_joint * SVector{3}(ones(3)),
