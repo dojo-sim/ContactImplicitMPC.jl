@@ -81,16 +81,31 @@ end
 function contact_forces(model::Particle, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
 	m = friction_mapping(env)
 
-	SVector{3}(transpose(rotation(env, k)) * [m * b1; γ1])
+	SVector{3}(transpose(rotation(env, k[1:2])) * [m * b1; γ1])
 end
 
-function velocity_stack(model::Particle, q1, q2, k, h)
+function contact_forces(model::Particle, env::Environment{<:World, NonlinearCone}, γ1, b1, q2, k)
+	m = friction_mapping(env)
+
+	SVector{3}(transpose(rotation(env, k[1:2])) * [b1; γ1])
+end
+
+function velocity_stack(model::Particle, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
-	v1_surf = rotation(env, k) * v
+	v_surf = rotation(env, k[1:2]) * v
 
-	SVector{4}(transpose(friction_mapping(env)) * v1_surf[1:2])
+	SVector{4}(transpose(friction_mapping(env)) * v_surf[1:2])
 end
+
+function velocity_stack(model::Particle, env::Environment{<:World, NonlinearCone}, q1, q2, k, h)
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
+
+	v_surf = rotation(env, k[1:2]) * v
+
+	SVector{2}(v_surf[1:2])
+end
+
 
 # Dimensions
 nq = 3              # configuration dimension

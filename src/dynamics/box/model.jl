@@ -116,7 +116,6 @@ function J_func(model::Box, env::Environment, q)
 end
 
 function contact_forces(model::Box, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
-	k = kinematics(model, q2)
 	m = friction_mapping(env)
 
 	SVector{24}([transpose(rotation(env, k[1:2]))   * [m * b1[1:4];   γ1[1]];
@@ -130,7 +129,6 @@ function contact_forces(model::Box, env::Environment{<:World, LinearizedCone}, �
 end
 
 function contact_forces(model::Box, env::Environment{<:World, NonlinearCone}, γ1, b1, q2, k)
-	k = kinematics(model, q2)
 
 	SVector{24}([transpose(rotation(env, k[1:2]))   * [b1[1:2];   γ1[1]];
 				 transpose(rotation(env, k[4:5]))   * [b1[3:4];   γ1[2]];

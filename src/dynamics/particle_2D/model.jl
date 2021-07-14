@@ -80,12 +80,24 @@ function contact_forces(model::Particle2D, env::Environment{<:World, LinearizedC
 	SVector{2}(transpose(rotation(env, k)) * [m * b1; γ1])
 end
 
+function contact_forces(model::Particle2D, env::Environment{<:World, NonlinearCone}, γ1, b1, q2, k)
+	SVector{2}(transpose(rotation(env, k)) * [b1; γ1])
+end
+
 function velocity_stack(model::Particle2D, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
 	v1_surf = rotation(env, k) * v
 
 	SVector{2}(transpose(friction_mapping(env)) * v1_surf[1])
+end
+
+function velocity_stack(model::Particle2D, env::Environment{<:World, NonlinearCone}, q1, q2, k, h)
+	v = J_func(model, env, q2) * (q2 - q1) / h[1]
+
+	v_surf = rotation(env, k) * v
+
+	SVector{1}(v_surf[1])
 end
 
 # Model (flat surface)

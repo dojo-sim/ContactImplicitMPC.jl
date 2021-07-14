@@ -122,7 +122,6 @@ function J_func(model::BoxMRP, env::Environment, q)
 end
 
 function contact_forces(model::BoxMRP, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
-	k = kinematics(model, q2)
 	m = friction_mapping(env)
 
 	SVector{24}([transpose(rotation(env, k[1:2]))   * [m * b1[1:4];   γ1[1]];
@@ -133,6 +132,18 @@ function contact_forces(model::BoxMRP, env::Environment{<:World, LinearizedCone}
 				 transpose(rotation(env, k[16:17])) * [m * b1[21:24]; γ1[6]];
 				 transpose(rotation(env, k[19:20])) * [m * b1[25:28]; γ1[7]];
 				 transpose(rotation(env, k[22:23])) * [m * b1[29:32]; γ1[8]]])
+end
+
+function contact_forces(model::BoxMRP, env::Environment{<:World, NonlinearCone}, γ1, b1, q2, k)
+
+	SVector{24}([transpose(rotation(env, k[1:2]))   * [b1[1:2];   γ1[1]];
+				 transpose(rotation(env, k[4:5]))   * [b1[3:4];   γ1[2]];
+				 transpose(rotation(env, k[7:8]))   * [b1[5:6];   γ1[3]];
+				 transpose(rotation(env, k[10:11])) * [b1[7:8];   γ1[4]];
+				 transpose(rotation(env, k[13:14])) * [b1[9:10];  γ1[5]];
+				 transpose(rotation(env, k[16:17])) * [b1[11:12]; γ1[6]];
+				 transpose(rotation(env, k[19:20])) * [b1[13:14]; γ1[7]];
+				 transpose(rotation(env, k[22:23])) * [b1[15:16]; γ1[8]]])
 end
 
 function velocity_stack(model::BoxMRP, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
@@ -167,12 +178,6 @@ end
 function velocity_stack(model::BoxMRP, env::Environment{<:World,NonlinearCone}, q1, q2, k, h)
 	nc = model.dim.c
 	ne = dim(env)
-
-	# p1 = q1[1:3]
-	# quat1 = q1[4:7]
-	#
-	# p2 = q2[1:3]
-	# quat2 = q2[4:7]
 
 	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 
