@@ -24,42 +24,42 @@
 		ip_opts = ip_opts,
 		sim_opts = ContactControl.SimulatorOptions{T}())
 
-	# ContactControl.simulate!(sim, verbose = false)
-	# ref_traj = deepcopy(sim.traj)
-	# traj0 = deepcopy(ref_traj)
-	#
-	# im_traj = ContactControl.ImplicitTraj(ref_traj, s, mode = :configuration)
-	# ContactControl.implicit_dynamics!(im_traj, s, traj0)
-	#
-	# # Implicit dynamics contraint violation is ≈ 0
-	# for t = 1:H
-	# 	@test norm(im_traj.d[t], Inf) < 1.0e-5
-	# end
-	#
-	#
-	# # Quadruped reference trajectory
-	# s = ContactControl.get_simulation("quadruped", "flat_2D_lc", "flat")
-	# model = s.model
-	# env = s.env
-	#
-	# ref_traj = deepcopy(ContactControl.get_trajectory(model, env,
-	#     joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
-	#     load_type = :split_traj_alt))
-	#
-	# ip_opts = eval(ContactControl.interior_point_options(:interior_point))(
-	# 			κ_init = 1.0e-4,
-	# 			κ_tol = 2.0 * 1.0e-4,
-	# 			r_tol = 1.0e-8,
-	# 			diff_sol = true,
-	# 			solver = :empty_solver)
-	#
-	# im_traj = ContactControl.ImplicitTraj(ref_traj, s,
-	# 	ip_type = :interior_point,
-	# 	κ = 1.0e-4,
-	# 	mode = :configuration,
-	# 	opts=ip_opts)
-	#
-	# ContactControl.implicit_dynamics!(im_traj, s, ref_traj)
-	#
-	# @test all([norm(im_traj.dq2[t], Inf) < 1.0e-2 for t = 1:ref_traj.H-1])
+	ContactControl.simulate!(sim, verbose = false)
+	ref_traj = deepcopy(sim.traj)
+	traj0 = deepcopy(ref_traj)
+
+	im_traj = ContactControl.ImplicitTraj(ref_traj, s, mode = :configuration)
+	ContactControl.implicit_dynamics!(im_traj, s, traj0)
+
+	# Implicit dynamics contraint violation is ≈ 0
+	for t = 1:H
+		@test norm(im_traj.d[t], Inf) < 1.0e-5
+	end
+
+
+	# Quadruped reference trajectory
+	s = ContactControl.get_simulation("quadruped", "flat_2D_lc", "flat")
+	model = s.model
+	env = s.env
+
+	ref_traj = deepcopy(ContactControl.get_trajectory(model, env,
+	    joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+	    load_type = :split_traj_alt))
+
+	ip_opts = eval(ContactControl.interior_point_options(:interior_point))(
+				κ_init = 1.0e-4,
+				κ_tol = 2.0 * 1.0e-4,
+				r_tol = 1.0e-8,
+				diff_sol = true,
+				solver = :empty_solver)
+
+	im_traj = ContactControl.ImplicitTraj(ref_traj, s,
+		ip_type = :interior_point,
+		κ = 1.0e-4,
+		mode = :configuration,
+		opts=ip_opts)
+
+	ContactControl.implicit_dynamics!(im_traj, s, ref_traj)
+
+	@test all([norm(im_traj.dq2[t], Inf) < 1.0e-2 for t = 1:ref_traj.H-1])
 end
