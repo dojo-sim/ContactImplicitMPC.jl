@@ -39,7 +39,8 @@
 ## full friction cone
 ### models 
 - [ ] create particle models with/without linear friction cone
-- [ ] create box models with/without quaternion, with/without linear friction cone
+- [x] create box with/without linear friction cone
+- [ ] check with Zac how to finite difference MRPs
 ### algorithm
 - [ ] implement ECOS-like LP solver
 - [ ] implement ECOS-like QP solver
