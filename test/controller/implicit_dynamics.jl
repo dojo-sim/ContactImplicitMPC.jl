@@ -1,6 +1,6 @@
 @testset "Controller: Implicit Dynamics" begin
 	T = Float64
-	s = get_simulation("particle", "flat_3D_lc", "flat")
+	s = get_simulation("particle", "flat_3D_lc", "flat_lc")
 
 	model = s.model
 	env = s.env

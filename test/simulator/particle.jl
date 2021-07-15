@@ -1,5 +1,5 @@
 @testset "Simulation: Particle (3D)" begin
-    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
+    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat_lc")
     model = s.model
 
     # time
@@ -76,7 +76,7 @@
 end
 
 @testset "Simulation: Particle (3D), Code-Gen Solver" begin
-    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
+    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat_lc")
     model = s.model
 
     # time
@@ -120,7 +120,7 @@ end
 
 @testset "Simulation: Particle (3D), Approximate Residual Jacobian" begin
 
-    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
+    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat_lc")
     model = s.model
 
     dir_dyn = joinpath(module_dir(), "src/dynamics/particle")
@@ -291,7 +291,7 @@ end
 end
 
 @testset "Simulation: Particle (2D)" begin
-    s = get_simulation("particle_2D", "flat_2D_lc", "flat")
+    s = get_simulation("particle_2D", "flat_2D_lc", "flat_lc")
 
     # time
     h = 0.01

@@ -86,10 +86,10 @@ mutable struct Solution15{T}
 end
 
 function solution(n::Int, p::Int, m::Int;)
-    s0 = ones(m)
+    s0 = [1; 1e-2 *rand(m - 1)]
     x0 = ones(n)
     y0 = ones(p)
-    z0 = ones(m)
+    z0 = [1; 1e-2 *rand(m - 1)]
     @assert strictly_positive(s0) #changed
     @assert strictly_positive(z0) #changed
     Solution15(n, p, m, s0, x0, y0, z0)
@@ -100,8 +100,8 @@ function strictly_positive(u::AbstractVector)
 end
 
 function value(u::AbstractVector)
-    u0 = s[1]
-    u1 = s[2:end]
+    u0 = u[1]
+    u1 = u[2:end]
     return (u0 - u1'*u1)
 end
 
@@ -189,7 +189,6 @@ function affine_direction!(Δ::Direction15, r::Residual15, s::Solution15, qp::Qu
     return nothing
 end
 
-
 function combined_direction!(Δ::Direction15, r::Residual15, s::Solution15,
         qp::QuadraticProgram15, σ::T; η::T = σ, γ::T = 1.0) where {T}
     n = qp.n
@@ -234,25 +233,35 @@ function scaling(s::Solution15)
     W̄ = 2 * v * v' - J
     W̄i = 2 * J * v * v' * J - J
 
-    W = exp(0.25 * log((s.s' * J * s.s) / (s.z' * J * s.z))) * W̄ #changed
-    Wi =  exp(0.25 * log((s.s' * J * s.s) / (s.z' * J * s.z))) * W̄i #changed
+    sca = exp(0.25 * log((s.s' * J * s.s) / (s.z' * J * s.z)))
+    W = sca * W̄ #changed
+    Wi = 1/sca * W̄i #changed
 
-    λbar = 0.5 * (z̄[2:end] + s̄[2:end] + (z̄[1] - s̄[1]) / (w̄[1] + 1) * w̄[2:end])
+    λbar = [γ; 0.5 * (z̄[2:end] + s̄[2:end] + (z̄[1] - s̄[1]) / (w̄[1] + 1) * w̄[2:end])]
     λ = exp(0.25 * log((s.s' * J * s.s) * (s.z' * J * s.z))) * λbar
 
-    @assert norm(λ - Wi * s.s, Inf) < 1e-10
+    # @show norm(λ - Wi * s.s, Inf)
+    # @show norm(λ - W  * s.z, Inf)
+    # @show norm(W - W', Inf)
+    # @show norm(inv(W) - Wi, Inf)
+
+    @assert norm(W - W', Inf) < 1e-10
+    @assert norm(inv(W) - Wi, Inf) < 1e-8
     @assert norm(λ - W  * s.z, Inf) < 1e-10
+    @assert norm(λ - Wi * s.s, Inf) < 1e-10
     return W, Wi, λ
 end
 
 function cone_prod(u, v)
-    # @warn "not implemented"
-    return u .* v
+    return [u' * v; u[1] * v[2:end] + v[1] * u[2:end]]
 end
 
 function cone_div(u, v)
-    # @warn "not implemented"
-    return v ./ u
+    # check CVXOPT after equation 22b for inverse-free formula.
+    m = length(u)
+    A = [u[1]     u[2:end]';
+         u[2:end] u[1]*I(m-1)]
+    return A \ v
 end
 
 function step_size_centering(s::Solution15, Δ::Direction15)
@@ -261,17 +270,32 @@ function step_size_centering(s::Solution15, Δ::Direction15)
     m = s.m
     W, Wi, λ = scaling(s) #changed
 
-    α = 1.0
-    for i = 1:m
-        if Δ.Δs[i] < 0
-            α = min(α, -(1 - 1e-10) * s.s[i] / Δ.Δs[i])
-        end
-        if Δ.Δz[i] < 0
-            α = min(α, -(1 - 1e-10) * s.z[i] / Δ.Δz[i])
-        end
-    end
-    @assert minimum(s.s + α * Δ.Δs) >= -10.0
-    @assert minimum(s.z + α * Δ.Δz) >= -10.0
+    # α = 1.0
+    # for i = 1:m
+    #     if Δ.Δs[i] < 0
+    #         α = min(α, -(1 - 1e-10) * s.s[i] / Δ.Δs[i])
+    #     end
+    #     if Δ.Δz[i] < 0
+    #         α = min(α, -(1 - 1e-10) * s.z[i] / Δ.Δz[i])
+    #     end
+    # end
+
+    # J = Diagonal([1; - ones(m - 1)])
+    # Δs̃ = Wi' * Δ.Δs
+    # Δz̃ = W  *  Δ.Δz
+    # λbar = λ ./ sqrt(λ' * J * λ)
+    # ρα = 1 / sqrt(λ' * J * λ) * [λbar' * J * Δs̃; Δs̃[2:end] - (λbar' * J * Δs̃ + Δs̃[1]) / (λbar[1] + 1) .* λbar[2:end]]
+    # σα = 1 / sqrt(λ' * J * λ) * [λbar' * J * Δz̃; Δz̃[2:end] - (λbar' * J * Δz̃ + Δz̃[1]) / (λbar[1] + 1) .* λbar[2:end]]
+    #
+    # α = 1 / max(0.0, norm(ρα[2:end]) - ρα[1], norm(σα[2:end]) - σα[1])
+    # @show α
+    # @show value(s.s + α * Δ.Δs)
+    # @show value(s.z + α * Δ.Δz)
+    # @assert strictly_positive(s.s + α * Δ.Δs)
+    # @assert strictly_positive(s.z + α * Δ.Δz)
+
+    @warn "changed step size"
+    α = step_size(s, Δ, τ = 1.0)
 
     ρ_ = ((s.s + α * Δ.Δs)' * (s.z + α * Δ.Δz)) / (s.s' * s.z)
     ρ = 1 - α + α^2 * ((Wi' * Δ.Δs)' * (W * Δ.Δz)) / (λ' * λ) #changed
@@ -280,9 +304,26 @@ function step_size_centering(s::Solution15, Δ::Direction15)
     return α, ρ, σ
 end
 
+function step_size(s::Solution15, Δ::Direction15; τ::T = 1.0) where {T}
+    α = 1.0
+    val = min(value(s.s + α * (Δ.Δs ./ τ)),
+              value(s.z + α * (Δ.Δz ./ τ)))
+    while val < 0.0
+        α *= 0.9
+        val = min(value(s.s + α * (Δ.Δs ./ τ)),
+                  value(s.z + α * (Δ.Δz ./ τ)))
+    end
+    # @show α
+    # @show value(s.s + α * Δ.Δs)
+    # @show value(s.z + α * Δ.Δz)
+    @assert strictly_positive(s.s + α * Δ.Δs)
+    @assert strictly_positive(s.z + α * Δ.Δz)
+    return α
+end
+
 function identity_vector(qp::QuadraticProgram15)
     m = qp.m
-    e = ones(m)
+    e = [1; zeros(m - 1)]
     return e
 end
 
@@ -292,15 +333,33 @@ function update!(s::Solution15{T}, Δ::Direction15{T}; τ::T = 0.99) where {T}
     m = s.m
 
     W, Wi, λ = scaling(s) #changed
-    α = 1.0
-    for i = 1:m
-        if (Wi' * Δ.Δs)[i] < 0
-            α = min(α, - τ * λ[i] / (Wi' * Δ.Δs)[i])
-        end
-        if (W * Δ.Δz)[i] < 0
-            α = min(α, - τ * λ[i] / (W * Δ.Δz)[i])
-        end
-    end
+    # α = 1.0
+    # for i = 1:m
+    #     if (Wi' * Δ.Δs)[i] < 0
+    #         α = min(α, - τ * λ[i] / (Wi' * Δ.Δs)[i])
+    #     end
+    #     if (W * Δ.Δz)[i] < 0
+    #         α = min(α, - τ * λ[i] / (W * Δ.Δz)[i])
+    #     end
+    # end
+
+    # J = Diagonal([1; - ones(m - 1)])
+    # Δs̃ = (Wi' * Δ.Δs) ./ τ #TAU
+    # Δz̃ = (W  *  Δ.Δz) ./ τ #TAU
+    # λbar = λ ./ sqrt(λ' * J * λ)
+    # ρα = 1 / sqrt(λ' * J * λ) * [λbar' * J * Δs̃; Δs̃[2:end] - (λbar' * J * Δs̃ + Δs̃[1]) / (λbar[1] + 1) .* λbar[2:end]]
+    # σα = 1 / sqrt(λ' * J * λ) * [λbar' * J * Δz̃; Δz̃[2:end] - (λbar' * J * Δz̃ + Δz̃[1]) / (λbar[1] + 1) .* λbar[2:end]]
+    #
+    # α = 1 / max(0.0, norm(ρα[2:end]) - ρα[1], norm(σα[2:end]) - σα[1])
+    # @show α
+    # @show value(s.s + α * Δ.Δs)
+    # @show value(s.z + α * Δ.Δz)
+    # @assert strictly_positive(s.s + α * Δ.Δs)
+    # @assert strictly_positive(s.z + α * Δ.Δz)
+
+    @warn "changed step size"
+    α = step_size(s, Δ, τ = τ)
+
     s.s += α * Δ.Δs
     s.x += α * Δ.Δx
     s.y += α * Δ.Δy
@@ -333,6 +392,22 @@ function qp_solve!(qp::QuadraticProgram15, opts::QuadraticProgramOptions15)
 end
 
 ################################################################################
+# Test
+################################################################################
+
+function test_division(m::Int, seed::Int = 100)
+    Random.seed!(100)
+    u = [1; 1e-2 * rand(m - 1)]
+    v = [1; 1e-2 * rand(m - 1)]
+    @show norm(cone_prod(u, cone_div(u, v)) - v)
+    @test norm(cone_prod(u, cone_div(u, v)) - v) < 1e-10
+    return nothing
+end
+
+test_division(4)
+
+
+################################################################################
 # Problem Setup
 ################################################################################
 
@@ -350,6 +425,8 @@ r = residual(n, p, m)
 residual!(r, s, qp)
 violation(r, s, qp)
 scaling(s)
+
+
 affine_direction!(Δ, r, s, qp)
 α, ρ, σ = step_size_centering(s, Δ)
 combined_direction!(Δ, r, s, qp, σ)

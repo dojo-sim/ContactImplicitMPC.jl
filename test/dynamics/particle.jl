@@ -1,5 +1,5 @@
 @testset "Model Methods: Fast Base (Particle)" begin
-    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
+    s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat_lc")
 	model = s.model
 
     # Setup variables
@@ -16,7 +16,7 @@
 end
 
 @testset "Model Methods: Fast Dynamics (Particle)" begin
-	s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat")
+	s = ContactControl.get_simulation("particle", "flat_3D_lc", "flat_lc")
     model = s.model
 	env = s.env
 
