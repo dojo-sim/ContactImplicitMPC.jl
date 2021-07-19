@@ -51,6 +51,7 @@ function schur_factorize!(S::Schur{T,n,m,nn,nm,mm}, D::AbstractMatrix{T}) where 
     # update D, gs_data and the shur complement
     # B = S.B
     # C = S.C
+    # we may want to set S.D to D so that it's clean, even if it's not necessary
     # S.D = D
     # Ai = S.Ai
     CAiB = S.CAiB

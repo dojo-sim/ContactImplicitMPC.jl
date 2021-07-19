@@ -2,6 +2,7 @@ using Random
 using LinearAlgebra
 const ContactControl = Main
 
+include(joinpath(module_dir(), "src", "solver", "mehrotra.jl"))
 include(joinpath(module_dir(), "src", "solver", "mehrotra_expanded.jl"))
 include(joinpath(module_dir(), "src", "solver", "mehrotra_latest.jl"))
 
@@ -9,7 +10,7 @@ include(joinpath(module_dir(), "src", "solver", "mehrotra_latest.jl"))
 # Benchmark Utils
 ################################################################################
 
-function get_initialization(ref_traj::ContactTraj{T, nq}, t::Int; z_dis = 1e-2, θ_dis = 1e-2) where {T,nq}
+function get_benchmark_initialization(ref_traj::ContactTraj{T, nq}, t::Int; z_dis = 1e-2, θ_dis = 1e-2) where {T,nq}
 	Random.seed!(10)
 	z = 1e-1ones(length(ref_traj.z[t]))
 	z[1:nq] = deepcopy(ref_traj.θ[t][nq+1:2nq])
@@ -99,6 +100,7 @@ function get_mehrotra_expanded_solver(s::Simulation, z, θ;
 				r_tol = r_tol,
 				κ_tol = κ_tol,
 				solver = :empty_solver,
+				γ_reg = 1.0,
 				))
 	else
 		ip = mehrotra(z, θ,
@@ -120,6 +122,7 @@ function get_mehrotra_expanded_solver(s::Simulation, z, θ;
 		        max_iter_inner = 100,
 		        r_tol = r_tol,
 		        κ_tol = κ_tol,
+				γ_reg = 1.0,
 				))
 	end
 	return ip
@@ -154,6 +157,7 @@ function get_mehrotra_latest_solver(s::Simulation, z, θ;
 				r_tol = r_tol,
 				κ_tol = κ_tol,
 				solver = :empty_solver,
+				γ_reg = 1.0,
 				))
 	else
 		ip = mehrotra_latest(z, θ,
@@ -175,6 +179,7 @@ function get_mehrotra_latest_solver(s::Simulation, z, θ;
 		        max_iter_inner = 100,
 		        r_tol = r_tol,
 		        κ_tol = κ_tol,
+				γ_reg = 1.0,
 				))
 	end
 	return ip
@@ -193,35 +198,38 @@ end
     linear::Bool = false         # whether to use or not the linearized residuals
 end
 
-mutable struct BenchmarkStatistics13{T}
+mutable struct BenchmarkStatistics15{T}
 	failure::AbstractVector{Bool}
 	iter::AbstractVector{Int}
 	r_vio::AbstractVector{T}
 	κ_vio::AbstractVector{T}
+	cond_schur::AbstractVector{T}
 end
 
-function BenchmarkStatistics13()
+function BenchmarkStatistics15()
 	failure = trues(0)
 	iter = zeros(Int, 0)
 	r_vio = zeros(0)
 	κ_vio = zeros(0)
-	return BenchmarkStatistics13(failure, iter, r_vio, κ_vio)
+	cond_schur = zeros(0)
+	return BenchmarkStatistics15(failure, iter, r_vio, κ_vio, cond_schur)
 end
 
-function record!(stats::BenchmarkStatistics13, s, i, r, κ)
+function record!(stats::BenchmarkStatistics15, s, i, r, κ, c)
 	push!(stats.failure, s)
 	push!(stats.iter, i)
 	push!(stats.r_vio, r)
 	push!(stats.κ_vio, κ)
+	push!(stats.cond_schur, c)
 	return nothing
 end
 
-function benchmark_interior_point!(stats::BenchmarkStatistics13, s::Simulation,
+function benchmark_interior_point!(stats::BenchmarkStatistics15, s::Simulation,
 	ref_traj::ContactTraj; opts::BenchmarkOptions12)
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
-		z, θ = get_initialization(ref_traj, t,
+		z, θ = get_benchmark_initialization(ref_traj, t,
 		z_dis = opts.z_dis,
 		θ_dis = opts.θ_dis)
 		ip = get_interior_point_solver(s, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
@@ -231,17 +239,17 @@ function benchmark_interior_point!(stats::BenchmarkStatistics13, s::Simulation,
 		interior_point_solve!(ip, z, θ)
 		rv = norm(ip.r, Inf)
 		fl = !(rv < opts.r_tol)
-		record!(stats, fl, ip.iterations, rv, NaN)
+		record!(stats, fl, ip.iterations, rv, NaN, NaN)
 	end
 	return nothing
 end
 
-function benchmark_mehrotra_expanded!(stats::BenchmarkStatistics13, s::Simulation,
+function benchmark_mehrotra_expanded!(stats::BenchmarkStatistics15, s::Simulation,
 		ref_traj::ContactTraj; opts::BenchmarkOptions12)
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
-		z, θ = get_initialization(ref_traj, t,
+		z, θ = get_benchmark_initialization(ref_traj, t,
 			z_dis = opts.z_dis,
 			θ_dis = opts.θ_dis)
 		ip = get_mehrotra_expanded_solver(s, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
@@ -252,17 +260,18 @@ function benchmark_mehrotra_expanded!(stats::BenchmarkStatistics13, s::Simulatio
 		rv = residual_violation(ip, ip.r)
 		κv = bilinear_violation(ip, ip.r)
 		fl = !((rv < opts.r_tol) && (κv < opts.κ_tol))
-		record!(stats, fl, ip.iterations, rv, κv)
+		cond_schur = opts.linear ? log(10, cond(ip.rz.D)) : NaN
+		record!(stats, fl, ip.iterations, rv, κv, cond_schur)
 	end
 	return nothing
 end
 
-function benchmark_mehrotra_latest!(stats::BenchmarkStatistics13, s::Simulation,
+function benchmark_mehrotra_latest!(stats::BenchmarkStatistics15, s::Simulation,
 		ref_traj::ContactTraj; opts::BenchmarkOptions12)
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
-		z, θ = get_initialization(ref_traj, t,
+		z, θ = get_benchmark_initialization(ref_traj, t,
 			z_dis = opts.z_dis,
 			θ_dis = opts.θ_dis)
 		ip = get_mehrotra_latest_solver(s, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
@@ -273,12 +282,16 @@ function benchmark_mehrotra_latest!(stats::BenchmarkStatistics13, s::Simulation,
 		rv = residual_violation(ip, ip.r)
 		κv = bilinear_violation(ip, ip.r)
 		fl = !((rv < opts.r_tol) && (κv < opts.κ_tol))
-		record!(stats, fl, ip.iterations, rv, κv)
+		cond_schur = opts.linear ? log(10, cond(ip.rz.D)) : NaN
+		record!(stats, fl, ip.iterations, rv, κv, cond_schur)
 	end
 	return nothing
 end
 
-function benchmark!(stats::BenchmarkStatistics13, s::Simulation,
+
+
+
+function benchmark!(stats::BenchmarkStatistics15, s::Simulation,
 		ref_traj::ContactTraj; opts::BenchmarkOptions12, solver::Symbol)
 	if solver == :interior_point
 		benchmark_interior_point!(stats, s, ref_traj; opts = opts)
@@ -296,13 +309,13 @@ function benchmark(s::AbstractVector{Simulation},
 		ref_traj::AbstractVector{<:ContactTraj}, dist::AbstractVector{<:Real};
 		opts = BenchmarkOptions12(), solver::Symbol)
 
-	stats = Vector{BenchmarkStatistics13}()
+	stats = Vector{BenchmarkStatistics15}()
 	nsim = length(s)
 	ndis = length(dist)
 	@assert length(ref_traj) == nsim
 
 	for i = 1:ndis
-		sta = BenchmarkStatistics13()
+		sta = BenchmarkStatistics15()
 		opts.z_dis = dist[i]
 		opts.θ_dis = dist[i]
 		for j = 1:nsim
@@ -342,7 +355,7 @@ dist = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2]
 tol = 1e-8
 opts_nonlin = BenchmarkOptions12(r_tol = tol, κ_tol = tol, linear = false)
 opts_lin = BenchmarkOptions12(r_tol = tol, κ_tol = tol, linear = true)
-stats = Dict{Symbol, AbstractVector{BenchmarkStatistics13}}()
+stats = Dict{Symbol, AbstractVector{BenchmarkStatistics15}}()
 keys = [
 	:interior_point_lin,
 	:interior_point_nonlin,
@@ -400,7 +413,7 @@ stats[:mehrotra_latest_lin] = benchmark(
 	solver = :mehrotra_latest,
 	)
 
-function display_statistics!(plt, plt_ind, stats::AbstractVector{BenchmarkStatistics13}, dist;
+function display_statistics!(plt, plt_ind, stats::AbstractVector{BenchmarkStatistics15}, dist;
 		field::Symbol = :iter, solver::String = "solver")
 	data = [mean(getfield(s, field)) for s in stats]
 	linestyle = occursin("nonlin", solver) ? :solid : :dot
@@ -444,11 +457,50 @@ end
 # Benchmark Results
 ################################################################################
 
-plt = plot(size = (800, 600), layout = (2, 1))
+plt = plot(size = (800, 600), layout = (3, 1))
 for k in keys
 	display_statistics!(plt, [1,1], stats[k], dist, field = :iter, solver = String(k))
 end
-# plt = plot()
 for k in keys
 	display_statistics!(plt, [2,1], stats[k], dist, field = :failure,  solver = String(k))
+end
+for k in keys
+	display_statistics!(plt, [3,1], stats[k], dist, field = :cond_schur,  solver = String(k))
+end
+
+stats[:mehrotra_latest_lin]
+
+
+# Dev
+
+
+z2, θ2 = get_benchmark_initialization(ref_traj[1], 10)
+ip2 = mehrotra(z2, θ2,
+	ix = linearization_var_index(s[1].model, s[1].env)[1],
+	iy1 = linearization_var_index(s[1].model, s[1].env)[2],
+	iy2 = linearization_var_index(s[1].model, s[1].env)[3],
+	idyn = linearization_term_index(s[1].model, s[1].env)[1],
+	irst = linearization_term_index(s[1].model, s[1].env)[2],
+	ibil = linearization_term_index(s[1].model, s[1].env)[3],
+    idx_ineq = inequality_indices(s[1].model, s[1].env),
+    idx_soc = soc_indices(s[1].model, s[1].env),
+	r! = s[1].res.r!,
+    rm! = s[1].res.rm!,
+    rz! = s[1].res.rz!,
+    rθ! = s[1].res.rθ!,
+    rz = s[1].rz,
+    rθ = s[1].rθ,
+    opts = Mehrotra12Options(
+        max_iter_inner=30,
+        r_tol=1e-8,
+        κ_tol=1e-8,
+		# verbose=true
+		))
+interior_point_solve!(ip2, z2, θ2)
+r2 = zeros(num_var(s[1].model, s[1].env))
+ip2.methods.r!(r2, ip2.z, ip2.θ, 0.0)
+@testset "Mehrotra Nonlinear" begin
+	@test norm(r2, Inf) < 1e-8
+	@test abs(norm(r2, Inf) - 7.84e-9) < 1e-11
+	@test ip2.iterations == 9
 end

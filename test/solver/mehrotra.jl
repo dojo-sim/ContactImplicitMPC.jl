@@ -1,6 +1,6 @@
 using Random
 using LinearAlgebra
-# const ContactControl = Main
+const ContactControl = Main
 
 ################################################################################
 # Test Utils
@@ -183,6 +183,9 @@ s.res.r!(r2, ip2.z, ip2.θ, 0.0)
 	@test (norm(r2, Inf) - 4.4e-9) < 1e-13
 	@test ip2.iterations == 3
 end
+
+cond(ip2.rz.S.D)
+
 
 # e_me = 1e6 * mehrotra_timing(ref_traj, t, im_traj2.ip[t])
 
