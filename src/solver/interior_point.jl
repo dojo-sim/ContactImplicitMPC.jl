@@ -22,6 +22,7 @@ end
 # residual
 function r!(r, z, θ, κ)
     @warn "residual not defined"
+    error()
     nothing
 end
 
@@ -274,9 +275,6 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
                 reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
                 # compute step
-                # @show size(Δ)
-                # @show size(rz)
-                # @show size(r)
                 linear_solve!(solver, Δ, rz, r)
 
                 # initialize step length

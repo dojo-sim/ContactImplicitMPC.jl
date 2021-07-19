@@ -633,6 +633,8 @@ function least_squares!(ip::Mehrotra{T}, z::Vector{T}, θ::AbstractVector{T},
 	@. @inbounds z[r.ix]  .= r.x0  .+ δw1
 	@. @inbounds z[r.iy1] .= r.y10 .+ δw2
 	@. @inbounds z[r.iy2] .= r.y20 .+ δw3
+	# @warn "introducing error"
+	# z .= ones(length(z))
 	return nothing
 end
 
