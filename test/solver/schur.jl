@@ -13,7 +13,7 @@
     ContactControl.schur_solve!(S, u, v)
     # @benchmark ContactControl.schur_solve!(S, u, v)
     M1 = [S.A S.B; S.C D]
-    @test norm(M1*[S.x; S.y] - [u; v], Inf) < 1e-10
+    @test norm(M1*[S.x; S.y] - [u; v], Inf) < 1e-9
 end
 
 @testset "Schur Complement: ill-conditioning" begin
