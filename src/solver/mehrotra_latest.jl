@@ -70,7 +70,7 @@ mutable struct Mehrotra111{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     opts::Mehrotra111Options
 end
 
-function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
+function mehrotra_latest(z::AbstractVector{T}, θ::AbstractVector{T};
         s = Euclidean(length(z)),
         num_var = length(z),
         num_data = length(θ),
