@@ -100,6 +100,7 @@ function get_mehrotra_expanded_solver(s::Simulation, z, θ;
 				r_tol = r_tol,
 				κ_tol = κ_tol,
 				solver = :empty_solver,
+				κ_reg = 1e-3,
 				γ_reg = 1.0,
 				))
 	else
@@ -122,6 +123,7 @@ function get_mehrotra_expanded_solver(s::Simulation, z, θ;
 		        max_iter_inner = 100,
 		        r_tol = r_tol,
 		        κ_tol = κ_tol,
+				κ_reg = 1e-3,
 				γ_reg = 1.0,
 				))
 	end
@@ -157,6 +159,7 @@ function get_mehrotra_latest_solver(s::Simulation, z, θ;
 				r_tol = r_tol,
 				κ_tol = κ_tol,
 				solver = :empty_solver,
+				κ_reg = 1e-3,
 				γ_reg = 1.0,
 				))
 	else
@@ -179,6 +182,7 @@ function get_mehrotra_latest_solver(s::Simulation, z, θ;
 		        max_iter_inner = 100,
 		        r_tol = r_tol,
 		        κ_tol = κ_tol,
+				κ_reg = 1e-3,
 				γ_reg = 1.0,
 				))
 	end

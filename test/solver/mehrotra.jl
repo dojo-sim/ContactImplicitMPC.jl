@@ -1,6 +1,6 @@
 using Random
 using LinearAlgebra
-const ContactControl = Main
+# const ContactControl = Main
 
 ################################################################################
 # Test Utils

@@ -1,5 +1,5 @@
 # interior-point solver options
-@with_kw mutable struct Mehrotra111Options{T} <: AbstractIPOptions
+@with_kw mutable struct Mehrotra112Options{T} <: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
     max_iter_inner::Int = 100 #TODO rename
@@ -10,9 +10,14 @@
         # smaller -> faster
         # larger  -> slower, more robust
     κ_reg = 1e-3 # bilinear constraint violation level at which regularization is triggered [1e-3, 1e-4]
-    γ_reg = 1e-1 # regularization scaling parameters ∈ [0, 0.1]:
+    γ_reg = 1e-0 # regularization scaling parameters ∈ [0, 0.1]:
         # 0   -> faster & ill-conditioned
         # 0.1 -> slower & better-conditioned
+    ls_relaxation = Inf # In the line search (ls); we accept a step if:
+    # better_off = (ls_relaxation * r_vio >= r_vio_cand) || (ls_relaxation * κ_vio >= κ_vio_cand)
+    # 1.0  ->  the nominal value for ls_relaxation is 1.0: we need to make progress at each step
+    # Inf  ->  the extreme value for ls_relaxation is Inf: we always take the full step
+    # even if this degrades all constraint satisfaction
     solver::Symbol = :lu_solver
     verbose::Bool = false
 
@@ -23,7 +28,7 @@
     reg_du_init = 0.0 #useless
 end
 
-mutable struct Mehrotra111{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
+mutable struct Mehrotra112{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}                 # current point
@@ -67,7 +72,7 @@ mutable struct Mehrotra111{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     αaff::T
     α::T
     iterations::Int
-    opts::Mehrotra111Options
+    opts::Mehrotra112Options
 end
 
 function mehrotra_latest(z::AbstractVector{T}, θ::AbstractVector{T};
@@ -91,7 +96,7 @@ function mehrotra_latest(z::AbstractVector{T}, θ::AbstractVector{T};
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts::Mehrotra111Options = Mehrotra111Options()) where T
+        opts::Mehrotra112Options = Mehrotra112Options()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
@@ -108,7 +113,7 @@ function mehrotra_latest(z::AbstractVector{T}, θ::AbstractVector{T};
     idyn = SVector{nx, Int}(idyn)
     irst = SVector{ny, Int}(irst)
     ibil = SVector{ny, Int}(ibil)
-    ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra111 solve."
+    ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra112 solve."
 
     # Views
     z_y1 = view(z, iy1)
@@ -119,7 +124,7 @@ function mehrotra_latest(z::AbstractVector{T}, θ::AbstractVector{T};
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
 
     Ts = typeof.((r, rz, rθ))
-    Mehrotra111{T,nx,ny,Ts...}(
+    Mehrotra112{T,nx,ny,Ts...}(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
@@ -168,13 +173,13 @@ end
 
 # interior point solver
 
-function interior_point_solve!(ip::Mehrotra111{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function interior_point_solve!(ip::Mehrotra112{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
     interior_point_solve!(ip)
 end
 
-function interior_point_solve!(ip::Mehrotra111{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
+function interior_point_solve!(ip::Mehrotra112{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
 
     # space
     s = ip.s
@@ -279,13 +284,15 @@ function interior_point_solve!(ip::Mehrotra111{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny
 
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val, fact=false)
-            progress!(ip, max(r_vio, κ_vio), ϵ_min=ϵ_min)
+            fraction_to_boundary!(ip, max(r_vio, κ_vio), ϵ_min=ϵ_min)
             α = step_length(z, Δ, iy1, iy2; τ = ip.τ)
             comp && println("**** Δ1:", scn(norm(α*Δ[ix]), digits=4))
             comp && println("**** Δ2:", scn(norm(α*Δ[iy1]), digits=4))
             comp && println("**** Δ3:", scn(norm(α*Δ[iy2]), digits=4))
 
-            verbose && println("iter:", j,
+            # verbose && println("iter:", j,
+            @warn "changed verbose"
+            true && println("iter:", j,
                 "  r: ", scn(norm(r, res_norm)),
                 "  r_vio: ", scn(r_vio),
                 "  κ_vio: ", scn(κ_vio),
@@ -297,14 +304,40 @@ function interior_point_solve!(ip::Mehrotra111{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny
                 "  τ: ", scn(norm(ip.τ)),
                 "  α: ", scn(norm(α)))
 
-            # candidate point
+            # # candidate point
+            # candidate_point!(z, s, z, Δ, α)
+            #
+            # # update
+            # ip.methods.r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
+            #
+            # r_vio = residual_violation(ip, r)
+            # κ_vio = bilinear_violation(ip, r)
+
+            # Line search
+            # candidate point with full step
             candidate_point!(z, s, z, Δ, α)
-
-            # update
-            ip.methods.r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
-
-            r_vio = residual_violation(ip, r)
-            κ_vio = bilinear_violation(ip, r)
+            r_vio_cand = 0.0
+            κ_vio_cand = 0.0
+            for ls = 1:3
+                # check that we are making progress at least on one of the residual or bilinear constraints
+                ip.methods.r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
+                r_vio_cand = residual_violation(ip, r)
+                κ_vio_cand = bilinear_violation(ip, r)
+                @show scn(r_vio)
+                @show scn(r_vio_cand)
+                @show scn(κ_vio)
+                @show scn(κ_vio_cand)
+                better_off = (ls_relaxation * r_vio >= r_vio_cand) || (ls_relaxation * κ_vio >= κ_vio_cand)
+                @show better_off
+                # if we are better off after the step, we take it
+                better_off && break
+                # otherwise we continue to backtrack
+                candidate_point!(z, s, z, Δ, -α / 2^ls)
+                @show ls
+            end
+            # We set the violations to their updated values
+            r_vio = r_vio_cand
+            κ_vio = κ_vio_cand
         end
     end
     verbose && println("iter : ", ip.iterations,
@@ -313,7 +346,7 @@ function interior_point_solve!(ip::Mehrotra111{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny
                      )
 
     if (r_vio > r_tol) || (κ_vio > κ_tol)
-        @error "Mehrotra111 solver failed to reduce residual below r_tol."
+        @error "Mehrotra112 solver failed to reduce residual below r_tol."
         return false
     end
     # differentiate solution
@@ -327,7 +360,15 @@ function interior_point_solve!(ip::Mehrotra111{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny
     return true
 end
 
-function least_squares!(ip::Mehrotra111{T}, z::AbstractVector{T}, θ::AbstractVector{T},
+# Harmful
+# clipping!(z, iy1, iy2, max(ip.σ*ip.μ, κ_tol/5), κΣ = 1e10)
+# function clipping!(z::Vector{T}, iy1, iy2, κ; κΣ = 1e10)
+#     # z[iy2] .= max.( min.(z[iy2], κΣ * κ ./ z[iy1]) , κ ./ (κΣ * z[iy1]) )
+#     return nothing
+# end
+
+
+function least_squares!(ip::Mehrotra112{T}, z::AbstractVector{T}, θ::AbstractVector{T},
         r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
     # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
         # A = rz[[ip.idyn; ip.irst], [ip.ix; ip.iy1; ip.iy2]]
@@ -335,11 +376,11 @@ function least_squares!(ip::Mehrotra111{T}, z::AbstractVector{T}, θ::AbstractVe
     return nothing
 end
 
-function residual_violation(ip::Mehrotra111{T}, r::AbstractVector{T}) where {T}
+function residual_violation(ip::Mehrotra112{T}, r::AbstractVector{T}) where {T}
     max(norm(r[ip.idyn], Inf), norm(r[ip.irst], Inf))
 end
 
-function bilinear_violation(ip::Mehrotra111{T}, r::AbstractVector{T}) where {T}
+function bilinear_violation(ip::Mehrotra112{T}, r::AbstractVector{T}) where {T}
     norm(r[ip.ibil], Inf)
 end
 
@@ -380,7 +421,10 @@ function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
     return z
 end
 
-function progress!(ip::Mehrotra111{T}, violation::T; ϵ_min::T = 0.05) where {T}
+function fraction_to_boundary!(ip::Mehrotra112{T}, violation::T; ϵ_min::T = 0.05) where {T}
+    # Name comes from IPOPT paper Eq. 8
+    # On the Implementation of an Interior-Point Filter Line-Search
+    # Algorithm for Large-Scale Nonlinear Programming
     ϵ = min(ϵ_min, violation^2)
     ip.τ = 1 - ϵ
 end
@@ -401,7 +445,7 @@ function step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
     return α
 end
 
-function centering!(ip::Mehrotra111{T}, z::AbstractVector{T}, Δaff::AbstractVector{T},
+function centering!(ip::Mehrotra112{T}, z::AbstractVector{T}, Δaff::AbstractVector{T},
 		iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T) where {n,T}
 	μaff = (z[iy1] - αaff * Δaff[iy1])' * (z[iy2] - αaff * Δaff[iy2]) / n
 	ip.μ = z[iy1]' * z[iy2] / n
@@ -409,7 +453,7 @@ function centering!(ip::Mehrotra111{T}, z::AbstractVector{T}, Δaff::AbstractVec
 	return nothing
 end
 
-function rz!(ip::Mehrotra111{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
+function rz!(ip::Mehrotra112{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
         θ::AbstractVector{T}; reg = 0.0) where {T}
     z_reg = deepcopy(z)
     z_reg[ip.iy1] = max.(z[ip.iy1], reg)
@@ -418,7 +462,7 @@ function rz!(ip::Mehrotra111{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
     return nothing
 end
 
-function differentiate_solution!(ip::Mehrotra111; reg = 0.0)
+function differentiate_solution!(ip::Mehrotra112; reg = 0.0)
     s = ip.s
     z = ip.z
     θ = ip.θ
@@ -444,7 +488,7 @@ end
 # Linearized Solver
 ################################################################################
 
-function least_squares!(ip::Mehrotra111{T}, z::Vector{T}, θ::AbstractVector{T},
+function least_squares!(ip::Mehrotra112{T}, z::Vector{T}, θ::AbstractVector{T},
 		r::RLin{T}, rz::RZLin{T}) where {T}
 	# @warn "wrong"
 	δθ = θ - r.θ0
@@ -461,15 +505,15 @@ function least_squares!(ip::Mehrotra111{T}, z::Vector{T}, θ::AbstractVector{T},
 	return nothing
 end
 
-function residual_violation(ip::Mehrotra111{T}, r::RLin{T}) where {T}
+function residual_violation(ip::Mehrotra112{T}, r::RLin{T}) where {T}
     max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
 end
 
-function bilinear_violation(ip::Mehrotra111{T}, r::RLin{T}) where {T}
+function bilinear_violation(ip::Mehrotra112{T}, r::RLin{T}) where {T}
     norm(r.rbil, Inf)
 end
 
-function rz!(ip::Mehrotra111{T}, rz::RZLin{T}, z::AbstractVector{T},
+function rz!(ip::Mehrotra112{T}, rz::RZLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
 	rz!(rz, z, θ, reg = reg)
 	return nothing
@@ -481,7 +525,7 @@ function rz!(rz::RZLin{T}, z::AbstractVector{T},
 	return nothing
 end
 
-function rθ!(ip::Mehrotra111{T}, rθ::RθLin{T}, z::AbstractVector{T},
+function rθ!(ip::Mehrotra112{T}, rθ::RθLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}) where {T}
 	return nothing
 end
@@ -498,13 +542,13 @@ end
 
 
 ################################################################################
-# Mehrotra111 Structure
+# Mehrotra112 Structure
 ################################################################################
 
 # STRUCT
 #
-# Mehrotra111
-# Mehrotra111Options
+# Mehrotra112
+# Mehrotra112Options
 #
 #
 # METHODS
@@ -515,7 +559,7 @@ end
 # residual_violation
 # bilinear_violation
 # initial_state!
-# progress!
+# fraction_to_boundary!
 # step_length!
 # centering!
 # interior_point_solve!
