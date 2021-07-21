@@ -1,23 +1,25 @@
 # interior-point solver options
-@with_kw mutable struct Mehrotra112Options{T} <: AbstractIPOptions
+@with_kw mutable struct Mehrotra113Options{T} <: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
     max_iter_inner::Int = 100 #TODO rename
     max_time::T = 60.0
     diff_sol::Bool = false
     reg::Bool = false
-    ϵ_min = 0.05 # ∈ [0.005, 0.25]
+    ϵ_min::T = 0.05 # ∈ [0.005, 0.25]
         # smaller -> faster
         # larger  -> slower, more robust
-    κ_reg = 1e-3 # bilinear constraint violation level at which regularization is triggered [1e-3, 1e-4]
-    γ_reg = 1e-0 # regularization scaling parameters ∈ [0, 0.1]:
+    κ_reg::T = 1e-3 # bilinear constraint violation level at which regularization is triggered [1e-3, 1e-4]
+    γ_reg::T = 1e-0 # regularization scaling parameters ∈ [0, 0.1]:
         # 0   -> faster & ill-conditioned
         # 0.1 -> slower & better-conditioned
-    ls_relaxation = Inf # In the line search (ls); we accept a step if:
+    ls_relaxation::Real = Inf # In the line search (ls); we accept a step if:
     # better_off = (ls_relaxation * r_vio >= r_vio_cand) || (ls_relaxation * κ_vio >= κ_vio_cand)
     # 1.0  ->  the nominal value for ls_relaxation is 1.0: we need to make progress at each step
     # Inf  ->  the extreme value for ls_relaxation is Inf: we always take the full step
     # even if this degrades all constraint satisfaction
+    τ_ls::T = 2.0 # line search decay factor
+    max_iter_ls::Int = 3 # maximum number of backtracking steps
     solver::Symbol = :lu_solver
     verbose::Bool = false
 
@@ -28,7 +30,7 @@
     reg_du_init = 0.0 #useless
 end
 
-mutable struct Mehrotra112{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
+mutable struct Mehrotra113{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}                 # current point
@@ -72,7 +74,7 @@ mutable struct Mehrotra112{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     αaff::T
     α::T
     iterations::Int
-    opts::Mehrotra112Options
+    opts::Mehrotra113Options
 end
 
 function mehrotra_latest(z::AbstractVector{T}, θ::AbstractVector{T};
@@ -96,7 +98,7 @@ function mehrotra_latest(z::AbstractVector{T}, θ::AbstractVector{T};
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts::Mehrotra112Options = Mehrotra112Options()) where T
+        opts::Mehrotra113Options = Mehrotra113Options()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
@@ -113,7 +115,7 @@ function mehrotra_latest(z::AbstractVector{T}, θ::AbstractVector{T};
     idyn = SVector{nx, Int}(idyn)
     irst = SVector{ny, Int}(irst)
     ibil = SVector{ny, Int}(ibil)
-    ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra112 solve."
+    ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra113 solve."
 
     # Views
     z_y1 = view(z, iy1)
@@ -124,7 +126,7 @@ function mehrotra_latest(z::AbstractVector{T}, θ::AbstractVector{T};
     Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
 
     Ts = typeof.((r, rz, rθ))
-    Mehrotra112{T,nx,ny,Ts...}(
+    Mehrotra113{T,nx,ny,Ts...}(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
@@ -173,13 +175,13 @@ end
 
 # interior point solver
 
-function interior_point_solve!(ip::Mehrotra112{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function interior_point_solve!(ip::Mehrotra113{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
     interior_point_solve!(ip)
 end
 
-function interior_point_solve!(ip::Mehrotra112{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
+function interior_point_solve!(ip::Mehrotra113{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
 
     # space
     s = ip.s
@@ -237,14 +239,23 @@ function interior_point_solve!(ip::Mehrotra112{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
     least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
-    z .= initial_state!(z, ix, iy1, iy2; comp = comp)
+    # zcopy = deepcopy(z)
+    # z .= initial_state!(z, ix, iy1, iy2; comp = comp)
+    # @warn "wrong initial state for SOC"
+    z .= general_initial_state!(z, ix, iy1, iy2, idx_ineq, idx_soc)
+    test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
+    # @show scn(norm(z - zcopy))
 
     ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
+    test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
 
     r_vio = residual_violation(ip, r)
-    κ_vio = bilinear_violation(ip, r)
+    # κ_vio = bilinear_violation(ip, r)
+    @warn "changed bilinear violation"
+    κ_vio = general_bilinear_violation(ip, z, idx_ineq, idx_soc, iy1, iy2)
     elapsed_time = 0.0
+    test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
 
     for j = 1:max_iter_inner
         elapsed_time >= max_time && break
@@ -257,42 +268,66 @@ function interior_point_solve!(ip::Mehrotra112{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny
             comp && println("************************** ITERATION :", ip.iterations)
 
             # Compute regularization level
-            κ_vio = bilinear_violation(ip, r)
+            # κ_vio = bilinear_violation(ip, r)
+            @warn "changed bilinear violation"
+            κ_vio = general_bilinear_violation(ip, z, idx_ineq, idx_soc, iy1, iy2)
             ip.reg_val = κ_vio < κ_reg ? κ_vio * γ_reg : 0.0
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
 
             # compute residual Jacobian
             rz!(ip, rz, z, θ, reg = ip.reg_val)
+            display_structure(rz, ip.ibil, iy1, iy2, idx_ineq, idx_soc)
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
 
             # regularize (fixed, TODO: adaptive)
             reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r, reg = ip.reg_val)
             # @show scn(norm(rz * Δaff - r, Inf))
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
 
-            αaff = step_length(z, Δaff, iy1, iy2; τ = 1.0)
-            # println("αaff: ", scn(αaff, digits=6))
-
+            # αaff = step_length(z, Δaff, iy1, iy2; τ = 1.0)
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
+            αaff = general_step_length(z, Δaff, idx_ineq, idx_soc;
+                    τ_ineq = 1.0, τ_soc = 1.0)
+            # @show αaff_ - αaff
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
             centering!(ip, z, Δaff, iy1, iy2, αaff)
 
             # Compute corrector residual
             # @warn "changed"
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
             ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
             # ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, 0.0)) # here we set κ = σ*μ, Δ = Δaff
             # println("μ: ", scn(ip.μ, digits=6))
             # println("σ: ", scn(ip.σ, digits=6))
 
             # Compute corrector search direction
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val, fact=false)
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
             fraction_to_boundary!(ip, max(r_vio, κ_vio), ϵ_min=ϵ_min)
-            α = step_length(z, Δ, iy1, iy2; τ = ip.τ)
+            # α = step_length(z, Δ, iy1, iy2; τ = ip.τ)
+            # α = ineq_step_length(z, Δ, idx_ineq; τ = ip.τ) # too slow
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
+            @warn "wrong fraction to boundary, should be capped at 0.99"
+            α = general_step_length(z, Δ, idx_ineq, idx_soc;
+                    τ_ineq = ip.τ, τ_soc = min(ip.τ, 0.90))
+                    # τ_ineq = ip.τ, τ_soc = min(ip.τ, 0.99))
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
+            zcopy = deepcopy(z)
+            test_value(z, iy1, iy2, idx_ineq, idx_soc)
+            test_value(zcopy - α * Δ, iy1, iy2, idx_ineq, idx_soc)
+            # test_positivity(zcopy - α * Δ, iy1, iy2, idx_ineq, idx_soc)
+
+            # @show α - α_
             comp && println("**** Δ1:", scn(norm(α*Δ[ix]), digits=4))
             comp && println("**** Δ2:", scn(norm(α*Δ[iy1]), digits=4))
             comp && println("**** Δ3:", scn(norm(α*Δ[iy2]), digits=4))
 
-            # verbose && println("iter:", j,
-            @warn "changed verbose"
-            true && println("iter:", j,
+            verbose && println("iter:", j,
                 "  r: ", scn(norm(r, res_norm)),
                 "  r_vio: ", scn(r_vio),
                 "  κ_vio: ", scn(κ_vio),
@@ -304,37 +339,34 @@ function interior_point_solve!(ip::Mehrotra112{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny
                 "  τ: ", scn(norm(ip.τ)),
                 "  α: ", scn(norm(α)))
 
-            # # candidate point
-            # candidate_point!(z, s, z, Δ, α)
-            #
-            # # update
-            # ip.methods.r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
-            #
-            # r_vio = residual_violation(ip, r)
-            # κ_vio = bilinear_violation(ip, r)
-
             # Line search
             # candidate point with full step
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
+            @show "@@@@@@@@@@@@@@@@@@@"
+            @show α
             candidate_point!(z, s, z, Δ, α)
+            # soc_correction()
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
             r_vio_cand = 0.0
             κ_vio_cand = 0.0
-            for ls = 1:3
+            for ls = 1:ip.opts.max_iter_ls
                 # check that we are making progress at least on one of the residual or bilinear constraints
                 ip.methods.r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
                 r_vio_cand = residual_violation(ip, r)
-                κ_vio_cand = bilinear_violation(ip, r)
-                @show scn(r_vio)
-                @show scn(r_vio_cand)
-                @show scn(κ_vio)
-                @show scn(κ_vio_cand)
-                better_off = (ls_relaxation * r_vio >= r_vio_cand) || (ls_relaxation * κ_vio >= κ_vio_cand)
-                @show better_off
+                # κ_vio_cand = bilinear_violation(ip, r)
+                @warn "changed bilinear violation"
+                κ_vio_cand = general_bilinear_violation(ip, z, idx_ineq, idx_soc, iy1, iy2)
+
+                better_off = (ip.opts.ls_relaxation * r_vio >= r_vio_cand) ||
+                    (ip.opts.ls_relaxation * κ_vio >= κ_vio_cand)
                 # if we are better off after the step, we take it
                 better_off && break
-                # otherwise we continue to backtrack
-                candidate_point!(z, s, z, Δ, -α / 2^ls)
+                test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
+                # otherwise we backtrack
+                candidate_point!(z, s, z, Δ, -α / ip.opts.τ_ls^ls)
                 @show ls
             end
+            test_positivity(z, iy1, iy2, idx_ineq, idx_soc)
             # We set the violations to their updated values
             r_vio = r_vio_cand
             κ_vio = κ_vio_cand
@@ -346,7 +378,7 @@ function interior_point_solve!(ip::Mehrotra112{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny
                      )
 
     if (r_vio > r_tol) || (κ_vio > κ_tol)
-        @error "Mehrotra112 solver failed to reduce residual below r_tol."
+        @error "Mehrotra113 solver failed to reduce residual below r_tol."
         return false
     end
     # differentiate solution
@@ -367,8 +399,7 @@ end
 #     return nothing
 # end
 
-
-function least_squares!(ip::Mehrotra112{T}, z::AbstractVector{T}, θ::AbstractVector{T},
+function least_squares!(ip::Mehrotra113{T}, z::AbstractVector{T}, θ::AbstractVector{T},
         r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
     # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
         # A = rz[[ip.idyn; ip.irst], [ip.ix; ip.iy1; ip.iy2]]
@@ -376,13 +407,15 @@ function least_squares!(ip::Mehrotra112{T}, z::AbstractVector{T}, θ::AbstractVe
     return nothing
 end
 
-function residual_violation(ip::Mehrotra112{T}, r::AbstractVector{T}) where {T}
+function residual_violation(ip::Mehrotra113{T}, r::AbstractVector{T}) where {T}
     max(norm(r[ip.idyn], Inf), norm(r[ip.irst], Inf))
 end
 
-function bilinear_violation(ip::Mehrotra112{T}, r::AbstractVector{T}) where {T}
+function bilinear_violation(ip::Mehrotra113{T}, r::AbstractVector{T}) where {T}
     norm(r[ip.ibil], Inf)
 end
+
+
 
 function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
         iy1::SVector{ny,Int}, iy2::SVector{ny,Int}; comp::Bool=true, ϵ::T=1e-20) where {T,nx,ny}
@@ -390,14 +423,14 @@ function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
     xt = z[ix]
     y1t = z[iy1]
     y2t = z[iy2]
-    comp && println("**** xt :", scn(norm(xt), digits=4))
-    comp && println("**** y1t :", scn(norm(y1t), digits=4))
-    comp && println("**** y2t :", scn(norm(y2t), digits=4))
+    # comp && println("**** xt :", scn(norm(xt), digits=4))
+    # comp && println("**** y1t :", scn(norm(y1t), digits=4))
+    # comp && println("**** y2t :", scn(norm(y2t), digits=4))
 
     δy1 = max(-1.5 * minimum(y1t), 0)
     δy2 = max(-1.5 * minimum(y2t), 0)
-    comp && println("**** δw2:", scn(norm(δy1), digits=4))
-    comp && println("**** δw3:", scn(norm(δy2), digits=4))
+    # comp && println("**** δw2:", scn(norm(δy1), digits=4))
+    # comp && println("**** δw3:", scn(norm(δy2), digits=4))
 
     y1h = y1t .+ δy1
     y2h = y2t .+ δy2
@@ -406,11 +439,11 @@ function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
 
     δhy1 = 0.5 * y1h'*y2h / (sum(y2h) + ϵ)
     δhy2 = 0.5 * y1h'*y2h / (sum(y1h) + ϵ)
-    comp && println("**** sum(y1h):", scn(sum(y1h), digits=4))
-    comp && println("**** sum(y2h):", scn(sum(y2h), digits=4))
-    comp && println("****  dot:", scn(norm(0.5 * y1h'*y2h), digits=4))
-    comp && println("**** δhw2:", scn(norm(δhy1), digits=4))
-    comp && println("**** δhw3:", scn(norm(δhy2), digits=4))
+    # comp && println("**** sum(y1h):", scn(sum(y1h), digits=4))
+    # comp && println("**** sum(y2h):", scn(sum(y2h), digits=4))
+    # comp && println("****  dot:", scn(norm(0.5 * y1h'*y2h), digits=4))
+    # comp && println("**** δhw2:", scn(norm(δhy1), digits=4))
+    # comp && println("**** δhw3:", scn(norm(δhy2), digits=4))
 
     x0 = xt
     y10 = y1h .+ δhy1
@@ -421,7 +454,7 @@ function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
     return z
 end
 
-function fraction_to_boundary!(ip::Mehrotra112{T}, violation::T; ϵ_min::T = 0.05) where {T}
+function fraction_to_boundary!(ip::Mehrotra113{T}, violation::T; ϵ_min::T = 0.05) where {T}
     # Name comes from IPOPT paper Eq. 8
     # On the Implementation of an Interior-Point Filter Line-Search
     # Algorithm for Large-Scale Nonlinear Programming
@@ -445,15 +478,20 @@ function step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
     return α
 end
 
-function centering!(ip::Mehrotra112{T}, z::AbstractVector{T}, Δaff::AbstractVector{T},
+function centering!(ip::Mehrotra113{T}, z::AbstractVector{T}, Δaff::AbstractVector{T},
 		iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T) where {n,T}
+        # using EQ (7) from CVXOPT, we have that s ∘ z  = μ e
+        # for positive orthant: s .* z  .= μ
+        # for second order cone: s' * z  = μ; s0 * z1 + z0 * s1 = 0
+        # μ only depends on the dot products
+        # The CVXOPT linear and quadratic cone program solvers
 	μaff = (z[iy1] - αaff * Δaff[iy1])' * (z[iy2] - αaff * Δaff[iy2]) / n
 	ip.μ = z[iy1]' * z[iy2] / n
 	ip.σ = (μaff / ip.μ)^3
 	return nothing
 end
 
-function rz!(ip::Mehrotra112{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
+function rz!(ip::Mehrotra113{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
         θ::AbstractVector{T}; reg = 0.0) where {T}
     z_reg = deepcopy(z)
     z_reg[ip.iy1] = max.(z[ip.iy1], reg)
@@ -462,7 +500,7 @@ function rz!(ip::Mehrotra112{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
     return nothing
 end
 
-function differentiate_solution!(ip::Mehrotra112; reg = 0.0)
+function differentiate_solution!(ip::Mehrotra113; reg = 0.0)
     s = ip.s
     z = ip.z
     θ = ip.θ
@@ -488,7 +526,7 @@ end
 # Linearized Solver
 ################################################################################
 
-function least_squares!(ip::Mehrotra112{T}, z::Vector{T}, θ::AbstractVector{T},
+function least_squares!(ip::Mehrotra113{T}, z::Vector{T}, θ::AbstractVector{T},
 		r::RLin{T}, rz::RZLin{T}) where {T}
 	# @warn "wrong"
 	δθ = θ - r.θ0
@@ -505,15 +543,15 @@ function least_squares!(ip::Mehrotra112{T}, z::Vector{T}, θ::AbstractVector{T},
 	return nothing
 end
 
-function residual_violation(ip::Mehrotra112{T}, r::RLin{T}) where {T}
+function residual_violation(ip::Mehrotra113{T}, r::RLin{T}) where {T}
     max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
 end
 
-function bilinear_violation(ip::Mehrotra112{T}, r::RLin{T}) where {T}
+function bilinear_violation(ip::Mehrotra113{T}, r::RLin{T}) where {T}
     norm(r.rbil, Inf)
 end
 
-function rz!(ip::Mehrotra112{T}, rz::RZLin{T}, z::AbstractVector{T},
+function rz!(ip::Mehrotra113{T}, rz::RZLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
 	rz!(rz, z, θ, reg = reg)
 	return nothing
@@ -525,7 +563,7 @@ function rz!(rz::RZLin{T}, z::AbstractVector{T},
 	return nothing
 end
 
-function rθ!(ip::Mehrotra112{T}, rθ::RθLin{T}, z::AbstractVector{T},
+function rθ!(ip::Mehrotra113{T}, rθ::RθLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}) where {T}
 	return nothing
 end
@@ -535,20 +573,337 @@ function rθ!(rθ::RθLin{T}, z::AbstractVector{T},
 	return nothing
 end
 
+################################################################################
+# SOC code
+################################################################################
+
+function display_structure(rz, ibil, iy1, iy2, idx_ineq, idx_soc)
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    for i = 1:nc
+
+    end
+    plt = plot()
+    plot!(Gray.(1e100*abs.(rz[Vector(ibil), Vector(iy1)])))
+    plot!(Gray.(1e100*abs.(rz[Vector(ibil), Vector(iy2)])))
+    display(plt)
+
+    return nothing
+end
+
+function general_bilinear_violation(ip::Mehrotra113{T}, z::AbstractVector{T}, idx_ineq, idx_soc, iy1, iy2) where {T}
+    # norm(r[ip.ibil], Inf)
+    @warn "changed κ_vio"
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+    @show "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    κ_vio = 0.0
+    for i = 1:nc
+        soc_vio = z[idx_soc_p[i]]' * z[idx_soc_d[i]] / length(idx_soc_d[i])
+        @show soc_vio
+        κ_vio = max(κ_vio, soc_vio)
+    end
+    ineq_vio = maximum(abs.(z[idx_ineq_1] .* z[idx_ineq_2]))
+    @show ineq_vio
+    κ_vio = max(κ_vio, ineq_vio)
+end
+
+
+function soc_value(u::AbstractVector)
+    u0 = u[1]
+    u1 = u[2:end]
+    return (u0^2 - u1' * u1)
+end
+
+function test_positivity(z::AbstractVector{T}, iy1, iy2, idx_ineq::AbstractVector{Int},
+        idx_soc::AbstractVector{Vector{Int}}, ϵ = 1e-13) where {T}
+
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    for i = 1:nc
+        @assert soc_value(z[idx_soc_p[i]]) >= 0.0
+        @assert soc_value(z[idx_soc_d[i]]) >= 0.0
+    end
+    @assert all(z[idx_ineq_1] .>= 0.0)
+    @assert all(z[idx_ineq_2] .>= 0.0)
+
+    return nothing
+end
+
+function test_value(z::AbstractVector{T}, iy1, iy2, idx_ineq::AbstractVector{Int},
+        idx_soc::AbstractVector{Vector{Int}}) where {T}
+
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    for i = 1:nc
+        @show scn(soc_value(z[idx_soc_p[i]]))
+        @show scn(soc_value(z[idx_soc_d[i]]))
+    end
+    @show scn.(z[idx_ineq_1])
+    @show scn.(z[idx_ineq_2])
+
+    return nothing
+end
+
+
+function general_initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
+        iy1::SVector{ny,Int}, iy2::SVector{ny,Int}, idx_ineq, idx_soc;
+        ϵ::T=1e-20) where {T,nx,ny}
+
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+    @assert length(idx_ineq_1) == nineq
+    @assert length(idx_ineq_2) == nineq
+
+    # Equalities remain unchanged
+    # z[ix] .= z[ix]
+
+    # Inequalities
+    y1t = z[idx_ineq_1]
+    y2t = z[idx_ineq_2]
+
+    δy1 = max(-1.5 * minimum(y1t), 0)
+    δy2 = max(-1.5 * minimum(y2t), 0)
+    y1h = y1t .+ δy1
+    y2h = y2t .+ δy2
+
+    δhy1 = 0.5 * y1h'*y2h / (sum(y2h) + ϵ)
+    δhy2 = 0.5 * y1h'*y2h / (sum(y1h) + ϵ)
+    y10 = y1h .+ δhy1
+    y20 = y2h .+ δhy2
+
+    z[idx_ineq_1] .= y10
+    z[idx_ineq_2] .= y20
+
+    # SOC
+    for i = 1:nc
+        n = length(idx_soc_p[i])
+        @assert n == length(idx_soc_d[i])
+        e = [1.0; zeros(n - 1)]
+        # extract primal and dual cones
+        p = z[idx_soc_p[i]]
+        d = z[idx_soc_d[i]]
+
+        # compute the minimal α such that
+        # p + α e ≧ 0 with e the identity vector in the SOC
+        αp = max(0.0, soc_step_length(p, e))
+        αd = max(0.0, soc_step_length(d, e))
+        println("αp : ", scn(αp))
+        println("αd : ", scn(αd))
+
+        # Ensure strict positivity
+        δp = 1.5 * αp
+        δd = 1.5 * αd
+        ph = p + δp * e
+        dh = d + δd * e
+        println("δp : ", scn(δp))
+        println("δd : ", scn(δd))
+        println("ph : ", scn(soc_value(ph)))
+        println("dh : ", scn(soc_value(dh)))
+
+        # Equalizer
+        δhp = 0.5 * p' * d  / (e' * d + ϵ)
+        δhd = 0.5 * p' * d  / (e' * p + ϵ)
+        p0 = ph + δhp * e
+        d0 = dh + δhd * e
+        println("δhp : ", scn(δhp))
+        println("δhd : ", scn(δhd))
+        println("p0 : ", scn(soc_value(p0)))
+        println("d0 : ", scn(soc_value(d0)))
+
+        z[idx_soc_p[i]] .= p0
+        z[idx_soc_d[i]] .= d0
+        println("z[p] : ", scn(soc_value(z[idx_soc_p[i]])))
+        println("z[d] : ", scn(soc_value(z[idx_soc_d[i]])))
+    end
+
+    for i = 1:nc
+        @assert soc_value(z[idx_soc_p[i]]) >= 0.0
+        @assert soc_value(z[idx_soc_d[i]]) >= 0.0
+    end
+    @assert all(z[idx_ineq_1] .>= 0.0)
+    @assert all(z[idx_ineq_2] .>= 0.0)
+
+    return z
+end
+
+function general_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
+		idx_ineq::AbstractVector{Int}, idx_soc::AbstractVector{Vector{Int}};
+        τ_ineq::T=0.9995, τ_soc::T=0.99) where {n,T}
+    # We need to make this much more efficient (allocation free)
+    # by choosing the right structure for idx_ine and idx_soc.
+
+    α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = τ_ineq)
+    α_soc = soc_step_length(z, Δ, idx_soc; τ = τ_soc)
+    @show α_ineq
+    @show α_soc
+    α = min(α_ineq, α_soc)
+    return α
+end
+
+function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
+        τ::T = 0.99, ϵ::T = 0.0) where {T}
+    # check Section 8.2 CVXOPT
+    # The CVXOPT linear and quadratic cone program solvers
+
+    # Adding to slack ϵ to make sure that we never get out of the cone
+    λ0 = λ[1] - ϵ
+    @show scn.(λ, digits=6)
+    @show scn.(Δ, digits=6)
+    λ_λ = λ0^2      - λ[2:end]' * λ[2:end] + ϵ
+    λ_Δ = λ0 * Δ[1] - λ[2:end]' * Δ[2:end] + ϵ
+
+    ρs = λ_Δ / λ_λ
+    ρv = Δ[2:end] / sqrt(λ_λ)
+    ρv -= (λ_Δ / sqrt(λ_λ) + Δ[1]) / (λ0 / sqrt(λ_λ) + 1) * λ[2:end] / λ_λ
+    # we make sre that the inverse always exists with ϵ,
+    # if norm(ρv) - ρs) is negative (Δ is pushing towards a more positive cone)
+        # the computation is ignored and we get the maximum value for α = 1.0
+    # else we have α = τ / norm(ρv) - ρs)
+    # we add ϵ to the denumerator to ensure strict positivity and avoid 1e-16 errors.
+    α = 1.0
+    if norm(ρv) - ρs > 0.0
+        α = min(α, τ / (norm(ρv) - ρs))
+    end
+    @show "#################"
+    @show soc_value(λ)
+    @show soc_value(λ + α * Δ)
+    @show soc_value(λ -  1.0 * Δ)
+    @show soc_value(λ +  1.0 * Δ)
+    return α
+end
+
+function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
+		idx_soc::AbstractVector{Vector{Int}}; τ::T=0.99) where {T}
+        # We need to make this much more efficient (allocation free)
+        # by choosing the right structure for idx_soc.
+    α = 1.0
+    for idx in idx_soc
+        # we need -Δ here because we will taking the step x - α Δ
+        α = min(α, soc_step_length(z[idx], -Δ[idx], τ = τ))
+        α0 = soc_step_length(z[idx], -Δ[idx], τ = 1.0)
+        αi = soc_step_length(z[idx], -Δ[idx], τ = τ)
+        @show α0
+        @show τ
+        @show αi
+        @show soc_value(z[idx])
+        @show soc_value(z[idx] - α0 * Δ[idx])
+        @show soc_value(z[idx] - 1.0 * Δ[idx])
+        @show soc_value(z[idx] - αi * Δ[idx])
+    end
+    return α
+end
+
+function ineq_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
+		idx_ineq::AbstractVector{Int}; τ::T=0.9995) where {T}
+        # We need to make this much more efficient (allocation free)
+        # by choosing the right structure for idx_ineq.
+
+    n = Int(length(idx_ineq) / 2)
+
+    ατ_p = 1.0 # primal
+    ατ_d = 1.0 # dual
+    for i = 1:n
+        ip = idx_ineq[i]
+        id = idx_ineq[i + n]
+        if Δ[ip] > 0.0
+            ατ_p = min(ατ_p, τ * z[ip] / Δ[ip])
+        end
+        if Δ[id] > 0.0
+            ατ_d = min(ατ_d, τ * z[id] / Δ[id])
+        end
+    end
+    α = min(ατ_p, ατ_d)
+    return α
+end
 
 
 
 
 
+
+
+
+
+
+# function soc_step_size_slow(λ::AbstractVector{T}, Δ::AbstractVector{T};
+#         τ::T = 0.99) where {T}
+#     m = length(λ)
+#     J = Diagonal([1; - ones(m - 1)])
+#     λbar = λ / sqrt(λ' * J * λ + 1e-15)
+#     ρ = 1 / sqrt(λ' * J * λ) * [λbar' * J * Δ; Δ[2:end] - (λbar' * J * Δ + Δ[1]) / (λbar[1] + 1) * λbar[2:end]]
+#     α = τ * min(1.0, 1.0 / (norm(ρ[2:end]) - ρ[1]))
+#     return α
+# end
+#
+
+
+# function soc_value(u::AbstractVector)
+#     u0 = u[1]
+#     u1 = u[2:end]
+#     return (u0^2 - u1' * u1)
+# end
+#
+Random.seed!(100)
+m = 5
+λ = [3; 1e-1rand(m - 1)]
+Δ = 1e2rand(m)
+α1 = soc_step_length(λ, Δ, τ = 1.0, ϵ = 0.0)
+val1 = soc_value(λ + α1 * Δ)
+α2 = soc_step_length(λ, Δ, τ = 1.0, ϵ = 1e-10)
+val2 = soc_value(λ + α2 * Δ)
+α3 = soc_step_length(λ, Δ, τ = 0.99)
+val3 = soc_value(λ + α3 * Δ)
+
+@test norm(val1) < 1e-10
+@test norm(val2) < 1e-8
 
 ################################################################################
-# Mehrotra112 Structure
+# Mehrotra113 Structure
 ################################################################################
 
 # STRUCT
 #
-# Mehrotra112
-# Mehrotra112Options
+# Mehrotra113
+# Mehrotra113Options
 #
 #
 # METHODS

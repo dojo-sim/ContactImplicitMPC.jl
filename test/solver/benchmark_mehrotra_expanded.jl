@@ -154,13 +154,14 @@ function get_mehrotra_latest_solver(s::Simulation, z, θ;
 			rθ = RθLin(s, lin.rθ),
 			v_pr = view(zeros(1,1), 1,1),
 			v_du = view(zeros(1,1), 1,1),
-			opts = Mehrotra111Options(
+			opts = Mehrotra113Options(
 				max_iter_inner = 100,
 				r_tol = r_tol,
 				κ_tol = κ_tol,
 				solver = :empty_solver,
 				κ_reg = 1e-3,
 				γ_reg = 1.0,
+				ls_relaxation = 1.0,
 				))
 	else
 		ip = mehrotra_latest(z, θ,
@@ -178,12 +179,13 @@ function get_mehrotra_latest_solver(s::Simulation, z, θ;
 		    rθ! = s.res.rθ!,
 		    rz = s.rz,
 		    rθ = s.rθ,
-			opts = Mehrotra111Options(
+			opts = Mehrotra113Options(
 		        max_iter_inner = 100,
 		        r_tol = r_tol,
 		        κ_tol = κ_tol,
 				κ_reg = 1e-3,
 				γ_reg = 1.0,
+				ls_relaxation = 1.0,
 				))
 	end
 	return ip
@@ -428,7 +430,7 @@ function display_statistics!(plt, plt_ind, stats::AbstractVector{BenchmarkStatis
 	elseif occursin("mehrotra_expanded", solver)
 		color = :cornflowerblue
 	elseif occursin("mehrotra_latest", solver)
-		color = :black
+		color = :red
 	end
 
 	plot!(plt[plt_ind...], dist, data,
@@ -472,14 +474,13 @@ for k in keys
 	display_statistics!(plt, [3,1], stats[k], dist, field = :cond_schur,  solver = String(k))
 end
 
-stats[:mehrotra_latest_lin]
 
 
 # Dev
 
 
 z2, θ2 = get_benchmark_initialization(ref_traj[1], 10)
-ip2 = mehrotra(z2, θ2,
+ip2 = mehrotra_latest(z2, θ2,
 	ix = linearization_var_index(s[1].model, s[1].env)[1],
 	iy1 = linearization_var_index(s[1].model, s[1].env)[2],
 	iy2 = linearization_var_index(s[1].model, s[1].env)[3],
@@ -494,7 +495,7 @@ ip2 = mehrotra(z2, θ2,
     rθ! = s[1].res.rθ!,
     rz = s[1].rz,
     rθ = s[1].rθ,
-    opts = Mehrotra12Options(
+    opts = Mehrotra113Options(
         max_iter_inner=30,
         r_tol=1e-8,
         κ_tol=1e-8,

@@ -149,8 +149,8 @@ function step!(sim::Simulator, t)
     if status
         # parse result
         q2, γ, b, _ = unpack_z(model, env, z)
-        sim.traj.z[t] = z # TODO: maybe not use copy
-        sim.traj.θ[t] = θ
+        sim.traj.z[t] = copy(z) # we need a copy here otherwize we get a constant trajectory = last computed z element # TODO: maybe not use copy
+        sim.traj.θ[t] = copy(θ) # we need a copy here otherwize we get a constant trajectory = last computed θ element
         sim.traj.q[t+2] = q2
         sim.traj.γ[t] = γ
         sim.traj.b[t] = b
