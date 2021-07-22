@@ -230,23 +230,6 @@ a = 10
 a = 10
 a = 10
 a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-
 
 
 
@@ -371,7 +354,7 @@ traj = deepcopy(get_trajectory(s.model, s.env,
 plot(hcat(Vector.(traj.z)...)')
 plot(hcat(Vector.(traj.θ)...)')
 
-t = 65
+t = 62
 z = deepcopy(traj.z[t])
 θ = deepcopy(traj.θ[t])
 r_tol = 1e-8
@@ -411,6 +394,7 @@ norm(ip.z - deepcopy(traj.z[t]))
 norm(ip.z)
 norm(traj.z[t])
 
+ip.iterations
 
 
 

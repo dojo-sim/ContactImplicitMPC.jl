@@ -238,9 +238,9 @@ function interior_point_solve!(ip::InteriorPoint113{T}) where T
     z = ip.z
     z̄ = ip.z̄
     r = ip.r
-    r_norm = ip.r_norm
-    r̄ = ip.r̄
-    r̄_norm = ip.r̄_norm
+    # r_norm = ip.r_norm
+    # r̄ = ip.r̄
+    # r̄_norm = ip.r̄_norm
     rz = ip.rz
     Δ = ip.Δ
     idx_ineq = ip.idx_ineq
@@ -270,9 +270,11 @@ function interior_point_solve!(ip::InteriorPoint113{T}) where T
     reg_du[1] = opts.reg_du_init
 
     # compute residual, residual Jacobian
-    r!(r, z, θ, κ[1])
+    warn && @warn "changed"
+    # r!(r, z, θ, κ[1])
+    r!(r, z, θ, 0.0)
 
-    r_norm = norm(r, res_norm)
+    # r_norm = norm(r, res_norm)
     warn && @warn "get rid of this"
     κ_vio = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
     r_vio = residual_violation(ip, r)
@@ -286,7 +288,7 @@ function interior_point_solve!(ip::InteriorPoint113{T}) where T
             elapsed_time >= max_time && break
             elapsed_time += @elapsed begin
                 # check for converged residual
-                warn && @warn "chaned the kickout condition"
+                warn && @warn "changed the kickout condition"
                 # if r_norm < r_tol
                 if max(r_vio, κ_vio) < r_tol
                     break
@@ -305,37 +307,37 @@ function interior_point_solve!(ip::InteriorPoint113{T}) where T
                 linear_solve!(solver, Δ, rz, r)
 
                 # initialize step length
-                α_ls = 1.0
+                # α_ls = 1.0
 
-                # candidate point
-                candidate_point!(z̄, s, z, Δ, α_ls)
-
-                # check cones
-                iter = 0
-                while cone_check(z̄, idx_ineq, idx_soc)
-                    α_ls *= ls_scale
-                    candidate_point!(z̄, s, z, Δ, α_ls)
-
-                    iter += 1
-                    if iter > max_ls
-                        @error "backtracking line search fail"
-                        return false
-                    end
-                end
-                α_ineq = ineq_step_length(z̄, Δ, idx_ineq; τ = 1.0)
-                α_soc = soc_step_length(z̄, Δ, idx_soc; τ = 1.0)
+                # # candidate point
+                # candidate_point!(z̄, s, z, Δ, α_ls)
+                #
+                # # check cones
+                # iter = 0
+                # while cone_check(z̄, idx_ineq, idx_soc)
+                #     α_ls *= ls_scale
+                #     candidate_point!(z̄, s, z, Δ, α_ls)
+                #
+                #     iter += 1
+                #     if iter > max_ls
+                #         @error "backtracking line search fail"
+                #         return false
+                #     end
+                # end
+                α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 1.0)
+                α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0)
                 α = min(α_ineq, α_soc)
-                candidate_point!(z̄, s, z, Δ, α)
-                cautious = (α_ls <= α_ineq) && (α_ls <= α_soc)
+                # candidate_point!(z̄, s, z, Δ, α)
+                # cautious = (α_ls <= α_ineq) && (α_ls <= α_soc)
 
                 # ################################################################
                 # ################################################################
                 μ, σ = centering(z, Δ, iy1, iy2, α)
                 αaff = α
                 # Compute corrector residual
-                ip.methods.rm!(r̄, z, Δ, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+                ip.methods.rm!(r, z, Δ, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
                 # Compute corrector search direction
-                linear_solve!(solver, Δ, rz, r̄)
+                linear_solve!(solver, Δ, rz, r)
                 α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 0.99)
                 α_soc = soc_step_length(z, Δ, idx_soc; τ = 0.99)
                 α = min(α_ineq, α_soc)
@@ -347,53 +349,54 @@ function interior_point_solve!(ip::InteriorPoint113{T}) where T
                 # r!(r̄, z̄, θ, κ[1])
                 #####
                 #####
-                r!(r̄, z, θ, κ[1])
-                candidate_point!(z̄, s, z, Δ, α)
+                # r!(r̄, z, θ, κ[1])
+                # candidate_point!(z̄, s, z, Δ, α)
+                candidate_point!(z, s, z, Δ, α)
                 #####
-                r̄_norm = norm(r̄, res_norm)
+                # r̄_norm = norm(r̄, res_norm)
 
-                warn && @warn "relaxed line search"
-                # while r̄_norm >= (1.0 - 0.001 * α) * r_norm
-                while r̄_norm >= Inf*(1.0 - 0.001 * α) * r_norm
-                    @show "line search"
-                    α *= ls_scale
-                    candidate_point!(z̄, s, z, Δ, α)
-
-                    r!(r̄, z̄, θ, κ[1])
-                    r̄_norm = norm(r̄, Inf)
-
-                    iter += 1
-                    if iter > max_ls
-                        @error "line search fail"
-                        return false
-                    end
-                end
+                # warn && @warn "relaxed line search"
+                # # while r̄_norm >= (1.0 - 0.001 * α) * r_norm
+                # while r̄_norm >= Inf*(1.0 - 0.001 * α) * r_norm
+                #     @show "line search"
+                #     α *= ls_scale
+                #     candidate_point!(z̄, s, z, Δ, α)
+                #
+                #     r!(r̄, z̄, θ, κ[1])
+                #     r̄_norm = norm(r̄, Inf)
+                #
+                #     iter += 1
+                #     if iter > max_ls
+                #         @error "line search fail"
+                #         return false
+                #     end
+                # end
 
                 # update
-                update_point!(z, s, z̄)
+                # update_point!(z, s, z̄)
 
                 # just check that the residual is low even with κ = 0
-                r!(r, z̄, θ, 0.0)
+                r!(r, z, θ, 0.0)
                 r_absolute = norm(r, Inf)
 
-                r_update!(r, r̄)
+                # r_update!(r, r̄)
 
                 κ_vio = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
                 r_vio = residual_violation(ip, r)
-                r_norm = r̄_norm
+                # r_norm = r̄_norm
                 verbose && println(
                     "out:", i,
                     "   in:", j,
                     "   αaff:", scn(αaff),
                     "   α:", scn(α),
-                    # "   caut:", cautious,
+                    "   caut:", cautious,
                     "   μσ:", scn(μ*σ),
                     # "   σ:", scn(σ),
                     "   κ:", scn(κ[1]),
                     "   κ_vio:", scn(κ_vio, digits=0),
                     "   r_vio:", scn(r_vio, digits=0),
                     "   r_abs:", scn(r_absolute, digits=0),
-                    "   res∞:", scn(r_norm),
+                    # "   res∞:", scn(r_norm),
                     )
             end
         end
@@ -408,7 +411,7 @@ function interior_point_solve!(ip::InteriorPoint113{T}) where T
 
             # update residual
             r!(r, z, θ, κ[1])
-            r_norm = norm(r, res_norm)
+            # r_norm = norm(r, res_norm)
         end
     end
 end
