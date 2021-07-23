@@ -1,4 +1,4 @@
-function visualize!(vis, model::Box, q;
+function visualize!(vis, model::BoxMRP, q;
         Δt = 0.1)
 
 	default_background!(vis)
@@ -36,8 +36,8 @@ end
 
 
 
-function plot_lines!(vis::Visualizer, model::Box, q::AbstractVector;
-		r_corner=0.04, size=10, name::Symbol=:Box, col::Bool=true)
+function plot_lines!(vis::Visualizer, model::BoxMRP, q::AbstractVector;
+		r_corner=0.04, size=10, name::Symbol=:BoxMRP, col::Bool=true)
 
 	nc = model.dim.c
 	# Point Traj
@@ -68,7 +68,7 @@ function plot_lines!(vis::Visualizer, model::Box, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::Box; name::Symbol=:Box, r_contact=0.04, α=1.0)
+function build_robot!(vis::Visualizer, model::BoxMRP; name::Symbol=:BoxMRP, r_contact=0.04, α=1.0)
 	nc = model.dim.c
 	r_contact = convert(Float32, r_contact)
 	body_mat = MeshPhongMaterial(color = RGBA(13/255, 152/255, 186/255, α))
@@ -87,7 +87,7 @@ function build_robot!(vis::Visualizer, model::Box; name::Symbol=:Box, r_contact=
 	return nothing
 end
 
-function set_robot!(vis::Visualizer, model::Box, q::AbstractVector; name::Symbol=:Box)
+function set_robot!(vis::Visualizer, model::BoxMRP, q::AbstractVector; name::Symbol=:BoxMRP)
 	nc = model.dim.c
 
 	settransform!(vis[name][:robot]["box"],
@@ -100,7 +100,7 @@ function set_robot!(vis::Visualizer, model::Box, q::AbstractVector; name::Symbol
 	return nothing
 end
 
-function contact_point(model::Box, q::AbstractVector)
+function contact_point(model::BoxMRP, q::AbstractVector)
 	nc = model.dim.c
 	k = kinematics(model, q)
 	pc = [k[(i-1)*3 .+ (1:3)] for i=1:nc]

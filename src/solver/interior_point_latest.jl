@@ -4,7 +4,7 @@ abstract type AbstractIPOptions end
 
 function interior_point_options(ip_type::Symbol)
     if ip_type == :interior_point
-        return Symbol("InteriorPoint113Options")
+        return Symbol("InteriorPoint115Options")
     elseif ip_type == :mehrotra
         return Symbol("MehrotraOptions")
     else
@@ -69,18 +69,14 @@ function mapping!(δz, s::Euclidean, δzs, z) # TODO: make allocation free
 end
 
 # interior-point solver options
-@with_kw mutable struct InteriorPoint113Options{T} <: AbstractIPOptions
+@with_kw mutable struct InteriorPoint115Options{T} <: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
-    κ_init::T = 1.0
-    κ_scale::T = 0.1
     ls_scale::T = 0.5
     max_iter_inner::Int = 100
-    max_iter_outer::Int = 10
-    max_ls::Int = 50
+    max_ls::Int = 3
     max_time::T = 60.0
     diff_sol::Bool = false
-    res_norm::Real = Inf
     reg::Bool = false
     reg_pr_init = 0.0
     reg_du_init = 0.0
@@ -95,15 +91,12 @@ function regularize!(v_pr, v_du, reg_pr, reg_du)
     v_du .-= reg_du
 end
 
-mutable struct InteriorPoint113{T} <: AbstractIPSolver
+mutable struct InteriorPoint115{T} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
     z::Vector{T}               # current point
-    z̄::Vector{T}               # candidate point
     r#::Vector{T}               # residual
-    r_norm::T                  # residual norm
-    r̄#::Vector{T}               # candidate residual
-    r̄_norm::T                  # candidate residual norm
+    r̄#::Vector{T}               # candidate residual   #useless
     rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
@@ -122,7 +115,6 @@ mutable struct InteriorPoint113{T} <: AbstractIPSolver
     δz::Matrix{T}              # solution gradients (this is always dense)
     δzs::Matrix{T}             # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}               # problem data
-    κ::Vector{T}               # barrier parameter
     num_var::Int
     num_data::Int
     solver::LinearSolver
@@ -131,7 +123,9 @@ mutable struct InteriorPoint113{T} <: AbstractIPSolver
     reg_pr
     reg_du
     iterations::Int
-    opts::InteriorPoint113Options
+    opts::InteriorPoint115Options
+
+    κ::Vector{T} # useless
 end
 
 function interior_point_latest(z, θ;
@@ -155,7 +149,7 @@ function interior_point_latest(z, θ;
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts::InteriorPoint113Options = InteriorPoint113Options()) where T
+        opts::InteriorPoint115Options = InteriorPoint115Options()) where T
 
     # Indices
     nx = length(ix)
@@ -169,15 +163,12 @@ function interior_point_latest(z, θ;
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
-    InteriorPoint113(
+    InteriorPoint115(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
-        zeros(length(z)),
         r,
-        0.0,
         deepcopy(r),
-        0.0,
         rz,
         rθ,
         zeros(s.n),
@@ -194,7 +185,6 @@ function interior_point_latest(z, θ;
         zeros(length(z), num_data),
         zeros(s.n, num_data),
         θ,
-        zeros(1),
         num_var,
         num_data,
         eval(opts.solver)(rz),
@@ -202,11 +192,13 @@ function interior_point_latest(z, θ;
         v_du,
         reg_pr, reg_du,
         0,
-        opts)
+        opts,
+        [opts.κ_tol],
+        )
 end
 
 # interior point solver
-function interior_point_solve!(ip::InteriorPoint113{T}) where T
+function interior_point_solve!(ip::InteriorPoint115{T}) where T
 
     # space
     s = ip.s
@@ -221,26 +213,18 @@ function interior_point_solve!(ip::InteriorPoint113{T}) where T
     opts = ip.opts
     r_tol = opts.r_tol
     κ_tol = opts.κ_tol
-    κ_init = opts.κ_init
-    κ_scale = opts.κ_scale
     ls_scale = opts.ls_scale
     max_iter_inner = opts.max_iter_inner
-    max_iter_outer = opts.max_iter_outer
     max_time = opts.max_time
     max_ls = opts.max_ls
     diff_sol = opts.diff_sol
-    res_norm = opts.res_norm
     reg = opts.reg
     verbose = opts.verbose
     warn = opts.warn
 
     # unpack pre-allocated data
     z = ip.z
-    z̄ = ip.z̄
     r = ip.r
-    # r_norm = ip.r_norm
-    # r̄ = ip.r̄
-    # r̄_norm = ip.r̄_norm
     rz = ip.rz
     Δ = ip.Δ
     idx_ineq = ip.idx_ineq
@@ -253,7 +237,6 @@ function interior_point_solve!(ip::InteriorPoint113{T}) where T
     ibil = ip.ibil
 
     θ = ip.θ
-    κ = ip.κ
     v_pr = ip.v_pr
     v_du = ip.v_du
     reg_pr = ip.reg_pr
@@ -262,167 +245,96 @@ function interior_point_solve!(ip::InteriorPoint113{T}) where T
     ip.iterations = 0
     comp = false
 
-    # initialize barrier parameter
-    κ[1] = κ_init
-
     # initialize regularization
     reg_pr[1] = opts.reg_pr_init
     reg_du[1] = opts.reg_du_init
 
     # compute residual, residual Jacobian
-    warn && @warn "changed"
-    # r!(r, z, θ, κ[1])
     r!(r, z, θ, 0.0)
-
-    # r_norm = norm(r, res_norm)
-    warn && @warn "get rid of this"
     κ_vio = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
     r_vio = residual_violation(ip, r)
 
-
     elapsed_time = 0.0
 
-    for i = 1:max_iter_outer
+    for j = 1:max_iter_inner
         elapsed_time >= max_time && break
-        for j = 1:max_iter_inner
-            elapsed_time >= max_time && break
-            elapsed_time += @elapsed begin
-                # check for converged residual
-                warn && @warn "changed the kickout condition"
-                # if r_norm < r_tol
-                if max(r_vio, κ_vio) < r_tol
+        elapsed_time += @elapsed begin
+            # check for converged residual
+            if max(r_vio, κ_vio) <= r_tol
+                break
+            end
+            ip.iterations += 1
+
+            # compute residual Jacobian
+            rz!(rz, z, θ)
+
+            # regularize (fixed, TODO: adaptive)
+            reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
+
+            # compute step
+            linear_solve!(solver, Δ, rz, r)
+
+            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 1.0)
+            α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0)
+            α = min(α_ineq, α_soc)
+
+            # ################################################################
+            # ################################################################
+            μ, σ = centering(z, Δ, iy1, iy2, α)
+            αaff = α
+            # Compute corrector residual
+            ip.methods.rm!(r, z, Δ, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            # Compute corrector search direction
+            linear_solve!(solver, Δ, rz, r)
+            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 0.99)
+            α_soc = soc_step_length(z, Δ, idx_soc; τ = 0.99)
+            α = min(α_ineq, α_soc)
+            # ################################################################
+
+            # reduce norm of residual
+            candidate_point!(z, s, z, Δ, α)
+            κ_vio_cand = 0.0
+            r_vio_cand = 0.0
+            for i = 1:max_ls
+                r!(r, z, θ, 0.0)
+                κ_vio_cand = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
+                r_vio_cand = residual_violation(ip, r)
+                if (r_vio_cand <= r_vio) || (κ_vio_cand <= κ_vio)
                     break
                 end
-                ip.iterations += 1
-
-                # compute residual Jacobian
-                rz!(rz, z, θ)
-
-                # regularize (fixed, TODO: adaptive)
-                reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
-
-                # compute step
-                warn && @warn "this shoudln't be useful"
-                r!(r, z, θ, 0.0)
-                linear_solve!(solver, Δ, rz, r)
-
-                # initialize step length
-                # α_ls = 1.0
-
-                # # candidate point
-                # candidate_point!(z̄, s, z, Δ, α_ls)
-                #
-                # # check cones
-                # iter = 0
-                # while cone_check(z̄, idx_ineq, idx_soc)
-                #     α_ls *= ls_scale
-                #     candidate_point!(z̄, s, z, Δ, α_ls)
-                #
-                #     iter += 1
-                #     if iter > max_ls
-                #         @error "backtracking line search fail"
-                #         return false
-                #     end
-                # end
-                α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 1.0)
-                α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0)
-                α = min(α_ineq, α_soc)
-                # candidate_point!(z̄, s, z, Δ, α)
-                # cautious = (α_ls <= α_ineq) && (α_ls <= α_soc)
-
-                # ################################################################
-                # ################################################################
-                μ, σ = centering(z, Δ, iy1, iy2, α)
-                αaff = α
-                # Compute corrector residual
-                ip.methods.rm!(r, z, Δ, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
-                # Compute corrector search direction
-                linear_solve!(solver, Δ, rz, r)
-                α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 0.99)
-                α_soc = soc_step_length(z, Δ, idx_soc; τ = 0.99)
-                α = min(α_ineq, α_soc)
-                # ################################################################
-
-
-                # reduce norm of residual
-                warn && @warn "changed"
-                # r!(r̄, z̄, θ, κ[1])
-                #####
-                #####
-                # r!(r̄, z, θ, κ[1])
-                # candidate_point!(z̄, s, z, Δ, α)
-                candidate_point!(z, s, z, Δ, α)
-                #####
-                # r̄_norm = norm(r̄, res_norm)
-
-                # warn && @warn "relaxed line search"
-                # # while r̄_norm >= (1.0 - 0.001 * α) * r_norm
-                # while r̄_norm >= Inf*(1.0 - 0.001 * α) * r_norm
-                #     @show "line search"
-                #     α *= ls_scale
-                #     candidate_point!(z̄, s, z, Δ, α)
-                #
-                #     r!(r̄, z̄, θ, κ[1])
-                #     r̄_norm = norm(r̄, Inf)
-                #
-                #     iter += 1
-                #     if iter > max_ls
-                #         @error "line search fail"
-                #         return false
-                #     end
-                # end
-
-                # update
-                # update_point!(z, s, z̄)
-
-                # just check that the residual is low even with κ = 0
-                r!(r, z, θ, 0.0)
-                r_absolute = norm(r, Inf)
-
-                # r_update!(r, r̄)
-
-                κ_vio = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
-                r_vio = residual_violation(ip, r)
-                # r_norm = r̄_norm
-                verbose && println(
-                    "out:", i,
-                    "   in:", j,
-                    "   αaff:", scn(αaff),
-                    "   α:", scn(α),
-                    "   caut:", cautious,
-                    "   μσ:", scn(μ*σ),
-                    # "   σ:", scn(σ),
-                    "   κ:", scn(κ[1]),
-                    "   κ_vio:", scn(κ_vio, digits=0),
-                    "   r_vio:", scn(r_vio, digits=0),
-                    "   r_abs:", scn(r_absolute, digits=0),
-                    # "   res∞:", scn(r_norm),
-                    )
+                verbose && println("linesearch $i")
+                # backtracking
+                candidate_point!(z, s, z, Δ, -α/2^i)
             end
-        end
+            κ_vio = κ_vio_cand
+            r_vio = r_vio_cand
 
-        if κ[1] <= κ_tol
-            # differentiate solution
-            diff_sol && differentiate_solution!(ip)
-            return true
-        else
-            # update barrier parameter
-            κ[1] *= κ_scale
-
-            # update residual
-            r!(r, z, θ, κ[1])
-            # r_norm = norm(r, res_norm)
+            verbose && println(
+                "in:", j,
+                "   αaff:", scn(αaff, digits = 0),
+                "   α:", scn(α, digits = 0),
+                "   μσ:", scn(μ*σ, digits = 0),
+                "   κ_vio:", scn(κ_vio, digits = 0),
+                "   r_vio:", scn(r_vio, digits = 0),
+                )
         end
+    end
+    if max(r_vio, κ_vio) < r_tol
+        # differentiate solution
+        diff_sol && differentiate_solution!(ip)
+        return true
+    else
+        return false
     end
 end
 
-function interior_point_solve!(ip::InteriorPoint113{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function interior_point_solve!(ip::InteriorPoint115{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
     interior_point_solve!(ip)
 end
 
-function differentiate_solution!(ip::InteriorPoint113)
+function differentiate_solution!(ip::InteriorPoint115)
     s = ip.s
     z = ip.z
     θ = ip.θ
@@ -453,17 +365,14 @@ linear_solve!(solver::LinearSolver, x::Vector{T}, A::Array{T, 2}, b::Vector{T}) 
 # New methods
 ################################################################################
 
-function residual_violation(ip::InteriorPoint113{T}, r::AbstractVector{T}) where {T}
+function residual_violation(ip::InteriorPoint115{T}, r::AbstractVector{T}) where {T}
     max(norm(r[ip.idyn], Inf), norm(r[ip.irst], Inf))
 end
 
 function centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
 		iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T) where {n,T}
-        # using EQ (7) from CVXOPT, we have that s ∘ z  = μ e
-        # for positive orthant: s .* z  .= μ
-        # for second order cone: s' * z  = μ; s0 * z1 + z0 * s1 = 0
-        # μ only depends on the dot products
         # See Section 5.1.3 in CVXOPT
+        # μ only depends on the dot products (no cone product)
         # The CVXOPT linear and quadratic cone program solvers
 	μaff = (z[iy1] - αaff * Δaff[iy1])' * (z[iy2] - αaff * Δaff[iy2]) / n
 	μ = z[iy1]' * z[iy2] / n
@@ -493,14 +402,27 @@ function general_bilinear_violation(z::AbstractVector{T}, idx_ineq, idx_soc, iy1
     κ_vio = max(κ_vio, ineq_vio)
 end
 
+function soc_value(u::AbstractVector)
+    u0 = u[1]
+    u1 = u[2:end]
+    return (u0^2 - u1' * u1)
+end
+
 function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
-        τ::T = 0.99, ϵ::T = 1e-14) where {T}
+        τ::T = 0.99, ϵ::T = 1e-14, verbose::Bool = false) where {T}
     # check Section 8.2 CVXOPT
     # The CVXOPT linear and quadratic cone program solvers
 
     # Adding to slack ϵ to make sure that we never get out of the cone
     λ0 = λ[1] #- ϵ
-    λ_λ = λ0^2      - λ[2:end]' * λ[2:end]
+    λ_λ = λ0^2 - λ[2:end]' * λ[2:end]
+    verbose && println(
+        "    vλ:", scn(soc_value(λ), digits = 0, exp_digits = 2),
+        "    vλ+Δ:", scn(soc_value(λ+Δ), digits = 0, exp_digits = 2),
+        "    λ_λ: ", scn(λ_λ, digits = 0, exp_digits = 2),
+        "    λ:", scn.(λ, digits = 0, exp_digits = 2),
+        "    Δ:", scn.(Δ, digits = 0, exp_digits = 2),
+        )
     if λ_λ < 0.0
         error("should always be positive")
     end
@@ -519,17 +441,21 @@ function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
     if norm(ρv) - ρs > 0.0
         α = min(α, τ / (norm(ρv) - ρs))
     end
+    verbose && println(
+        "     α:", scn(α, digits = 0, exp_digits = 2))
+    verbose && cone_plot(λ, Δ, show_α = true)
     return α
 end
 
 function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		idx_soc::AbstractVector{Vector{Int}}; τ::T=0.99) where {T}
+		idx_soc::AbstractVector{Vector{Int}}; τ::T=0.99, verbose::Bool = false) where {T}
         # We need to make this much more efficient (allocation free)
         # by choosing the right structure for idx_soc.
     α = 1.0
-    for idx in idx_soc
+    for (i,idx) in enumerate(idx_soc)
         # we need -Δ here because we will taking the step x - α Δ
-        α = min(α, soc_step_length(z[idx], -Δ[idx], τ = τ))
+        α = min(α, soc_step_length(z[idx], -Δ[idx], τ = τ, verbose = false))
+        # α = min(α, soc_step_length(z[idx], -Δ[idx], τ = τ, verbose = verbose))
     end
     return α
 end
@@ -556,3 +482,70 @@ function ineq_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
     α = min(ατ_p, ατ_d)
     return α
 end
+
+function cone_plot(λ::AbstractVector{T}, Δ::AbstractVector{T};
+		ϵ = 1e-20, N::Int = 100, verbose::Bool = false, show_α::Bool = false) where {T}
+	plt = plot(aspect_ratio = 1.0, fmt = :svg)
+
+	# unit circle
+	θ = Vector(0:2π/N:(1.0+1/N)*2π)
+	circ = [cos.(θ) , sin.(θ)]
+	plot!(plt, circ[1], circ[2], label = false)
+
+	# Keypoints
+	λp = project(λ)
+	λΔp = project(λ + Δ)
+	verbose && @show soc_value(λ )
+	verbose && @show soc_value(λ + Δ)
+	scatter!(plt, λΔp[1:1],  λΔp[2:2],  markersize = 4.0, color = :orange, label = "λ+Δ")
+	scatter!(plt, λp[1:1],   λp[2:2],   markersize = 8.0, color = :red,    label = "λ")
+
+	if show_α
+		α = soc_step_length(λ, Δ, τ = 1.0, ϵ = ϵ)
+		λαΔp = project(λ + α * Δ)
+		verbose && @show α
+		verbose && @show soc_value(λ + α * Δ)
+		scatter!(plt, λαΔp[1:1], λαΔp[2:2], markersize = 2.0, color = :black,   label = "λ+αΔ")
+	end
+
+	# Line
+	A = Vector(0:1/N:1.0)
+	L = [[project(λ + a * Δ)[1] for a in A], [project(λ + a * Δ)[2] for a in A]]
+	plot!(plt, L[1], L[2], label = false)
+
+	display(plt)
+	return nothing
+end
+
+function project(x::AbstractVector{T}; ϵ::T = 1e-15) where {T}
+	if length(x) == 3
+		project_3D(x, ϵ = ϵ)
+	elseif length(x) == 2
+		project_2D(x, ϵ = ϵ)
+	end
+end
+
+function project_3D(x::AbstractVector{T}; ϵ::T = 1e-15) where {T}
+	@assert length(x) == 3
+	xs = x[1]
+	xv = x[2:end]
+	r = norm(xv) / (xs + ϵ)
+	v = xv ./ norm(xv)
+	p = r * v
+	return p
+end
+
+function project_2D(x::AbstractVector{T}; ϵ::T = 1e-15) where {T}
+	@assert length(x) == 2
+	xs = x[1]
+	xv = x[2:end]
+	r = norm(xv) / (xs + ϵ)
+	v = xv ./ norm(xv)
+	p = r * v
+	return [p[1], 0.0]
+end
+
+#
+# λ = [1 + 1e-30, 1/sqrt(2), 1/sqrt(2)]
+# Δ = [2.0,-1,2]
+# cone_plot(λ, Δ, verbose = true)
