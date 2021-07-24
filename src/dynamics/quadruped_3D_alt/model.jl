@@ -206,12 +206,12 @@ function lagrangian(model::Quadruped3DAlt, q, q̇)
 
 	## LEG 1
 	# thigh 1
-	p_thigh_1 = kinematics(model, q, body = :leg1, mode = :thigh)
-	J_thigh_1 = jacobian(model, q, body = :leg1, mode = :thigh)
-	v_thigh_1 = J_thigh_1 * q̇
-
-	L += 0.5 * model.m_thigh1 * transpose(v_thigh_1) * v_thigh_1
-	L -= model.m_thigh1 * model.g * p_thigh_1[3]
+	# p_thigh_1 = kinematics(model, q, body = :leg1, mode = :thigh)
+	# J_thigh_1 = jacobian(model, q, body = :leg1, mode = :thigh)
+	# v_thigh_1 = J_thigh_1 * q̇
+	#
+	# L += 0.5 * model.m_thigh1 * transpose(v_thigh_1) * v_thigh_1
+	# L -= model.m_thigh1 * model.g * p_thigh_1[3]
 
 	# # leg 1
 	# p_calf_1 = kinematics(model, q, body = :leg1, mode = :calf)
@@ -294,6 +294,22 @@ function kinematics(model::Quadruped3DAlt, q)
 	p_leg_4 = kinematics(model, q, body = :leg4, mode = :ee)
 
 	SVector{12}([p_leg_1; p_leg_2; p_leg_3; p_leg_4])
+end
+
+function _kinematics(model::Quadruped3DAlt, q)
+	p_thigh_1 = kinematics(model, q, body = :leg1, mode = :thigh)
+	p_calf_1 = kinematics(model, q, body = :leg1, mode = :calf)
+
+	p_thigh_2 = kinematics(model, q, body = :leg2, mode = :thigh)
+	p_calf_2 = kinematics(model, q, body = :leg2, mode = :calf)
+
+	p_thigh_3 = kinematics(model, q, body = :leg3, mode = :thigh)
+	p_calf_3 = kinematics(model, q, body = :leg3, mode = :calf)
+
+	p_thigh_4 = kinematics(model, q, body = :leg4, mode = :thigh)
+	p_calf_4 = kinematics(model, q, body = :leg4, mode = :calf)
+
+	SVector{24}([p_thigh_1; p_calf_1; p_thigh_2; p_calf_2; p_thigh_3; p_calf_3; p_thigh_4; p_calf_4])
 end
 
 function ϕ_func(model::Quadruped3DAlt, env::Environment, q)
@@ -456,17 +472,17 @@ Mv = eval(Symbolics.build_function(ddlq̇v, q, v)[1])
 
 # Coriolis and Centrifugal forces Jacobians (option 1)
 C1 = ddLq̇q * q̇ - dLq
-C1 = Symbolics.simplify.(C1)
+# C1 = Symbolics.simplify.(C1)
 
 cf1 = eval(Symbolics.build_function(C1, q, q̇)[1])
-@benchmark cf1($q0, $q̇0)
+# @benchmark cf1($q0, $q̇0)
 
 
-tmp1 = transpose(dLq̇) * q̇
-C2 = Symbolics.gradient(tmp1, q) - dLq
-C2 = Symbolics.gradient(tmp1 - l, q)
-cf2 = eval(Symbolics.build_function(C2, q, q̇)[1])
-@benchmark cf2($q0, $q̇0)
+# tmp1 = transpose(dLq̇) * q̇
+# C2 = Symbolics.gradient(tmp1, q) - dLq
+# C2 = Symbolics.gradient(tmp1 - l, q)
+# cf2 = eval(Symbolics.build_function(C2, q, q̇)[1])
+# @benchmark cf2($q0, $q̇0)
 
 
 # Control input Jacobian
@@ -487,6 +503,127 @@ J = Symbolics.simplify.(J)
 # Kinematics
 k = kinematics(model, q)
 k = simplify.(k)
+
+# @variables va[1:3]
+#
+# kva = transpose(k[1:3]) * va
+# dkva = Symbolics.gradient(kva, q)
+# dkva_f = eval(Symbolics.build_function(dkva, q, va)[1])
+# # dkva_f(q0, )
+#
+# qq0 = rand(model.dim.q)
+# p_torso = kinematics(model, qq0, body = :torso)
+# J_torso = jacobian(model, qq0, body = :torso)
+# v_torso = J_torso * qq0
+
+@variables x[1:model.dim.q], v[1:model.dim.q], r[1:1]
+# g = kinematics(model, x + r .* v, body = :torso)
+
+g = _kinematics(model, x + r .* v)[1:3]
+jvp = Symbolics.derivative.(g, r)
+
+jvp_f = eval(Symbolics.build_function(jvp, x, v, r)[1])
+jvp_f(qq0, qq0, 0.0)
+
+# @benchmark jvp_f($qq0, $qq0, $0)
+# model.J_torso
+function lagrangian_alt(model::Quadruped3DAlt, q, q̇)
+	L = 0.0
+	m_vec = SVector{3}([model.m_thigh1,model.m_thigh1,model.m_thigh1])#,
+						 # model.m_calf1,model.m_calf1,model.m_calf1,
+						 # model.m_thigh2,model.m_thigh2,model.m_thigh2,
+						 # model.m_calf2,model.m_calf2,model.m_calf2,
+						 # model.m_thigh3,model.m_thigh3,model.m_thigh3,
+						 # model.m_calf3,model.m_calf3,model.m_calf3,
+						 # model.m_thigh4,model.m_thigh4, model.m_thigh4,
+						 # model.m_calf4,model.m_calf4,model.m_calf4])
+
+	Jq̇ = jvp_f(q, q̇, 0.0)
+	L += sum(Jq̇ .* m_vec .* Jq̇)
+	# BODY
+	# torso
+	p_torso = kinematics(model, q, body = :torso)
+	J_torso = jacobian(model, q, body = :torso)
+	v_torso = J_torso * q̇
+
+	L += 0.5 * model.m_torso * transpose(v_torso) * v_torso
+	L += 0.5 * transpose(q̇[4:6]) * Diagonal(model.J_torso) * q̇[4:6]
+	L -= model.m_torso * model.g * p_torso[3]
+
+	# LEG 1
+	# thigh 1
+	p_thigh_1 = kinematics(model, q, body = :leg1, mode = :thigh)
+	# J_thigh_1 = jacobian(model, q, body = :leg1, mode = :thigh)
+	# v_thigh_1 = J_thigh_1 * q̇
+	#
+	# L += 0.5 * model.m_thigh1 * transpose(v_thigh_1) * v_thigh_1
+	L -= model.m_thigh1 * model.g * p_thigh_1[3]
+
+	# leg 1
+	p_calf_1 = kinematics(model, q, body = :leg1, mode = :calf)
+	# J_calf_1 = jacobian(model, q, body = :leg1, mode = :calf)
+	# v_calf_1 = J_calf_1 * q̇
+	#
+	# L += 0.5 * model.m_calf1 * transpose(v_calf_1) * v_calf_1
+	L -= model.m_calf1 * model.g * p_calf_1[3]
+
+
+	# LEG 2
+	# thigh 2
+	p_thigh_2 = kinematics(model, q, body = :leg2, mode = :thigh)
+	# J_thigh_2 = jacobian(model, q, body = :leg2, mode = :thigh)
+	# v_thigh_2 = J_thigh_2 * q̇
+	#
+	# L += 0.5 * model.m_thigh2 * transpose(v_thigh_2) * v_thigh_2
+	L -= model.m_thigh2 * model.g * p_thigh_2[3]
+
+	# leg 2
+	p_calf_2 = kinematics(model, q, body = :leg2, mode = :calf)
+	# J_calf_2 = jacobian(model, q, body = :leg2, mode = :calf)
+	# v_calf_2 = J_calf_2 * q̇
+	#
+	# L += 0.5 * model.m_calf2 * transpose(v_calf_2) * v_calf_2
+	L -= model.m_calf2 * model.g * p_calf_2[3]
+
+
+	# LEG 3
+	# thigh 3
+	p_thigh_3 = kinematics(model, q, body = :leg3, mode = :thigh)
+	# J_thigh_3 = jacobian(model, q, body = :leg3, mode = :thigh)
+	# v_thigh_3 = J_thigh_3 * q̇
+	#
+	# L += 0.5 * model.m_thigh3 * transpose(v_thigh_3) * v_thigh_3
+	L -= model.m_thigh3 * model.g * p_thigh_3[3]
+
+	# leg 3
+	p_calf_3 = kinematics(model, q, body = :leg3, mode = :calf)
+	# J_calf_3 = jacobian(model, q, body = :leg3, mode = :calf)
+	# v_calf_3 = J_calf_3 * q̇
+	#
+	# L += 0.5 * model.m_calf3 * transpose(v_calf_3) * v_calf_3
+	L -= model.m_calf3 * model.g * p_calf_3[3]
+
+	# LEG 4
+	# thigh 4
+	p_thigh_4 = kinematics(model, q, body = :leg4, mode = :thigh)
+	# J_thigh_4 = jacobian(model, q, body = :leg4, mode = :thigh)
+	# v_thigh_4 = J_thigh_4 * q̇
+	#
+	# L += 0.5 * model.m_thigh4 * transpose(v_thigh_4) * v_thigh_4
+	L -= model.m_thigh4 * model.g * p_thigh_4[3]
+
+	# leg 4
+	p_calf_4 = kinematics(model, q, body = :leg4, mode = :calf)
+	# J_calf_4 = jacobian(model, q, body = :leg4, mode = :calf)
+	# v_calf_4 = J_calf_4 * q̇
+	#
+	# L += 0.5 * model.m_calf4 * transpose(v_calf_4) * v_calf_4
+	L -= model.m_calf4 * model.g * p_calf_4[3]
+
+	return L
+end
+
+l = lagrangian_alt(model, q, q̇)
 
 # Build function
 expr = Dict{Symbol, Expr}()
@@ -513,7 +650,7 @@ Mv(q0, v0)
 # end
 #
 # lagrangian_derivatives(q, v)
-#
+
 function dynamics(h, q0, q1, u1, q2)
 	# evalutate at midpoint
 	qm1 = 0.5 * (q0 + q1)
@@ -594,3 +731,39 @@ d = dynamics(h, q0, q1, u1, q2)
 # # # Dynamics
 # # d = dynamics(model, h, q0, q1, u1, w1, λ1, q2)
 # # d = Symbolics.simplify.(d)
+
+
+## Efficient code-gen
+
+function lagrangian(model::Quadruped3DAlt, q, q̇)
+	L = 0.0
+
+	## BODY
+	# torso
+	p_torso = kinematics(model, q, body = :torso)
+	J_torso = jacobian(model, q, body = :torso)
+	v_torso = J_torso * q̇
+
+	L += 0.5 * model.m_torso * transpose(v_torso) * v_torso
+	L += 0.5 * transpose(q̇[4:6]) * Diagonal(model.J_torso) * q̇[4:6]
+	L -= model.m_torso * model.g * p_torso[3]
+
+	## LEG 1
+	# thigh 1
+	# p_thigh_1 = kinematics(model, q, body = :leg1, mode = :thigh)
+	# J_thigh_1 = jacobian(model, q, body = :leg1, mode = :thigh)
+	# v_thigh_1 = J_thigh_1 * q̇
+	#
+	# L += 0.5 * model.m_thigh1 * transpose(v_thigh_1) * v_thigh_1
+	# L -= model.m_thigh1 * model.g * p_thigh_1[3]
+
+	# # leg 1
+	# p_calf_1 = kinematics(model, q, body = :leg1, mode = :calf)
+	# J_calf_1 = jacobian(model, q, body = :leg1, mode = :calf)
+	# v_calf_1 = J_calf_1 * q̇
+	#
+	# L += 0.5 * model.m_calf1 * transpose(v_calf_1) * v_calf_1
+	# L -= model.m_calf1 * model.g * p_calf_1[3]
+
+	return L
+end

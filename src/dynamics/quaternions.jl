@@ -110,7 +110,9 @@ end
 
 function candidate_point!(z̄::Vector{T}, s::RnQuaternion, z::Vector{T}, Δ::Vector{T}, α::T) where T
     z̄[s.r_idx] .= z[s.r_idx] - α .* Δ[s.Δr_idx]
-	z̄[s.quat_idx] .= L_multiply(z[s.quat_idx]) * cayley_map(-1.0 * α .* Δ[s.Δquat_idx])
+	for i = 1:length(s.quat_idx)
+		z̄[s.quat_idx[i]] .= L_multiply(z[s.quat_idx[i]]) * cayley_map(-1.0 * α .* Δ[s.Δquat_idx[i]])
+	end
 	return nothing
 end
 

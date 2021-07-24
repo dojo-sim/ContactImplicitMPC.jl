@@ -9,11 +9,11 @@ T = 25
 rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model, s.env, x),
 			collect([(1:3)..., (8:num_var(s.model, s.env))...]),
 			collect([(1:3)..., (7:num_var(s.model, s.env)-1)...]),
-			collect((4:7)),
-			collect((4:6)))
+			[collect((4:7))],
+			[collect((4:6))])
 
 # initial conditions
-r0 = [-1.5; 0.0; 0.5]
+r0 = [-1.5; 0.0; 1.5]
 v0 = [8.0; 0.0; 0.0]
 
 quat0 = [1.0; 0.0; 0.0; 0.0]
@@ -37,10 +37,9 @@ sim = ContactControl.simulator(s, q0, q1, h, T,
 	sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
 # simulate
-@time status = ContactControl.simulate!(sim)
+@time ContactControl.simulate!(sim)
 @test status
 @test all([norm(q[4:7]) ≈ 1.0 for q in sim.traj.q])
-
 include(joinpath(module_dir(), "src/dynamics/box/visuals.jl"))
 vis = Visualizer()
 render(vis)

@@ -222,14 +222,11 @@ function soc_indices(model::ContactModel, env::Environment{<:World,NonlinearCone
 	nb = nc * nf
 
 	b_idx = nq + nc .+ (1:nb)
-	ψη_idx = nq + nc + nb .+ (1:(nb + nc))
+	η_idx = nq + nc + nb .+ (1:(nb + nc))
 	s2_idx = nq + nc + nb + nb + nc + nc .+ (1:nc)
 
 	pr_idx = [[s2_idx[i]; b_idx[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
-	#TODO need to rearrange this a bit
-	# we need to be consistent ψη_idx is ordering the full cones (cone = scalar part + vector part) one after the other
-	# where as s2_idx b_idx are putting the scalar part of the cones first, then we have the vector parts
-	du_idx = [[ψη_idx[(i - 1) * ne .+ (1:ne)]...] for i = 1:nc]
+	du_idx = [[η_idx[(i - 1) * ne .+ (1:ne)]...] for i = 1:nc]
 
 	[pr_idx..., du_idx...]
 end
@@ -285,31 +282,11 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	 vcat([second_order_cone_product(η1[(i - 1) * ne .+ (1:ne)], [s2[i]; b1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]) - [κ; zeros(ne - 1)] for i = 1:model.dim.c]...)]
 end
 
-function residual_mehrotra(model::ContactModel, env::Environment{<:World, LinearizedCone}, z, Δz, θ, κ)
+function residual(model::ContactModel, env::Environment, z, Δz, θ, κ)
 	ix, iy1, iy2 = linearization_var_index(model, env)
 	idyn, irst, ibil, ialt = linearization_term_index(model, env)
 	rm = residual(model, env, z, θ, κ)
 	rm[ibil] .+= Δz[iy1] .* Δz[iy2]
-	return rm
-end
-
-function residual_mehrotra(model::ContactModel, env::Environment{<:World, NonlinearCone}, z, Δz, θ, κ)
-	nc = model.dim.c
-	nb = nc * friction_dim(env)
-	ne = dim(env)
-
-	idyn, irst, ibil, ialt = linearization_term_index(model, env)
-	Δq2, Δγ1, Δb1, Δη1, Δs1, Δs2 = unpack_z(model, env, Δz)
-	rm = residual(model, env, z, θ, κ)
-
-	# Positive orthant
-	rm[ibil[1:nc]] .+= Δγ1 .* Δs1
-	# SOC
-	rm[ibil[nc .+ (1:nc + nb)]] .+= vcat(
-		[second_order_cone_product(
-			Δη1[(i - 1) * ne .+ (1:ne)],
-			[Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]
-		]) for i = 1:nc]...)
 	return rm
 end
 
