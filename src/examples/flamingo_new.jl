@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 3000 #35000
+H_sim = 150 #35000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -93,9 +93,9 @@ q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 #     sim_opts = SimulatorOptions(warmstart = true),
 # 	ip_type = :mehrotra,
 #     )
-
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
+	# p = open_loop_policy(ref_traj.u, N_sample = N_sample),
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
         κ_init = 1.0e-8,
@@ -141,6 +141,15 @@ anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample=10
 
 
 
+#
+# filename = "flamingo_open_loop"
+# MeshCat.convert_frames_to_video(
+#     "/home/simon/Downloads/$filename.tar",
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+#
+# convert_video_to_gif(
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)
 
 
 

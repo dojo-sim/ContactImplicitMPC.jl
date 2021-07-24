@@ -3,6 +3,9 @@ include(joinpath(module_dir(), "src/dynamics/particle_2D/visuals.jl"))
 vis = Visualizer()
 open(vis)
 
+include(joinpath(module_dir(), "src", "solver", "interior_point.jl"))
+include(joinpath(module_dir(), "src", "solver", "interior_point_latest.jl"))
+
 ################################################################################
 # Parameters
 ################################################################################
@@ -94,19 +97,19 @@ plot(hcat(Vector.(sim.traj.θ)...)')
 # 	load_type = :joint_traj))
 # plot(hcat(Vector.(traj.q)...)')
 
-
 ################################################################################
-# Non Linear Cone (Mehrotra)
+# Non Linear Cone (InteriorPoint Latest)
 ################################################################################
 s = get_simulation("particle_2D", "flat_2D_nc", "flat_nc")
 s.model.μ_world = 0.5
 
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
-	ip_type = :mehrotra_latest,
-	ip_opts = Mehrotra113Options(
+	ip_type = :interior_point_latest,
+	ip_opts = ContactControl.InteriorPoint115Options(
 		r_tol = tol, κ_tol = tol,
 		diff_sol = false,
+		verbose = false,
 		solver = :lu_solver),
 	sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
@@ -127,10 +130,12 @@ plot!(plt, hcat(Vector.([b[1:end] for b in sim.traj.b])...)', color=:black, line
 plot(hcat(Vector.(sim.traj.z)...)')
 plot(hcat(Vector.(sim.traj.θ)...)')
 
+
 ################################################################################
 # Dev
 ################################################################################
 s = get_simulation("particle_2D", "flat_2D_nc", "flat_nc")
+s.model.μ_world = 0.5
 model = s.model
 env = s.env
 
@@ -138,80 +143,108 @@ traj = deepcopy(get_trajectory(s.model, s.env,
 	joinpath(module_dir(), "src/dynamics/particle_2D/gaits/gait_NC.jld2"),
 	load_type = :joint_traj))
 
-plot(hcat(Vector.(traj.z)...)')
-plot(hcat(Vector.(traj.θ)...)')
-
-t = 144
-z = deepcopy(traj.z[t])
-θ = deepcopy(traj.θ[t])
 r_tol = 1e-8
 κ_tol = 1e-8
 
-ip = mehrotra_latest(z, θ,
-	ix = linearization_var_index(model, env)[1],
-	iy1 = linearization_var_index(model, env)[2],
-	iy2 = linearization_var_index(model, env)[3],
-	idyn = linearization_term_index(model, env)[1],
-	irst = linearization_term_index(model, env)[2],
-	ibil = linearization_term_index(model, env)[3],
-	idx_ineq = inequality_indices(model, env),
-	idx_soc = soc_indices(model, env),
-	r! = s.res.r!,
-	rm! = s.res.rm!,
-	rz! = s.res.rz!,
-	rθ! = s.res.rθ!,
-	rz = s.rz,
-	rθ = s.rθ,
-	opts = Mehrotra113Options(
-		max_iter_inner = 20,
-		r_tol = r_tol,
-		κ_tol = κ_tol,
-		κ_reg = 1e-3,
-		γ_reg = 1.0,
-		ls_relaxation = Inf,
-		verbose = true,
-		))
+iter = 0
+for t = 1:T
+	z = deepcopy(traj.z[t])
+	θ = deepcopy(traj.θ[t])
 
-interior_point_solve!(ip, z+ones(length(z)), θ)
-ip.r[ip.idyn]
-ip.r[ip.irst]
-ip.r[ip.ibil]
-ip.Δ[ip.idyn]
-ip.Δ[ip.irst]
-ip.Δ[ip.ibil]
+	ip = interior_point_latest(z, θ,
+		ix = linearization_var_index(model, env)[1],
+		iy1 = linearization_var_index(model, env)[2],
+		iy2 = linearization_var_index(model, env)[3],
+		idyn = linearization_term_index(model, env)[1],
+		irst = linearization_term_index(model, env)[2],
+		ibil = linearization_term_index(model, env)[3],
+		idx_ineq = inequality_indices(model, env),
+		idx_soc = soc_indices(model, env),
+		r! = s.res.r!,
+		rm! = s.res.rm!,
+		rz! = s.res.rz!,
+		rθ! = s.res.rθ!,
+		rz = s.rz,
+		rθ = s.rθ,
+		opts = InteriorPoint115Options(
+			max_iter_inner = 20,
+			max_ls = 20,
+			r_tol = r_tol,
+			κ_tol = κ_tol,
+			solver = :lu_solver,
+			diff_sol = false,
+			# verbose = true,
+			))
 
-nq = s.model.dim.q
-ip.θ[1:nq]
-ip.θ[nq .+ (1:nq)]
-ip.z[1:nq]
+	z0 = ones(length(z))
+	z_initialize!(z0, model, env, deepcopy(traj.q[t+1]))
+	interior_point_solve!(ip, z0, θ)
+	norm(ip.z - deepcopy(traj.z[t]))
 
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
-a = 10
+	iter += ip.iterations
+	end
+mean_iter = iter / T
 
 
 
 
 
+################################################################################
+# Original IP
+################################################################################
+s = get_simulation("particle_2D", "flat_2D_nc", "flat_nc")
+s.model.μ_world = 0.5
+model = s.model
+env = s.env
 
+traj = deepcopy(get_trajectory(s.model, s.env,
+	joinpath(module_dir(), "src/dynamics/particle_2D/gaits/gait_NC.jld2"),
+	load_type = :joint_traj))
 
+r_tol = 1e-8
+κ_tol = 1e-8
+
+iter = 0
+for t = 1:T
+	z = deepcopy(traj.z[t])
+	θ = deepcopy(traj.θ[t])
+
+	ip = interior_point(z, θ,
+		ix = linearization_var_index(model, env)[1],
+		iy1 = linearization_var_index(model, env)[2],
+		iy2 = linearization_var_index(model, env)[3],
+		idyn = linearization_term_index(model, env)[1],
+		irst = linearization_term_index(model, env)[2],
+		ibil = linearization_term_index(model, env)[3],
+		idx_ineq = inequality_indices(model, env),
+		idx_soc = soc_indices(model, env),
+		r! = s.res.r!,
+		rm! = s.res.rm!,
+		rz! = s.res.rz!,
+		rθ! = s.res.rθ!,
+		rz = s.rz,
+		rθ = s.rθ,
+		opts = InteriorPointOptions(
+			# max_iter_inner = 20,
+			max_ls = 20,
+			r_tol = r_tol,
+			κ_tol = κ_tol,
+			κ_scale = 1e-1,
+			# κ_init = 1e-3,
+			solver = :lu_solver,
+			diff_sol = false,
+			# verbose = true,
+			))
+
+	z0 = ones(length(z))
+	z_initialize!(z0, model, env, deepcopy(traj.q[t+1]))
+	interior_point_solve!(ip, z0, θ)
+	norm(ip.z - deepcopy(traj.z[t]))
+
+	iter += ip.iterations
+end
+mean_iter = iter / T
+32.2 / 6.31
 
 
 

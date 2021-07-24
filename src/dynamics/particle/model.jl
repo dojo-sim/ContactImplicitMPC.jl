@@ -26,7 +26,7 @@ end
 function lagrangian(model::Particle, q, q̇)
 	L = 0.0
 
-	L += 0.5 * model.m * transpose(q̇) * q̇
+	L += 0.5 * model.m * (transpose(q̇) * q̇)
 	L -= model.m * model.g * q[3]
 
 	return L
