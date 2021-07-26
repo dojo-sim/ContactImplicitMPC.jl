@@ -5,6 +5,14 @@ struct Body
 	gravity
 end
 
+function rotation_axes(q1, q2)
+	return multiply(conjugate(q1), q2)[2:4]
+end
+
+function get_quaternion(q)
+	return q[4:7]
+end
+
 function G_func(::Body, q)
 	quat = q[4:7]
 	[1.0 0.0 0.0 0.0 0.0 0.0;
@@ -112,12 +120,19 @@ d_func = eval(Symbolics.build_function(d, h, q0, q1, q2, f1, f2, τ1)[1])
 
 d_func([1.0], ones(7), ones(7), ones(7), ones(3), ones(3), ones(3))
 
+x_mask_axis = [0.0 0.0;
+               1.0 0.0;
+			   0.0 1.0]
+
 function residual(z, θ, κ)
 	q2_link1 = z[1:7]
 	q2_link2 = z[7 .+ (1:7)]
 
 	f_world_to_link1 = z[2 * 7 .+ (1:3)]
 	f_link1_to_link2 = z[2 * 7 + 3 .+ (1:3)]
+
+	τ_world_to_link1 = z[2 * 7 + 2 * 3 .+ (1:2)]
+	# τ_link1_to_link2 = z[2 * 7 + 2 * 3 + 2 .+ (1:2)]
 
 	q0_link1 = θ[1:7]
 	q0_link2 = θ[7 .+ (1:7)]
@@ -128,6 +143,9 @@ function residual(z, θ, κ)
 	f_link2 = θ[4 * 7 .+ (1:3)]
 	τ_link1 = θ[4 * 7 + 3 .+ (1:3)]
 	τ_link2 = θ[4 * 7 +  2 * 3 .+ (1:3)]
+
+	rot_world_l1 = rotation_axes(get_quaternion(q2_link1), [1.0; 0.0; 0.0; 0.0])
+	rot_world_l1 = rotation_axes(get_quaternion(q2_link1), [1.0; 0.0; 0.0; 0.0])
 
 	h = θ[4 * 7 + 3 * 3 .+ (1:1)]
 
@@ -203,10 +221,10 @@ p1_link2 = [0.0; 3 * body.length; 0.0]
 quat1_link2 = copy(quat0_link2)
 q1_link2 = [p1_link2; quat1_link2]
 
-h = 0.05
+h = 0.1
 f_link2 = zeros(3)
-τ_link1 = [0.0; 0.0; 0.1]
-τ_link2 = [0.0; 0.0; -0.1]
+τ_link1 = [0.0; 0.0; 0.0]
+τ_link2 = [0.0; 0.0; 0.0]
 θ0 = [q0_link1; q0_link2; q1_link1; q1_link2; f_link2; τ_link1; τ_link2; h]
 z0 = copy([q1_link1; q1_link2; 0.0 * randn(6)])
 
@@ -219,7 +237,7 @@ ip = ContactControl.interior_point(z0, θ0,
 	opts = opts)
 
 # solve
-T = 100
+T = 20
 q_hist = [[q0_link1; q0_link2], [q1_link1; q1_link2]]
 
 for t = 1:T-2

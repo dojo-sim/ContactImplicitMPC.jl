@@ -84,7 +84,7 @@ function dynamics(model::Body, h, q0, q1, q2, f1, f2, τ1)
     qm2 = [0.5 * (p1 + p2); zeros(4)]
     vm2 = [(p2 - p1) / h[1]; ω2]
 
-	d_linear = model.mass * (vm1[1:3] - vm2[1:3]) - h[1] * model.mass * model.gravity
+	d_linear = model.mass * (vm1[1:3] - vm2[1:3]) + h[1] * model.mass * model.gravity
 	d_angular = (model.inertia * ω2 * sqrt(4.0 / h[1]^2.0 - transpose(ω2) * ω2)
 		+ cross(ω2, model.inertia * ω2)
 		- model.inertia * ω1 * sqrt(4.0 / h[1]^2.0 - transpose(ω1) * ω1)
@@ -113,49 +113,38 @@ d_func = eval(Symbolics.build_function(d, h, q0, q1, q2, f1, f2, τ1)[1])
 d_func([1.0], ones(7), ones(7), ones(7), ones(3), ones(3), ones(3))
 
 function residual(z, θ, κ)
-	q2_link1 = z[1:7]
-	q2_link2 = z[7 .+ (1:7)]
+	q2 = z[1:7]
+	f2 = z[8:10]
 
-	f_world_to_link1 = z[2 * 7 .+ (1:3)]
-	f_link1_to_link2 = z[2 * 7 + 3 .+ (1:3)]
+	q0 = θ[1:7]
+	q1 = θ[7 .+ (1:7)]
 
-	q0_link1 = θ[1:7]
-	q0_link2 = θ[7 .+ (1:7)]
+	f1 = θ[14 .+ (1:3)]
+	# f2 = θ[17 .+ (1:3)]
+	τ1 = θ[17 .+ (1:3)]
 
-	q1_link1 = θ[2 * 7 .+ (1:7)]
-	q1_link2 = θ[3 * 7 .+ (1:7)]
+	h = θ[21:21]
 
-	f_link2 = θ[4 * 7 .+ (1:3)]
-	τ_link1 = θ[4 * 7 + 3 .+ (1:3)]
-	τ_link2 = θ[4 * 7 +  2 * 3 .+ (1:3)]
-
-	h = θ[4 * 7 + 3 * 3 .+ (1:1)]
-
-	[
-	 d_func(h, q0_link1, q1_link1, q2_link1, f_world_to_link1, f_link1_to_link2, τ_link1); # link 1 dynamics
-	 d_func(h, q0_link2, q1_link2, q2_link2, -f_link1_to_link2, f_link2, τ_link2) # link 2 dynamics
-	 k2_func(q2_link1); # link 1 to world
-	 k1_func(q2_link1) - k2_func(q2_link2)
-	 ]
-
-	# [d_func(h, q0_link1, q1_link1, q2_link1, f_link1_to_link2, f_world_to_link1, τ_link1); # link 1 dynamics
-	#  d_func(h, q0_link2, q1_link2, q2_link2, f_link2, -f_link1_to_link2, τ_link2) # link 2 dynamics
-	#  k2_func(q2_link1); # link 1 to world
-	#  k1_func(q2_link1) - k2_func(q2_link2) # link 1 to link 2
-	#  ]
+	# f1 = θ[14 .+ (1:3)]
+	# f2 = θ[17 .+ (1:3)]
+	# τ1 = θ[20 .+ (1:3)]
+	#
+	# h = θ[24:24]
+	# d_func(h, q0, q1, q2, f1, zeros(3), τ1)
+	[d_func(h, q0, q1, q2, f1, f2, τ1);
+	 k2_func(q2)]
 end
 
-num_bodies = 2
-nz = num_bodies * nq + 3 * 2
-nθ = num_bodies * (2 * nq) + 3 * 3 + 1
+num_bodies = 1
+nz = num_bodies * nq + 3
+nθ = 21
 @variables z[1:nz], θ[1:nθ], κ[1:1]
 
-tmp = Array(Diagonal(ones(6)))
+# tmp = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
+tmp = Array(Diagonal(ones(3)))
 function Gz_func(body::Body, q)
-	q_link1 = q[1:nq]
-	q_link2 = q[nq .+ (1:nq)]
-
-	cat(G_func(body, q_link1), G_func(body, q_link2),  tmp, dims=(1, 2))
+	# G_func(body, q)
+	cat(G_func(body, q), tmp, dims=(1, 2))
 end
 
 r = residual(z, θ, κ)
@@ -169,46 +158,33 @@ rz = similar(∇r, Float64)
 # options
 opts = ContactControl.InteriorPointOptions(diff_sol = false)
 
-r_func(zeros(nz-2), ones(nz), ones(nθ), 1.0)
 ∇r_func(rz, ones(nz), ones(nθ))
 
 # Rn + quaternion space
-rq_space = rn_quaternion_space(nz - 2, x -> Gz_func(body, x),
-			collect([(1:3)..., (8:10)..., (15:20)...]),
-			collect([(1:3)..., (7:9)..., (13:18)...]),
-			[collect(4:7), collect(11:14)],
-			[collect(4:6), collect(10:12)])
+rq_space = rn_quaternion_space(nz-1, x -> Gz_func(body, x),
+			collect([(1:3)..., (8:10)...]),
+			collect([(1:3)..., (7:9)...]),
+			[collect(4:7)],
+			[collect(4:6)])
 
-p0_link1 = [0.0; body.length; 0.0]
-# p0_link1 = [0.0; 0.0; body.length]
-_quat0_link1 = UnitQuaternion(AngleAxis(-0.5 * π, 1.0, 0.0, 0.0))
-# _quat0_link1 = one(UnitQuaternion)
-quat0_link1 = [Rotations.scalar(_quat0_link1); Rotations.vector(_quat0_link1)...]
-q0_link1 = [p0_link1; quat0_link1]
+p0 = [0.0; 0.0; 0.0]
+_quat0 = UnitQuaternion(AngleAxis(-0.5 * π, 1.0, 0.0, 0.0))
+# _quat0 = one(UnitQuaternion)
+quat0 = [Rotations.scalar(_quat0); Rotations.vector(_quat0)...]
+q0 = [p0; quat0]
 
-p1_link1 = [0.0; body.length; 0.0]
-# p0_link1 = [0.0; 0.0; body.length]
-quat1_link1 = copy(quat0_link1)
-q1_link1 = [p1_link1; quat1_link1]
+p1 = [0.0; 0.0; 0.0]
+quat1 = copy(quat0)
+q1 = [p1; quat1]
 
-p0_link2 = [0.0; 3 * body.length; 0.0]
-# p0_link2 = [0.0; 0.0; 3 * body.length]
-_quat0_link2 = UnitQuaternion(AngleAxis(-0.5 * π, 1.0, 0.0, 0.0))
-# _quat0_link2 = one(UnitQuaternion)
-quat0_link2 = [Rotations.scalar(_quat0_link2); Rotations.vector(_quat0_link2)...]
-q0_link2 = [p0_link2; quat0_link2]
-
-p1_link2 = [0.0; 3 * body.length; 0.0]
-# p1_link2 = [0.0; 0.0; 3 * body.length]
-quat1_link2 = copy(quat0_link2)
-q1_link2 = [p1_link2; quat1_link2]
+f1 = [0.0; 0.0; 0.0]
+f2 = [0.0; 0.0; 0.0]
+τ1 = [0.1; 0.0; 0.0]
 
 h = 0.05
-f_link2 = zeros(3)
-τ_link1 = [0.0; 0.0; 0.1]
-τ_link2 = [0.0; 0.0; -0.1]
-θ0 = [q0_link1; q0_link2; q1_link1; q1_link2; f_link2; τ_link1; τ_link2; h]
-z0 = copy([q1_link1; q1_link2; 0.0 * randn(6)])
+θ0 = [q0; q1; f1; τ1; 0.1]
+z0 = copy([q1; zeros(3)])
+# z0 = copy(q1)
 
 # solver
 ip = ContactControl.interior_point(z0, θ0,
@@ -220,13 +196,14 @@ ip = ContactControl.interior_point(z0, θ0,
 
 # solve
 T = 100
-q_hist = [[q0_link1; q0_link2], [q1_link1; q1_link2]]
+q_hist = [q0, q1]
 
 for t = 1:T-2
-	ip.θ .= [q_hist[end-1]; q_hist[end]; f_link2; τ_link1; τ_link2; h]
-	ip.z .= copy([q_hist[end]; 0.0 * randn(6)])
+	ip.θ .= [q_hist[end-1]; q_hist[end]; f1; τ1; h]
+	ip.z .= copy([q_hist[end]; zeros(3)])
+	# ip.z .= copy(q_hist[end])
 	status = ContactControl.interior_point_solve!(ip)
-	push!(q_hist, ip.z[1:(2 * nq)])
+	push!(q_hist, ip.z[1:nq])
 end
 
 function visualize!(vis, model::Body, q;
@@ -236,13 +213,7 @@ function visualize!(vis, model::Body, q;
 
 	r = model.length
 
-    setobject!(vis["link1"], GeometryBasics.Rect(Vec(-0.1 * r,
-		-0.1 * r,
-		-1.0 * r),
-		Vec(0.2 * r, 0.2 * r, 2.0 * r)),
-		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-
-	setobject!(vis["link2"], GeometryBasics.Rect(Vec(-0.1 * r,
+    setobject!(vis["box"], GeometryBasics.Rect(Vec(-0.1 * r,
 		-0.1 * r,
 		-1.0 * r),
 		Vec(0.2 * r, 0.2 * r, 2.0 * r)),
@@ -252,10 +223,8 @@ function visualize!(vis, model::Body, q;
 
     for t = 1:length(q)
         MeshCat.atframe(anim, t) do
-            settransform!(vis["link1"],
+            settransform!(vis["box"],
 				compose(Translation(q[t][1:3]...), LinearMap(UnitQuaternion(q[t][4:7]...))))
-			settransform!(vis["link2"],
-				compose(Translation(q[t][7 .+ (1:3)]...), LinearMap(UnitQuaternion(q[t][7 .+ (4:7)]...))))
         end
     end
     MeshCat.setanimation!(vis, anim)
