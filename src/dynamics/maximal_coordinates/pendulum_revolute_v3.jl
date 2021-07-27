@@ -28,6 +28,10 @@ link = Body(Diagonal(1.0 * ones(3)),
 			[0.0; 0.0; 0.0 * 9.81])
 nq = 7
 
+rot_axis = [1.0; 0.0; 0.0]
+nrot_axis = [0.0; 1.0; 1.0]
+rot_ϵ = 0.001
+
 @variables q0[1:nq], q1[1:nq], q2[1:nq], r[1:3]
 
 function kinematics(r, q)
@@ -103,7 +107,6 @@ x_axis_mask = [0.0 0.0;
                1.0 0.0;
 			   0.0 1.0]
 
-quat_world = copy(quat0)
 function residual(z, θ, κ)
 	q2 = z[1:nq]
 	_f = z[8:10]
@@ -116,18 +119,30 @@ function residual(z, θ, κ)
 
 	h = θ[15:15]
 
-	# quat_world = [1.0; 0.0; 0.0; 0.0]
+	quat_world = [1.0; 0.0; 0.0; 0.0]
 	ra = ra_func(quat2, quat_world)
 
 	f = transpose(∇k_func(link.kinematics[2], q2)) * _f
 	τ = transpose(dra_func(quat2, quat_world)) * x_axis_mask * _τ
-	u = [0.0; 0.0; 0.0]
+	u = transpose(quaternion_rotation_matrix(quat2)) * [0.5; 0.0; 0.5]
 	[
 	 d_func(h, q0, q1, q2, f, τ + u); # dynamics
-	 k_func(zeros(3), q2); # position constraint
-	 transpose(x_axis_mask) * ra_func(quat2, quat_world)
+	 k_func(link.kinematics[2], q2); # position constraint
 	 ]
 end
+
+q_world = [0.0; 0.0; 0.0; 1.0; 0.0; 0.0; 0.0]
+q0 = [0.0; 0.0; 0.5; 1.0; 0.0; 0.0; 0.0]
+
+function revolute_joint(z)
+	q0 = z[1:nq]
+
+	return [k_func(rot_ϵ * rot_axis, q_world) - k_func(rot_ϵ * rot_axis + link.kinematics[2], q0);
+	        (k_func(-rot_ϵ * rot_axis, q_world) - k_func(-rot_ϵ * rot_axis + link.kinematics[2], q0))]
+end
+
+revolute_joint(q0)
+svd(ForwardDiff.jacobian(revolute_joint, q0))
 
 num_bodies = 1
 nz = num_bodies * nq + 3 + 2
@@ -159,12 +174,12 @@ rq_space = rn_quaternion_space(11, x -> Gz_func(x),
 			[collect(4:7)],
 			[collect(4:6)])
 
-p0 = [0.0; 0.0; 0.0]
-_quat0 = UnitQuaternion(AngleAxis(0.5 * π, 1.0, 1.0, 0.0))
+p0 = [0.0; 0.5; 0.0]
+_quat0 = UnitQuaternion(AngleAxis(-0.5 * π, 1.0, 0.0, 0.0))
 quat0 = [Rotations.scalar(_quat0); Rotations.vector(_quat0)...]
 q0 = [p0; quat0]
 
-p1 = [0.0; 0.0; 0.0]
+p1 = [0.0; 0.5; 0.0]
 quat1 = copy(quat0)
 q1 = [p1; quat1]
 
@@ -181,7 +196,7 @@ ip = ContactControl.interior_point(z0, θ0,
 	opts = opts)
 
 # solve
-T = 25
+T = 10
 q_hist = [q0, q1]
 
 for t = 1:T-2

@@ -31,7 +31,7 @@ floating_base = Body(Diagonal(1.0 * ones(3)),
 					  [0.5 * fb_length, -0.5 * fb_width, 0.0],
 					  [-0.5 * fb_length, 0.5 * fb_width, 0.0],
 					  [-0.5 * fb_length, -0.5 * fb_width, 0.0]],
-					 [0.0; 0.0; 1.0 * 9.81])
+					 [0.0; 0.0; 0.0 * 9.81])
 
 # link
 link_length = 0.25
@@ -121,7 +121,7 @@ d_fb_func([1.0], ones(7), ones(7), ones(7), ones(3), ones(3))
 links = [link, link, link]
 N = length(links)
 nf = 3
-nr = 1
+nr = 3
 
 x_axis_mask = [0.0 0.0;
 			   1.0 0.0;
@@ -155,7 +155,7 @@ rot_off_fb_l1 = ra_func(get_quaternion(q1_fb), get_quaternion(q1_l1))
 
 # link 2
 p0_l2 = p1_l1 + [0.0; 0.5 * link_length; -0.5 * link_length]
-_quat0_l2 = one(UnitQuaternion)
+_quat0_l2 = UnitQuaternion(AngleAxis(0.0 * π, 0.0, 1.0, 0.0))
 quat0_l2 = [Rotations.scalar(_quat0_l2); Rotations.vector(_quat0_l2)...]
 q0_l2 = [p0_l2; quat0_l2]
 
@@ -167,7 +167,7 @@ rot_off_l1_l2 = ra_func(get_quaternion(q1_l1), get_quaternion(q1_l2))
 
 # link 3
 p0_l3 = p0_l2 + [0.0; 0.0; -1.0 * link_length]
-_quat0_l3 = one(UnitQuaternion)
+_quat0_l3 = UnitQuaternion(AngleAxis(0.0 * π, 0.0, 1.0, 0.0))
 quat0_l3 = [Rotations.scalar(_quat0_l3); Rotations.vector(_quat0_l3)...]
 q0_l3 = [p0_l3; quat0_l3]
 
@@ -178,6 +178,12 @@ q1_l3 = [p1_l3; quat1_l3]
 rot_off_l2_l3 = ra_func(get_quaternion(q1_l2), get_quaternion(q1_l3))
 
 function residual(z, θ, κ)
+
+	#
+	u1 = [0.0; 0.0; 0.0]
+	u2 = [0.0; 0.1; 0.0]
+	u3 = [0.0; 0.0; 1.0]
+
 	# floating base
 	q2_fb = z[1:nq]
 
@@ -201,25 +207,29 @@ function residual(z, θ, κ)
 
 	[
 	 d_fb_func(h, q0_fb, q1_fb, q2_fb,
-	 	-transpose(∇k_func(floating_base.kinematics[1], q2_fb)) * f1[1], -x_axis_mask * w1[1]);
-		# -transpose(dra_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]))) * x_axis_mask * w1[1]);#-x_axis_mask * w1[1] - u1); # link 1 dynamics
+	 	-transpose(∇k_func(floating_base.kinematics[1], q2_fb)) * f1[1],
+		-transpose(dra_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]))) * x_axis_mask * w1[1]
+			-u1); # link 1 dynamics
 	 d_link_func(h, q0_links[1], q1_links[1], q2_links[1],
-	 	transpose(∇k_func(link.kinematics[2], q2_links[1])) * f1[1] - transpose(∇k_func(link.kinematics[1], q2_links[1])) * f1[2], x_axis_mask * w1[1]);
-		# transpose(dra_func(get_quaternion(q2_links[1]), get_quaternion(q2_fb))) * x_axis_mask * w1[1]
-		# 	-transpose(dra_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]))) * y_axis_mask * w1[2]);#x_axis_mask * w1[1]);# - y_axis_mask * w1[2] + u1 - u2); # link 2 dynamics
+	 	transpose(∇k_func(link.kinematics[2], q2_links[1])) * f1[1] - transpose(∇k_func(link.kinematics[1], q2_links[1])) * f1[2],
+		transpose(dra_func(get_quaternion(q2_links[1]), get_quaternion(q2_fb))) * x_axis_mask * w1[1]
+			-transpose(dra_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]))) * y_axis_mask * w1[2]
+			+ u1 - u2); # link 2 dynamics
 	 d_link_func(h, q0_links[2], q1_links[2], q2_links[2],
-	 	transpose(∇k_func(link.kinematics[1], q2_links[2])) * f1[2] - transpose(∇k_func(link.kinematics[2], q2_links[2])) * f1[3], zeros(3));
-	 	# transpose(dra_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[1]))) * y_axis_mask * w1[2]
-		# 	-transpose(dra_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]))) * y_axis_mask * w1[3]);#y_axis_mask * w1[2] - y_axis_mask * w1[3] + u2 - u3); # link 2 dynamics
+	 	transpose(∇k_func(link.kinematics[1], q2_links[2])) * f1[2] - transpose(∇k_func(link.kinematics[2], q2_links[2])) * f1[3],
+	 	transpose(dra_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[1]))) * y_axis_mask * w1[2]
+			-transpose(dra_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]))) * y_axis_mask * w1[3]
+			+ u2 - u3); # link 2 dynamics
 	 d_link_func(h, q0_links[3], q1_links[3], q2_links[3],
-	 	transpose(∇k_func(link.kinematics[1], q2_links[3])) * f1[3], zeros(3));
-		# transpose(dra_func(get_quaternion(q2_links[3]), get_quaternion(q2_links[2]))) * y_axis_mask * w1[3]);#y_axis_mask * w1[3] + u3); # link 2 dynamics
+	 	transpose(∇k_func(link.kinematics[1], q2_links[3])) * f1[3],
+		transpose(dra_func(get_quaternion(q2_links[3]), get_quaternion(q2_links[2]))) * y_axis_mask * w1[3]
+			+ u3); # link 2 dynamics
 	 k_func(floating_base.kinematics[1], q2_fb) - k_func(link.kinematics[2], q2_links[1]); # body to link 1
 	 k_func(link.kinematics[1], q2_links[1]) - k_func(link.kinematics[1], q2_links[2]); # link 1 to link 2
 	 k_func(link.kinematics[2], q2_links[2]) - k_func(link.kinematics[1], q2_links[3]); # link 2 to link 3
 	 transpose(x_axis_mask) * (ra_fb_l1 - rot_off_fb_l1);
-	 # transpose(y_axis_mask) * (ra_l1_l2 - rot_off_l1_l2);
-	 # transpose(y_axis_mask) * (ra_l2_l3 - rot_off_l2_l3);
+	 transpose(y_axis_mask) * (ra_l1_l2 - rot_off_l1_l2);
+	 transpose(y_axis_mask) * (ra_l2_l3 - rot_off_l2_l3)
 	 ]
 end
 
@@ -244,8 +254,8 @@ r_func = eval(Symbolics.build_function(r, z, θ, κ)[2])
 rz = similar(∇r, Float64)
 
 rq_space = rn_quaternion_space(nz - (1 + N), x -> Gz_func(x),
-	vcat(vcat([(i - 1) * nq .+ (1:3) for i = 1:(1 + N)]...), collect((nq * (1 + N) .+ (1:(3 * nf))))),
-	vcat(vcat([(i - 1) * (nq - 1) .+ (1:3) for i = 1:(1 + N)]...), collect(((nq - 1) * (1 + N) .+ (1:(3 * nf))))),
+	vcat(vcat([(i - 1) * nq .+ (1:3) for i = 1:(1 + N)]...), collect((nq * (1 + N) .+ (1:(3 * nf + 2 * nr))))),
+	vcat(vcat([(i - 1) * (nq - 1) .+ (1:3) for i = 1:(1 + N)]...), collect(((nq - 1) * (1 + N) .+ (1:(3 * nf + 2 * nr))))),
 	[collect((i - 1) * nq + 3 .+ (1:4)) for i = 1:(1 + N)],
 	[collect((i - 1) * (nq - 1) + 3 .+ (1:3)) for i = 1:(1 + N)])
 
