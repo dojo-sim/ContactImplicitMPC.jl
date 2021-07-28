@@ -62,3 +62,9 @@
 - [ ] create benchmark with multiple models
 - [ ] test and tune heuristics from ECOS, CVXOPT, Larry Biegler's IPOPT
 - [ ] ensure that condition number remains reasonable
+
+### TODO
+- [ ] simplify indexing: `soc_indices` `ix` `iy1` `iy2` etc. to match the paper's ordering
+- [ ] change the sign of some residual eqauliy terms to math the paper and get an identity block
+- [ ] introduce `ort_indices` to gather the positive orthant indices in the linearized and nonlinear cone settings
+
