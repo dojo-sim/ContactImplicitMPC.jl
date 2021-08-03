@@ -3,7 +3,7 @@ s.model.μ_world = 1.0
 
 # time
 h = 0.1
-T = 25
+T = 10
 
 # Rn + quaternion space
 rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model, s.env, x),
@@ -32,13 +32,12 @@ sim = ContactControl.simulator(s, q0, q1, h, T,
 	space = rq_space,
 	ip_opts = ContactControl.InteriorPointOptions(
 		r_tol = 1.0e-6, κ_tol = 1.0e-6,
-		diff_sol = false,
+		diff_sol = true,
 		solver = :lu_solver),
 	sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
 # simulate
 @time ContactControl.simulate!(sim)
-@test status
 @test all([norm(q[4:7]) ≈ 1.0 for q in sim.traj.q])
 include(joinpath(module_dir(), "src/dynamics/box/visuals.jl"))
 vis = Visualizer()
