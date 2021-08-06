@@ -82,7 +82,7 @@ function velocity_stack(model::Hopper2D, env::Environment{<:World, LinearizedCon
 end
 
 # Working Parameters
-g = 9.81 # gravity
+gravity = 9.81 # gravity
 μ_world = 0.8 # coefficient of friction
 μ_joint = 0.0
 
@@ -101,6 +101,6 @@ nb = 2
 
 hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc),
 			   mb, ml, Jb, Jl,
-			   μ_world, μ_joint, g,
+			   μ_world, μ_joint, gravity,
 			   BaseMethods(), DynamicsMethods(),
 			   SVector{4}(zeros(4)))

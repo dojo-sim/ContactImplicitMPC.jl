@@ -457,7 +457,7 @@ nw = 2                    # disturbance dimension
 # World parameters
 μ_world = 0.9      # coefficient of friction
 μ_joint = 0.0
-g = 9.81           # gravity
+gravity = 9.81           # gravity
 
 # Model parameters
 m_torso = 12.0
@@ -481,7 +481,7 @@ J_calf = 0.00952
 J_foot = 0.0015
 
 flamingo = Flamingo(Dimensions(nq, nu, nw, nc),
-			  g, μ_world, μ_joint,
+			  gravity, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
 			  l_calf, d_calf, m_calf, J_calf,

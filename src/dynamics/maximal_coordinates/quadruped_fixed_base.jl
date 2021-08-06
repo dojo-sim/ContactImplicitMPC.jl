@@ -8,8 +8,9 @@ end
 friction_map = SMatrix{2, 4}([1.0 0.0 -1.0 0.0;
                    			  0.0 1.0 0.0 -1.0])
 
-function rotation_axes(q1, q2)
-	return multiply(conjugate(q1), q2)[2:4]
+function rotation_axes(q_parent, q_child, q_offset)
+	# q_parent^-1 q_child q_offset^-1
+	(R_multiply(conjugate(q_offset)) * L_multiply(conjugate(q_parent)) * q_child)[2:4]
 end
 
 function get_quaternion(q)
@@ -42,7 +43,7 @@ link = Body(Diagonal(0.1 * ones(3)),
 			Diagonal([0.01, 0.01, 0.01]),
 			[[0.0, 0.0, 0.5 * link_length],
 			 [0.0, 0.0, -0.5 * link_length]],
-			[0.0; 0.0; 1.0 * 9.81])
+			[0.0; 0.0; 0.0 * 9.81])
 
 nq = 7
 
@@ -65,12 +66,14 @@ k_func = eval(Symbolics.build_function(k, r, q0)[1])
 ∇k = Symbolics.jacobian(k, q0) * G_func(q0)
 ∇k_func = eval(Symbolics.build_function(∇k, r, q0)[1])
 
-@variables quat0[1:4], quat1[1:4]
-ra = rotation_axes(quat0, quat1)
-dra = Symbolics.jacobian(ra, quat0) * attitude_jacobian(quat0)
+@variables quat_parent[1:4], quat_child[1:4], quat_offset[1:4]
+ra = rotation_axes(quat_parent, quat_child, quat_offset)
+dra_parent = Symbolics.jacobian(ra, quat_parent) * attitude_jacobian(quat_parent)
+dra_child = Symbolics.jacobian(ra, quat_child) * attitude_jacobian(quat_child)
 
-ra_func = eval(Symbolics.build_function(ra, quat0, quat1)[1])
-dra_func = eval(Symbolics.build_function(dra, quat0, quat1)[1])
+ra_func = eval(Symbolics.build_function(ra, quat_parent, quat_child, quat_offset)[1])
+dra_parent_func = eval(Symbolics.build_function(dra_parent, quat_parent, quat_child, quat_offset)[1])
+dra_child_func = eval(Symbolics.build_function(dra_child, quat_parent, quat_child, quat_offset)[1])
 
 
 function dynamics(model::Body, h, q0, q1, q2, f, τ)
@@ -146,6 +149,10 @@ y_axis_mask = [1.0 0.0;
 			   0.0 0.0;
 			   0.0 1.0]
 
+z_axis_mask = [1.0 0.0;
+			   0.0 1.0;
+			   0.0 0.0]
+
 # floating base
 z_base = 2 * link_length + 0.0
 p0_fb = [0.0; 0.0; z_base]
@@ -171,7 +178,7 @@ p1_l1 = copy(p0_l1)
 quat1_l1 = copy(quat0_l1)
 q1_l1 = [p1_l1; quat1_l1]
 
-rot_off_fb_l1 = ra_func(get_quaternion(q1_fb), get_quaternion(q1_l1))
+rot_off_fb_l1 = L_multiply(conjugate(quat1_fb)) * quat1_l1
 
 # link 2
 p0_l2 = k_func(links[1].kinematics[1], q1_l1) + [-0.5 * link_length * sin(θ_leg_elbow); 0.0; -0.5 * link_length * cos(θ_leg_elbow)]
@@ -183,7 +190,7 @@ p1_l2 = copy(p0_l2)
 quat1_l2 = copy(quat0_l2)
 q1_l2 = [p1_l2; quat1_l2]
 
-rot_off_l1_l2 = ra_func(get_quaternion(q1_l1), get_quaternion(q1_l2))
+rot_off_l1_l2 = L_multiply(conjugate(quat1_l1)) * quat1_l2
 
 # link 3
 p0_l3 = p0_l2 + [0.0; 0.0; -1.0 * link_length * cos(θ_leg_elbow)]
@@ -195,7 +202,7 @@ p1_l3 = copy(p0_l3)
 quat1_l3 = copy(quat0_l3)
 q1_l3 = [p1_l3; quat1_l3]
 
-rot_off_l2_l3 = ra_func(get_quaternion(q1_l2), get_quaternion(q1_l3))
+rot_off_l2_l3 = L_multiply(conjugate(quat1_l2)) * quat1_l3
 
 ## LEG 2
 # link 4
@@ -208,7 +215,7 @@ p1_l4 = copy(p0_l4)
 quat1_l4 = copy(quat0_l4)
 q1_l4 = [p1_l4; quat1_l4]
 
-rot_off_fb_l4 = ra_func(get_quaternion(q1_fb), get_quaternion(q1_l4))
+rot_off_fb_l4 = L_multiply(conjugate(quat1_fb)) * quat1_l4
 
 # link 5
 p0_l5 = k_func(links[1].kinematics[1], q1_l4) + [-0.5 * link_length * sin(θ_leg_elbow); 0.0; -0.5 * link_length * cos(θ_leg_elbow)]
@@ -220,7 +227,7 @@ p1_l5 = copy(p0_l5)
 quat1_l5 = copy(quat0_l5)
 q1_l5 = [p1_l5; quat1_l5]
 
-rot_off_l4_l5 = ra_func(get_quaternion(q1_l4), get_quaternion(q1_l5))
+rot_off_l4_l5 = L_multiply(conjugate(quat1_l4)) * quat1_l5
 
 # link 6
 p0_l6 = p0_l5 + [0.0; 0.0; -1.0 * link_length * cos(θ_leg_elbow)]
@@ -232,7 +239,7 @@ p1_l6 = copy(p0_l6)
 quat1_l6 = copy(quat0_l6)
 q1_l6 = [p1_l6; quat1_l6]
 
-rot_off_l5_l6 = ra_func(get_quaternion(q1_l5), get_quaternion(q1_l6))
+rot_off_l5_l6 = L_multiply(conjugate(quat1_l5)) * quat1_l6
 
 ## LEG 3
 # link 7
@@ -245,7 +252,7 @@ p1_l7 = copy(p0_l7)
 quat1_l7 = copy(quat0_l7)
 q1_l7 = [p1_l7; quat1_l7]
 
-rot_off_fb_l7 = ra_func(get_quaternion(q1_fb), get_quaternion(q1_l7))
+rot_off_fb_l7 = L_multiply(conjugate(quat1_fb)) * quat1_l7
 
 # link 8
 p0_l8 = k_func(links[1].kinematics[1], q1_l7) + [-0.5 * link_length * sin(θ_leg_elbow); 0.0; -0.5 * link_length * cos(θ_leg_elbow)]
@@ -257,7 +264,7 @@ p1_l8 = copy(p0_l8)
 quat1_l8 = copy(quat0_l8)
 q1_l8 = [p1_l8; quat1_l8]
 
-rot_off_l7_l8 = ra_func(get_quaternion(q1_l7), get_quaternion(q1_l8))
+rot_off_l7_l8 = L_multiply(conjugate(quat1_l7)) * quat1_l8
 
 # link 9
 p0_l9 = p0_l8 + [0.0; 0.0; -1.0 * link_length * cos(θ_leg_elbow)]
@@ -269,7 +276,7 @@ p1_l9 = copy(p0_l9)
 quat1_l9 = copy(quat0_l9)
 q1_l9 = [p1_l9; quat1_l9]
 
-rot_off_l8_l9 = ra_func(get_quaternion(q1_l8), get_quaternion(q1_l9))
+rot_off_l8_l9 = L_multiply(conjugate(quat1_l8)) * quat1_l9
 
 ## LEG 4
 # link 10
@@ -282,7 +289,7 @@ p1_l10 = copy(p0_l10)
 quat1_l10 = copy(quat0_l10)
 q1_l10 = [p1_l10; quat1_l10]
 
-rot_off_fb_l10 = ra_func(get_quaternion(q1_fb), get_quaternion(q1_l10))
+rot_off_fb_l10 = L_multiply(conjugate(quat1_fb)) * quat1_l10
 
 # link 11
 p0_l11 = k_func(links[1].kinematics[1], q1_l10) + [-0.5 * link_length * sin(θ_leg_elbow); 0.0; -0.5 * link_length * cos(θ_leg_elbow)]
@@ -294,7 +301,7 @@ p1_l11 = copy(p0_l11)
 quat1_l11 = copy(quat0_l11)
 q1_l11 = [p1_l11; quat1_l11]
 
-rot_off_l10_l11 = ra_func(get_quaternion(q1_l10), get_quaternion(q1_l11))
+rot_off_l10_l11 = L_multiply(conjugate(quat1_l10)) * quat1_l11
 
 # link 12
 p0_l12 = p0_l11 + [0.0; 0.0; -1.0 * link_length * cos(θ_leg_elbow)]
@@ -306,7 +313,7 @@ p1_l12 = copy(p0_l12)
 quat1_l12 = copy(quat0_l12)
 q1_l12 = [p1_l12; quat1_l12]
 
-rot_off_l11_l12 = ra_func(get_quaternion(q1_l11), get_quaternion(q1_l12))
+rot_off_l11_l12 = L_multiply(conjugate(quat1_l11)) * quat1_l12
 
 idx_contact_links = [3, 6, 9, 12]
 @assert length(idx_contact_links) == nc
@@ -346,6 +353,9 @@ function residual(z, θ, κ)
 	ψ1 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb .+ (1:nc)]
 	s2 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb + nc .+ (1:nc)]
 
+	f_pin = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb + 2 * nc .+ (1:3)]
+	w_pin = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb + 2 * nc + 3 .+ (1:3)]
+
 	# previous configurations
 	q0_fb = θ[1:nq]
 	q0_links = [θ[nq + (i - 1) * nq .+ (1:nq)] for i = 1:N]
@@ -375,110 +385,95 @@ function residual(z, θ, κ)
 
 	ψ_stack = vcat([ψ1[i] * ones(nb) for i = 1:nc]...)
 
-	# relative rotations
-	ra_fb_l1 = ra_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]))
-	ra_l1_l2 = ra_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]))
-	ra_l2_l3 = ra_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]))
-
-	ra_fb_l4 = ra_func(get_quaternion(q2_fb), get_quaternion(q2_links[4]))
-	ra_l4_l5 = ra_func(get_quaternion(q2_links[4]), get_quaternion(q2_links[5]))
-	ra_l5_l6 = ra_func(get_quaternion(q2_links[5]), get_quaternion(q2_links[6]))
-
-	ra_fb_l7 = ra_func(get_quaternion(q2_fb), get_quaternion(q2_links[7]))
-	ra_l7_l8 = ra_func(get_quaternion(q2_links[7]), get_quaternion(q2_links[8]))
-	ra_l8_l9 = ra_func(get_quaternion(q2_links[8]), get_quaternion(q2_links[9]))
-
-	ra_fb_l10 = ra_func(get_quaternion(q2_fb), get_quaternion(q2_links[10]))
-	ra_l10_l11 = ra_func(get_quaternion(q2_links[10]), get_quaternion(q2_links[11]))
-	ra_l11_l12 = ra_func(get_quaternion(q2_links[11]), get_quaternion(q2_links[12]))
-
 	[
 	 # floating base
 	 d_fb_func(h, q0_fb, q1_fb, q2_fb,
 	 	-transpose(∇k_func(floating_base.kinematics[1], q2_fb)) * f1[1]
 			-transpose(∇k_func(floating_base.kinematics[2], q2_fb)) * f1[4]
 			-transpose(∇k_func(floating_base.kinematics[3], q2_fb)) * f1[7]
-			-transpose(∇k_func(floating_base.kinematics[4], q2_fb)) * f1[10],
-		-transpose(dra_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]))) * x_axis_mask * w1[1]
-   			-transpose(dra_func(get_quaternion(q2_fb), get_quaternion(q2_links[4]))) * x_axis_mask * w1[4]
-			-transpose(dra_func(get_quaternion(q2_fb), get_quaternion(q2_links[7]))) * x_axis_mask * w1[7]
-			-transpose(dra_func(get_quaternion(q2_fb), get_quaternion(q2_links[10]))) * x_axis_mask * w1[10]
+			-transpose(∇k_func(floating_base.kinematics[4], q2_fb)) * f1[10]
+			+ [f_pin; zeros(3)],
+		+ transpose(dra_parent_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1)) * x_axis_mask * w1[1]
+   			+ transpose(dra_parent_func(get_quaternion(q2_fb), get_quaternion(q2_links[4]), rot_off_fb_l4)) * x_axis_mask * w1[4]
+			+ transpose(dra_parent_func(get_quaternion(q2_fb), get_quaternion(q2_links[7]), rot_off_fb_l7)) * x_axis_mask * w1[7]
+			+ transpose(dra_parent_func(get_quaternion(q2_fb), get_quaternion(q2_links[10]), rot_off_fb_l10)) * x_axis_mask * w1[10]
+			+ w_pin
 			-u1 - u4 - u7 - u10); # floating base dynamics
 
 	 # leg 1
 	 d_link_func(h, q0_links[1], q1_links[1], q2_links[1],
 	 	transpose(∇k_func(link.kinematics[2], q2_links[1])) * f1[1]
-			- transpose(∇k_func(link.kinematics[1], q2_links[1])) * f1[2],
-		transpose(dra_func(get_quaternion(q2_links[1]), get_quaternion(q2_fb))) * x_axis_mask * w1[1]
-			-transpose(dra_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]))) * y_axis_mask * w1[2]
+			- transpose(∇k_func(link.kinematics[1], q2_links[1])) * (f1[2] + [0.0; 0.0; -0.0]),
+		transpose(dra_child_func(get_quaternion(q2_links[1]), get_quaternion(q2_fb), rot_off_fb_l1)) * x_axis_mask * w1[1]
+			+ transpose(dra_parent_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2)) * z_axis_mask * w1[2]
 			+ u1 - u2); # link 1 dynamics
 	 d_link_func(h, q0_links[2], q1_links[2], q2_links[2],
 	 	transpose(∇k_func(link.kinematics[1], q2_links[2])) * f1[2]
 			- transpose(∇k_func(link.kinematics[2], q2_links[2])) * f1[3],
-	 	transpose(dra_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[1]))) * y_axis_mask * w1[2]
-			-transpose(dra_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]))) * y_axis_mask * w1[3]
+	 	transpose(dra_child_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[1]), rot_off_l1_l2)) * z_axis_mask * w1[2]
+			+ transpose(dra_parent_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3)) * y_axis_mask * w1[3]
 			+ u2 - u3); # link 2 dynamics
 	 d_link_func(h, q0_links[3], q1_links[3], q2_links[3],
 	 	transpose(∇k_func(link.kinematics[1], q2_links[3])) * f1[3]
-			+ transpose(∇k_func(link.kinematics[2], q2_links[3])) * λ1[1],
-		transpose(dra_func(get_quaternion(q2_links[3]), get_quaternion(q2_links[2]))) * y_axis_mask * w1[3]
+			+ transpose(∇k_func(link.kinematics[2], q2_links[3])) * (λ1[1] + [0.0; 0.5; 0.0]),
+		transpose(dra_child_func(get_quaternion(q2_links[3]), get_quaternion(q2_links[2]), rot_off_l2_l3)) * y_axis_mask * w1[3]
 			+ u3); # link 3 dynamics
 
 	# leg 2
 	d_link_func(h, q0_links[4], q1_links[4], q2_links[4],
    	 	transpose(∇k_func(link.kinematics[2], q2_links[4])) * f1[4]
 			- transpose(∇k_func(link.kinematics[1], q2_links[4])) * f1[5],
-   		transpose(dra_func(get_quaternion(q2_links[4]), get_quaternion(q2_fb))) * x_axis_mask * w1[4]
-   			-transpose(dra_func(get_quaternion(q2_links[4]), get_quaternion(q2_links[5]))) * y_axis_mask * w1[5]
+   		transpose(dra_child_func(get_quaternion(q2_links[4]), get_quaternion(q2_fb), rot_off_fb_l4)) * x_axis_mask * w1[4]
+   			+ transpose(dra_parent_func(get_quaternion(q2_links[4]), get_quaternion(q2_links[5]), rot_off_l4_l5)) * z_axis_mask * w1[5]
    			+ u4 - u5); # link 4 dynamics
    	 d_link_func(h, q0_links[5], q1_links[5], q2_links[5],
    	 	transpose(∇k_func(link.kinematics[1], q2_links[5])) * f1[5]
 			- transpose(∇k_func(link.kinematics[2], q2_links[5])) * f1[6],
-   	 	transpose(dra_func(get_quaternion(q2_links[5]), get_quaternion(q2_links[4]))) * y_axis_mask * w1[5]
-   			-transpose(dra_func(get_quaternion(q2_links[5]), get_quaternion(q2_links[6]))) * y_axis_mask * w1[6]
+   	 	transpose(dra_child_func(get_quaternion(q2_links[5]), get_quaternion(q2_links[4]), rot_off_l4_l5)) * z_axis_mask * w1[5]
+   			+ transpose(dra_parent_func(get_quaternion(q2_links[5]), get_quaternion(q2_links[6]), rot_off_l5_l6)) * y_axis_mask * w1[6]
    			+ u5 - u6); # link 5 dynamics
    	 d_link_func(h, q0_links[6], q1_links[6], q2_links[6],
    	 	transpose(∇k_func(link.kinematics[1], q2_links[6])) * f1[6]
    			+ transpose(∇k_func(link.kinematics[2], q2_links[6])) * λ1[2],
-   		transpose(dra_func(get_quaternion(q2_links[6]), get_quaternion(q2_links[5]))) * y_axis_mask * w1[6]
+   		transpose(dra_child_func(get_quaternion(q2_links[6]), get_quaternion(q2_links[5]), rot_off_l5_l6)) * y_axis_mask * w1[6]
    			+ u6); # link 6 dynamics
 
 	 # leg 3
 	 d_link_func(h, q0_links[7], q1_links[7], q2_links[7],
 	 	transpose(∇k_func(link.kinematics[2], q2_links[7])) * f1[7]
 			- transpose(∇k_func(link.kinematics[1], q2_links[7])) * f1[8],
-		transpose(dra_func(get_quaternion(q2_links[7]), get_quaternion(q2_fb))) * x_axis_mask * w1[7]
-			-transpose(dra_func(get_quaternion(q2_links[7]), get_quaternion(q2_links[8]))) * y_axis_mask * w1[8]
+		transpose(dra_child_func(get_quaternion(q2_links[7]), get_quaternion(q2_fb), rot_off_fb_l7)) * x_axis_mask * w1[7]
+			+ transpose(dra_parent_func(get_quaternion(q2_links[7]), get_quaternion(q2_links[8]), rot_off_l7_l8)) * z_axis_mask * w1[8]
 			+ u7 - u8); # link 7 dynamics
 	 d_link_func(h, q0_links[8], q1_links[8], q2_links[8],
 	 	transpose(∇k_func(link.kinematics[1], q2_links[8])) * f1[8]
 			- transpose(∇k_func(link.kinematics[2], q2_links[8])) * f1[9],
-	 	transpose(dra_func(get_quaternion(q2_links[8]), get_quaternion(q2_links[7]))) * y_axis_mask * w1[8]
-			-transpose(dra_func(get_quaternion(q2_links[8]), get_quaternion(q2_links[9]))) * y_axis_mask * w1[9]
+	 	transpose(dra_child_func(get_quaternion(q2_links[8]), get_quaternion(q2_links[7]), rot_off_l7_l8)) * z_axis_mask * w1[8]
+			+ transpose(dra_parent_func(get_quaternion(q2_links[8]), get_quaternion(q2_links[9]), rot_off_l8_l9)) * y_axis_mask * w1[9]
 			+ u8 - u9); # link 8 dynamics
 	 d_link_func(h, q0_links[9], q1_links[9], q2_links[9],
 	 	transpose(∇k_func(link.kinematics[1], q2_links[9])) * f1[9]
 			+ transpose(∇k_func(link.kinematics[2], q2_links[9])) * λ1[3],
-		transpose(dra_func(get_quaternion(q2_links[9]), get_quaternion(q2_links[8]))) * y_axis_mask * w1[9]
+		transpose(dra_child_func(get_quaternion(q2_links[9]), get_quaternion(q2_links[8]), rot_off_l8_l9)) * y_axis_mask * w1[9]
 			+ u9); # link 9 dynamics
 
 	# leg 4
 	d_link_func(h, q0_links[10], q1_links[10], q2_links[10],
 	   transpose(∇k_func(link.kinematics[2], q2_links[10])) * f1[10]
 		   - transpose(∇k_func(link.kinematics[1], q2_links[10])) * f1[11],
-	   transpose(dra_func(get_quaternion(q2_links[10]), get_quaternion(q2_fb))) * x_axis_mask * w1[10]
-		   -transpose(dra_func(get_quaternion(q2_links[10]), get_quaternion(q2_links[11]))) * y_axis_mask * w1[11]
+	   transpose(dra_child_func(get_quaternion(q2_links[10]), get_quaternion(q2_fb), rot_off_fb_l10)) * x_axis_mask * w1[10]
+		   + transpose(dra_parent_func(get_quaternion(q2_links[10]), get_quaternion(q2_links[11]), rot_off_l10_l11)) * z_axis_mask * w1[11]
 		   + u10 - u11); # link 10 dynamics
 	d_link_func(h, q0_links[11], q1_links[11], q2_links[11],
 	   transpose(∇k_func(link.kinematics[1], q2_links[11])) * f1[11]
 		   - transpose(∇k_func(link.kinematics[2], q2_links[11])) * f1[12],
-	   transpose(dra_func(get_quaternion(q2_links[11]), get_quaternion(q2_links[10]))) * y_axis_mask * w1[11]
-		   -transpose(dra_func(get_quaternion(q2_links[11]), get_quaternion(q2_links[12]))) * y_axis_mask * w1[12]
+	   transpose(dra_child_func(get_quaternion(q2_links[11]), get_quaternion(q2_links[10]), rot_off_l10_l11)) * z_axis_mask * w1[11]
+		   + transpose(dra_parent_func(get_quaternion(q2_links[11]), get_quaternion(q2_links[12]), rot_off_l11_l12)) * y_axis_mask * w1[12]
 		   + u11 - u12); # link 8 dynamics
 	d_link_func(h, q0_links[12], q1_links[12], q2_links[12],
 	   transpose(∇k_func(link.kinematics[1], q2_links[12])) * f1[12]
 		   + transpose(∇k_func(link.kinematics[2], q2_links[12])) * λ1[4],
-	   transpose(dra_func(get_quaternion(q2_links[12]), get_quaternion(q2_links[11]))) * y_axis_mask * w1[12]
+	   transpose(dra_child_func(get_quaternion(q2_links[12]), get_quaternion(q2_links[11]), rot_off_l11_l12)) * y_axis_mask * w1[12]
 		   + u12); # link 12 dynamics
 
 	 k_func(floating_base.kinematics[1], q2_fb) - k_func(link.kinematics[2], q2_links[1]); # body to link 1
@@ -493,32 +488,37 @@ function residual(z, θ, κ)
 	 k_func(floating_base.kinematics[4], q2_fb) - k_func(link.kinematics[2], q2_links[10]); # body to link 10
 	 k_func(link.kinematics[1], q2_links[10]) - k_func(link.kinematics[1], q2_links[11]); # link 10 to link 11
 	 k_func(link.kinematics[2], q2_links[11]) - k_func(link.kinematics[1], q2_links[12]); # link 11 to link 12
-	 transpose(x_axis_mask) * (ra_fb_l1 - rot_off_fb_l1);
-	 transpose(y_axis_mask) * (ra_l1_l2 - rot_off_l1_l2);
-	 transpose(y_axis_mask) * (ra_l2_l3 - rot_off_l2_l3);
-	 transpose(x_axis_mask) * (ra_fb_l4 - rot_off_fb_l4);
-	 transpose(y_axis_mask) * (ra_l4_l5 - rot_off_l4_l5);
-	 transpose(y_axis_mask) * (ra_l5_l6 - rot_off_l5_l6);
-	 transpose(x_axis_mask) * (ra_fb_l7 - rot_off_fb_l7);
-	 transpose(y_axis_mask) * (ra_l7_l8 - rot_off_l7_l8);
-	 transpose(y_axis_mask) * (ra_l8_l9 - rot_off_l8_l9);
-	 transpose(x_axis_mask) * (ra_fb_l10 - rot_off_fb_l10);
-	 transpose(y_axis_mask) * (ra_l10_l11 - rot_off_l10_l11);
-	 transpose(y_axis_mask) * (ra_l11_l12 - rot_off_l11_l12);
+
+	 transpose(x_axis_mask) * ra_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1);
+	 transpose(z_axis_mask) * ra_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2);
+	 transpose(y_axis_mask) * ra_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3);
+	 transpose(x_axis_mask) * ra_func(get_quaternion(q2_fb), get_quaternion(q2_links[4]), rot_off_fb_l4);
+	 transpose(z_axis_mask) * ra_func(get_quaternion(q2_links[4]), get_quaternion(q2_links[5]), rot_off_l4_l5);
+	 transpose(y_axis_mask) * ra_func(get_quaternion(q2_links[5]), get_quaternion(q2_links[6]), rot_off_l5_l6);
+	 transpose(x_axis_mask) * ra_func(get_quaternion(q2_fb), get_quaternion(q2_links[7]), rot_off_fb_l7);
+	 transpose(z_axis_mask) * ra_func(get_quaternion(q2_links[7]), get_quaternion(q2_links[8]), rot_off_l7_l8);
+	 transpose(y_axis_mask) * ra_func(get_quaternion(q2_links[8]), get_quaternion(q2_links[9]), rot_off_l8_l9);
+	 transpose(x_axis_mask) * ra_func(get_quaternion(q2_fb), get_quaternion(q2_links[10]), rot_off_fb_l10);
+	 transpose(z_axis_mask) * ra_func(get_quaternion(q2_links[10]), get_quaternion(q2_links[11]), rot_off_l10_l11);
+	 transpose(y_axis_mask) * ra_func(get_quaternion(q2_links[11]), get_quaternion(q2_links[12]), rot_off_l11_l12);
+
 	 s1 .- ϕ1;
 	 η1 .- vT_stack .- ψ_stack;
 	 s2 .- (μ_world .* γ1 .- E * b1);
 	 γ1 .* s1 .- κ;
 	 b1 .* η1 .- κ;
 	 ψ1 .* s2 .- κ
+
+	 q2_fb[1:3] - p0_fb;
+	 q2_fb[5:7];
 	 ]
 end
 
-nz = nq + N * nq + nf * 3 + nr * 2 + n_contact
+nz = nq + N * nq + nf * 3 + nr * 2 + n_contact + 6
 nθ = 2 * nq + N * (2 * nq) + 1
 @variables z[1:nz], θ[1:nθ], κ[1:1]
 
-tmp = Array(Diagonal(ones(nf * 3 + nr * 2 + n_contact)))
+tmp = Array(Diagonal(ones(nf * 3 + nr * 2 + n_contact + 6)))
 function Gz_func(q)
 	q_fb = q[1:nq]
 	q_links = [q[nq + (i - 1) * nq .+ (1:nq)] for i = 1:N]
@@ -535,14 +535,14 @@ r_func = eval(Symbolics.build_function(r, z, θ, κ)[2])
 rz = similar(∇r, Float64)
 
 rq_space = rn_quaternion_space(nz - (1 + N), x -> Gz_func(x),
-	vcat(vcat([(i - 1) * nq .+ (1:3) for i = 1:(1 + N)]...), collect((nq * (1 + N) .+ (1:(3 * nf + 2 * nr + n_contact))))),
-	vcat(vcat([(i - 1) * (nq - 1) .+ (1:3) for i = 1:(1 + N)]...), collect(((nq - 1) * (1 + N) .+ (1:(3 * nf + 2 * nr + n_contact))))),
+	vcat(vcat([(i - 1) * nq .+ (1:3) for i = 1:(1 + N)]...), collect((nq * (1 + N) .+ (1:(3 * nf + 2 * nr + n_contact + 6))))),
+	vcat(vcat([(i - 1) * (nq - 1) .+ (1:3) for i = 1:(1 + N)]...), collect(((nq - 1) * (1 + N) .+ (1:(3 * nf + 2 * nr + n_contact + 6))))),
 	[collect((i - 1) * nq + 3 .+ (1:4)) for i = 1:(1 + N)],
 	[collect((i - 1) * (nq - 1) + 3 .+ (1:3)) for i = 1:(1 + N)])
 
 
 # options
-opts = ContactControl.InteriorPointOptions(diff_sol = false)
+opts = ContactControl.InteriorPointOptions(diff_sol = false, r_tol = 1.0e-8, κ_tol = 1.0e-6)
 
 r_func(zeros(nz - (1 + N)), ones(nz), ones(nθ), 1.0)
 ∇r_func(rz, ones(nz), ones(nθ))
@@ -565,7 +565,7 @@ z0 = copy([q1_fb;
 		   q1_l4; q1_l5; q1_l6;
 		   q1_l7; q1_l8; q1_l9;
 		   q1_l10; q1_l11; q1_l12;
-		   zeros(nf * 3 + nr * 2); 0.1 * ones(n_contact)])
+		   zeros(nf * 3 + nr * 2); 0.1 * ones(n_contact); zeros(6)])
 
 # _r = zeros(36)
 # r_func(_r, z0, θ0, 0.0)
@@ -580,7 +580,7 @@ ip = ContactControl.interior_point(z0, θ0,
 	opts = opts)
 
 # solve
-T = 50
+T = 10
 q_hist = [[q0_fb;
 		   q0_l1; q0_l2; q0_l3;
 		   q0_l4; q0_l5; q0_l6;
@@ -590,17 +590,18 @@ q_hist = [[q0_fb;
 		   q1_l1; q1_l2; q1_l3;
 		   q1_l4; q1_l5; q1_l6;
 		   q1_l7; q1_l8; q1_l9;
-		   q1_l10; q1_l11; q1_l12]]
+		   q1_l10; q1_l11; q1_l12
+		   ]]
 
-k_func(links[3].kinematics[2], q1_l3)
-k_func(links[6].kinematics[2], q1_l6)
-k_func(links[9].kinematics[2], q1_l9)
-k_func(links[12].kinematics[2], q1_l12)
+# k_func(links[3].kinematics[2], q1_l3)
+# k_func(links[6].kinematics[2], q1_l6)
+# k_func(links[9].kinematics[2], q1_l9)
+# k_func(links[12].kinematics[2], q1_l12)
 
 ip.opts.κ_init = 0.1
 for t = 1:T-2
 	ip.θ .= [q_hist[end-1]; q_hist[end]; h]
-	ip.z .= copy([q_hist[end]; 0.001 * randn(nf * 3 + nr * 2); 1.0 * ones(n_contact)])
+	ip.z .= copy([q_hist[end]; 0.001 * randn(nf * 3 + nr * 2); 1.0 * ones(n_contact); 0.001 * randn(6)])
 	status = ContactControl.interior_point_solve!(ip)
 	if !status
 		println("t: ", t)

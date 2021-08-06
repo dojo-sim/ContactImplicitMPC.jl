@@ -68,7 +68,7 @@ function build_meshrobot!(vis::Visualizer, model::ContactModel, urdf::String,
 	return mvis
 end
 
-function set_alpha!(visuals::Vector{VisualElement}, α)
+function set_alpha!(visuals::Vector, α)
     for el in visuals
         c = el.color
         c_new = RGBA(red(c),green(c),blue(c),α)
