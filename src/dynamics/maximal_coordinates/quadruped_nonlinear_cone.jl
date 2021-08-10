@@ -134,10 +134,10 @@ nf = 3 * n_legs
 nr = 3 * n_legs
 
 nc = 4 # number of contact points
-nb = 4 # double parameterized friction
-n_contact = nc + nc + nc * (nb + nb) + nc + nc
-
-E = SMatrix{nc, nc * nb}(kron(Diagonal(ones(nc)), ones(1, Int(nb))))
+nb = 2 # double parameterized friction
+ne = 3 # environment dimension
+n_contact = nc + nc + nc * nb + nc * ne + nc
+# n_contact = nc + nc
 μ_world = 0.5 * ones(nc)
 
 x_axis_mask = [0.0 0.0;
@@ -348,9 +348,8 @@ function residual(z, θ, κ)
 	γ1 = z[nq + N * nq + nf * 3 + nr * 2 .+ (1:nc)]
 	s1 = z[nq + N * nq + nf * 3 + nr * 2 + nc .+ (1:nc)]
 	b1 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc .+ (1:(nc * nb))]
-	η1 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + nc * nb .+ (1:(nc * nb))]
-	ψ1 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb .+ (1:nc)]
-	s2 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb + nc .+ (1:nc)]
+	η1 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + nc * nb .+ (1:(nc * ne))]
+	s2 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + nc * nb + nc * ne .+ (1:nc)]
 
 	# f_pin = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb + 2 * nc .+ (1:3)]
 	# w_pin = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb + 2 * nc + 3 .+ (1:3)]
@@ -371,18 +370,15 @@ function residual(z, θ, κ)
 	ϕ1 = [k_func(link.kinematics[2], q2_links[i])[3] for i in idx_contact_links]
 
 	# contact forces
-	λ1 = [[friction_map * b1[(i - 1) * nb .+ (1:nb)]; γ1[i]] for i = 1:nc]
+	λ1 = [[b1[(i - 1) * nb .+ (1:nb)]; γ1[i]] for i = 1:nc]
 	# λ1 = [[zeros(2); γ1[i]] for i = 1:nc]
 
 	# tangential velocity
 	v = [(q2_links[i][1:3] - q1_links[i][1:3]) / h for i in idx_contact_links]
 	ω = [ω_finite_difference(q1_links[i][4:7], q2_links[i][4:7], h) for i in idx_contact_links]
 
-	P = [∇k_func(link.kinematics[2], q2_links[i])[1:2, :] for i in idx_contact_links]
+	P = [∇k_func(link.kinematics[2], q2_links[i]) for i in idx_contact_links]
 	vT = [P[i] * [v[i]; ω[i]] for i = 1:nc]
-	vT_stack = vcat([[vT[i]; -vT[i]] for i = 1:nc]...)
-
-	ψ_stack = vcat([ψ1[i] * ones(nb) for i = 1:nc]...)
 
 	[
 	 # floating base
@@ -500,12 +496,10 @@ function residual(z, θ, κ)
 	 transpose(y_axis_mask) * ra_func(get_quaternion(q2_links[11]), get_quaternion(q2_links[12]), rot_off_l11_l12);
 
 	 s1 .- ϕ1;
-	 η1 .- vT_stack .- ψ_stack;
-	 s2 .- (μ_world .* γ1 .- E * b1);
+	 vcat([η1[(i - 1) * ne .+ (2:ne)] - vT[i][1:2] for i = 1:nc]...);
+	 s2 .- μ_world .* γ1;
 	 γ1 .* s1 .- κ;
-	 b1 .* η1 .- κ;
-	 ψ1 .* s2 .- κ
-
+	 vcat([second_order_cone_product(η1[(i - 1) * ne .+ (1:ne)], [s2[i]; b1[(i - 1) * nb .+ (1:nb)]]) - [κ; zeros(2)] for i = 1:nc]...)
 	 ]
 end
 nz = nq + N * nq + nf * 3 + nr * 2 + n_contact
@@ -565,22 +559,65 @@ z0 = copy([q1_fb;
 # r_func(_r, z0, θ0, 0.0)
 # _r
 # solver
-idx_ineq = collect(nq + N * nq + nf * 3 + nr * 2 .+ (1:(n_contact)))
+# idx_ineq = collect(nq + N * nq + nf * 3 + nr * 2 .+ (1:(n_contact)))
+
+function inequality_indices()
+	off = nq + N * nq + nf * 3 + nr * 2
+	collect([(off .+ (1:nc))...,
+			 (off + nc .+ (1:nc))...,
+	         (off + nc + nc + (nc * nb) + (nc * ne) .+ (1:nc))...])
+end
+
+idx_ineq = inequality_indices()
+
+function soc_indices()
+	off = nq + N * nq + nf * 3 + nr * 2
+
+	b_idx = off + nc + nc .+ (1:(nc * nb))
+	η_idx = off + nc + nc + nc * nb .+ (1:(nc * ne))
+	s2_idx = off + nc + nc + nc * nb + nc * ne .+ (1:nc)
+
+	pr_idx = [[s2_idx[i]; b_idx[(i - 1) * nb .+ (1:nb)]] for i = 1:nc]
+	du_idx = [[η_idx[(i - 1) * ne .+ (1:ne)]...] for i = 1:nc]
+
+	[pr_idx..., du_idx...]
+end
+
+idx_soc = soc_indices()
+
+function z_initialize(q_hist, s = 1.0)
+	off = nq + N * nq + nf * 3 + nr * 2
+
+    z = 1.0 * s * ones(nz)
+    z[1:(nq + N * nq)] = q_hist
+	z[(nq + N * nq) .+ (1:(nf * 3 + nr * 2))] = 0.0 * randn(nf * 3 + nr * 2)
+
+	# second-order cone initializations
+	z[off + nc + nc + nc * nb .+ (1:(nc * ne))] = vcat([[1.0 * s; 0.1 * s * ones(2)] for i = 1:nc]...)
+	z[off + nc + nc + nc * nb + nc * ne .+ (1:nc)] .= 1.0 * s
+
+	return z
+end
+
 ip = ContactControl.interior_point(z0, θ0,
 	s = rq_space,
 	idx_ineq = idx_ineq,
+	idx_soc = idx_soc,
 	r! = r_func, rz! = ∇r_func,
 	rz = rz,
 	opts = opts)
 
 # solve
-T = 100
+q1_fb_offset = copy(q1_fb)
+q1_fb_offset[1] += 0.05
+q1_fb_offset[2] += 0.05
+T = 49
 q_hist = [[q0_fb;
 		   q0_l1; q0_l2; q0_l3;
 		   q0_l4; q0_l5; q0_l6;
 		   q0_l7; q0_l8; q0_l9;
 		   q0_l10; q0_l11; q0_l12],
-		  [q1_fb;
+		  [q1_fb_offset;
 		   q1_l1; q1_l2; q1_l3;
 		   q1_l4; q1_l5; q1_l6;
 		   q1_l7; q1_l8; q1_l9;
@@ -588,13 +625,28 @@ q_hist = [[q0_fb;
 		   ]]
 
 ip.opts.κ_init = 0.1
+
 for t = 1:T-2
 	ip.θ .= [q_hist[end-1]; q_hist[end]; h]
-	ip.z .= copy([q_hist[end]; 0.001 * randn(nf * 3 + nr * 2); 0.1 * ones(n_contact)])
+	ip.z .= copy(z_initialize(q_hist[end]))
 	status = ContactControl.interior_point_solve!(ip)
 	if !status
-		println("t: ", t)
-		println("res norm: ", norm(ip.r, Inf))
+			println("t: ", t)
+			println("res norm: ", norm(ip.r, Inf))
+			break
+		# ip.θ .= [q_hist[end-1]; q_hist[end]; 1.0 * h]
+		# ip.z .= copy(z_initialize(q_hist[end], 1.0))
+		# status = ContactControl.interior_point_solve!(ip)
+
+		# if !status
+		# 	println("t: ", t)
+		# 	println("res norm: ", norm(ip.r, Inf))
+		# 	break
+		# else
+		# 	println("smaller time step succeeded")
+		# 	println("t: ", t)
+		# 	println("res norm: ", norm(ip.r, Inf))
+		# end
 	end
 	push!(q_hist, ip.z[1:((1 + N) * nq)])
 end
