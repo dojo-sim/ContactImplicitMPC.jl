@@ -689,4 +689,5 @@ end
 
 vis = Visualizer()
 render(vis)
+open(vis)
 visualize!(vis, floating_base, links, q_hist, Δt = h)
