@@ -264,14 +264,17 @@ function residual(z, θ, κ)
 	h = θ[nq + N * nq + nq + N * nq .+ (1:1)]
 
 	# joint velocities
-	ω1 = rotation_angular_velocity(get_quaternion(q1_fb), get_quaternion(q1_links[1]), get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1, h)
-	ω2 = rotation_angular_velocity(get_quaternion(q1_links[1]), get_quaternion(q1_links[2]), get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2, h)
-	ω3 = rotation_angular_velocity(get_quaternion(q1_links[2]), get_quaternion(q1_links[3]), get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3, h)
+	# ω1 = rotation_angular_velocity(get_quaternion(q1_fb), get_quaternion(q1_links[1]), get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1, h)
+	# ω2 = rotation_angular_velocity(get_quaternion(q1_links[1]), get_quaternion(q1_links[2]), get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2, h)
+	# ω3 = rotation_angular_velocity(get_quaternion(q1_links[2]), get_quaternion(q1_links[3]), get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3, h)
 
-	μ_joint = 1.0
-	joint_1_friction = -μ_joint * h[1] * ω1
-	joint_2_friction = -μ_joint * h[1] * ω2
-	joint_3_friction = -μ_joint * h[1] * ω3
+	ω_fb = ω_finite_difference(get_quaternion(q1_fb), get_quaternion(q2_fb), h)
+	ω_links = [ω_finite_difference(get_quaternion(q1_links[i]), get_quaternion(q2_links[i]), h) for i = 1:N]
+
+	μ_joint = 10.0
+	# joint_1_friction = -μ_joint * h[1] * ω1
+	# joint_2_friction = -μ_joint * h[1] * ω2
+	# joint_3_friction = -μ_joint * h[1] * ω3
 
 	## contact
 
@@ -297,7 +300,7 @@ function residual(z, θ, κ)
 	 d_fb_func(h, q0_fb, q1_fb, q2_fb,
 	 	-transpose(∇k_func(floating_base.kinematics[1], q2_fb)) * f1[1]
 			+ [f_pin; zeros(3)],
-		+ transpose(dra_parent_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1)) * (x_axis_mask * w1[1] + x_axis_input * joint_1_friction)
+		+ transpose(dra_parent_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1)) * (x_axis_mask * w1[1] + x_axis_input * dra_parent_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1) * (-1.0 * μ_joint * h[1] * ω_fb))
 			+ w_pin
 			-u1); # floating base dynamics
 
@@ -305,18 +308,18 @@ function residual(z, θ, κ)
 	 d_link_func(h, q0_links[1], q1_links[1], q2_links[1],
 	 	transpose(∇k_func(link.kinematics[2], q2_links[1])) * f1[1]
 			- transpose(∇k_func(link.kinematics[1], q2_links[1])) * (f1[2] + [0.0; 0.0; -0.0]),
-		transpose(dra_child_func(get_quaternion(q2_links[1]), get_quaternion(q2_fb), rot_off_fb_l1)) * (x_axis_mask * w1[1] + x_axis_input * joint_1_friction)
-			+ transpose(dra_parent_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2)) * (x_axis_mask * w1[2] + x_axis_input * joint_2_friction)
+		transpose(dra_child_func(get_quaternion(q2_links[1]), get_quaternion(q2_fb), rot_off_fb_l1)) * (x_axis_mask * w1[1] + x_axis_input * dra_child_func(get_quaternion(q2_links[1]), get_quaternion(q2_fb), rot_off_fb_l1) * (-1.0 * μ_joint * h[1] * ω_links[1]))
+			+ transpose(dra_parent_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2)) * (x_axis_mask * w1[2] + x_axis_input * dra_parent_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2) * (-1.0 * μ_joint * h[1] * ω_links[1]))
 			+ u1 - u2); # link 1 dynamics
 	 d_link_func(h, q0_links[2], q1_links[2], q2_links[2],
 	 	transpose(∇k_func(link.kinematics[2], q2_links[2])) * f1[2]
 			- transpose(∇k_func(link.kinematics[1], q2_links[2])) * f1[3],
-	 	transpose(dra_child_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[1]), rot_off_l1_l2)) * (x_axis_mask * w1[2] + x_axis_input * joint_2_friction)
-			+ transpose(dra_parent_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3)) * (x_axis_mask * w1[3] + x_axis_input * joint_3_friction)
+	 	transpose(dra_child_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[1]), rot_off_l1_l2)) * (x_axis_mask * w1[2] + x_axis_input * dra_child_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[1]), rot_off_l1_l2) * (-1.0 * μ_joint * h[1] * ω_links[2]))
+			+ transpose(dra_parent_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3)) * (x_axis_mask * w1[3] + x_axis_input * dra_parent_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3) * (-1.0 * μ_joint * h[1] * ω_links[2]))
 			+ u2 - u3); # link 2 dynamics
 	 d_link_func(h, q0_links[3], q1_links[3], q2_links[3],
 	 	transpose(∇k_func(link.kinematics[2], q2_links[3])) * f1[3],
-		transpose(dra_child_func(get_quaternion(q2_links[3]), get_quaternion(q2_links[2]), rot_off_l2_l3)) * (x_axis_mask * w1[3] + x_axis_input * joint_3_friction)
+		transpose(dra_child_func(get_quaternion(q2_links[3]), get_quaternion(q2_links[2]), rot_off_l2_l3)) * (x_axis_mask * w1[3] + x_axis_input * dra_child_func(get_quaternion(q2_links[3]), get_quaternion(q2_links[2]), rot_off_l2_l3) * (-1.0 * μ_joint * h[1] * ω_links[3]))
 			+ u3); # link 3 dynamics
 
 	 k_func(floating_base.kinematics[1], q2_fb) - k_func(link.kinematics[2], q2_links[1]); # body to link 1
@@ -331,6 +334,114 @@ function residual(z, θ, κ)
 	 q2_fb[5:7];
 	 ]
 end
+
+# function residual(z, θ, κ)
+#
+# 	u1 = [0.0; 0.0; 0.0]
+# 	u2 = [0.0; 0.0; 0.0]
+# 	u3 = [0.0; 0.0; 0.0]
+#
+# 	# floating base
+# 	q2_fb = z[1:nq]
+#
+# 	# link s
+# 	q2_links = [z[nq + (i - 1) * nq .+ (1:nq)] for i = 1:N]
+#
+# 	# joint forces
+# 	f1 = [z[nq + N * nq + (i - 1) * 3 .+ (1:3)] for i = 1:nf]
+#
+# 	# joint moments
+# 	w1 = [z[nq + N * nq + nf * 3 + (i - 1) * 2 .+ (1:2)] for i = 1:nr]
+#
+# 	# # impact impulses (and associated slacks)
+# 	# γ1 = z[nq + N * nq + nf * 3 + nr * 2 .+ (1:nc)]
+# 	# s1 = z[nq + N * nq + nf * 3 + nr * 2 + nc .+ (1:nc)]
+# 	# b1 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc .+ (1:(nc * nb))]
+# 	# η1 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + nc * nb .+ (1:(nc * nb))]
+# 	# ψ1 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb .+ (1:nc)]
+# 	# s2 = z[nq + N * nq + nf * 3 + nr * 2 + 2 * nc + 2 * nc * nb + nc .+ (1:nc)]
+#
+# 	f_pin = z[nq + N * nq + nf * 3 + nr * 2 + 0 * (2 * nc + 2 * nc * nb + 2 * nc) .+ (1:3)]
+# 	w_pin = z[nq + N * nq + nf * 3 + nr * 2 + 0 * (2 * nc + 2 * nc * nb + 2 * nc) + 3 .+ (1:3)]
+#
+# 	# previous configurations
+# 	q0_fb = θ[1:nq]
+# 	q0_links = [θ[nq + (i - 1) * nq .+ (1:nq)] for i = 1:N]
+#
+# 	q1_fb = θ[nq + N * nq .+ (1:nq)]
+# 	q1_links = [θ[nq + N * nq + nq + (i - 1) * nq .+ (1:nq)] for i = 1:N]
+#
+# 	# time step
+# 	h = θ[nq + N * nq + nq + N * nq .+ (1:1)]
+#
+# 	# joint velocities
+# 	ω1 = rotation_angular_velocity(get_quaternion(q1_fb), get_quaternion(q1_links[1]), get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1, h)
+# 	ω2 = rotation_angular_velocity(get_quaternion(q1_links[1]), get_quaternion(q1_links[2]), get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2, h)
+# 	ω3 = rotation_angular_velocity(get_quaternion(q1_links[2]), get_quaternion(q1_links[3]), get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3, h)
+#
+# 	μ_joint = 1.0
+# 	joint_1_friction = -μ_joint * h[1] * ω1
+# 	joint_2_friction = -μ_joint * h[1] * ω2
+# 	joint_3_friction = -μ_joint * h[1] * ω3
+#
+# 	## contact
+#
+# 	# # signed distance
+# 	# ϕ1 = [k_func(link.kinematics[2], q2_links[i])[3] for i in idx_contact_links]
+# 	#
+# 	# # contact forces
+# 	# λ1 = [[friction_map * b1[(i - 1) * nb .+ (1:nb)]; γ1[i]] for i = 1:nc]
+# 	# # λ1 = [[zeros(2); γ1[i]] for i = 1:nc]
+# 	#
+# 	# # tangential velocity
+# 	# v = [(q2_links[i][1:3] - q1_links[i][1:3]) / h for i in idx_contact_links]
+# 	# ω = [ω_finite_difference(q1_links[i][4:7], q2_links[i][4:7], h) for i in idx_contact_links]
+# 	#
+# 	# P = [∇k_func(link.kinematics[2], q2_links[i])[1:2, :] for i in idx_contact_links]
+# 	# vT = [P[i] * [v[i]; ω[i]] for i = 1:nc]
+# 	# vT_stack = vcat([[vT[i]; -vT[i]] for i = 1:nc]...)
+# 	#
+# 	# ψ_stack = vcat([ψ1[i] * ones(nb) for i = 1:nc]...)
+#
+# 	[
+# 	 # floating base
+# 	 d_fb_func(h, q0_fb, q1_fb, q2_fb,
+# 	 	-transpose(∇k_func(floating_base.kinematics[1], q2_fb)) * f1[1]
+# 			+ [f_pin; zeros(3)],
+# 		+ transpose(dra_parent_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1)) * (x_axis_mask * w1[1] + x_axis_input * joint_1_friction)
+# 			+ w_pin
+# 			-u1); # floating base dynamics
+#
+# 	 # leg 1
+# 	 d_link_func(h, q0_links[1], q1_links[1], q2_links[1],
+# 	 	transpose(∇k_func(link.kinematics[2], q2_links[1])) * f1[1]
+# 			- transpose(∇k_func(link.kinematics[1], q2_links[1])) * (f1[2] + [0.0; 0.0; -0.0]),
+# 		transpose(dra_child_func(get_quaternion(q2_links[1]), get_quaternion(q2_fb), rot_off_fb_l1)) * (x_axis_mask * w1[1] + x_axis_input * joint_1_friction)
+# 			+ transpose(dra_parent_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2)) * (x_axis_mask * w1[2] + x_axis_input * joint_2_friction)
+# 			+ u1 - u2); # link 1 dynamics
+# 	 d_link_func(h, q0_links[2], q1_links[2], q2_links[2],
+# 	 	transpose(∇k_func(link.kinematics[2], q2_links[2])) * f1[2]
+# 			- transpose(∇k_func(link.kinematics[1], q2_links[2])) * f1[3],
+# 	 	transpose(dra_child_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[1]), rot_off_l1_l2)) * (x_axis_mask * w1[2] + x_axis_input * joint_2_friction)
+# 			+ transpose(dra_parent_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3)) * (x_axis_mask * w1[3] + x_axis_input * joint_3_friction)
+# 			+ u2 - u3); # link 2 dynamics
+# 	 d_link_func(h, q0_links[3], q1_links[3], q2_links[3],
+# 	 	transpose(∇k_func(link.kinematics[2], q2_links[3])) * f1[3],
+# 		transpose(dra_child_func(get_quaternion(q2_links[3]), get_quaternion(q2_links[2]), rot_off_l2_l3)) * (x_axis_mask * w1[3] + x_axis_input * joint_3_friction)
+# 			+ u3); # link 3 dynamics
+#
+# 	 k_func(floating_base.kinematics[1], q2_fb) - k_func(link.kinematics[2], q2_links[1]); # body to link 1
+# 	 k_func(link.kinematics[1], q2_links[1]) - k_func(link.kinematics[2], q2_links[2]); # link 1 to link 2
+# 	 k_func(link.kinematics[1], q2_links[2]) - k_func(link.kinematics[2], q2_links[3]); # link 2 to link 3
+#
+# 	 transpose(x_axis_mask) * ra_func(get_quaternion(q2_fb), get_quaternion(q2_links[1]), rot_off_fb_l1);
+# 	 transpose(x_axis_mask) * ra_func(get_quaternion(q2_links[1]), get_quaternion(q2_links[2]), rot_off_l1_l2);
+# 	 transpose(x_axis_mask) * ra_func(get_quaternion(q2_links[2]), get_quaternion(q2_links[3]), rot_off_l2_l3);
+#
+# 	 q2_fb[1:3] - p0_fb;
+# 	 q2_fb[5:7];
+# 	 ]
+# end
 
 nz = nq + N * nq + nf * 3 + nr * 2 + n_contact + 6
 nθ = 2 * nq + N * (2 * nq) + 1
@@ -365,7 +476,7 @@ opts = ContactControl.InteriorPointOptions(diff_sol = false, r_tol = 1.0e-8, κ_
 r_func(zeros(nz - (1 + N)), ones(nz), ones(nθ), 1.0)
 ∇r_func(rz, ones(nz), ones(nθ))
 
-h = 0.05
+h = 0.01
 θ0 = [q0_fb;
 	  q0_l1; q0_l2; q0_l3;
 	  q1_fb;
@@ -408,19 +519,30 @@ for t = 1:T-2
 	if !status
 		println("t: ", t)
 		println("res norm: ", norm(ip.r, Inf))
+		break
 	end
 	push!(q_hist, ip.z[1:((1 + N) * nq)])
 
 	q1 = [q_hist[end-1][(i - 1) * nq .+ (1:nq)] for i = 1:(N+1)]
 	q2 = [q_hist[end][(i - 1) * nq .+ (1:nq)] for i = 1:(N+1)]
 
+	@show ω_fb = ω_finite_difference(get_quaternion(q1[1]), get_quaternion(q2[1]), h)
+	ω_links = [ω_finite_difference(get_quaternion(q1[1 + i]), get_quaternion(q2[1 + i]), h) for i = 1:N]
+	@show ω_links[1]
+	@show ω_links[2]
+	@show ω_links[3]
 	# # joint 1 angular rotation_angular_velocity
 	# @show ω1 = rotation_angular_velocity(get_quaternion(q1[1]), get_quaternion(q1[2]), get_quaternion(q2[1]), get_quaternion(q2[2]), rot_off_fb_l1, h)
 	# @show ω2 = rotation_angular_velocity(get_quaternion(q1[2]), get_quaternion(q1[3]), get_quaternion(q2[2]), get_quaternion(q2[3]), rot_off_l1_l2, h)
 	# @show ω3 = rotation_angular_velocity(get_quaternion(q1[3]), get_quaternion(q1[4]), get_quaternion(q2[3]), get_quaternion(q2[4]), rot_off_l2_l3, h)
+	#
+	# @show _ω1 = rotation_angular_velocity(get_quaternion(q1[1]), get_quaternion(q1[2]), get_quaternion(q2[1]), get_quaternion(q2[2]), rot_off_fb_l1, h)
+	# @show _ω2 = rotation_angular_velocity(get_quaternion(q1[2]), get_quaternion(q1[3]), get_quaternion(q2[2]), get_quaternion(q2[3]), rot_off_l1_l2, h)
+	# @show _ω3 = rotation_angular_velocity(get_quaternion(q1[3]), get_quaternion(q1[4]), get_quaternion(q2[3]), get_quaternion(q2[4]), rot_off_l2_l3, h)
+
 end
 
-visualize!(vis, floating_base, links, q_hist, Δt = h)
+# visualize!(vis, floating_base, links, q_hist, Δt = h)
 
 
 function visualize!(vis, fb::Body, links::Vector{Body}, q;
@@ -462,3 +584,12 @@ end
 vis = Visualizer()
 render(vis)
 visualize!(vis, floating_base, links, q_hist, Δt = h)
+
+
+t = 500
+q_hist_t = q_hist[t]
+
+q_fb = q_hist_t[1:nq]
+q_links = [q_hist_t[nq + (i - 1) * nq .+ (1:nq)] for i = 1:N]
+
+J = dra_child_func(get_quaternion(q_links[1]), get_quaternion(q_fb), rot_off_fb_l1)
