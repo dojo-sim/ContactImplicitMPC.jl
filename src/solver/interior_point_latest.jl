@@ -283,7 +283,25 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
             μ, σ = centering(z, Δ, iy1, iy2, α)
             αaff = α
             # Compute corrector residual
-            ip.methods.rm!(r, z, Δ, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            @warn "changed rm"
+            if env == LC
+                r[ibil] .+= Δ[iy1] .* Δ[iy2]
+            elseif env == NC
+                Δq2, Δγ1, Δb1, Δη1, Δs1, Δs2 = unpack_z(model, env, Δz)
+                # Positive orthant
+                rm[ibil[1:nc]] .+= Δγ1 .* Δs1
+                # SOC
+                rm[ibil[nc .+ (1:nc + nb)]] .+= vcat(
+                    [second_order_cone_product(
+                        Δη1[(i - 1) * ne .+ (1:ne)],
+                        [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]
+                    ]) for i = 1:nc]...)
+            else
+                @error("unknown env")
+            # ip.methods.rm!(r, z, Δ, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            ip.methods.r!(r, z, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            r .+= fct(Δ)
+
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r)
             α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 0.99)
@@ -327,6 +345,37 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
         return false
     end
 end
+
+
+function residual_mehrotra(model::ContactModel, env::Environment{<:World, LinearizedCone}, z, Δz, θ, κ)
+	ix, iy1, iy2 = linearization_var_index(model, env)
+	idyn, irst, ibil, ialt = linearization_term_index(model, env)
+	rm = residual(model, env, z, θ, κ)
+	rm[ibil] .+= Δz[iy1] .* Δz[iy2]
+	return rm
+end
+
+function residual_mehrotra(model::ContactModel, env::Environment{<:World, NonlinearCone}, z, Δz, θ, κ)
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	ne = dim(env)
+
+	idyn, irst, ibil, ialt = linearization_term_index(model, env)
+	Δq2, Δγ1, Δb1, Δη1, Δs1, Δs2 = unpack_z(model, env, Δz)
+	rm = residual(model, env, z, θ, κ)
+
+	# Positive orthant
+	rm[ibil[1:nc]] .+= Δγ1 .* Δs1
+	# SOC
+	rm[ibil[nc .+ (1:nc + nb)]] .+= vcat(
+		[second_order_cone_product(
+			Δη1[(i - 1) * ne .+ (1:ne)],
+			[Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]
+		]) for i = 1:nc]...)
+	return rm
+end
+
+
 
 function interior_point_solve!(ip::InteriorPoint115{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z

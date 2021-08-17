@@ -3,6 +3,9 @@ include(joinpath(module_dir(), "src/dynamics/particle_2D/visuals.jl"))
 vis = Visualizer()
 open(vis)
 
+include(joinpath(module_dir(), "src", "solver", "mehrotra.jl"))
+include(joinpath(module_dir(), "src", "solver", "mehrotra_expanded.jl"))
+include(joinpath(module_dir(), "src", "solver", "mehrotra_latest.jl"))
 include(joinpath(module_dir(), "src", "solver", "interior_point.jl"))
 include(joinpath(module_dir(), "src", "solver", "interior_point_latest.jl"))
 
