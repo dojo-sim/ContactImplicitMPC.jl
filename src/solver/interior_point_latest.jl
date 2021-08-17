@@ -359,8 +359,6 @@ function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_
     return nothing
 end
 
-soc_indices(s.model, s.env)
-
 function residual_mehrotra(model::ContactModel, env::Environment{<:World, LinearizedCone}, z, Δz, θ, κ)
 	ix, iy1, iy2 = linearization_var_index(model, env)
 	idyn, irst, ibil, ialt = linearization_term_index(model, env)

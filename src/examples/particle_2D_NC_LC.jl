@@ -53,6 +53,22 @@ plot!(plt, hcat(Vector.([γ[1:end] for γ in sim.traj.γ])...)', color=:green, l
 plot(hcat(Vector.(sim.traj.z)...)')
 plot(hcat(Vector.(sim.traj.θ)...)')
 
+# ################################################################################
+# # Save Trajectory
+# ################################################################################
+# traj = deepcopy(sim.traj)
+# gait_path = joinpath(@__DIR__, "..", "dynamics", "particle_2D", "gaits", "gait_LC.jld2")
+# @save gait_path traj
+#
+# # Reload trajectory
+# res = JLD2.jldopen(gait_path)
+# loaded_traj = res["traj"]
+#
+# traj = deepcopy(get_trajectory(s.model, s.env,
+# 	joinpath(module_dir(), "src/dynamics/particle_2D/gaits/gait_LC.jld2"),
+# 	load_type = :joint_traj))
+# plot(hcat(Vector.(traj.q)...)')
+
 ################################################################################
 # Non Linear Cone
 ################################################################################
@@ -204,7 +220,7 @@ for t = 1:T
 		rθ = s.rθ,
 		opts = InteriorPoint115Options(
 			max_iter_inner = 20,
-			max_ls = 20,
+			max_ls = 3,
 			r_tol = r_tol,
 			κ_tol = κ_tol,
 			solver = :lu_solver,
@@ -262,7 +278,7 @@ for t = 1:T
 		rθ = s.rθ,
 		opts = InteriorPointOptions(
 			# max_iter_inner = 20,
-			max_ls = 20,
+			max_ls = 3,
 			r_tol = r_tol,
 			κ_tol = κ_tol,
 			κ_scale = 1e-1,
