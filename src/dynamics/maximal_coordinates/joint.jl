@@ -1,29 +1,31 @@
 abstract type Joint end
 
-x_axis_mask = [0.0 0.0;
-			   1.0 0.0;
-			   0.0 1.0]
+# masks
+x_axis_mask = SMatrix{3,2}([0.0 0.0;
+            			    1.0 0.0;
+            			    0.0 1.0])
 
-x_axis_input = [1.0 0.0 0.0;
-			    0.0 0.0 0.0;
-			    0.0 0.0 0.0]
+x_axis_input = SMatrix{3,3}([1.0 0.0 0.0;
+                			 0.0 0.0 0.0;
+                			 0.0 0.0 0.0])
 
-y_axis_mask = [1.0 0.0;
-			   0.0 0.0;
-			   0.0 1.0]
+y_axis_mask = SMatrix{3,2}([1.0 0.0;
+            			    0.0 0.0;
+            			    0.0 1.0])
 
-y_axis_input = [0.0 0.0 0.0;
-			    0.0 1.0 0.0;
-			    0.0 0.0 0.0]
+y_axis_input = SMatrix{3,3}([0.0 0.0 0.0;
+            			     0.0 1.0 0.0;
+            			     0.0 0.0 0.0])
 
-z_axis_mask = [1.0 0.0;
-			   0.0 1.0;
-			   0.0 0.0]
+z_axis_mask = SMatrix{3,2}([1.0 0.0;
+            			    0.0 1.0;
+            			    0.0 0.0])
 
-z_axis_input = [0.0 0.0 0.0;
-			    0.0 0.0 0.0;
-			    0.0 0.0 1.0]
+z_axis_input = SMatrix{3,3}([0.0 0.0 0.0;
+            			     0.0 0.0 0.0;
+            			     0.0 0.0 1.0])
 
+# kinematics
 function kinematics(r, q)
 	# body position
 	p = q[1:3]
@@ -36,15 +38,13 @@ function kinematics(r, q)
 	return k1
 end
 
-@variables r[1:3], q[1:7]
-k = kinematics(r, q)
-dk = Symbolics.jacobian(k, q) * G_func(q)
-
+# rotation axes
 function rotation_axes(q_parent, q_child, q_offset)
 	# q_parent^-1 q_child q_offset^-1
 	(R_multiply(conjugate(q_offset)) * L_multiply(conjugate(q_parent)) * q_child)[2:4]
 end
 
+### sphere joint ###
 struct SphereJoint{T} <: Joint
     p_parent::SVector{3,T}
     p_child::SVector{3,T}
@@ -52,8 +52,7 @@ struct SphereJoint{T} <: Joint
     c_id::Symbol
 end
 
-function constraint(joint::SphereJoint, q_parent, q_child)
-end
+dimension(::SphereJoint) = 3
 
 function sphere_constraint(p_parent, p_child, q_parent, q_child)
     kinematics(p_parent, q_parent) - kinematics(p_child, q_child)
@@ -88,7 +87,34 @@ _dsc = zeros(3, 6)
 @benchmark $_dsc .= dscc_func($_p_parent, $_p_child, $_q_parent, $_q_child)
 @benchmark dscc_func!($_dsc, $_p_parent, $_p_child, $_q_parent, $_q_child)
 
-struct RevoluteJoint <: Joint
+function constraint(joint::SphereJoint, q_parent, q_child)
+    sc_func(joint.p_parent, joint.p_child, q_parent, q_child)
+end
+
+function jacobian_parent(joint::SphereJoint, q_parent, q_child)
+    dscp_func(joint.p_parent, joint.p_child, q_parent, q_child)
+end
+
+function jacobian_child(joint::SphereJoint, q_parent, q_child)
+    dscc_func(joint.p_parent, joint.p_child, q_parent, q_child)
+end
+
+function constraint!(c, joint::SphereJoint, q_parent, q_child)
+    sc_func!(c, joint.p_parent, joint.p_child, q_parent, q_child)
+end
+
+function jacobian_parent!(j, joint::SphereJoint, q_parent, q_child)
+    dscp_func!(j, joint.p_parent, joint.p_child, q_parent, q_child)
+end
+
+function jacobian_child!(j, joint::SphereJoint, q_parent, q_child)
+    dscc_func!(j, joint.p_parent, joint.p_child, q_parent, q_child)
+end
+
+######
+
+### revolute joint ###
+struct RevoluteJoint{T} <: Joint
     p_parent::SVector{3,T}
     p_child::SVector{3,T}
     quat_offset::SVector{4,T}
@@ -97,9 +123,7 @@ struct RevoluteJoint <: Joint
     c_id::Symbol
 end
 
-function constraint(joint::RevoluteJoint, qp, qc)
-
-end
+dimension(::RevoluteJoint) = 5
 
 function revolute_constraint(p_parent, p_child, q_parent, q_child, quat_offset, mask)
     [
@@ -135,8 +159,33 @@ _drc = rand(5, 6)
 @benchmark $_drc .= drcc_func($_p_parent, $_p_child, $_q_parent, $_q_child, $_quat_offset, $_mask)
 @benchmark drcc_func!($_drc, $_p_parent, $_p_child, $_q_parent, $_q_child, $_quat_offset, $_mask)
 
+function constraint(joint::RevoluteJoint, q_parent, q_child)
+    rc_func(joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
 
-struct PrismaticJoint <: Joint
+function jacobian_parent(joint::RevoluteJoint, q_parent, q_child)
+    drcp_func(joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+function jacobian_child(joint::RevoluteJoint, q_parent, q_child)
+    drcc_func(joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+function constraint!(c, joint::RevoluteJoint, q_parent, q_child)
+    rc_func!(c, joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+function jacobian_parent!(j, joint::RevoluteJoint, q_parent, q_child)
+    drcp_func!(j, joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+function jacobian_child!(j, joint::RevoluteJoint, q_parent, q_child)
+    drcc_func!(j, joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+######
+
+### Prismatic Joint ###
+struct PrismaticJoint{T} <: Joint
     p_parent::SVector{3,T}
     p_child::SVector{3,T}
     quat_offset::SVector{4,T}
@@ -145,9 +194,7 @@ struct PrismaticJoint <: Joint
     c_id::Symbol
 end
 
-function constraint(joint::PrismaticJoint, qp, qc)
-
-end
+dimension(::PrismaticJoint) = 5
 
 function prismatic_constraint(p_parent, p_child, q_parent, q_child, quat_offset, mask)
     [
@@ -178,3 +225,29 @@ _dpc = rand(5, 6)
 @benchmark dpcp_func!($_dpc, $_p_parent, $_p_child, $_q_parent, $_q_child, $_quat_offset, $_mask)
 @benchmark $_dpc .= dpcc_func($_p_parent, $_p_child, $_q_parent, $_q_child, $_quat_offset, $_mask)
 @benchmark dpcc_func!($_dpc, $_p_parent, $_p_child, $_q_parent, $_q_child, $_quat_offset, $_mask)
+
+function constraint(joint::PrismaticJoint, q_parent, q_child)
+    pc_func(joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+function jacobian_parent(joint::PrismaticJoint, q_parent, q_child)
+    dpcp_func(joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+function jacobian_child(joint::PrismaticJoint, q_parent, q_child)
+    dpcc_func(joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+function constraint!(c, joint::PrismaticJoint, q_parent, q_child)
+    pc_func!(c, joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+function jacobian_parent!(joint::PrismaticJoint, q_parent, q_child)
+    dpcp_func!(j, joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+function jacobian_child!(joint::PrismaticJoint, q_parent, q_child)
+    dpcc_func!(j, joint.p_parent, joint.p_child, q_parent, q_child, joint.quat_offset, joint.mask)
+end
+
+######

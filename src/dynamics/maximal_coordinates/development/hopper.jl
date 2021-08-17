@@ -164,13 +164,6 @@ z_axis_mask = [1.0 0.0;
 			   0.0 1.0;
 			   0.0 0.0]
 
-z_axis_mask2 = [1.0 0.0;
-			   0.0 1.0;
-			   0.0 0.0;
-			   0.0 0.0;
-			   0.0 0.0;
-			   0.0 0.0]
-
 # floating base
 z_base = 5 * link_length + 0.0
 p0_fb = [0.0; 0.0; z_base]

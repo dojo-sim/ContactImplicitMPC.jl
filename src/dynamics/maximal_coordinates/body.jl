@@ -1,21 +1,55 @@
-struct Body{T,I}
+abstract type BodyGeometry end
+struct SphereGeometry <: BodyGeometry end
+struct BoxGeometry <: BodyGeometry end
+struct RodGeometry <: BodyGeometry end
+
+struct Body{G <: BodyGeometry,T,I}
 	mass::T
 	inertia::I
 	gravity::SVector{3,T}
     id::Symbol
+	geometry::Dict{Symbol,T}
 end
 
-function Body(mass::T, inertia::I;
-    id = :body, gravity = 9.81) where {T,I}
-    return Body(
+function Box(mass::T,
+	inertia::I;
+    id = :body,
+	gravity = 9.81,
+	geometry = Dict(:length => 1.0, :width => 1.0, :height => 1.0)) where {T,I}
+    return Body{BoxGeometry,T,I}(
         mass,
         inertia,
         SVector{3,T}([0.0, 0.0, gravity]),
-		id)
+		id,
+		geometry)
 end
 
-body1 = Body(1.0, Diagonal(@SVector ones(3)), id = :body1)
-body2 = Body(1.0, Diagonal(@SMatrix ones(3, 3)), id = :body2)
+function Rod(mass::T,
+	inertia::I;
+    id = :body,
+	gravity = 9.81,
+	#TODO determine default axis for length (e.g., z-axis)
+	geometry = Dict(:length => 1.0, :radius => 0.1)) where {T,I}
+    return Body{RodGeometry,T,I}(
+        mass,
+        inertia,
+        SVector{3,T}([0.0, 0.0, gravity]),
+		id,
+		geometry)
+end
+
+function Sphere(mass::T,
+	inertia::I;
+    id = :body,
+	gravity = 9.81,
+	geometry = Dict(:radius => 0.5)) where {T,I}
+    return Body{RodGeometry,T,I}(
+        mass,
+        inertia,
+        SVector{3,T}([0.0, 0.0, gravity]),
+		id,
+		geometry)
+end
 
 function dynamics(mass, inertia, gravity, h, q0, q1, q2, f)
 
@@ -63,11 +97,19 @@ _mass = 1.0
 _inertia = SMatrix{3, 3}(rand(3, 3))
 _gravity = SVector{3}([0.0, 0.0, 9.81])
 _h = 0.1
-_q0 = rand(7)
-_q1 = rand(7)
-_q2 = rand(7)
-_f1 = rand(6)
+_q0 = zeros(7)
+_q1 = zeros(7)
+_q2 = zeros(7)
+_f1 = zeros(6)
 _d = zeros(6)
 
 @benchmark $_d .= d_func($_mass, $_inertia, $_gravity, $_h, $_q0, $_q1, $_q2, $_f1)
 @benchmark d_func!($_d, $_mass, $_inertia, $_gravity, $_h, $_q0, $_q1, $_q2, $_f1)
+
+function dynamics(b::Body, q0, q1, q2, f1, h)
+	d_func(b.mass, b.inertia, b.gravity, h, q0, q1, q2, f1)
+end
+
+function dynamics!(d, b::Body, q0, q1, q2, f1, h)
+	d_func!(d, b.mass, b.inertia, b.gravity, h, q0, q1, q2, f1)
+end
