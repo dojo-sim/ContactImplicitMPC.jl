@@ -94,7 +94,7 @@ end
 mutable struct InteriorPoint115{T} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
-    z::Vector{T}               # current point
+    z::Vector{T}                # current point
     r#::Vector{T}               # residual
     r̄#::Vector{T}               # candidate residual   #useless
     rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
@@ -282,25 +282,11 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
             # ################################################################
             μ, σ = centering(z, Δ, iy1, iy2, α)
             αaff = α
+
             # Compute corrector residual
-            @warn "changed rm"
-            if env == LC
-                r[ibil] .+= Δ[iy1] .* Δ[iy2]
-            elseif env == NC
-                Δq2, Δγ1, Δb1, Δη1, Δs1, Δs2 = unpack_z(model, env, Δz)
-                # Positive orthant
-                rm[ibil[1:nc]] .+= Δγ1 .* Δs1
-                # SOC
-                rm[ibil[nc .+ (1:nc + nb)]] .+= vcat(
-                    [second_order_cone_product(
-                        Δη1[(i - 1) * ne .+ (1:ne)],
-                        [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]
-                    ]) for i = 1:nc]...)
-            else
-                @error("unknown env")
-            # ip.methods.rm!(r, z, Δ, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
             ip.methods.r!(r, z, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
-            r .+= fct(Δ)
+            general_correction_term!(r, Δ, ibil, idx_ineq, idx_soc, iy1, iy2)
+            # ip.methods.rm!(r, z, Δ, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
 
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r)
@@ -346,6 +332,34 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
     end
 end
 
+
+
+function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_soc, iy1, iy2) where {T}
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    n_soc = length(idx_soc_p)
+    n_ort = length(idx_ineq_1)
+
+    r[ibil[1:n_ort]] .+= Δ[idx_ineq_1] .* Δ[idx_ineq_2]
+    r[ibil[n_ort+1:end]] .+= vcat(
+        [second_order_cone_product(
+            Δ[idx_soc_d[i]],
+            # Δη1[(i - 1) * ne .+ (1:ne)],
+            Δ[idx_soc_p[i]],
+            # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
+        ) for i = 1:nc]...)
+    return nothing
+end
+
+soc_indices(s.model, s.env)
 
 function residual_mehrotra(model::ContactModel, env::Environment{<:World, LinearizedCone}, z, Δz, θ, κ)
 	ix, iy1, iy2 = linearization_var_index(model, env)
@@ -442,7 +456,9 @@ function general_bilinear_violation(z::AbstractVector{T}, idx_ineq, idx_soc, iy1
 
     κ_vio = 0.0
     for i = 1:nc
+        # scalar part
         soc_vio_s = z[idx_soc_p[i]]' * z[idx_soc_d[i]]
+        # vector part
         soc_vio_v = z[idx_soc_p[i][1]] * z[idx_soc_d[i][2:end]] + z[idx_soc_d[i][1]] * z[idx_soc_p[i][2:end]]
         κ_vio = max(κ_vio, abs(soc_vio_s))
         κ_vio = max(κ_vio, maximum(abs.(soc_vio_v)))

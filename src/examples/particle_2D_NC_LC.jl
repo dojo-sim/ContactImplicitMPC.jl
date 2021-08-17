@@ -101,6 +101,39 @@ plot(hcat(Vector.(sim.traj.θ)...)')
 # plot(hcat(Vector.(traj.q)...)')
 
 ################################################################################
+# Linearized Cone (InteriorPoint Latest)
+################################################################################
+s = get_simulation("particle_2D", "flat_2D_lc", "flat_lc")
+s.model.μ_world = 0.5
+
+# simulator
+sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
+	ip_type = :interior_point_latest,
+	ip_opts = ContactControl.InteriorPoint115Options(
+		r_tol = tol, κ_tol = tol,
+		diff_sol = false,
+		verbose = false,
+		solver = :lu_solver),
+	sim_opts = ContactControl.SimulatorOptions(warmstart = false))
+
+# simulate
+@time status = ContactControl.simulate!(sim)
+
+plot_surface!(vis, s.env, xlims=[-10,10], ylims=[-0.3,0.3])
+plot_lines!(vis, s.model, sim.traj.q, name = :NClines)
+visualize_robot!(vis, s.model, sim.traj, name = :NC, anim = anim)
+visualize_force!(vis, s.model, s.env, sim.traj, anim=anim, shift=-0.25, name = :NC)
+
+plt = plot(legend=false)
+plot!(plt, hcat(Vector.([q[1:end] for q in sim.traj.q])...)', color=:cyan, linewidth=4.0)
+plot!(plt, hcat(Vector.([u[1:end] for u in sim.traj.u])...)', color=:red, linewidth=4.0)
+plot!(plt, hcat(Vector.([γ[1:end] for γ in sim.traj.γ])...)', color=:green, linewidth=4.0)
+plot!(plt, hcat(Vector.([b[1:end] for b in sim.traj.b])...)', color=:black, linewidth=4.0)
+
+plot(hcat(Vector.(sim.traj.z)...)')
+plot(hcat(Vector.(sim.traj.θ)...)')
+
+################################################################################
 # Non Linear Cone (InteriorPoint Latest)
 ################################################################################
 s = get_simulation("particle_2D", "flat_2D_nc", "flat_nc")

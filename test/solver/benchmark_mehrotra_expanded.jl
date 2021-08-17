@@ -420,22 +420,22 @@ end
 # Loading Problems
 ################################################################################
 
-# s_quadruped = ContactControl.get_simulation("quadruped", "flat_2D_lc", "flat")
-# s_flamingo = ContactControl.get_simulation("flamingo", "flat_2D_lc", "flat")
-# s_hopper = ContactControl.get_simulation("hopper_2D", "flat_2D_lc", "flat")
-# s_particle_2D = ContactControl.get_simulation("particle_2D", "flat_2D_nc", "flat_nc")
-# ref_traj_quadruped = deepcopy(ContactControl.get_trajectory(s_quadruped.model, s_quadruped.env,
-#     joinpath(ContactControl.module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
-#     load_type = :split_traj_alt))
-# ref_traj_flamingo = deepcopy(ContactControl.get_trajectory(s_flamingo.model, s_flamingo.env,
-#     joinpath(ContactControl.module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
-#     load_type = :split_traj_alt))
-# ref_traj_hopper = deepcopy(ContactControl.get_trajectory(s_hopper.model, s_hopper.env,
-#     joinpath(ContactControl.module_dir(), "src/dynamics/hopper_2D/gaits/gait_forward.jld2"),
-#     load_type = :joint_traj))
-# ref_traj_particle_2D = deepcopy(get_trajectory(s_particle_2D.model, s_particle_2D.env,
-# 	joinpath(module_dir(), "src/dynamics/particle_2D/gaits/gait_NC.jld2"),
-# 	load_type = :joint_traj))
+s_quadruped = ContactControl.get_simulation("quadruped", "flat_2D_lc", "flat")
+s_flamingo = ContactControl.get_simulation("flamingo", "flat_2D_lc", "flat")
+s_hopper = ContactControl.get_simulation("hopper_2D", "flat_2D_lc", "flat")
+s_particle_2D = ContactControl.get_simulation("particle_2D", "flat_2D_nc", "flat_nc")
+ref_traj_quadruped = deepcopy(ContactControl.get_trajectory(s_quadruped.model, s_quadruped.env,
+    joinpath(ContactControl.module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+    load_type = :split_traj_alt))
+ref_traj_flamingo = deepcopy(ContactControl.get_trajectory(s_flamingo.model, s_flamingo.env,
+    joinpath(ContactControl.module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
+    load_type = :split_traj_alt))
+ref_traj_hopper = deepcopy(ContactControl.get_trajectory(s_hopper.model, s_hopper.env,
+    joinpath(ContactControl.module_dir(), "src/dynamics/hopper_2D/gaits/gait_forward.jld2"),
+    load_type = :joint_traj))
+ref_traj_particle_2D = deepcopy(get_trajectory(s_particle_2D.model, s_particle_2D.env,
+	joinpath(module_dir(), "src/dynamics/particle_2D/gaits/gait_NC.jld2"),
+	load_type = :joint_traj))
 
 
 
