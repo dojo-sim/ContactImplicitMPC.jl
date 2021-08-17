@@ -1,5 +1,6 @@
 # simulation
 s = get_simulation("particle", "quadratic_bowl_3D_lc", "quadratic")
+
 s.model.μ_world = 0.1
 
 # time
