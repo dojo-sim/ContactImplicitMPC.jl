@@ -13,7 +13,7 @@ using BenchmarkTools
 using Quaternions
 # const ContactControl = Main
 
-# Solver
+# # Solver
 # include("solver/gs.jl")
 # include("solver/qdldl.jl")
 # include("solver/random_qp.jl")
@@ -22,8 +22,7 @@ using Quaternions
 # include("solver/schur.jl")
 # include("solver/soc.jl")
 include("solver/mehrotra.jl")
-
-
+#
 # # Dynamics
 # include("dynamics/lagrangian.jl") # need to fix d_fast
 # include("dynamics/model.jl")
