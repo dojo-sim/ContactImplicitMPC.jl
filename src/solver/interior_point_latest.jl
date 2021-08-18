@@ -212,12 +212,6 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
     # space
     s = ip.s
 
-    # methods
-    # r! = ip.methods.r!
-    # rm! = ip.methods.rm!
-    # rz! = ip.methods.rz!
-    # rθ! = ip.methods.rθ!
-
     # options
     opts = ip.opts
     r_tol = opts.r_tol
@@ -285,7 +279,6 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
 
             # compute residual Jacobian
             # TODO need to use reg_val here
-            # @warn "changed"
             ip.methods.rz!(rz, z, θ)
             # TODO rz!(ip, rz, z, θ, reg = ip.reg_val) # this is not adapted to the second order cone
 

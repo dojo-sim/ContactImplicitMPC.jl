@@ -152,7 +152,6 @@ end
 
 end
 
-
 @testset "MPC quadruped: long trajectory" begin
 
 	s = get_simulation("quadruped", "flat_2D_lc", "flat")

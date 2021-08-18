@@ -184,8 +184,6 @@ s.res.r!(r2, ip2.z, ip2.θ, 0.0)
 	@test ip2.iterations == 3
 end
 
-cond(ip2.rz.S.D)
-
 
 # e_me = 1e6 * mehrotra_timing(ref_traj, t, im_traj2.ip[t])
 

@@ -646,6 +646,33 @@ function bilinear_violation(ip::Mehrotra{T}, r::RLin{T}) where {T}
     norm(r.rbil, Inf)
 end
 
+
+function general_correction_term!(r::RLin, Δ, ibil, idx_ineq, idx_soc, iy1, iy2) where {T}
+    # TODO only handles the linearized cone
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    n_soc = length(idx_soc_p)
+    n_ort = length(idx_ineq_1)
+
+    r.rbil += Δ[idx_ineq_1] .* Δ[idx_ineq_2]
+    # r[ibil[n_ort+1:end]] .+= vcat(
+    #     [second_order_cone_product(
+    #         Δ[idx_soc_d[i]],
+    #         # Δη1[(i - 1) * ne .+ (1:ne)],
+    #         Δ[idx_soc_p[i]],
+    #         # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
+    #     ) for i = 1:nc]...)
+    return nothing
+end
+
 # function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
 # 	r!(r, z, θ, κ)
 # 	return nothing

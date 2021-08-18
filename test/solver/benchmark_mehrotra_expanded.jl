@@ -450,8 +450,8 @@ s = [s_quadruped, s_flamingo, s_hopper, s_particle_2D, s_particle]
 ref_traj = [ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper, ref_traj_particle_2D, ref_traj_particle]
 # s = [s_particle_2D, s_particle]
 # ref_traj = [ref_traj_particle_2D, ref_traj_particle]
-# s = [s_quadruped, s_flamingo, s_hopper]
-# ref_traj = [ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper]
+s = [s_quadruped, s_flamingo, s_hopper]
+ref_traj = [ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper]
 
 
 dist = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2]

@@ -225,13 +225,17 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     reg_du[1] = opts.reg_du_init
 
     # compute residual, residual Jacobian
-    ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
+    # @warn "changed"
+    # ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
+    ip.methods.r!(r, z, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
     least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
 
-    ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
+    # @warn "changed"
+    # ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
+    ip.methods.r!(r, z, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
 
     r_vio = residual_violation(ip, r)
@@ -269,7 +273,10 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
             # Compute corrector residual
             # @warn "changed"
-            ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            # ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            ip.methods.r!(r, z, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            general_correction_term!(r, Δaff, ip.ibil, idx_ineq, idx_soc, iy1, iy2)
+
             # ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, 0.0)) # here we set κ = σ*μ, Δ = Δaff
             # println("μ: ", scn(ip.μ, digits=6))
             # println("σ: ", scn(ip.σ, digits=6))
@@ -434,6 +441,32 @@ function differentiate_solution!(ip::Mehrotra; reg = 0.0)
     mapping!(δz, s, δzs, z)
 
     nothing
+end
+
+
+function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_soc, iy1, iy2) where {T}
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    n_soc = length(idx_soc_p)
+    n_ort = length(idx_ineq_1)
+
+    r[ibil[1:n_ort]] .+= Δ[idx_ineq_1] .* Δ[idx_ineq_2]
+    r[ibil[n_ort+1:end]] .+= vcat(
+        [second_order_cone_product(
+            Δ[idx_soc_d[i]],
+            # Δη1[(i - 1) * ne .+ (1:ne)],
+            Δ[idx_soc_p[i]],
+            # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
+        ) for i = 1:nc]...)
+    return nothing
 end
 
 
