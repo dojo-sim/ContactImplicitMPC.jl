@@ -23,6 +23,7 @@ using Quaternions
 # include("solver/soc.jl")
 include("solver/mehrotra.jl")
 
+
 # # Dynamics
 # include("dynamics/lagrangian.jl") # need to fix d_fast
 # include("dynamics/model.jl")
