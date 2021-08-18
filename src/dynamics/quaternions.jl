@@ -34,6 +34,26 @@ function attitude_jacobian(q)
 	 s * I + skew(v)]
 end
 
+function G_func(q)
+	quat = q[4:7]
+	[1.0 0.0 0.0 0.0 0.0 0.0;
+     0.0 1.0 0.0 0.0 0.0 0.0;
+	 0.0 0.0 1.0 0.0 0.0 0.0;
+     zeros(4, 3) attitude_jacobian(quat)]
+end
+
+function static_quaternion(q::UnitQuaternion)
+	SVector{4}([q.w, q.x, q.y, q.z])
+end
+
+function quaternion_offset(q_parent, q_child)
+	L_multiply(conjugate(q_parent)) * q_child
+end
+
+function get_quaternion(q)
+	return view(q, 4:7)
+end
+
 # eq. 16 http://roboticexplorationlab.org/papers/maximal_coordinate_dynamics.pdf
 function ω_finite_difference(q1, q2, h)
 	2.0 * multiply(conjugate(q1), (q2 - q1) ./ h)[2:4]

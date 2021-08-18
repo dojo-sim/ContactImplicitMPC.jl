@@ -251,3 +251,15 @@ function jacobian_child!(joint::PrismaticJoint, q_parent, q_child)
 end
 
 ######
+
+### Damping ###
+
+function rotation_angular_velocity(q1_parent, q1_child, q2_parent, q2_child, q_offset, h)
+	# q_parent^-1 q_child q_offset^-1
+	q1 = (R_multiply(conjugate(q_offset)) * L_multiply(conjugate(q1_parent)) * q1_child)
+	q2 = (R_multiply(conjugate(q_offset)) * L_multiply(conjugate(q2_parent)) * q2_child)
+
+	ω = ω_finite_difference(q1, q2, h)
+
+	return ω
+end

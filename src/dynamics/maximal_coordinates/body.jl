@@ -29,7 +29,7 @@ function Rod(mass::T,
     id = :body,
 	gravity = 9.81,
 	#TODO determine default axis for length (e.g., z-axis)
-	geometry = Dict(:length => 1.0, :radius => 0.1)) where {T,I}
+	geometry = Dict(:length => 1.0, :radius => 0.05)) where {T,I}
     return Body{RodGeometry,T,I}(
         mass,
         inertia,
@@ -43,7 +43,7 @@ function Sphere(mass::T,
     id = :body,
 	gravity = 9.81,
 	geometry = Dict(:radius => 0.5)) where {T,I}
-    return Body{RodGeometry,T,I}(
+    return Body{SphereGeometry,T,I}(
         mass,
         inertia,
         SVector{3,T}([0.0, 0.0, gravity]),
