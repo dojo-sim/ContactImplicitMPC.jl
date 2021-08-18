@@ -3,6 +3,9 @@ include(joinpath(module_dir(), "src/dynamics/particle_2D/visuals.jl"))
 vis = Visualizer()
 open(vis)
 
+include(joinpath(module_dir(), "src", "solver", "mehrotra.jl"))
+include(joinpath(module_dir(), "src", "solver", "mehrotra_expanded.jl"))
+include(joinpath(module_dir(), "src", "solver", "mehrotra_latest.jl"))
 include(joinpath(module_dir(), "src", "solver", "interior_point.jl"))
 include(joinpath(module_dir(), "src", "solver", "interior_point_latest.jl"))
 
@@ -50,6 +53,22 @@ plot!(plt, hcat(Vector.([γ[1:end] for γ in sim.traj.γ])...)', color=:green, l
 plot(hcat(Vector.(sim.traj.z)...)')
 plot(hcat(Vector.(sim.traj.θ)...)')
 
+# ################################################################################
+# # Save Trajectory
+# ################################################################################
+# traj = deepcopy(sim.traj)
+# gait_path = joinpath(@__DIR__, "..", "dynamics", "particle_2D", "gaits", "gait_LC.jld2")
+# @save gait_path traj
+#
+# # Reload trajectory
+# res = JLD2.jldopen(gait_path)
+# loaded_traj = res["traj"]
+#
+# traj = deepcopy(get_trajectory(s.model, s.env,
+# 	joinpath(module_dir(), "src/dynamics/particle_2D/gaits/gait_LC.jld2"),
+# 	load_type = :joint_traj))
+# plot(hcat(Vector.(traj.q)...)')
+
 ################################################################################
 # Non Linear Cone
 ################################################################################
@@ -96,6 +115,39 @@ plot(hcat(Vector.(sim.traj.θ)...)')
 # 	joinpath(module_dir(), "src/dynamics/particle_2D/gaits/gait_NC.jld2"),
 # 	load_type = :joint_traj))
 # plot(hcat(Vector.(traj.q)...)')
+
+################################################################################
+# Linearized Cone (InteriorPoint Latest)
+################################################################################
+s = get_simulation("particle_2D", "flat_2D_lc", "flat_lc")
+s.model.μ_world = 0.5
+
+# simulator
+sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
+	ip_type = :interior_point_latest,
+	ip_opts = ContactControl.InteriorPoint115Options(
+		r_tol = tol, κ_tol = tol,
+		diff_sol = false,
+		verbose = false,
+		solver = :lu_solver),
+	sim_opts = ContactControl.SimulatorOptions(warmstart = false))
+
+# simulate
+@time status = ContactControl.simulate!(sim)
+
+plot_surface!(vis, s.env, xlims=[-10,10], ylims=[-0.3,0.3])
+plot_lines!(vis, s.model, sim.traj.q, name = :NClines)
+visualize_robot!(vis, s.model, sim.traj, name = :NC, anim = anim)
+visualize_force!(vis, s.model, s.env, sim.traj, anim=anim, shift=-0.25, name = :NC)
+
+plt = plot(legend=false)
+plot!(plt, hcat(Vector.([q[1:end] for q in sim.traj.q])...)', color=:cyan, linewidth=4.0)
+plot!(plt, hcat(Vector.([u[1:end] for u in sim.traj.u])...)', color=:red, linewidth=4.0)
+plot!(plt, hcat(Vector.([γ[1:end] for γ in sim.traj.γ])...)', color=:green, linewidth=4.0)
+plot!(plt, hcat(Vector.([b[1:end] for b in sim.traj.b])...)', color=:black, linewidth=4.0)
+
+plot(hcat(Vector.(sim.traj.z)...)')
+plot(hcat(Vector.(sim.traj.θ)...)')
 
 ################################################################################
 # Non Linear Cone (InteriorPoint Latest)
@@ -168,7 +220,7 @@ for t = 1:T
 		rθ = s.rθ,
 		opts = InteriorPoint115Options(
 			max_iter_inner = 20,
-			max_ls = 20,
+			max_ls = 3,
 			r_tol = r_tol,
 			κ_tol = κ_tol,
 			solver = :lu_solver,
@@ -226,7 +278,7 @@ for t = 1:T
 		rθ = s.rθ,
 		opts = InteriorPointOptions(
 			# max_iter_inner = 20,
-			max_ls = 20,
+			max_ls = 3,
 			r_tol = r_tol,
 			κ_tol = κ_tol,
 			κ_scale = 1e-1,

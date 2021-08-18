@@ -12,11 +12,13 @@ include(joinpath(module_dir(), "src", "solver", "mehrotra_latest.jl"))
 # Benchmark Utils
 ################################################################################
 
-function get_benchmark_initialization(ref_traj::ContactTraj{T, nq}, t::Int;
+function get_benchmark_initialization(ref_traj::ContactTraj{T, nq},
+		model::ContactModel, env::Environment, t::Int;
 		z_dis = 1e-2, θ_dis = 1e-2) where {T,nq}
 	Random.seed!(10)
-	z = 1e-1ones(length(ref_traj.z[t]))
-	z[1:nq] = deepcopy(ref_traj.θ[t][nq+1:2nq])
+	z = zeros(length(ref_traj.z[t]))
+	q = deepcopy(ref_traj.θ[t][nq+1:2nq])
+	z_initialize!(z, model, env, q)
 
 	θ = deepcopy(ref_traj.θ[t])
 	# θ[1:end - 2] += θ_dis * ones(length(θ) - 2)
@@ -78,6 +80,7 @@ function get_interior_point_latest_solver(s::Simulation, z, θ;
 		r_tol = 1e-8, κ_tol = 1e-8, linear = false)
 	model = s.model
 	env = s.env
+
 	lin = LinearizedStep(s, z, θ, 0.0) # /!| here we do not use κ from ref_traj
 	if linear
 		@warn "not working yet"
@@ -99,7 +102,7 @@ function get_interior_point_latest_solver(s::Simulation, z, θ;
 		# rθ = RθLin(s, lin.rθ),
 		# v_pr = view(zeros(1,1), 1,1),
 		# v_du = view(zeros(1,1), 1,1),
-		# opts = InteriorPoint115Options(
+		# opts = InteriorPoint116Options(
 		# max_iter_inner = 100,
 		# r_tol = r_tol,
 		# κ_tol = κ_tol,
@@ -107,25 +110,25 @@ function get_interior_point_latest_solver(s::Simulation, z, θ;
 		# ))
 	else
 		ip = interior_point_latest(z, θ,
-		ix = linearization_var_index(model, env)[1],
-		iy1 = linearization_var_index(model, env)[2],
-		iy2 = linearization_var_index(model, env)[3],
-		idyn = linearization_term_index(model, env)[1],
-		irst = linearization_term_index(model, env)[2],
-		ibil = linearization_term_index(model, env)[3],
-		idx_ineq = inequality_indices(model, env),
-		idx_soc = soc_indices(model, env),
-		r! = s.res.r!,
-		rm! = s.res.rm!,
-		rz! = s.res.rz!,
-		rθ! = s.res.rθ!,
-		rz = s.rz,
-		rθ = s.rθ,
-		opts = InteriorPoint115Options(
-		max_iter_inner = 100,
-		r_tol = r_tol,
-		κ_tol = κ_tol,
-		))
+			ix = linearization_var_index(model, env)[1],
+			iy1 = linearization_var_index(model, env)[2],
+			iy2 = linearization_var_index(model, env)[3],
+			idyn = linearization_term_index(model, env)[1],
+			irst = linearization_term_index(model, env)[2],
+			ibil = linearization_term_index(model, env)[3],
+			idx_ineq = inequality_indices(model, env),
+			idx_soc = soc_indices(model, env),
+			r! = s.res.r!,
+			rm! = s.res.rm!,
+			rz! = s.res.rz!,
+			rθ! = s.res.rθ!,
+			rz = s.rz,
+			rθ = s.rθ,
+			opts = InteriorPoint116Options(
+				max_iter_inner = 100,
+				r_tol = r_tol,
+				κ_tol = κ_tol,
+			))
 	end
 	return ip
 end
@@ -294,13 +297,13 @@ function benchmark_interior_point!(stats::BenchmarkStatistics15, s::Simulation,
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
-		z, θ = get_benchmark_initialization(ref_traj, t,
-		z_dis = opts.z_dis,
-		θ_dis = opts.θ_dis)
+		z, θ = get_benchmark_initialization(ref_traj, s.model, s.env, t,
+			z_dis = opts.z_dis,
+			θ_dis = opts.θ_dis)
 		ip = get_interior_point_solver(s, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
-		r_tol = opts.r_tol,
-		κ_tol = opts.κ_tol,
-		linear = opts.linear)
+			r_tol = opts.r_tol,
+			κ_tol = opts.κ_tol,
+			linear = opts.linear)
 		interior_point_solve!(ip, z, θ)
 		rv = norm(ip.r, Inf)
 		fl = !(rv < opts.r_tol)
@@ -314,16 +317,15 @@ function benchmark_interior_point_latest!(stats::BenchmarkStatistics15, s::Simul
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
-		z, θ = get_benchmark_initialization(ref_traj, t,
-		z_dis = opts.z_dis,
-		θ_dis = opts.θ_dis)
+		z, θ = get_benchmark_initialization(ref_traj, s.model, s.env, t,
+			z_dis = opts.z_dis,
+			θ_dis = opts.θ_dis)
 		ip = get_interior_point_latest_solver(s, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
-		r_tol = opts.r_tol,
-		κ_tol = opts.κ_tol,
-		linear = opts.linear)
+			r_tol = opts.r_tol,
+			κ_tol = opts.κ_tol,
+			linear = opts.linear)
 		interior_point_solve!(ip, z, θ)
 		rv = residual_violation(ip, ip.r)
-		# κv = bilinear_violation(ip, ip.r)
 		κv = general_bilinear_violation(ip.z, ip.idx_ineq, ip.idx_soc, ip.iy1, ip.iy2)
 		fl = !((rv < opts.r_tol) && (κv < opts.κ_tol))
 		record!(stats, fl, ip.iterations, rv, κv, NaN)
@@ -336,7 +338,7 @@ function benchmark_mehrotra_expanded!(stats::BenchmarkStatistics15, s::Simulatio
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
-		z, θ = get_benchmark_initialization(ref_traj, t,
+		z, θ = get_benchmark_initialization(ref_traj, s.model, s.env, t,
 			z_dis = opts.z_dis,
 			θ_dis = opts.θ_dis)
 		ip = get_mehrotra_expanded_solver(s, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
@@ -358,7 +360,7 @@ function benchmark_mehrotra_latest!(stats::BenchmarkStatistics15, s::Simulation,
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
-		z, θ = get_benchmark_initialization(ref_traj, t,
+		z, θ = get_benchmark_initialization(ref_traj, s.model, s.env, t,
 			z_dis = opts.z_dis,
 			θ_dis = opts.θ_dis)
 		ip = get_mehrotra_latest_solver(s, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
@@ -374,9 +376,6 @@ function benchmark_mehrotra_latest!(stats::BenchmarkStatistics15, s::Simulation,
 	end
 	return nothing
 end
-
-
-
 
 function benchmark!(stats::BenchmarkStatistics15, s::Simulation,
 		ref_traj::ContactTraj; opts::BenchmarkOptions12, solver::Symbol)
@@ -424,6 +423,7 @@ end
 # s_flamingo = ContactControl.get_simulation("flamingo", "flat_2D_lc", "flat")
 # s_hopper = ContactControl.get_simulation("hopper_2D", "flat_2D_lc", "flat")
 # s_particle_2D = ContactControl.get_simulation("particle_2D", "flat_2D_nc", "flat_nc")
+# s_particle = ContactControl.get_simulation("particle", "flat_3D_nc", "flat_nc")
 # ref_traj_quadruped = deepcopy(ContactControl.get_trajectory(s_quadruped.model, s_quadruped.env,
 #     joinpath(ContactControl.module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
 #     load_type = :split_traj_alt))
@@ -436,6 +436,9 @@ end
 # ref_traj_particle_2D = deepcopy(get_trajectory(s_particle_2D.model, s_particle_2D.env,
 # 	joinpath(module_dir(), "src/dynamics/particle_2D/gaits/gait_NC.jld2"),
 # 	load_type = :joint_traj))
+# ref_traj_particle = deepcopy(get_trajectory(s_particle.model, s_particle.env,
+# 	joinpath(module_dir(), "src/dynamics/particle/gaits/gait_NC.jld2"),
+# 	load_type = :joint_traj))
 
 
 
@@ -443,10 +446,14 @@ end
 # Running Benchmark
 ################################################################################
 
-s = [s_quadruped, s_flamingo, s_hopper, s_particle_2D]
-ref_traj = [ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper, ref_traj_particle_2D]
-s = [s_particle_2D]
-ref_traj = [ref_traj_particle_2D]
+s = [s_quadruped, s_flamingo, s_hopper, s_particle_2D, s_particle]
+ref_traj = [ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper, ref_traj_particle_2D, ref_traj_particle]
+# s = [s_particle_2D, s_particle]
+# ref_traj = [ref_traj_particle_2D, ref_traj_particle]
+# s = [s_quadruped, s_flamingo, s_hopper]
+# ref_traj = [ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper]
+
+
 dist = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2]
 tol = 1e-8
 opts_nonlin = BenchmarkOptions12(r_tol = tol, κ_tol = tol, linear = false)
@@ -574,6 +581,9 @@ end
 for k in keys
 	display_statistics!(plt, [3,1], stats[k], dist, field = :cond_schur,  solver = String(k))
 end
+
+
+
 
 
 

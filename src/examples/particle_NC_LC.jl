@@ -192,11 +192,11 @@ ip.iterations
 # set_robot!(vis, s.model, sim.traj.q[34], name=:ghost1)
 # set_robot!(vis, s.model, sim.traj.q[38], name=:ghost2)
 
-filename = "particle_NC_LC"
-MeshCat.convert_frames_to_video(
-    "/home/simon/Downloads/$filename.tar",
-    "/home/simon/Documents/$filename.mp4", overwrite=true)
-
-convert_video_to_gif(
-    "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
+# filename = "particle_NC_LC"
+# MeshCat.convert_frames_to_video(
+#     "/home/simon/Downloads/$filename.tar",
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
+#
+# convert_video_to_gif(
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)

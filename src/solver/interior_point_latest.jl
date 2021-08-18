@@ -4,7 +4,7 @@ abstract type AbstractIPOptions end
 
 function interior_point_options(ip_type::Symbol)
     if ip_type == :interior_point
-        return Symbol("InteriorPoint115Options")
+        return Symbol("InteriorPoint116Options")
     elseif ip_type == :mehrotra
         return Symbol("MehrotraOptions")
     else
@@ -69,7 +69,7 @@ function mapping!(δz, s::Euclidean, δzs, z) # TODO: make allocation free
 end
 
 # interior-point solver options
-@with_kw mutable struct InteriorPoint115Options{T} <: AbstractIPOptions
+@with_kw mutable struct InteriorPoint116Options{T} <: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
     ls_scale::T = 0.5
@@ -80,6 +80,13 @@ end
     reg::Bool = false
     reg_pr_init = 0.0
     reg_du_init = 0.0
+    ϵ_min = 0.05 # ∈ [0.005, 0.25]
+        # smaller -> faster
+        # larger  -> slower, more robust
+    κ_reg = 1e-3 # bilinear constraint violation level at which regularization is triggered [1e-3, 1e-4]
+    γ_reg = 1e-1 # regularization scaling parameters ∈ [0, 0.1]:
+        # 0   -> faster & ill-conditioned
+        # 0.1 -> slower & better-conditioned
     solver::Symbol = :lu_solver
     verbose::Bool = false
     warn::Bool = false
@@ -91,10 +98,10 @@ function regularize!(v_pr, v_du, reg_pr, reg_du)
     v_du .-= reg_du
 end
 
-mutable struct InteriorPoint115{T} <: AbstractIPSolver
+mutable struct InteriorPoint116{T} <: AbstractIPSolver
     s::Space
     methods::ResidualMethods
-    z::Vector{T}               # current point
+    z::Vector{T}                # current point
     r#::Vector{T}               # residual
     r̄#::Vector{T}               # candidate residual   #useless
     rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
@@ -122,8 +129,9 @@ mutable struct InteriorPoint115{T} <: AbstractIPSolver
     v_du
     reg_pr
     reg_du
+    reg_val
     iterations::Int
-    opts::InteriorPoint115Options
+    opts::InteriorPoint116Options
 
     κ::Vector{T} # useless
 end
@@ -149,7 +157,7 @@ function interior_point_latest(z, θ;
         reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
-        opts::InteriorPoint115Options = InteriorPoint115Options()) where T
+        opts::InteriorPoint116Options = InteriorPoint116Options()) where T
 
     # Indices
     nx = length(ix)
@@ -163,7 +171,7 @@ function interior_point_latest(z, θ;
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
-    InteriorPoint115(
+    InteriorPoint116(
         s,
         ResidualMethods(r!, rm!, rz!, rθ!),
         z,
@@ -191,6 +199,7 @@ function interior_point_latest(z, θ;
         v_pr,
         v_du,
         reg_pr, reg_du,
+        0.0,
         0,
         opts,
         [opts.κ_tol],
@@ -198,16 +207,16 @@ function interior_point_latest(z, θ;
 end
 
 # interior point solver
-function interior_point_solve!(ip::InteriorPoint115{T}) where T
+function interior_point_solve!(ip::InteriorPoint116{T}) where T
 
     # space
     s = ip.s
 
     # methods
-    r! = ip.methods.r!
-    rm! = ip.methods.rm!
-    rz! = ip.methods.rz!
-    rθ! = ip.methods.rθ!
+    # r! = ip.methods.r!
+    # rm! = ip.methods.rm!
+    # rz! = ip.methods.rz!
+    # rθ! = ip.methods.rθ!
 
     # options
     opts = ip.opts
@@ -218,6 +227,9 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
     max_time = opts.max_time
     max_ls = opts.max_ls
     diff_sol = opts.diff_sol
+    ϵ_min = opts.ϵ_min
+    κ_reg = opts.κ_reg
+    γ_reg = opts.γ_reg
     reg = opts.reg
     verbose = opts.verbose
     warn = opts.warn
@@ -249,8 +261,10 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
     reg_pr[1] = opts.reg_pr_init
     reg_du[1] = opts.reg_du_init
 
+    # TODO need least squares init /!|
+
     # compute residual, residual Jacobian
-    r!(r, z, θ, 0.0)
+    ip.methods.r!(r, z, θ, 0.0)
     κ_vio = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
     r_vio = residual_violation(ip, r)
 
@@ -260,43 +274,53 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
         elapsed_time >= max_time && break
         elapsed_time += @elapsed begin
             # check for converged residual
-            if max(r_vio, κ_vio) <= r_tol
+            if (r_vio < r_tol) && (κ_vio < κ_tol)
                 break
             end
             ip.iterations += 1
 
+            # Compute regularization level
+            κ_vio = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
+            ip.reg_val = κ_vio < κ_reg ? κ_vio * γ_reg : 0.0
+
             # compute residual Jacobian
-            rz!(rz, z, θ)
+            # TODO need to use reg_val here
+            # @warn "changed"
+            ip.methods.rz!(rz, z, θ)
+            # TODO rz!(ip, rz, z, θ, reg = ip.reg_val) # this is not adapted to the second order cone
 
             # regularize (fixed, TODO: adaptive)
             reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
             # compute step
+            # TODO need to use reg_val here
             linear_solve!(solver, Δ, rz, r)
 
             α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 1.0)
             α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0)
             α = min(α_ineq, α_soc)
 
-            # ################################################################
-            # ################################################################
             μ, σ = centering(z, Δ, iy1, iy2, α)
             αaff = α
+
             # Compute corrector residual
-            ip.methods.rm!(r, z, Δ, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            ip.methods.r!(r, z, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            general_correction_term!(r, Δ, ibil, idx_ineq, idx_soc, iy1, iy2)
+
             # Compute corrector search direction
+            # TODO need to use reg_val here
             linear_solve!(solver, Δ, rz, r)
-            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 0.99)
-            α_soc = soc_step_length(z, Δ, idx_soc; τ = 0.99)
+            τ = max(0.95, 1 - max(r_vio, κ_vio)^2)
+            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = τ)
+            α_soc = soc_step_length(z, Δ, idx_soc; τ = min(τ, 0.99))
             α = min(α_ineq, α_soc)
-            # ################################################################
 
             # reduce norm of residual
             candidate_point!(z, s, z, Δ, α)
             κ_vio_cand = 0.0
             r_vio_cand = 0.0
             for i = 1:max_ls
-                r!(r, z, θ, 0.0)
+                ip.methods.r!(r, z, θ, 0.0)
                 κ_vio_cand = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
                 r_vio_cand = residual_violation(ip, r)
                 if (r_vio_cand <= r_vio) || (κ_vio_cand <= κ_vio)
@@ -304,7 +328,7 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
                 end
                 verbose && println("linesearch $i")
                 # backtracking
-                candidate_point!(z, s, z, Δ, -α/2^i)
+                candidate_point!(z, s, z, Δ, -α * ls_scale^i)
             end
             κ_vio = κ_vio_cand
             r_vio = r_vio_cand
@@ -319,7 +343,7 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
                 )
         end
     end
-    if max(r_vio, κ_vio) < r_tol
+    if (r_vio < r_tol) && (κ_vio < κ_tol)
         # differentiate solution
         diff_sol && differentiate_solution!(ip)
         return true
@@ -328,13 +352,77 @@ function interior_point_solve!(ip::InteriorPoint115{T}) where T
     end
 end
 
-function interior_point_solve!(ip::InteriorPoint115{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function rz!(ip::InteriorPoint116{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
+        θ::AbstractVector{T}; reg = 0.0) where {T}
+    z_reg = deepcopy(z)
+    z_reg[ip.iy1] = max.(z[ip.iy1], reg)
+    z_reg[ip.iy2] = max.(z[ip.iy2], reg)
+    ip.methods.rz!(rz, z_reg, θ)
+    return nothing
+end
+
+function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_soc, iy1, iy2) where {T}
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    n_soc = length(idx_soc_p)
+    n_ort = length(idx_ineq_1)
+
+    r[ibil[1:n_ort]] .+= Δ[idx_ineq_1] .* Δ[idx_ineq_2]
+    r[ibil[n_ort+1:end]] .+= vcat(
+        [second_order_cone_product(
+            Δ[idx_soc_d[i]],
+            # Δη1[(i - 1) * ne .+ (1:ne)],
+            Δ[idx_soc_p[i]],
+            # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
+        ) for i = 1:nc]...)
+    return nothing
+end
+
+function residual_mehrotra(model::ContactModel, env::Environment{<:World, LinearizedCone}, z, Δz, θ, κ)
+	ix, iy1, iy2 = linearization_var_index(model, env)
+	idyn, irst, ibil, ialt = linearization_term_index(model, env)
+	rm = residual(model, env, z, θ, κ)
+	rm[ibil] .+= Δz[iy1] .* Δz[iy2]
+	return rm
+end
+
+function residual_mehrotra(model::ContactModel, env::Environment{<:World, NonlinearCone}, z, Δz, θ, κ)
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	ne = dim(env)
+
+	idyn, irst, ibil, ialt = linearization_term_index(model, env)
+	Δq2, Δγ1, Δb1, Δη1, Δs1, Δs2 = unpack_z(model, env, Δz)
+	rm = residual(model, env, z, θ, κ)
+
+	# Positive orthant
+	rm[ibil[1:nc]] .+= Δγ1 .* Δs1
+	# SOC
+	rm[ibil[nc .+ (1:nc + nb)]] .+= vcat(
+		[second_order_cone_product(
+			Δη1[(i - 1) * ne .+ (1:ne)],
+			[Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]
+		]) for i = 1:nc]...)
+	return rm
+end
+
+
+
+function interior_point_solve!(ip::InteriorPoint116{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
     interior_point_solve!(ip)
 end
 
-function differentiate_solution!(ip::InteriorPoint115)
+function differentiate_solution!(ip::InteriorPoint116)
     s = ip.s
     z = ip.z
     θ = ip.θ
@@ -365,7 +453,7 @@ linear_solve!(solver::LinearSolver, x::Vector{T}, A::Array{T, 2}, b::Vector{T}) 
 # New methods
 ################################################################################
 
-function residual_violation(ip::InteriorPoint115{T}, r::AbstractVector{T}) where {T}
+function residual_violation(ip::InteriorPoint116{T}, r::AbstractVector{T}) where {T}
     max(norm(r[ip.idyn], Inf), norm(r[ip.irst], Inf))
 end
 
@@ -393,7 +481,9 @@ function general_bilinear_violation(z::AbstractVector{T}, idx_ineq, idx_soc, iy1
 
     κ_vio = 0.0
     for i = 1:nc
+        # scalar part
         soc_vio_s = z[idx_soc_p[i]]' * z[idx_soc_d[i]]
+        # vector part
         soc_vio_v = z[idx_soc_p[i][1]] * z[idx_soc_d[i][2:end]] + z[idx_soc_d[i][1]] * z[idx_soc_p[i][2:end]]
         κ_vio = max(κ_vio, abs(soc_vio_s))
         κ_vio = max(κ_vio, maximum(abs.(soc_vio_v)))
