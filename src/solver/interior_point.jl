@@ -344,6 +344,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             # update residual
             r!(r, z, θ, κ[1])
             r_norm = norm(r, res_norm)
+            @show r_norm
         end
     end
 end

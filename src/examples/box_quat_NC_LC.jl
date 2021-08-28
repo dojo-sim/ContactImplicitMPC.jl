@@ -8,21 +8,20 @@ open(vis)
 ################################################################################
 # time
 h = 0.01
-T = 175
+T = 80
 
 # initial conditions
 r0 = [-1.5; 0.0; 1.5]
+# r0 = [-1.5; 0.0; 0.505]
 v0 = [8.0; 0.0; 0.0]
 quat0 = [1.0; 0.0; 0.0; 0.0]
 _quat0 = UnitQuaternion(RotX(0.0 * π))
 quat0 = [_quat0.w; _quat0.x; _quat0.y; _quat0.z]
-ω0 = [0.1; 0.5; 0.2]
+ω0 = [0.8; 0.5; 0.2]
+# ω0 = 0.0*[0.1; 0.5; 0.2]
 
-q0 = SVector{s.model.dim.q}([r0; quat0])
-q1 = SVector{s.model.dim.q}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2.0 / h)^2.0 - ω0' * ω0); ω0]])
-
-@assert norm(q0[4:7]) ≈ 1.0
-@assert norm(q1[4:7]) ≈ 1.0
+# @assert norm(q0[4:7]) ≈ 1.0
+# @assert norm(q1[4:7]) ≈ 1.0
 
 # Simulation tolerance
 tol = 1e-8
@@ -38,6 +37,8 @@ rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model
 	collect([(1:3)..., (7:num_var(s.model, s.env)-1)...]),
 	[collect((4:7))],
 	[collect((4:6))])
+q0 = SVector{s.model.dim.q}([r0; quat0])
+q1 = SVector{s.model.dim.q}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2.0 / h)^2.0 - ω0' * ω0); ω0]])
 
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
@@ -91,6 +92,8 @@ rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model
 	collect([(1:3)..., (7:num_var(s.model, s.env)-1)...]),
 	[collect((4:7))],
 	[collect((4:6))])
+q0 = SVector{s.model.dim.q}([r0; quat0])
+q1 = SVector{s.model.dim.q}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2.0 / h)^2.0 - ω0' * ω0); ω0]])
 
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
@@ -136,12 +139,15 @@ plot!(plt, hcat(Vector.([b[1:end] for b in sim.traj.b])...)', color=:black, line
 ################################################################################
 s = get_simulation("box", "flat_3D_lc", "flat_lc")
 s.model.μ_world = 1.0
+
 # Rn + quaternion space
 rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model, s.env, x),
 	collect([(1:3)..., (8:num_var(s.model, s.env))...]),
 	collect([(1:3)..., (7:num_var(s.model, s.env)-1)...]),
 	[collect((4:7))],
 	[collect((4:6))])
+q0 = SVector{s.model.dim.q}([r0; quat0])
+q1 = SVector{s.model.dim.q}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2.0 / h)^2.0 - ω0' * ω0); ω0]])
 
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
@@ -173,32 +179,45 @@ plot!(plt, hcat(Vector.([b[1:end] for b in sim.traj.b])...)', color=:black, line
 ################################################################################
 # Non Linear Cone Latest
 ################################################################################
-s = get_simulation("boc", "flat_3D_nc", "flat_nc")
-s.model.μ_world = 0.5
+s = get_simulation("box", "flat_3D_nc", "flat_nc")
+s.model.μ_world = 1.0
+
+# Rn + quaternion space
+rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model, s.env, x),
+	collect([(1:3)..., (8:num_var(s.model, s.env))...]),
+	collect([(1:3)..., (7:num_var(s.model, s.env)-1)...]),
+	[collect((4:7))],
+	[collect((4:6))])
+q0 = SVector{s.model.dim.q}([r0; quat0])
+q1 = SVector{s.model.dim.q}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2.0 / h)^2.0 - ω0' * ω0); ω0]])
 
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
+	space = rq_space,
 	ip_type = :interior_point_latest,
-	ip_opts = ContactControl.InteriorPoint115Options(
+	ip_opts = ContactControl.InteriorPoint116Options(
 		r_tol = tol, κ_tol = tol,
 		diff_sol = false,
-		verbose = false,
+		max_iter_inner = 100,
+		max_ls = 3,
 		solver = :lu_solver),
 	sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
 # simulate
 @time status = ContactControl.simulate!(sim)
+@test all([norm(q[4:7]) ≈ 1.0 for q in sim.traj.q])
 
 plot_surface!(vis, s.env, xlims=[-10,10], ylims=[-10,10])
-plot_lines!(vis, s.model, sim.traj.q, name = :NC_latest_lines)
-visualize_robot!(vis, s.model, sim.traj, name = :NC_latest, anim = anim)
-visualize_force!(vis, s.model, s.env, sim.traj, anim=anim, shift=-0.25, name = :NC_latest)
+plot_lines!(vis, s.model, sim.traj.q, name = :LClines)
+anim = visualize_robot!(vis, s.model, sim.traj, name = :LC)
+visualize_force!(vis, s.model, s.env, sim.traj, anim=anim, shift=-0.25, name = :LC)
 
 plt = plot(legend=false)
 plot!(plt, hcat(Vector.([q[1:end] for q in sim.traj.q])...)', color=:cyan, linewidth=4.0)
 plot!(plt, hcat(Vector.([u[1:end] for u in sim.traj.u])...)', color=:red, linewidth=4.0)
 plot!(plt, hcat(Vector.([γ[1:end] for γ in sim.traj.γ])...)', color=:green, linewidth=4.0)
 plot!(plt, hcat(Vector.([b[1:end] for b in sim.traj.b])...)', color=:black, linewidth=4.0)
+
 
 
 

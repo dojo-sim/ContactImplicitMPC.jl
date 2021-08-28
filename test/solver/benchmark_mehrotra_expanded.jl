@@ -424,6 +424,9 @@ s_flamingo = ContactControl.get_simulation("flamingo", "flat_2D_lc", "flat")
 s_hopper = ContactControl.get_simulation("hopper_2D", "flat_2D_lc", "flat")
 s_particle_2D = ContactControl.get_simulation("particle_2D", "flat_2D_nc", "flat_nc")
 s_particle = ContactControl.get_simulation("particle", "flat_3D_nc", "flat_nc")
+s_box_quat_lc = get_simulation("box", "flat_3D_lc", "flat_lc")
+s_box_quat_nc = get_simulation("box", "flat_3D_nc", "flat_nc")
+
 ref_traj_quadruped = deepcopy(ContactControl.get_trajectory(s_quadruped.model, s_quadruped.env,
     joinpath(ContactControl.module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
     load_type = :split_traj_alt))

@@ -211,6 +211,7 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
 
     # space
     s = ip.s
+    nquat = ip.num_var - s.n
 
     # options
     opts = ip.opts
@@ -285,34 +286,51 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
             # regularize (fixed, TODO: adaptive)
             reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
+            # @warn "changed"
             # compute step
             # TODO need to use reg_val here
             linear_solve!(solver, Δ, rz, r)
 
-            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 1.0)
-            α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0)
+            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 1.0, nquat = nquat)
+            α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0, nquat = nquat, verbose = false)
             α = min(α_ineq, α_soc)
 
-            μ, σ = centering(z, Δ, iy1, iy2, α)
+            @warn "changed"
+            μ, σ = centering(z, Δ, iy1, iy2, α, nquat = nquat)
+            @show scn(μ*σ)
+            μ, σ = general_centering(z, Δ, idx_ineq, idx_soc, iy1, iy2, α, nquat = nquat)
+            @show scn(μ*σ)
             αaff = α
 
             # Compute corrector residual
-            ip.methods.r!(r, z, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
-            general_correction_term!(r, Δ, ibil, idx_ineq, idx_soc, iy1, iy2)
+            @warn "changed"
+            @show scn(σ*μ)
+            @show scn(κ_vio/100)
+            # ip.methods.r!(r, z, θ, max(κ_vio/100 , κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            ip.methods.r!(r, z, θ, max(max(σ * μ, κ_vio/100) , κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            # ip.methods.r!(r, z, θ, κ_tol/5) # here we set κ = σ*μ, Δ = Δaff
+            # ip.methods.r!(r, z, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            general_correction_term!(r, Δ, ibil, idx_ineq, idx_soc, iy1, iy2, nquat = nquat)
 
             # Compute corrector search direction
             # TODO need to use reg_val here
             linear_solve!(solver, Δ, rz, r)
             τ = max(0.95, 1 - max(r_vio, κ_vio)^2)
-            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = τ)
-            α_soc = soc_step_length(z, Δ, idx_soc; τ = min(τ, 0.99))
+            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = τ, nquat = nquat)
+            α_soc = soc_step_length(z, Δ, idx_soc; τ = min(τ, 0.99), nquat = nquat, verbose = false)
             α = min(α_ineq, α_soc)
+
+            @show τ
+            @show α_ineq
+            @show α_soc
+            @show α
 
             # reduce norm of residual
             candidate_point!(z, s, z, Δ, α)
             κ_vio_cand = 0.0
             r_vio_cand = 0.0
             for i = 1:max_ls
+                @show i
                 ip.methods.r!(r, z, θ, 0.0)
                 κ_vio_cand = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
                 r_vio_cand = residual_violation(ip, r)
@@ -325,7 +343,9 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
             end
             κ_vio = κ_vio_cand
             r_vio = r_vio_cand
-
+            @show j
+            @show r_vio
+            @show κ_vio
             verbose && println(
                 "in:", j,
                 "   αaff:", scn(αaff, digits = 0),
@@ -354,7 +374,8 @@ function rz!(ip::InteriorPoint116{T}, rz::AbstractMatrix{T}, z::AbstractVector{T
     return nothing
 end
 
-function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_soc, iy1, iy2) where {T}
+function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_soc,
+        iy1, iy2; nquat::Int = 0) where {T}
     nc = Int(length(idx_soc) / 2)
     nsoc = Int(length(idx_soc) / 2)
     nineq = Int(length(idx_ineq) / 2)
@@ -367,45 +388,44 @@ function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_
 
     n_soc = length(idx_soc_p)
     n_ort = length(idx_ineq_1)
-
-    r[ibil[1:n_ort]] .+= Δ[idx_ineq_1] .* Δ[idx_ineq_2]
-    r[ibil[n_ort+1:end]] .+= vcat(
+    r[ibil[1:n_ort] .- nquat] .+= Δ[idx_ineq_1 .- nquat] .* Δ[idx_ineq_2 .- nquat]
+    r[ibil[n_ort+1:end] .- nquat] .+= vcat(
         [second_order_cone_product(
-            Δ[idx_soc_d[i]],
+            Δ[idx_soc_d[i] .- nquat],
             # Δη1[(i - 1) * ne .+ (1:ne)],
-            Δ[idx_soc_p[i]],
+            Δ[idx_soc_p[i] .- nquat],
             # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
         ) for i = 1:nc]...)
     return nothing
 end
 
-function residual_mehrotra(model::ContactModel, env::Environment{<:World, LinearizedCone}, z, Δz, θ, κ)
-	ix, iy1, iy2 = linearization_var_index(model, env)
-	idyn, irst, ibil, ialt = linearization_term_index(model, env)
-	rm = residual(model, env, z, θ, κ)
-	rm[ibil] .+= Δz[iy1] .* Δz[iy2]
-	return rm
-end
-
-function residual_mehrotra(model::ContactModel, env::Environment{<:World, NonlinearCone}, z, Δz, θ, κ)
-	nc = model.dim.c
-	nb = nc * friction_dim(env)
-	ne = dim(env)
-
-	idyn, irst, ibil, ialt = linearization_term_index(model, env)
-	Δq2, Δγ1, Δb1, Δη1, Δs1, Δs2 = unpack_z(model, env, Δz)
-	rm = residual(model, env, z, θ, κ)
-
-	# Positive orthant
-	rm[ibil[1:nc]] .+= Δγ1 .* Δs1
-	# SOC
-	rm[ibil[nc .+ (1:nc + nb)]] .+= vcat(
-		[second_order_cone_product(
-			Δη1[(i - 1) * ne .+ (1:ne)],
-			[Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]
-		]) for i = 1:nc]...)
-	return rm
-end
+# function residual_mehrotra(model::ContactModel, env::Environment{<:World, LinearizedCone}, z, Δz, θ, κ)
+# 	ix, iy1, iy2 = linearization_var_index(model, env)
+# 	idyn, irst, ibil, ialt = linearization_term_index(model, env)
+# 	rm = residual(model, env, z, θ, κ)
+# 	rm[ibil] .+= Δz[iy1] .* Δz[iy2]
+# 	return rm
+# end
+#
+# function residual_mehrotra(model::ContactModel, env::Environment{<:World, NonlinearCone}, z, Δz, θ, κ)
+# 	nc = model.dim.c
+# 	nb = nc * friction_dim(env)
+# 	ne = dim(env)
+#
+# 	idyn, irst, ibil, ialt = linearization_term_index(model, env)
+# 	Δq2, Δγ1, Δb1, Δη1, Δs1, Δs2 = unpack_z(model, env, Δz)
+# 	rm = residual(model, env, z, θ, κ)
+#
+# 	# Positive orthant
+# 	rm[ibil[1:nc]] .+= Δγ1 .* Δs1
+# 	# SOC
+# 	rm[ibil[nc .+ (1:nc + nb)]] .+= vcat(
+# 		[second_order_cone_product(
+# 			Δη1[(i - 1) * ne .+ (1:ne)],
+# 			[Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]
+# 		]) for i = 1:nc]...)
+# 	return rm
+# end
 
 
 
@@ -446,18 +466,56 @@ linear_solve!(solver::LinearSolver, x::Vector{T}, A::Array{T, 2}, b::Vector{T}) 
 # New methods
 ################################################################################
 
-function residual_violation(ip::InteriorPoint116{T}, r::AbstractVector{T}) where {T}
-    max(norm(r[ip.idyn], Inf), norm(r[ip.irst], Inf))
+function residual_violation(ip::InteriorPoint116{T}, r::AbstractVector{T}; nquat::Int = 0) where {T}
+    max(norm(r[ip.idyn[1:end-nquat]], Inf), norm(r[ip.irst .- nquat], Inf))
 end
 
 function centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
-		iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T) where {n,T}
+		iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T; nquat::Int = 0) where {n,T}
         # See Section 5.1.3 in CVXOPT
         # μ only depends on the dot products (no cone product)
         # The CVXOPT linear and quadratic cone program solvers
-	μaff = (z[iy1] - αaff * Δaff[iy1])' * (z[iy2] - αaff * Δaff[iy2]) / n
+	μaff = (z[iy1] - αaff * Δaff[iy1 .- nquat])' * (z[iy2] - αaff * Δaff[iy2 .- nquat]) / n
 	μ = z[iy1]' * z[iy2] / n
 	σ = clamp(μaff / μ, 0.0, 1.0)^3
+    # @show scn(αaff)
+    # @show scn(σ)
+    # @show scn(μaff)
+    # @show scn(μ)
+	return μ, σ
+end
+
+function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
+		idx_ineq, idx_soc, iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T; nquat::Int = 0) where {n,T}
+        # See Section 5.1.3 in CVXOPT
+        # μ only depends on the dot products (no cone product)
+        # The CVXOPT linear and quadratic cone program solvers
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    # ineq
+    μ = z[idx_ineq_1]' * z[idx_ineq_2]
+    μaff = (z[idx_ineq_1] - αaff * Δaff[idx_ineq_1 .- nquat])' * (z[idx_ineq_2] - αaff * Δaff[idx_ineq_2 .- nquat])
+    # soc
+    for i = 1:nc
+        μ += z[idx_soc_p[i]]' * z[idx_soc_d[i]]
+        μaff += (z[idx_soc_p[i]] - αaff * Δaff[idx_soc_p[i] .- nquat])' * (z[idx_soc_d[i]] - αaff * Δaff[idx_soc_d[i] .- nquat])
+    end
+    μ /= n
+    μaff /= n
+
+	σ = clamp(μaff / μ, 0.0, 1.0)^3
+    # @show scn(αaff)
+    # @show scn(σ)
+    # @show scn(μaff)
+    # @show scn(μ)
 	return μ, σ
 end
 
@@ -531,20 +589,20 @@ function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
 end
 
 function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		idx_soc::AbstractVector{Vector{Int}}; τ::T=0.99, verbose::Bool = false) where {T}
+		idx_soc::AbstractVector{Vector{Int}}; τ::T=0.99, nquat::Int = 0, verbose::Bool = false) where {T}
         # We need to make this much more efficient (allocation free)
         # by choosing the right structure for idx_soc.
     α = 1.0
     for (i,idx) in enumerate(idx_soc)
         # we need -Δ here because we will taking the step x - α Δ
-        α = min(α, soc_step_length(z[idx], -Δ[idx], τ = τ, verbose = false))
+        α = min(α, soc_step_length(z[idx], -Δ[idx .- nquat], τ = τ, verbose = verbose))
         # α = min(α, soc_step_length(z[idx], -Δ[idx], τ = τ, verbose = verbose))
     end
     return α
 end
 
 function ineq_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		idx_ineq::AbstractVector{Int}; τ::T=0.9995) where {T}
+		idx_ineq::AbstractVector{Int}; τ::T=0.9995, nquat::Int=0) where {T}
         # We need to make this much more efficient (allocation free)
         # by choosing the right structure for idx_ineq.
 
@@ -555,11 +613,11 @@ function ineq_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
     for i = 1:n
         ip = idx_ineq[i]
         id = idx_ineq[i + n]
-        if Δ[ip] > 0.0
-            ατ_p = min(ατ_p, τ * z[ip] / Δ[ip])
+        if Δ[ip .- nquat] > 0.0
+            ατ_p = min(ατ_p, τ * z[ip] / Δ[ip .- nquat])
         end
-        if Δ[id] > 0.0
-            ατ_d = min(ατ_d, τ * z[id] / Δ[id])
+        if Δ[id .- nquat] > 0.0
+            ατ_d = min(ατ_d, τ * z[id] / Δ[id .- nquat])
         end
     end
     α = min(ατ_p, ατ_d)

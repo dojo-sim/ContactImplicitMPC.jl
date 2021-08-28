@@ -116,12 +116,12 @@ function midpoint(q0, q1)
 end
 
 struct RnQuaternion <: Space
-	n::Int
-	mapping
-	r_idx
-	Δr_idx
-	quat_idx
-	Δquat_idx
+	n::Int # size of the optimization space (typically = num_var - 1)
+	mapping # Jacobian mapping i.e. a function of z
+	r_idx # euclidean part in z
+	Δr_idx # euclidean part in Δ
+	quat_idx # quaternion part in z
+	Δquat_idx # quaternion part in Δ
 end
 
 function rn_quaternion_space(dim, mapping, r_idx, Δr_idx, quat_idx, Δquat_idx)
@@ -129,7 +129,7 @@ function rn_quaternion_space(dim, mapping, r_idx, Δr_idx, quat_idx, Δquat_idx)
 end
 
 function candidate_point!(z̄::Vector{T}, s::RnQuaternion, z::Vector{T}, Δ::Vector{T}, α::T) where T
-    z̄[s.r_idx] .= z[s.r_idx] - α .* Δ[s.Δr_idx]
+	z̄[s.r_idx] .= z[s.r_idx] - α .* Δ[s.Δr_idx]
 	for i = 1:length(s.quat_idx)
 		z̄[s.quat_idx[i]] .= L_multiply(z[s.quat_idx[i]]) * cayley_map(-1.0 * α .* Δ[s.Δquat_idx[i]])
 	end
