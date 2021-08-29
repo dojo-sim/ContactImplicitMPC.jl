@@ -12,13 +12,11 @@ T = 80
 
 # initial conditions
 r0 = [-1.5; 0.0; 1.5]
-# r0 = [-1.5; 0.0; 0.505]
 v0 = [8.0; 0.0; 0.0]
 quat0 = [1.0; 0.0; 0.0; 0.0]
 _quat0 = UnitQuaternion(RotX(0.0 * π))
 quat0 = [_quat0.w; _quat0.x; _quat0.y; _quat0.z]
 ω0 = [0.8; 0.5; 0.2]
-# ω0 = 0.0*[0.1; 0.5; 0.2]
 
 # @assert norm(q0[4:7]) ≈ 1.0
 # @assert norm(q1[4:7]) ≈ 1.0
@@ -221,60 +219,135 @@ plot!(plt, hcat(Vector.([b[1:end] for b in sim.traj.b])...)', color=:black, line
 
 
 
+
+
 ################################################################################
 # Dev
 ################################################################################
-s = get_simulation("particle", "flat_3D_nc", "flat_nc")
-s.model.μ_world = 0.5
+s = get_simulation("box", "flat_3D_nc", "flat_nc")
+s.model.μ_world = 1.0
 model = s.model
 env = s.env
+rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model, s.env, x),
+	collect([(1:3)..., (8:num_var(s.model, s.env))...]),
+	collect([(1:3)..., (7:num_var(s.model, s.env)-1)...]),
+	[collect((4:7))],
+	[collect((4:6))])
 
 traj = deepcopy(get_trajectory(s.model, s.env,
-	joinpath(module_dir(), "src/dynamics/particle/gaits/gait_NC.jld2"),
+	joinpath(module_dir(), "src/dynamics/box/gaits/gait_NC.jld2"),
 	load_type = :joint_traj))
 
-plot(hcat(Vector.(traj.z)...)')
-plot(hcat(Vector.(traj.θ)...)')
-
-t = 62
-z = deepcopy(traj.z[t])
-θ = deepcopy(traj.θ[t])
 r_tol = 1e-8
 κ_tol = 1e-8
 
-ip = interior_point_latest(z, θ,
-	ix = linearization_var_index(model, env)[1],
-	iy1 = linearization_var_index(model, env)[2],
-	iy2 = linearization_var_index(model, env)[3],
-	idyn = linearization_term_index(model, env)[1],
-	irst = linearization_term_index(model, env)[2],
-	ibil = linearization_term_index(model, env)[3],
-	idx_ineq = inequality_indices(model, env),
-	idx_soc = soc_indices(model, env),
-	r! = s.res.r!,
-	rm! = s.res.rm!,
-	rz! = s.res.rz!,
-	rθ! = s.res.rθ!,
-	rz = s.rz,
-	rθ = s.rθ,
-	opts = InteriorPoint115Options(
-		max_iter_inner = 20,
-		max_ls = 20,
-		r_tol = r_tol,
-		κ_tol = κ_tol,
-		solver = :lu_solver,
-		diff_sol = false,
-		verbose = true,
-		))
+iter = 0
+for t = 1:T
+	z = deepcopy(traj.z[t])
+	θ = deepcopy(traj.θ[t])
 
-z0 = zeros(length(z))
-z_initialize!(z0, model, env, deepcopy(traj.q[t+1]))
-interior_point_solve!(ip, z0, θ)
-norm(ip.z - deepcopy(traj.z[t]))
-norm(ip.z)
-norm(traj.z[t])
+	ip = interior_point_latest(z, θ,
+		s = rq_space,
+		ix = linearization_var_index(model, env)[1],
+		iy1 = linearization_var_index(model, env)[2],
+		iy2 = linearization_var_index(model, env)[3],
+		idyn = linearization_term_index(model, env)[1],
+		irst = linearization_term_index(model, env)[2],
+		ibil = linearization_term_index(model, env)[3],
+		idx_ineq = inequality_indices(model, env),
+		idx_soc = soc_indices(model, env),
+		r! = s.res.r!,
+		rm! = s.res.rm!,
+		rz! = s.res.rz!,
+		rθ! = s.res.rθ!,
+		rz = s.rz,
+		rθ = s.rθ,
+		opts = InteriorPoint116Options(
+			max_iter_inner = 20,
+			max_ls = 3,
+			r_tol = r_tol,
+			κ_tol = κ_tol,
+			solver = :lu_solver,
+			diff_sol = false,
+			# verbose = true,
+			))
 
-ip.iterations
+	z0 = ones(length(z))
+	z_initialize!(z0, model, env, deepcopy(traj.q[t+1]))
+	interior_point_solve!(ip, z0, θ)
+	norm(ip.z - deepcopy(traj.z[t]))
+
+	iter += ip.iterations
+	end
+mean_iter = iter / T
+
+
+
+
+
+################################################################################
+# Original IP
+################################################################################
+s = get_simulation("box", "flat_3D_nc", "flat_nc")
+s.model.μ_world = 1.0
+model = s.model
+env = s.env
+rq_space = rn_quaternion_space(num_var(s.model, s.env) - 1, x -> Gz_func(s.model, s.env, x),
+	collect([(1:3)..., (8:num_var(s.model, s.env))...]),
+	collect([(1:3)..., (7:num_var(s.model, s.env)-1)...]),
+	[collect((4:7))],
+	[collect((4:6))])
+
+traj = deepcopy(get_trajectory(s.model, s.env,
+	joinpath(module_dir(), "src/dynamics/box/gaits/gait_NC.jld2"),
+	load_type = :joint_traj))
+
+r_tol = 1e-8
+κ_tol = 1e-8
+
+iter = 0
+for t = 1:T
+	z = deepcopy(traj.z[t])
+	θ = deepcopy(traj.θ[t])
+
+	ip = interior_point(z, θ,
+		s = rq_space,
+		ix = linearization_var_index(model, env)[1],
+		iy1 = linearization_var_index(model, env)[2],
+		iy2 = linearization_var_index(model, env)[3],
+		idyn = linearization_term_index(model, env)[1],
+		irst = linearization_term_index(model, env)[2],
+		ibil = linearization_term_index(model, env)[3],
+		idx_ineq = inequality_indices(model, env),
+		idx_soc = soc_indices(model, env),
+		r! = s.res.r!,
+		rm! = s.res.rm!,
+		rz! = s.res.rz!,
+		rθ! = s.res.rθ!,
+		rz = s.rz,
+		rθ = s.rθ,
+		opts = InteriorPointOptions(
+			# max_iter_inner = 20,
+			# max_ls = 3,
+			r_tol = r_tol,
+			κ_tol = κ_tol,
+			κ_scale = 1e-1,
+			# κ_init = 1e-3,
+			solver = :lu_solver,
+			diff_sol = false,
+			# verbose = true,
+			))
+
+	z0 = ones(length(z))
+	z_initialize!(z0, model, env, deepcopy(traj.q[t+1]))
+	interior_point_solve!(ip, z0, θ)
+	norm(ip.z - deepcopy(traj.z[t]))
+
+	iter += ip.iterations
+end
+mean_iter = iter / T
+36.0 / 12.6
+
 
 
 
@@ -289,7 +362,7 @@ ip.iterations
 # set_robot!(vis, s.model, sim.traj.q[34], name=:ghost1)
 # set_robot!(vis, s.model, sim.traj.q[38], name=:ghost2)
 
-# filename = "particle_NC_LC"
+# filename = "box_quat_soc"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)

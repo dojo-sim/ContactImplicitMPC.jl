@@ -296,20 +296,14 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
             α = min(α_ineq, α_soc)
 
             @warn "changed"
-            μ, σ = centering(z, Δ, iy1, iy2, α, nquat = nquat)
-            @show scn(μ*σ)
+            # μ, σ = centering(z, Δ, iy1, iy2, α, nquat = nquat)
             μ, σ = general_centering(z, Δ, idx_ineq, idx_soc, iy1, iy2, α, nquat = nquat)
-            @show scn(μ*σ)
             αaff = α
 
             # Compute corrector residual
             @warn "changed"
-            @show scn(σ*μ)
-            @show scn(κ_vio/100)
-            # ip.methods.r!(r, z, θ, max(κ_vio/100 , κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
-            ip.methods.r!(r, z, θ, max(max(σ * μ, κ_vio/100) , κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
-            # ip.methods.r!(r, z, θ, κ_tol/5) # here we set κ = σ*μ, Δ = Δaff
             # ip.methods.r!(r, z, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            ip.methods.r!(r, z, θ, max(max(σ * μ, κ_vio/100) , κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
             general_correction_term!(r, Δ, ibil, idx_ineq, idx_soc, iy1, iy2, nquat = nquat)
 
             # Compute corrector search direction
@@ -320,17 +314,11 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
             α_soc = soc_step_length(z, Δ, idx_soc; τ = min(τ, 0.99), nquat = nquat, verbose = false)
             α = min(α_ineq, α_soc)
 
-            @show τ
-            @show α_ineq
-            @show α_soc
-            @show α
-
             # reduce norm of residual
             candidate_point!(z, s, z, Δ, α)
             κ_vio_cand = 0.0
             r_vio_cand = 0.0
             for i = 1:max_ls
-                @show i
                 ip.methods.r!(r, z, θ, 0.0)
                 κ_vio_cand = general_bilinear_violation(z, idx_ineq, idx_soc, iy1, iy2)
                 r_vio_cand = residual_violation(ip, r)
@@ -343,9 +331,6 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
             end
             κ_vio = κ_vio_cand
             r_vio = r_vio_cand
-            @show j
-            @show r_vio
-            @show κ_vio
             verbose && println(
                 "in:", j,
                 "   αaff:", scn(αaff, digits = 0),
@@ -478,10 +463,6 @@ function centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
 	μaff = (z[iy1] - αaff * Δaff[iy1 .- nquat])' * (z[iy2] - αaff * Δaff[iy2 .- nquat]) / n
 	μ = z[iy1]' * z[iy2] / n
 	σ = clamp(μaff / μ, 0.0, 1.0)^3
-    # @show scn(αaff)
-    # @show scn(σ)
-    # @show scn(μaff)
-    # @show scn(μ)
 	return μ, σ
 end
 
@@ -512,10 +493,6 @@ function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
     μaff /= n
 
 	σ = clamp(μaff / μ, 0.0, 1.0)^3
-    # @show scn(αaff)
-    # @show scn(σ)
-    # @show scn(μaff)
-    # @show scn(μ)
 	return μ, σ
 end
 
