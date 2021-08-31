@@ -484,21 +484,21 @@ space_box_quat_nc = rn_quaternion_space(
 
 s = [
 	s_quadruped, s_flamingo, s_hopper,
-	# s_particle_2D, s_particle,
-	# s_box_quat_lc,
-	# s_box_quat_nc
+	s_particle_2D, s_particle,
+	s_box_quat_lc,
+	s_box_quat_nc
 	]
 ref_traj = [
 	ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper,
-	# ref_traj_particle_2D, ref_traj_particle,
-	# ref_traj_box_quat_lc,
-	# ref_traj_box_quat_nc
+	ref_traj_particle_2D, ref_traj_particle,
+	ref_traj_box_quat_lc,
+	ref_traj_box_quat_nc
 	]
 space = [
 	space_quadruped, space_flamingo, space_hopper,
-	# space_particle_2D, space_particle,
-	# space_box_quat_lc,
-	# space_box_quat_nc
+	space_particle_2D, space_particle,
+	space_box_quat_lc,
+	space_box_quat_nc
 	]
 # s = [s_particle_2D, s_particle]
 # ref_traj = [ref_traj_particle_2D, ref_traj_particle]
@@ -511,9 +511,9 @@ opts_nonlin = BenchmarkOptions12(r_tol = tol, κ_tol = tol, linear = false)
 opts_lin = BenchmarkOptions12(r_tol = tol, κ_tol = tol, linear = true)
 stats = Dict{Symbol, AbstractVector{BenchmarkStatistics15}}()
 keys = [
-	:interior_point_lin,
+	# :interior_point_lin,
 	:interior_point_nonlin,
-	:interior_point_latest_lin,
+	# :interior_point_latest_lin,
 	:interior_point_latest_nonlin,
 	# :mehrotra_expanded_lin,
 	# :mehrotra_expanded_nonlin,

@@ -300,9 +300,8 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
             αaff = α
 
             # Compute corrector residual
-            @warn "changed"
-            # ip.methods.r!(r, z, θ, max(σ*μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
-            ip.methods.r!(r, z, θ, max(max(σ * μ, κ_vio/100) , κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            # @warn "changed"
+            ip.methods.r!(r, z, θ, max(σ * μ, κ_vio/1000 , κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
             general_correction_term!(r, Δ, ibil, idx_ineq, idx_soc, iy1, iy2, nquat = nquat)
 
             # Compute corrector search direction
@@ -563,7 +562,7 @@ function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
 
     # Adding to slack ϵ to make sure that we never get out of the cone
     λ0 = λ[1] #- ϵ
-    λ_λ = λ0^2 - λ[2:end]' * λ[2:end]
+    λ_λ = max(λ0^2 - λ[2:end]' * λ[2:end], 1e-25)
     verbose && println(
         "    vλ:", scn(soc_value(λ), digits = 0, exp_digits = 2),
         "    vλ+Δ:", scn(soc_value(λ+Δ), digits = 0, exp_digits = 2),
@@ -572,7 +571,9 @@ function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
         "    Δ:", scn.(Δ, digits = 0, exp_digits = 2),
         )
     if λ_λ < 0.0
-        error("should always be positive")
+        @show λ_λ
+        @warn "should always be positive"
+        # error("should always be positive")
     end
     λ_λ += ϵ
     λ_Δ = λ0 * Δ[1] - λ[2:end]' * Δ[2:end] + ϵ
