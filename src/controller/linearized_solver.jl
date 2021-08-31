@@ -621,7 +621,6 @@ end
 
 function least_squares!(ip::Mehrotra{T}, z::Vector{T}, θ::AbstractVector{T},
 		r::RLin{T}, rz::RZLin{T}) where {T}
-	# @warn "wrong"
 	δθ = θ - r.θ0
 	δrdyn = r.rdyn0 - r.rθdyn * δθ
 	δrrst = r.rrst0 - r.rθrst * δθ
@@ -633,8 +632,22 @@ function least_squares!(ip::Mehrotra{T}, z::Vector{T}, θ::AbstractVector{T},
 	@. @inbounds z[r.ix]  .= r.x0  .+ δw1
 	@. @inbounds z[r.iy1] .= r.y10 .+ δw2
 	@. @inbounds z[r.iy2] .= r.y20 .+ δw3
-	# @warn "introducing error"
-	# z .= ones(length(z))
+	return nothing
+end
+
+function least_squares!(ip::InteriorPoint116{T}, z::Vector{T}, θ::AbstractVector{T},
+		r::RLin{T}, rz::RZLin{T}) where {T}
+	δθ = θ - r.θ0
+	δrdyn = r.rdyn0 - r.rθdyn * δθ
+	δrrst = r.rrst0 - r.rθrst * δθ
+
+	δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
+	δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
+	δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
+
+	@. @inbounds z[r.ix]  .= r.x0  .+ δw1
+	@. @inbounds z[r.iy1] .= r.y10 .+ δw2
+	@. @inbounds z[r.iy2] .= r.y20 .+ δw3
 	return nothing
 end
 
@@ -642,13 +655,16 @@ function residual_violation(ip::Mehrotra{T}, r::RLin{T}) where {T}
     max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
 end
 
+function residual_violation(ip::InteriorPoint116{T}, r::RLin{T}) where {T}
+    max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
+end
+
 function bilinear_violation(ip::Mehrotra{T}, r::RLin{T}) where {T}
     norm(r.rbil, Inf)
 end
 
-
-function general_correction_term!(r::RLin, Δ, ibil, idx_ineq, idx_soc, iy1, iy2) where {T}
-    # TODO only handles the linearized cone
+function general_correction_term!(r::RLin, Δ, ibil, idx_ineq, idx_soc,
+        iy1, iy2; nquat::Int = 0) where {T}
     nc = Int(length(idx_soc) / 2)
     nsoc = Int(length(idx_soc) / 2)
     nineq = Int(length(idx_ineq) / 2)
@@ -661,15 +677,14 @@ function general_correction_term!(r::RLin, Δ, ibil, idx_ineq, idx_soc, iy1, iy2
 
     n_soc = length(idx_soc_p)
     n_ort = length(idx_ineq_1)
-
-    r.rbil += Δ[idx_ineq_1] .* Δ[idx_ineq_2]
-    # r[ibil[n_ort+1:end]] .+= vcat(
-    #     [second_order_cone_product(
-    #         Δ[idx_soc_d[i]],
-    #         # Δη1[(i - 1) * ne .+ (1:ne)],
-    #         Δ[idx_soc_p[i]],
-    #         # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
-    #     ) for i = 1:nc]...)
+    r.rbil += vcat(
+		Δ[idx_ineq_1 .- nquat] .* Δ[idx_ineq_2 .- nquat], # ORT
+        [second_order_cone_product( # SOC
+            Δ[idx_soc_d[i] .- nquat],
+            # Δη1[(i - 1) * ne .+ (1:ne)],
+            Δ[idx_soc_p[i] .- nquat],
+            # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
+        ) for i = 1:nc]...)
     return nothing
 end
 
@@ -684,6 +699,12 @@ function rz!(ip::Mehrotra{T}, rz::RZLin{T}, z::AbstractVector{T},
 	return nothing
 end
 
+function rz!(ip::InteriorPoint116{T}, rz::RZLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}; reg::T = 0.0) where {T}
+	rz!(rz, z, θ, reg = reg)
+	return nothing
+end
+
 function rz!(rz::RZLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
 	rz!(rz, z, reg = reg)
@@ -691,6 +712,11 @@ function rz!(rz::RZLin{T}, z::AbstractVector{T},
 end
 
 function rθ!(ip::Mehrotra{T}, rθ::RθLin{T}, z::AbstractVector{T},
+		θ::AbstractVector{T}) where {T}
+	return nothing
+end
+
+function rθ!(ip::InteriorPoint116{T}, rθ::RθLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}) where {T}
 	return nothing
 end

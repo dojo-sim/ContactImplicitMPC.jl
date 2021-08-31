@@ -2,6 +2,8 @@ using Random
 using LinearAlgebra
 # const ContactControl = Main
 
+include(joinpath(module_dir(), "src", "solver", "mehrotra.jl"))
+
 ################################################################################
 # Test Utils
 ################################################################################
@@ -183,6 +185,37 @@ s.res.r!(r2, ip2.z, ip2.θ, 0.0)
 	@test (norm(r2, Inf) - 4.4e-9) < 1e-13
 	@test ip2.iterations == 3
 end
+
+
+
+
+
+
+lin = LinearizedStep(s, ref_traj.z[t], ref_traj.θ[t], ref_traj.κ[1])
+opts = MehrotraOptions(solver = :empty_solver)
+ip = mehrotra(
+		 deepcopy(ref_traj.z[t]),
+		 deepcopy(ref_traj.θ[t]),
+		 idx_ineq = inequality_indices(model, env),
+		 ix = linearization_var_index(model, env)[1],
+		 iy1 = linearization_var_index(model, env)[2],
+		 iy2 = linearization_var_index(model, env)[3],
+		 idyn = linearization_term_index(model, env)[1],
+		 irst = linearization_term_index(model, env)[2],
+		 ibil = linearization_term_index(model, env)[3],
+		 r! = r!,
+		 rm! = rm!,
+		 rz! = rz!,
+		 rθ! = rθ!,
+		 r  = RLin(s, lin.z, lin.θ, lin.r, lin.rz, lin.rθ),
+		 rz = RZLin(s, lin.rz),
+		 rθ = RθLin(s, lin.rθ),
+		 v_pr = view(zeros(1,1), 1,1),
+		 v_du = view(zeros(1,1), 1,1),
+		 opts = opts)
+
+interior_point_solve!(ip)
+
 
 
 # e_me = 1e6 * mehrotra_timing(ref_traj, t, im_traj2.ip[t])

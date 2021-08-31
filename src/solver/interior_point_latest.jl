@@ -257,6 +257,8 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
     reg_du[1] = opts.reg_du_init
 
     # TODO need least squares init /!|
+    # least_squares!(ip, z, θ, r, rz) # seems to be harmful for performance (failure and iteration count)
+    z .= initial_state!(z, iy1, iy2, idx_ineq, idx_soc) # decrease failure rate for linearized case
 
     # compute residual, residual Jacobian
     ip.methods.r!(r, z, θ, 0.0)
@@ -286,7 +288,6 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
             # regularize (fixed, TODO: adaptive)
             reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
-            # @warn "changed"
             # compute step
             # TODO need to use reg_val here
             linear_solve!(solver, Δ, rz, r)
@@ -295,8 +296,6 @@ function interior_point_solve!(ip::InteriorPoint116{T}) where T
             α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0, nquat = nquat, verbose = false)
             α = min(α_ineq, α_soc)
 
-            @warn "changed"
-            # μ, σ = centering(z, Δ, iy1, iy2, α, nquat = nquat)
             μ, σ = general_centering(z, Δ, idx_ineq, idx_soc, iy1, iy2, α, nquat = nquat)
             αaff = α
 
@@ -384,35 +383,66 @@ function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_
     return nothing
 end
 
-# function residual_mehrotra(model::ContactModel, env::Environment{<:World, LinearizedCone}, z, Δz, θ, κ)
-# 	ix, iy1, iy2 = linearization_var_index(model, env)
-# 	idyn, irst, ibil, ialt = linearization_term_index(model, env)
-# 	rm = residual(model, env, z, θ, κ)
-# 	rm[ibil] .+= Δz[iy1] .* Δz[iy2]
-# 	return rm
-# end
-#
-# function residual_mehrotra(model::ContactModel, env::Environment{<:World, NonlinearCone}, z, Δz, θ, κ)
-# 	nc = model.dim.c
-# 	nb = nc * friction_dim(env)
-# 	ne = dim(env)
-#
-# 	idyn, irst, ibil, ialt = linearization_term_index(model, env)
-# 	Δq2, Δγ1, Δb1, Δη1, Δs1, Δs2 = unpack_z(model, env, Δz)
-# 	rm = residual(model, env, z, θ, κ)
-#
-# 	# Positive orthant
-# 	rm[ibil[1:nc]] .+= Δγ1 .* Δs1
-# 	# SOC
-# 	rm[ibil[nc .+ (1:nc + nb)]] .+= vcat(
-# 		[second_order_cone_product(
-# 			Δη1[(i - 1) * ne .+ (1:ne)],
-# 			[Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]
-# 		]) for i = 1:nc]...)
-# 	return rm
-# end
+function least_squares!(ip::InteriorPoint116{T}, z::AbstractVector{T}, θ::AbstractVector{T},
+        r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
+    # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
+        # A = rz[[ip.idyn; ip.irst], [ip.ix; ip.iy1; ip.iy2]]
+        # z[[ip.ix; ip.iy1; ip.iy2]] .+= A' * ((A * A') \ r[[ip.idyn; ip.irst]])
+    return nothing
+end
 
+function initial_state!(z::AbstractVector{T}, iy1::SVector{ny,Int}, iy2::SVector{ny,Int},
+        idx_ineq, idx_soc; ϵ::T=1e-20) where {T,ny}
 
+    nc = Int(length(idx_soc) / 2)
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1:nsoc]
+    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    n_soc = length(idx_soc_p)
+    n_ort = length(idx_ineq_1)
+
+    # ineq
+    y1 = z[idx_ineq_1]
+    y2 = z[idx_ineq_2]
+    δy1 = max(-1.5 * minimum(y1), 0)
+    δy2 = max(-1.5 * minimum(y2), 0)
+
+    y1h = y1 .+ δy1
+    y2h = y2 .+ δy2
+    δhy1 = 0.5 * y1h'*y2h / (sum(y2h) + ϵ)
+    δhy2 = 0.5 * y1h'*y2h / (sum(y1h) + ϵ)
+
+    y10 = y1h .+ δhy1
+    y20 = y2h .+ δhy2
+    z[idx_ineq_1] .= y10
+    z[idx_ineq_2] .= y20
+
+    # soc
+    for i = 1:nc
+        e = [1; zeros(length(idx_soc_p[i]) - 1)] # identity element
+        y1 = z[idx_soc_p[i]]
+        y2 = z[idx_soc_d[i]]
+        δy1 = max(-1.5 * (y1[1] - norm(y1[2:end])), 0)
+        δy2 = max(-1.5 * (y2[1] - norm(y2[2:end])), 0)
+
+        y1h = y1 + δy1 * e
+        y2h = y2 + δy2 * e
+        δhy1 = 0.5 * y1h'*y2h / ((y2h[1] + norm(y2h[2,end])) + ϵ)
+        δhy2 = 0.5 * y1h'*y2h / ((y1h[1] + norm(y1h[2,end])) + ϵ)
+
+        y10 = y1h + δhy1 * e
+        y20 = y2h + δhy2 * e
+        z[idx_soc_p[i]] .= y10
+        z[idx_soc_d[i]] .= y20
+    end
+    return z
+end
 
 function interior_point_solve!(ip::InteriorPoint116{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z

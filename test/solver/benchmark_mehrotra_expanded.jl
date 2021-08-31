@@ -85,32 +85,31 @@ function get_interior_point_latest_solver(s::Simulation, space::Space, z, θ;
 
 	lin = LinearizedStep(s, z, θ, 0.0) # /!| here we do not use κ from ref_traj
 	if linear
-		@warn "not working yet"
-		# ip = interior_point_latest(z, θ,
-			# s = space,
-			# ix = linearization_var_index(model, env)[1],
-			# iy1 = linearization_var_index(model, env)[2],
-			# iy2 = linearization_var_index(model, env)[3],
-			# idyn = linearization_term_index(model, env)[1],
-			# irst = linearization_term_index(model, env)[2],
-			# ibil = linearization_term_index(model, env)[3],
-			# idx_ineq = inequality_indices(model, env),
-			# idx_soc = soc_indices(model, env),
-			# r!  = r!,
-			# rm! = rm!,
-			# rz! = rz!,
-			# rθ! = rθ!,
-			# r  = RLin(s, lin.z, lin.θ, lin.r, lin.rz, lin.rθ),
-			# rz = RZLin(s, lin.rz),
-			# rθ = RθLin(s, lin.rθ),
-			# v_pr = view(zeros(1,1), 1,1),
-			# v_du = view(zeros(1,1), 1,1),
-			# opts = InteriorPoint116Options(
-			# max_iter_inner = 100,
-			# r_tol = r_tol,
-			# κ_tol = κ_tol,
-			# solver = :empty_solver,
-			# ))
+		ip = interior_point_latest(z, θ,
+			s = space,
+			ix = linearization_var_index(model, env)[1],
+			iy1 = linearization_var_index(model, env)[2],
+			iy2 = linearization_var_index(model, env)[3],
+			idyn = linearization_term_index(model, env)[1],
+			irst = linearization_term_index(model, env)[2],
+			ibil = linearization_term_index(model, env)[3],
+			idx_ineq = inequality_indices(model, env),
+			idx_soc = soc_indices(model, env),
+			r!  = r!,
+			rm! = rm!,
+			rz! = rz!,
+			rθ! = rθ!,
+			r  = RLin(s, lin.z, lin.θ, lin.r, lin.rz, lin.rθ),
+			rz = RZLin(s, lin.rz),
+			rθ = RθLin(s, lin.rθ),
+			v_pr = view(zeros(1,1), 1,1),
+			v_du = view(zeros(1,1), 1,1),
+			opts = InteriorPoint116Options(
+			max_iter_inner = 100,
+			r_tol = r_tol,
+			κ_tol = κ_tol,
+			solver = :empty_solver,
+			))
 	else
 		ip = interior_point_latest(z, θ,
 			s = space,
@@ -485,28 +484,26 @@ space_box_quat_nc = rn_quaternion_space(
 
 s = [
 	s_quadruped, s_flamingo, s_hopper,
-	s_particle_2D, s_particle,
-	s_box_quat_lc,
-	s_box_quat_nc
+	# s_particle_2D, s_particle,
+	# s_box_quat_lc,
+	# s_box_quat_nc
 	]
 ref_traj = [
 	ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper,
-	ref_traj_particle_2D, ref_traj_particle,
-	ref_traj_box_quat_lc,
-	ref_traj_box_quat_nc
+	# ref_traj_particle_2D, ref_traj_particle,
+	# ref_traj_box_quat_lc,
+	# ref_traj_box_quat_nc
 	]
 space = [
 	space_quadruped, space_flamingo, space_hopper,
-	space_particle_2D, space_particle,
-	space_box_quat_lc,
-	space_box_quat_nc
+	# space_particle_2D, space_particle,
+	# space_box_quat_lc,
+	# space_box_quat_nc
 	]
 # s = [s_particle_2D, s_particle]
 # ref_traj = [ref_traj_particle_2D, ref_traj_particle]
 # s = [s_quadruped, s_flamingo, s_hopper]
 # ref_traj = [ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper]
-
-sum([r.H for r in ref_traj])
 
 dist = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2]
 tol = 1e-8
@@ -514,8 +511,9 @@ opts_nonlin = BenchmarkOptions12(r_tol = tol, κ_tol = tol, linear = false)
 opts_lin = BenchmarkOptions12(r_tol = tol, κ_tol = tol, linear = true)
 stats = Dict{Symbol, AbstractVector{BenchmarkStatistics15}}()
 keys = [
-	# :interior_point_lin,
+	:interior_point_lin,
 	:interior_point_nonlin,
+	:interior_point_latest_lin,
 	:interior_point_latest_nonlin,
 	# :mehrotra_expanded_lin,
 	# :mehrotra_expanded_nonlin,
@@ -532,14 +530,14 @@ stats[:interior_point_nonlin] = benchmark(
 	solver = :interior_point,
 	)
 
-# stats[:interior_point_lin] = benchmark(
-# 	s,
-# 	deepcopy.(ref_traj),
-# 	space,
-# 	dist,
-# 	opts = opts_lin,
-# 	solver = :interior_point,
-# 	)
+stats[:interior_point_lin] = benchmark(
+	s,
+	deepcopy.(ref_traj),
+	space,
+	dist,
+	opts = opts_lin,
+	solver = :interior_point,
+	)
 
 stats[:interior_point_latest_nonlin] = benchmark(
 	s,
@@ -547,6 +545,15 @@ stats[:interior_point_latest_nonlin] = benchmark(
 	space,
 	dist,
 	opts = opts_nonlin,
+	solver = :interior_point_latest,
+	)
+
+stats[:interior_point_latest_lin] = benchmark(
+	s,
+	deepcopy.(ref_traj),
+	space,
+	dist,
+	opts = opts_lin,
 	solver = :interior_point_latest,
 	)
 
@@ -641,43 +648,4 @@ for k in keys
 end
 for k in keys
 	display_statistics!(plt, [3,1], stats[k], dist, field = :cond_schur,  solver = String(k))
-end
-
-
-
-
-
-
-# Dev
-
-
-z2, θ2 = get_benchmark_initialization(ref_traj[1], 10)
-ip2 = mehrotra_latest(z2, θ2,
-	ix = linearization_var_index(s[1].model, s[1].env)[1],
-	iy1 = linearization_var_index(s[1].model, s[1].env)[2],
-	iy2 = linearization_var_index(s[1].model, s[1].env)[3],
-	idyn = linearization_term_index(s[1].model, s[1].env)[1],
-	irst = linearization_term_index(s[1].model, s[1].env)[2],
-	ibil = linearization_term_index(s[1].model, s[1].env)[3],
-    idx_ineq = inequality_indices(s[1].model, s[1].env),
-    idx_soc = soc_indices(s[1].model, s[1].env),
-	r! = s[1].res.r!,
-    rm! = s[1].res.rm!,
-    rz! = s[1].res.rz!,
-    rθ! = s[1].res.rθ!,
-    rz = s[1].rz,
-    rθ = s[1].rθ,
-    opts = Mehrotra113Options(
-        max_iter_inner=30,
-        r_tol=1e-8,
-        κ_tol=1e-8,
-		# verbose=true
-		))
-interior_point_solve!(ip2, z2, θ2)
-r2 = zeros(num_var(s[1].model, s[1].env))
-ip2.methods.r!(r2, ip2.z, ip2.θ, 0.0)
-@testset "Mehrotra Nonlinear" begin
-	@test norm(r2, Inf) < 1e-8
-	@test abs(norm(r2, Inf) - 7.84e-9) < 1e-11
-	@test ip2.iterations == 9
 end

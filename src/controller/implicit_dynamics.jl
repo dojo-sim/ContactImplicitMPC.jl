@@ -58,8 +58,6 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 
 	@warn "different init of ips"
 	ip =  [eval(ip_type)(
-			 # zeros(num_var(model, env)),
-			 # zeros(num_data(model)),
 			 deepcopy(ref_traj.z[t]),
 			 deepcopy(ref_traj.θ[t]),
 			 idx_ineq = inequality_indices(model, env),
@@ -74,7 +72,6 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 			 rz! = rz!,
 			 rθ! = rθ!,
 			 r  = RLin(s, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
-			 # rm  = RLin(s, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
 			 rz = RZLin(s, lin[t].rz),
 			 rθ = RθLin(s, lin[t].rθ),
 			 v_pr = view(zeros(1,1), 1,1),
