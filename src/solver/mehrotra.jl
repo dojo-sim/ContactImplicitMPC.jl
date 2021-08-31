@@ -163,14 +163,6 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         opts)
 end
 
-# interior point solver
-
-function interior_point_solve!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T}) where T
-    ip.z .= z
-    ip.θ .= θ
-    interior_point_solve!(ip)
-end
-
 function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,RZ,Rθ}
 
     # space
@@ -422,27 +414,6 @@ function rz!(ip::Mehrotra{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
     return nothing
 end
 
-function differentiate_solution!(ip::Mehrotra; reg = 0.0)
-    s = ip.s
-    z = ip.z
-    θ = ip.θ
-    rz = ip.rz
-    rθ = ip.rθ
-    δz = ip.δz
-    δzs = ip.δzs
-
-    κ = ip.κ
-
-    rz!(ip, rz, z, θ, reg = reg)
-    rθ!(ip, rθ, z, θ)
-
-    linear_solve!(ip.solver, δzs, rz, rθ, reg = reg)
-    @inbounds @views @. δzs .*= -1.0
-    mapping!(δz, s, δzs, z)
-
-    nothing
-end
-
 
 function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_soc, iy1, iy2) where {T}
     nc = Int(length(idx_soc) / 2)
@@ -468,30 +439,3 @@ function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_
         ) for i = 1:nc]...)
     return nothing
 end
-
-
-
-################################################################################
-# Mehrotra Structure
-################################################################################
-
-# STRUCT
-#
-# Mehrotra
-# MehrotraOptions
-#
-#
-# METHODS
-#
-# mehrotra
-# interior_point_solve!
-# least_squares!
-# residual_violation
-# bilinear_violation
-# initial_state!
-# progress!
-# step_length!
-# centering!
-# interior_point_solve!
-# rz!
-# differentiate_solution!
