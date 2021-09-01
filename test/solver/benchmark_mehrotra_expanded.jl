@@ -2,11 +2,9 @@ using Random
 using LinearAlgebra
 const ContactControl = Main
 
+include(joinpath(module_dir(), "src", "solver", "interior_point_base.jl"))
 include(joinpath(module_dir(), "src", "solver", "interior_point.jl"))
-include(joinpath(module_dir(), "src", "solver", "interior_point_latest.jl"))
 include(joinpath(module_dir(), "src", "solver", "mehrotra.jl"))
-include(joinpath(module_dir(), "src", "solver", "mehrotra_expanded.jl"))
-include(joinpath(module_dir(), "src", "solver", "mehrotra_latest.jl"))
 
 ################################################################################
 # Benchmark Utils
@@ -21,18 +19,17 @@ function get_benchmark_initialization(ref_traj::ContactTraj{T, nq},
 	z_initialize!(z, model, env, q)
 
 	θ = deepcopy(ref_traj.θ[t])
-	# θ[1:end - 2] += θ_dis * ones(length(θ) - 2)
 	θ[1:nq] += θ_dis * ones(nq)
 	return z, θ
 end
 
-function get_interior_point_solver(s::Simulation, space::Space, z, θ;
+function get_interior_point_base_solver(s::Simulation, space::Space, z, θ;
 	r_tol = 1e-8, κ_tol = 1e-8, linear = false)
 	model = s.model
 	env = s.env
 	lin = LinearizedStep(s, z, θ, 0.0) # /!| here we do not use κ from ref_traj
 	if linear
-		ip = interior_point(z, θ,
+		ip = interior_point_base(z, θ,
 			s = space,
 			ix = linearization_var_index(model, env)[1],
 			iy1 = linearization_var_index(model, env)[2],
@@ -51,14 +48,14 @@ function get_interior_point_solver(s::Simulation, space::Space, z, θ;
 			rθ = RθLin(s, lin.rθ),
 			v_pr = view(zeros(1,1), 1,1),
 			v_du = view(zeros(1,1), 1,1),
-			opts = InteriorPointOptions(
+			opts = InteriorPointBaseOptions(
 			max_iter_inner = 100,
 			r_tol = r_tol,
 			κ_tol = κ_tol,
 			solver = :empty_solver,
 			))
 	else
-		ip = interior_point(z, θ,
+		ip = interior_point_base(z, θ,
 			s = space,
 			idx_ineq = inequality_indices(model, env),
 			idx_soc = soc_indices(model, env),
@@ -68,7 +65,7 @@ function get_interior_point_solver(s::Simulation, space::Space, z, θ;
 			rθ! = s.res.rθ!,
 			rz = s.rz,
 			rθ = s.rθ,
-			opts = InteriorPointOptions(
+			opts = InteriorPointBaseOptions(
 			max_iter_inner = 100,
 			r_tol = r_tol,
 			κ_init = κ_tol,
@@ -78,14 +75,14 @@ function get_interior_point_solver(s::Simulation, space::Space, z, θ;
 	return ip
 end
 
-function get_interior_point_latest_solver(s::Simulation, space::Space, z, θ;
+function get_interior_point_solver(s::Simulation, space::Space, z, θ;
 		r_tol = 1e-8, κ_tol = 1e-8, linear = false)
 	model = s.model
 	env = s.env
 
 	lin = LinearizedStep(s, z, θ, 0.0) # /!| here we do not use κ from ref_traj
 	if linear
-		ip = interior_point_latest(z, θ,
+		ip = interior_point(z, θ,
 			s = space,
 			ix = linearization_var_index(model, env)[1],
 			iy1 = linearization_var_index(model, env)[2],
@@ -104,14 +101,14 @@ function get_interior_point_latest_solver(s::Simulation, space::Space, z, θ;
 			rθ = RθLin(s, lin.rθ),
 			v_pr = view(zeros(1,1), 1,1),
 			v_du = view(zeros(1,1), 1,1),
-			opts = InteriorPoint116Options(
+			opts = InteriorPointOptions(
 			max_iter_inner = 100,
 			r_tol = r_tol,
 			κ_tol = κ_tol,
 			solver = :empty_solver,
 			))
 	else
-		ip = interior_point_latest(z, θ,
+		ip = interior_point(z, θ,
 			s = space,
 			ix = linearization_var_index(model, env)[1],
 			iy1 = linearization_var_index(model, env)[2],
@@ -127,7 +124,7 @@ function get_interior_point_latest_solver(s::Simulation, space::Space, z, θ;
 			rθ! = s.res.rθ!,
 			rz = s.rz,
 			rθ = s.rθ,
-			opts = InteriorPoint116Options(
+			opts = InteriorPointOptions(
 				max_iter_inner = 100,
 				r_tol = r_tol,
 				κ_tol = κ_tol,
@@ -136,7 +133,7 @@ function get_interior_point_latest_solver(s::Simulation, space::Space, z, θ;
 	return ip
 end
 
-function get_mehrotra_expanded_solver(s::Simulation, space::Space, z, θ;
+function get_mehrotra_solver(s::Simulation, space::Space, z, θ;
 		r_tol = 1e-8, κ_tol = 1e-8, linear = false)
 	model = s.model
 	env = s.env
@@ -161,7 +158,7 @@ function get_mehrotra_expanded_solver(s::Simulation, space::Space, z, θ;
 			rθ = RθLin(s, lin.rθ),
 			v_pr = view(zeros(1,1), 1,1),
 			v_du = view(zeros(1,1), 1,1),
-			opts = Mehrotra12Options(
+			opts = MehrotraOptions(
 				max_iter_inner = 100,
 				r_tol = r_tol,
 				κ_tol = κ_tol,
@@ -186,7 +183,7 @@ function get_mehrotra_expanded_solver(s::Simulation, space::Space, z, θ;
 		    rθ! = s.res.rθ!,
 		    rz = s.rz,
 		    rθ = s.rθ,
-			opts = Mehrotra12Options(
+			opts = MehrotraOptions(
 		        max_iter_inner = 100,
 		        r_tol = r_tol,
 		        κ_tol = κ_tol,
@@ -265,7 +262,7 @@ end
 ################################################################################
 
 # Benchmark
-@with_kw mutable struct BenchmarkOptions12{T}
+@with_kw mutable struct BenchmarkOptions{T}
 	r_tol::T = 1.0e-8            # residual tolerance
 	κ_tol::T = 1.0e-8            # bilinear tolerance
 	z_dis::T = 1.0e-4            # disturbance on initial z
@@ -273,7 +270,7 @@ end
     linear::Bool = false         # whether to use or not the linearized residuals
 end
 
-mutable struct BenchmarkStatistics15{T}
+mutable struct BenchmarkStatistics{T}
 	failure::AbstractVector{Bool}
 	iter::AbstractVector{Int}
 	r_vio::AbstractVector{T}
@@ -281,16 +278,16 @@ mutable struct BenchmarkStatistics15{T}
 	cond_schur::AbstractVector{T}
 end
 
-function BenchmarkStatistics15()
+function BenchmarkStatistics()
 	failure = trues(0)
 	iter = zeros(Int, 0)
 	r_vio = zeros(0)
 	κ_vio = zeros(0)
 	cond_schur = zeros(0)
-	return BenchmarkStatistics15(failure, iter, r_vio, κ_vio, cond_schur)
+	return BenchmarkStatistics(failure, iter, r_vio, κ_vio, cond_schur)
 end
 
-function record!(stats::BenchmarkStatistics15, s, i, r, κ, c)
+function record!(stats::BenchmarkStatistics, s, i, r, κ, c)
 	push!(stats.failure, s)
 	push!(stats.iter, i)
 	push!(stats.r_vio, r)
@@ -299,15 +296,15 @@ function record!(stats::BenchmarkStatistics15, s, i, r, κ, c)
 	return nothing
 end
 
-function benchmark_interior_point!(stats::BenchmarkStatistics15, s::Simulation,
-	ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions12)
+function benchmark_interior_point_base!(stats::BenchmarkStatistics, s::Simulation,
+	ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions)
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
 		z, θ = get_benchmark_initialization(ref_traj, s.model, s.env, t,
 			z_dis = opts.z_dis,
 			θ_dis = opts.θ_dis)
-		ip = get_interior_point_solver(s, space, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
+		ip = get_interior_point_base_solver(s, space, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
 			r_tol = opts.r_tol,
 			κ_tol = opts.κ_tol,
 			linear = opts.linear)
@@ -319,15 +316,15 @@ function benchmark_interior_point!(stats::BenchmarkStatistics15, s::Simulation,
 	return nothing
 end
 
-function benchmark_interior_point_latest!(stats::BenchmarkStatistics15, s::Simulation,
-	ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions12)
+function benchmark_interior_point!(stats::BenchmarkStatistics, s::Simulation,
+	ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions)
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
 		z, θ = get_benchmark_initialization(ref_traj, s.model, s.env, t,
 			z_dis = opts.z_dis,
 			θ_dis = opts.θ_dis)
-		ip = get_interior_point_latest_solver(s, space, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
+		ip = get_interior_point_solver(s, space, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
 			r_tol = opts.r_tol,
 			κ_tol = opts.κ_tol,
 			linear = opts.linear)
@@ -340,15 +337,15 @@ function benchmark_interior_point_latest!(stats::BenchmarkStatistics15, s::Simul
 	return nothing
 end
 
-function benchmark_mehrotra_expanded!(stats::BenchmarkStatistics15, s::Simulation,
-		ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions12)
+function benchmark_mehrotra!(stats::BenchmarkStatistics, s::Simulation,
+		ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions)
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
 		z, θ = get_benchmark_initialization(ref_traj, s.model, s.env, t,
 			z_dis = opts.z_dis,
 			θ_dis = opts.θ_dis)
-		ip = get_mehrotra_expanded_solver(s, space, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
+		ip = get_mehrotra_solver(s, space, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
 			r_tol = opts.r_tol,
 			κ_tol = opts.κ_tol,
 			linear = opts.linear)
@@ -362,8 +359,8 @@ function benchmark_mehrotra_expanded!(stats::BenchmarkStatistics15, s::Simulatio
 	return nothing
 end
 
-function benchmark_mehrotra_latest!(stats::BenchmarkStatistics15, s::Simulation,
-		ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions12)
+function benchmark_mehrotra_latest!(stats::BenchmarkStatistics, s::Simulation,
+		ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions)
 
 	nz = num_var(s.model, s.env)
 	for t = 1:ref_traj.H
@@ -384,14 +381,14 @@ function benchmark_mehrotra_latest!(stats::BenchmarkStatistics15, s::Simulation,
 	return nothing
 end
 
-function benchmark!(stats::BenchmarkStatistics15, s::Simulation,
-		ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions12, solver::Symbol)
-	if solver == :interior_point
+function benchmark!(stats::BenchmarkStatistics, s::Simulation,
+		ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions, solver::Symbol)
+	if solver == :interior_point_base
+		benchmark_interior_point_base!(stats, s, ref_traj, space; opts = opts)
+	elseif solver == :interior_point
 		benchmark_interior_point!(stats, s, ref_traj, space; opts = opts)
-	elseif solver == :interior_point_latest
-		benchmark_interior_point_latest!(stats, s, ref_traj, space; opts = opts)
-	elseif solver == :mehrotra_expanded
-		benchmark_mehrotra_expanded!(stats, s, ref_traj, space; opts = opts)
+	elseif solver == :mehrotra
+		benchmark_mehrotra!(stats, s, ref_traj, space; opts = opts)
 	elseif solver == :mehrotra_latest
 		benchmark_mehrotra_latest!(stats, s, ref_traj, space; opts = opts)
 	else
@@ -402,15 +399,15 @@ end
 
 function benchmark(s::AbstractVector{Simulation},
 		ref_traj::AbstractVector{<:ContactTraj}, space::AbstractVector{<:Space}, dist::AbstractVector{<:Real};
-		opts = BenchmarkOptions12(), solver::Symbol)
+		opts = BenchmarkOptions(), solver::Symbol)
 
-	stats = Vector{BenchmarkStatistics15}()
+	stats = Vector{BenchmarkStatistics}()
 	nsim = length(s)
 	ndis = length(dist)
 	@assert length(ref_traj) == nsim
 
 	for i = 1:ndis
-		sta = BenchmarkStatistics15()
+		sta = BenchmarkStatistics()
 		opts.z_dis = dist[i]
 		opts.θ_dis = dist[i]
 		for j = 1:nsim
@@ -484,21 +481,21 @@ space_box_quat_nc = rn_quaternion_space(
 
 s = [
 	s_quadruped, s_flamingo, s_hopper,
-	s_particle_2D, s_particle,
-	s_box_quat_lc,
-	s_box_quat_nc
+	# s_particle_2D, s_particle,
+	# s_box_quat_lc,
+	# s_box_quat_nc
 	]
 ref_traj = [
 	ref_traj_quadruped, ref_traj_flamingo, ref_traj_hopper,
-	ref_traj_particle_2D, ref_traj_particle,
-	ref_traj_box_quat_lc,
-	ref_traj_box_quat_nc
+	# ref_traj_particle_2D, ref_traj_particle,
+	# ref_traj_box_quat_lc,
+	# ref_traj_box_quat_nc
 	]
 space = [
 	space_quadruped, space_flamingo, space_hopper,
-	space_particle_2D, space_particle,
-	space_box_quat_lc,
-	space_box_quat_nc
+	# space_particle_2D, space_particle,
+	# space_box_quat_lc,
+	# space_box_quat_nc
 	]
 # s = [s_particle_2D, s_particle]
 # ref_traj = [ref_traj_particle_2D, ref_traj_particle]
@@ -507,19 +504,35 @@ space = [
 
 dist = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2]
 tol = 1e-8
-opts_nonlin = BenchmarkOptions12(r_tol = tol, κ_tol = tol, linear = false)
-opts_lin = BenchmarkOptions12(r_tol = tol, κ_tol = tol, linear = true)
-stats = Dict{Symbol, AbstractVector{BenchmarkStatistics15}}()
+opts_nonlin = BenchmarkOptions(r_tol = tol, κ_tol = tol, linear = false)
+opts_lin = BenchmarkOptions(r_tol = tol, κ_tol = tol, linear = true)
+stats = Dict{Symbol, AbstractVector{BenchmarkStatistics}}()
 keys = [
-	# :interior_point_lin,
+	:interior_point_base_lin,
+	:interior_point_base_nonlin,
+	:interior_point_lin,
 	:interior_point_nonlin,
-	# :interior_point_latest_lin,
-	:interior_point_latest_nonlin,
-	# :mehrotra_expanded_lin,
-	# :mehrotra_expanded_nonlin,
-	# :mehrotra_latest_lin,
-	# :mehrotra_latest_nonlin,
+	:mehrotra_lin,
+	:mehrotra_nonlin,
 	]
+
+stats[:interior_point_base_nonlin] = benchmark(
+	s,
+	deepcopy.(ref_traj),
+	space,
+	dist,
+	opts = opts_nonlin,
+	solver = :interior_point_base,
+	)
+
+stats[:interior_point_base_lin] = benchmark(
+	s,
+	deepcopy.(ref_traj),
+	space,
+	dist,
+	opts = opts_lin,
+	solver = :interior_point_base,
+	)
 
 stats[:interior_point_nonlin] = benchmark(
 	s,
@@ -539,74 +552,38 @@ stats[:interior_point_lin] = benchmark(
 	solver = :interior_point,
 	)
 
-stats[:interior_point_latest_nonlin] = benchmark(
-	s,
-	deepcopy.(ref_traj),
-	space,
-	dist,
-	opts = opts_nonlin,
-	solver = :interior_point_latest,
-	)
-
-stats[:interior_point_latest_lin] = benchmark(
+stats[:mehrotra_lin] = benchmark(
 	s,
 	deepcopy.(ref_traj),
 	space,
 	dist,
 	opts = opts_lin,
-	solver = :interior_point_latest,
+	solver = :mehrotra,
 	)
 
-# stats[:mehrotra_expanded_nonlin] = benchmark(
-# 	s,
-# 	deepcopy.(ref_traj),
-	# space,
-# 	dist,
-# 	opts = opts_nonlin,
-# 	solver = :mehrotra_expanded,
-# 	)
-#
-# stats[:mehrotra_expanded_lin] = benchmark(
-# 	s,
-# 	deepcopy.(ref_traj),
-	# space,
-# 	dist,
-# 	opts = opts_lin,
-# 	solver = :mehrotra_expanded,
-# 	)
+stats[:mehrotra_nonlin] = benchmark(
+	s,
+	deepcopy.(ref_traj),
+	space,
+	dist,
+	opts = opts_nonlin,
+	solver = :mehrotra,
+	)
 
-# stats[:mehrotra_latest_nonlin] = benchmark(
-# 	s,
-# 	deepcopy.(ref_traj),
-	# space,
-# 	dist,
-# 	opts = opts_nonlin,
-# 	solver = :mehrotra_latest,
-# 	)
-#
-# stats[:mehrotra_latest_lin] = benchmark(
-# 	s,
-# 	deepcopy.(ref_traj),
-	# space,
-# 	dist,
-# 	opts = opts_lin,
-# 	solver = :mehrotra_latest,
-# 	)
-
-function display_statistics!(plt, plt_ind, stats::AbstractVector{BenchmarkStatistics15}, dist;
+function display_statistics!(plt, plt_ind, stats::AbstractVector{BenchmarkStatistics}, dist;
 		field::Symbol = :iter, solver::String = "solver")
 	data = [mean(getfield(s, field)) for s in stats]
 	linestyle = occursin("nonlin", solver) ? :solid : :dot
 	linewidth = occursin("nonlin", solver) ? 3.0 : 5.0
 	marker    = occursin("nonlin", solver) ? :circ : :utriangle
-	if occursin("interior_point_latest", solver)
+	if occursin("interior_point_base", solver)
 		color = :red
 	elseif occursin("interior_point", solver)
 		color = :orange
-	elseif occursin("mehrotra_expanded", solver)
-		color = :cornflowerblue
 	elseif occursin("mehrotra_latest", solver)
-		color = :red
+		color = :cornflowerblue
+	elseif occursin("mehrotra", solver)
+		color = :black
 	end
 
 	plot!(plt[plt_ind...], dist, data,

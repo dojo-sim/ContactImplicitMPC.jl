@@ -49,7 +49,7 @@ mutable struct InteriorPointBase{T} <: AbstractIPSolver
     opts::InteriorPointBaseOptions
 end
 
-function interior_point(z, θ;
+function interior_point_base(z, θ;
         s = Euclidean(length(z)),
         num_var = length(z),
         num_data = length(θ),

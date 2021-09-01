@@ -217,16 +217,12 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     reg_du[1] = opts.reg_du_init
 
     # compute residual, residual Jacobian
-    # @warn "changed"
-    # ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     ip.methods.r!(r, z, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
     least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
 
-    # @warn "changed"
-    # ip.methods.rm!(r, z, 0.0 .* Δaff, θ, 0.0) # here we set κ = 0, Δ = 0
     ip.methods.r!(r, z, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
 
@@ -323,22 +319,6 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     return true
 end
 
-function least_squares!(ip::Mehrotra{T}, z::AbstractVector{T}, θ::AbstractVector{T},
-        r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
-    # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
-        # A = rz[[ip.idyn; ip.irst], [ip.ix; ip.iy1; ip.iy2]]
-        # z[[ip.ix; ip.iy1; ip.iy2]] .+= A' * ((A * A') \ r[[ip.idyn; ip.irst]])
-    return nothing
-end
-
-function residual_violation(ip::Mehrotra{T}, r::AbstractVector{T}) where {T}
-    max(norm(r[ip.idyn], Inf), norm(r[ip.irst], Inf))
-end
-
-function bilinear_violation(ip::Mehrotra{T}, r::AbstractVector{T}) where {T}
-    norm(r[ip.ibil], Inf)
-end
-
 function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
         iy1::SVector{ny,Int}, iy2::SVector{ny,Int}; comp::Bool=true, ϵ::T=1e-20) where {T,nx,ny}
 
@@ -403,39 +383,4 @@ function centering!(ip::Mehrotra{T}, z::AbstractVector{T}, Δaff::AbstractVector
 	ip.μ = z[iy1]' * z[iy2] / n
 	ip.σ = (μaff / ip.μ)^3
 	return nothing
-end
-
-function rz!(ip::Mehrotra{T}, rz::AbstractMatrix{T}, z::AbstractVector{T},
-        θ::AbstractVector{T}; reg = 0.0) where {T}
-    z_reg = deepcopy(z)
-    z_reg[ip.iy1] = max.(z[ip.iy1], reg)
-    z_reg[ip.iy2] = max.(z[ip.iy2], reg)
-    ip.methods.rz!(rz, z_reg, θ)
-    return nothing
-end
-
-
-function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_soc, iy1, iy2) where {T}
-    nc = Int(length(idx_soc) / 2)
-    nsoc = Int(length(idx_soc) / 2)
-    nineq = Int(length(idx_ineq) / 2)
-
-    # Split between primals and duals
-    idx_soc_p = idx_soc[1:nsoc]
-    idx_soc_d = idx_soc[nsoc+1:2nsoc]
-    idx_ineq_1 = intersect(iy1, idx_ineq)
-    idx_ineq_2 = intersect(iy2, idx_ineq)
-
-    n_soc = length(idx_soc_p)
-    n_ort = length(idx_ineq_1)
-
-    r[ibil[1:n_ort]] .+= Δ[idx_ineq_1] .* Δ[idx_ineq_2]
-    r[ibil[n_ort+1:end]] .+= vcat(
-        [second_order_cone_product(
-            Δ[idx_soc_d[i]],
-            # Δη1[(i - 1) * ne .+ (1:ne)],
-            Δ[idx_soc_p[i]],
-            # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
-        ) for i = 1:nc]...)
-    return nothing
 end
