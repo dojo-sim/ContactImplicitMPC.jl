@@ -421,3 +421,70 @@ end
     @test norm(ip.r, Inf) < opts.r_tol
     @test norm(A * ip.z[1:n] - b, Inf) < opts.r_tol
 end
+
+
+n = 100
+
+_P = rand(n)
+P = Diagonal(_P)
+q = rand(n)
+θ = [_P; q]
+z = ones(2 * n)
+r = zeros(2 * n)
+rz = zeros(2 * n, 2 * n)
+rθ = zeros(2 * n, 2 * n)
+κ = 1.0
+
+idx_ineq = collect(1:2 * n)
+
+# residual
+function _r!(r, z, θ, κ)
+    x = z[1:100]
+    y = z[101:200]
+    P = θ[1:100]
+    q = θ[101:200]
+
+    r[1:100] = 2.0 * Diagonal(P) * x + q - y
+    r[101:200] = Diagonal(x) * y .- κ
+    nothing
+end
+
+@variables r_sym[1:200]
+@variables z_sym[1:200]
+@variables θ_sym[1:200]
+@variables κ_sym
+
+parallel = Symbolics.SerialForm()
+_r!(r_sym, z_sym, θ_sym, κ_sym)
+r_sym = simplify.(r_sym)
+rf! = eval(Symbolics.build_function(r_sym, z_sym, θ_sym, κ_sym,
+    parallel = parallel)[2])
+rz_exp = Symbolics.sparsejacobian(r_sym, z_sym, simplify = true)
+rθ_exp = Symbolics.sparsejacobian(r_sym, θ_sym, simplify = true)
+rz_sp = similar(rz_exp, Float64)
+rθ_sp = similar(rθ_exp, Float64)
+rzf! = eval(Symbolics.build_function(rz_exp, z_sym, θ_sym,
+    parallel = parallel)[2])
+rθf! = eval(Symbolics.build_function(rθ_exp, z_sym, θ_sym,
+    parallel = parallel)[2])
+
+# options
+opts = ContactControl.InteriorPointBaseOptions(diff_sol = true)
+
+# solver
+ip = ContactControl.interior_point_base(z, θ,
+    idx_ineq = idx_ineq,
+    r! = rf!, rz! = rzf!, rθ! = rθf!,
+    rz = rz_sp,
+    rθ = rθ_sp,
+    opts = opts)
+
+# solve
+status = ContactControl.interior_point_solve!(ip)
+
+# test
+@test status
+@test norm(ip.r, Inf) < opts.r_tol
+@test ContactControl.inequality_check(ip.z, ip.idx_ineq)
+@test ip.κ[1] < opts.κ_tol
+@test norm(ip.δz, 1) != 0.0

@@ -77,7 +77,8 @@ end
     κ_tol::T = 1.0e-5
     ls_scale::T = 0.5
     max_iter_inner::Int = 100
-    max_ls::Int = 3
+    # max_ls::Int = 3
+    max_ls::Int = 1
     max_time::T = 60.0
     diff_sol::Bool = false
     reg::Bool = false
@@ -265,6 +266,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     # TODO need least squares init /!|
     least_squares!(ip, z, θ, r, rz) # seems to be harmful for performance (failure and iteration count)
     z .= initial_state!(z, iy1, iy2, idx_ineq, idx_soc) # decrease failure rate for linearized case
+    # println("z1: ", scn(norm(z), digits = 7))
 
     ip.methods.r!(r, z, θ, 0.0)
 
@@ -286,7 +288,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             ip.reg_val = κ_vio < κ_reg ? κ_vio * γ_reg : 0.0
 
             # compute residual Jacobian
-            @warn "changed"
+            warn && @warn "changed"
             # ip.methods.rz!(rz, z, θ)
             rz!(ip, rz, z, θ, reg = ip.reg_val) # this is not adapted to the second order cone
 
@@ -295,31 +297,43 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
 
             # compute step
             # TODO need to use reg_val here
-            @warn "changed"
+            warn && @warn "changed"
             # linear_solve!(solver, Δ, rz, r)
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
+            # println("Δaff1: ", scn(norm(Δ), digits = 7))
 
             α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 1.0, nquat = nquat)
             α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0, nquat = nquat, verbose = false)
             α = min(α_ineq, α_soc)
+            # println("αaff1: ", scn(norm(α), digits = 7))
 
             μ, σ = general_centering(z, Δ, idx_ineq, idx_soc, iy1, iy2, α, nquat = nquat)
+            # println("σ*μ: ", scn(norm(σ*μ), digits = 7))
             αaff = α
 
             # Compute corrector residual
-            # @warn "changed"
-            ip.methods.r!(r, z, θ, max(σ * μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            # warn && @warn "changed"
+            ip.methods.r!(r, z, θ, max(σ * μ, κ_tol/50)) # here we set κ = σ*μ, Δ = Δaff
             # ip.methods.r!(r, z, θ, max(σ * μ, κ_vio/100 , κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+
+            # println("r: ", scn(norm(r.rdyn), digits = 7))
+            # println("r: ", scn(norm(r.rrst), digits = 7))
+            # println("r: ", scn(norm(r.rbil), digits = 7))
             general_correction_term!(r, Δ, ibil, idx_ineq, idx_soc, iy1, iy2, nquat = nquat)
+            # println("r: ", scn(norm(r.rbil), digits = 7))
 
             # Compute corrector search direction
-            @warn "changed"
+            warn && @warn "changed"
             # linear_solve!(solver, Δ, rz, r)
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val, fact = false)
+            # println("Δ: ", scn(norm(Δ), digits = 7))
             τ = max(0.95, 1 - max(r_vio, κ_vio)^2)
+            # println("τ: ", scn(norm(τ), digits = 7))
+
             α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = τ, nquat = nquat)
             α_soc = soc_step_length(z, Δ, idx_soc; τ = min(τ, 0.99), nquat = nquat, verbose = false)
             α = min(α_ineq, α_soc)
+            # println("α: ", scn(norm(α), digits = 7))
 
             # reduce norm of residual
             candidate_point!(z, s, z, Δ, α)
@@ -336,16 +350,31 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
                 # backtracking
                 candidate_point!(z, s, z, Δ, -α * ls_scale^i)
             end
+            # println("z: ", scn(norm(z), digits = 7))
             κ_vio = κ_vio_cand
             r_vio = r_vio_cand
-            verbose && println(
-                "in:", j,
-                "   αaff:", scn(αaff, digits = 0),
-                "   α:", scn(α, digits = 0),
-                "   μσ:", scn(μ*σ, digits = 0),
-                "   κ_vio:", scn(κ_vio, digits = 0),
-                "   r_vio:", scn(r_vio, digits = 0),
-                )
+
+            verbose && println("iter:", j,
+                "  r: ", scn(norm(r, Inf)),
+                "  r_vio: ", scn(r_vio),
+                "  κ_vio: ", scn(κ_vio),
+                "  Δ: ", scn(norm(Δ)),
+                # "  Δ[ix]: ", scn(norm(Δ[ix])),
+                # "  Δ[iy1]: ", scn(norm(Δ[iy1])),
+                # "  Δ[iy2]: ", scn(norm(Δ[iy2])),
+                # "  Δaff: ", scn(norm(Δaff)),
+                # "  τ: ", scn(norm(ip.τ)),
+                "  α: ", scn(norm(α)))
+
+
+            # verbose && println(
+            #     "in:", j,
+            #     "   αaff:", scn(αaff, digits = 0),
+            #     "   α:", scn(α, digits = 0),
+            #     "   μσ:", scn(μ*σ, digits = 0),
+            #     "   κ_vio:", scn(κ_vio, digits = 0),
+            #     "   r_vio:", scn(r_vio, digits = 0),
+            #     )
         end
     end
     if (r_vio < r_tol) && (κ_vio < κ_tol)
@@ -458,7 +487,7 @@ function interior_point_solve!(ip::AbstractIPSolver, z::AbstractVector{T}, θ::A
     interior_point_solve!(ip)
 end
 
-function differentiate_solution!(ip::Mehrotra; reg = 0.0)
+function differentiate_solution!(ip::AbstractIPSolver; reg = 0.0)
     s = ip.s
     z = ip.z
     θ = ip.θ

@@ -16,11 +16,11 @@ using Quaternions
 # Solver
 include("solver/gs.jl")
 include("solver/qdldl.jl")
-include("solver/random_qp.jl")
+# include("solver/random_qp.jl")
 include("solver/lu.jl")
 include("solver/gs.jl")
 include("solver/schur.jl")
-include("solver/soc.jl")
+# include("solver/soc.jl")
 include("solver/mehrotra.jl")
 
 # Dynamics

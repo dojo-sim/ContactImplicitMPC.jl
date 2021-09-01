@@ -194,12 +194,6 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     κ = ip.κ
     v_pr = ip.v_pr
     v_du = ip.v_du
-    # z_y1 = ip.z_y1
-    # z_y2 = ip.z_y2
-    # Δaff_y1 = ip.Δaff_y1
-    # Δaff_y2 = ip.Δaff_y2
-    # Δ_y1 = ip.Δ_y1
-    # Δ_y2 = ip.Δ_y2
     ix = ip.ix
     iy1 = ip.iy1
     iy2 = ip.iy2
@@ -222,6 +216,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
     least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
     z .= initial_state!(z, ix, iy1, iy2; comp = comp)
+    # println("z1: ", scn(norm(z), digits = 7))
 
     ip.methods.r!(r, z, θ, 0.0) # here we set κ = 0, Δ = 0
     comp && println("**** rinit:", scn(norm(r, res_norm), digits=4))
@@ -252,48 +247,52 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r, reg = ip.reg_val)
+            # println("Δaff1: ", scn(norm(Δaff), digits = 7))
             # @show scn(norm(rz * Δaff - r, Inf))
 
             αaff = step_length(z, Δaff, iy1, iy2; τ = 1.0)
+            # println("αaff1: ", scn(norm(αaff), digits = 7))
             # println("αaff: ", scn(αaff, digits=6))
 
             centering!(ip, z, Δaff, iy1, iy2, αaff)
+            # println("σ*μ: ", scn(norm(ip.σ*ip.μ), digits = 7))
 
             # Compute corrector residual
-            # @warn "changed"
-            # ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
             ip.methods.r!(r, z, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            # println("r: ", scn(norm(r.rdyn), digits = 7))
+            # println("r: ", scn(norm(r.rrst), digits = 7))
+            # println("r: ", scn(norm(r.rbil), digits = 7))
             general_correction_term!(r, Δaff, ip.ibil, idx_ineq, idx_soc, iy1, iy2)
-
-            # ip.methods.rm!(r, z, Δaff, θ, max(ip.σ*ip.μ, 0.0)) # here we set κ = σ*μ, Δ = Δaff
+            # println("r: ", scn(norm(r.rbil), digits = 7))
             # println("μ: ", scn(ip.μ, digits=6))
             # println("σ: ", scn(ip.σ, digits=6))
 
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val, fact=false)
+            # println("Δ: ", scn(norm(Δ), digits = 7))
+
             progress!(ip, max(r_vio, κ_vio), ϵ_min=ϵ_min)
+            # println("τ: ", scn(norm(ip.τ), digits = 7))
             α = step_length(z, Δ, iy1, iy2; τ = ip.τ)
+            # println("α: ", scn(norm(α), digits = 7))
             comp && println("**** Δ1:", scn(norm(α*Δ[ix]), digits=4))
             comp && println("**** Δ2:", scn(norm(α*Δ[iy1]), digits=4))
             comp && println("**** Δ3:", scn(norm(α*Δ[iy2]), digits=4))
 
-            verbose && println("iter:", j,
-                "  r: ", scn(norm(r, res_norm)),
-                "  r_vio: ", scn(r_vio),
-                "  κ_vio: ", scn(κ_vio),
-                "  Δ: ", scn(norm(Δ)),
-                # "  Δ[ix]: ", scn(norm(Δ[ix])),
-                # "  Δ[iy1]: ", scn(norm(Δ[iy1])),
-                # "  Δ[iy2]: ", scn(norm(Δ[iy2])),
-                "  Δaff: ", scn(norm(Δaff)),
-                "  τ: ", scn(norm(ip.τ)),
-                "  α: ", scn(norm(α)))
-
             # candidate point
             candidate_point!(z, s, z, Δ, α)
+            # println("z: ", scn(norm(z), digits = 7))
 
             # update
             ip.methods.r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
+            verbose && println("iter:", j,
+            "  r: ", scn(norm(r, res_norm)),
+            "  r_vio: ", scn(r_vio),
+            "  κ_vio: ", scn(κ_vio),
+            "  Δ: ", scn(norm(Δ)),
+            "  Δaff: ", scn(norm(Δaff)),
+            "  τ: ", scn(norm(ip.τ)),
+            "  α: ", scn(norm(α)))
 
             r_vio = residual_violation(ip, r)
             κ_vio = bilinear_violation(ip, r)
