@@ -1,4 +1,3 @@
-abstract type LinearSolver end
 abstract type AbstractIPSolver end
 abstract type AbstractIPOptions end
 
@@ -78,7 +77,7 @@ end
     ls_scale::T = 0.5
     max_iter_inner::Int = 100
     max_ls::Int = 3
-    max_time::T = 60.0
+    max_time::T = 1e5
     diff_sol::Bool = false
     reg::Bool = false
     reg_pr_init = 0.0

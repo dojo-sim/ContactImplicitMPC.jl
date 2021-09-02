@@ -23,7 +23,7 @@ end
 
 function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	κ = ref_traj.κ[1],
-	max_time = 60.0,
+	max_time = 1e5,
 	mode = :configurationforce,
 	ip_type::Symbol = :interior_point,
 	opts = eval(interior_point_options(ip_type))(

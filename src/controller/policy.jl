@@ -6,7 +6,7 @@
 	altitude_update::Bool = false
 	altitude_impact_threshold::T = 1.0
 	altitude_verbose::Bool = false
-    ip_max_time::T = 60.0     # maximum time allowed for an InteriorPoint solve
+    ip_max_time::T = 1e5     # maximum time allowed for an InteriorPoint solve
     live_plotting::Bool=false # Use the live plotting tool to debug
 end
 

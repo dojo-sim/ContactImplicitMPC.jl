@@ -18,13 +18,18 @@ mutable struct Schur{T,n,m,nn,nm,mm}
     Ai::SMatrix{n,n,T,nn} # Inverse of A
     CAi::SMatrix{m,n,T,nm} # C*A^{-1}
     CAiB::SMatrix{m,m,T,mm} # C*A^{-1}*B
-    gs_data::SDMGSData{m,T} # Schur complement of the block A in M
+    gs_data::SDMGSSolver{m,T} # Schur complement of the block A in M
     u::SVector{n,T}
     v::SVector{m,T}
     x::SVector{n,T}
     y::SVector{m,T}
 end
 
+"""
+    Initialize a Schur Object from a matrix M. The matrix M is split in 4 blocks:
+        - top left block = n x n
+        - bottom right block = m x m
+"""
 function Schur(M::AbstractMatrix{T}; n::Int=1, m::Int=size(M)[1]-n) where {T}
     @assert all(size(M) .== n+m)
     A = SMatrix{n,n,T,n^2}(M[1:n,      1:n])
@@ -34,7 +39,7 @@ function Schur(M::AbstractMatrix{T}; n::Int=1, m::Int=size(M)[1]-n) where {T}
     Ai = inv(A)
     CAi = C*Ai
     CAiB = C*Ai*B
-    gs_data = SDMGSData(m,T=T)
+    gs_data = SDMGSSolver(m,T=T)
     factorize!(gs_data, D - CAiB)
     u = zeros(SVector{n,T})
     v = zeros(SVector{m,T})
@@ -49,15 +54,10 @@ end
 """
 function schur_factorize!(S::Schur{T,n,m,nn,nm,mm}, D::AbstractMatrix{T}) where {T,n,m,nn,nm,mm}
     # update D, gs_data and the shur complement
-    # B = S.B
-    # C = S.C
     # we may want to set S.D to D so that it's clean, even if it's not necessary
     # S.D = D
-    # Ai = S.Ai
     CAiB = S.CAiB
     gs_data = S.gs_data
-    # factorize!(gs_data, D - CAiB + ϵ * I)
-
     factorize!(gs_data, D - CAiB)
     return nothing
 end
@@ -72,23 +72,10 @@ function schur_solve!(S::Schur{T,n,m,nn,nm,mm}, u::AbstractVector{T}, v::Abstrac
     gs_data = S.gs_data
     S.u = u
     S.v = v
-    us  = S.u
-    vs  = S.v
+    us = S.u # staticarrays
+    vs = S.v # staticarrays
     # S.x = Ai*(us + B*(As*(C*(Ai*us) - vs)))
     # S.y = As*(- C*(Ai*us) + vs)
-
-    # r0 = CAi*us - vs
-    # qr_solve!(gs_data, r0)
-    # x0 = gs_data.xs
-    # r1 = r0 - (S.D - S.CAiB)*x0
-    # qr_solve!(gs_data, r1)
-    # x1 = x0 + gs_data.xs
-    # # r2 = r0 - (S.D - S.CAiB)*x1
-    # # temp = x0
-    # temp = x1
-    # # @show norm(r0)
-    # # @show norm(r1)
-    # # @show norm(r2)
 
     qr_solve!(gs_data, CAi*us - vs)
     temp = gs_data.xs

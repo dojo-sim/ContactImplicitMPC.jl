@@ -1,4 +1,4 @@
-@testset "Solver: QDLDL" begin
+@testset "Solver: LDL" begin
     Random.seed!(100)
     n = 50
     d = 0.7

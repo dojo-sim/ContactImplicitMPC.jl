@@ -4,7 +4,7 @@
     κ_tol::T = 1.0e-5
     κ_init::T = 1.0                   # useless
     max_iter_inner::Int = 100
-    max_time::T = 60.0
+    max_time::T = 1e5
     diff_sol::Bool = false
     res_norm::Real = Inf
     reg::Bool = false

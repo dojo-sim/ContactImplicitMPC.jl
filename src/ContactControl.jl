@@ -33,6 +33,7 @@ using Test
 include("utils.jl") #
 
 # Solver
+include("solver/solver_structure.jl")
 include("solver/cones.jl") #
 include("solver/interior_point.jl")
 include("solver/mehrotra.jl")

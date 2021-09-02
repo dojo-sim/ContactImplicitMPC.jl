@@ -15,11 +15,10 @@ using Quaternions
 # const ContactControl = Main
 
 # Solver
-include("solver/gs.jl")
-include("solver/qdldl.jl")
+include("solver/qr.jl")
+include("solver/ldl.jl")
 # include("solver/random_qp.jl")
 include("solver/lu.jl")
-include("solver/gs.jl")
 include("solver/schur.jl")
 # include("solver/soc.jl")
 include("solver/ip_solver.jl")
