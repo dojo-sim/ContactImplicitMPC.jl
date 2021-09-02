@@ -1,5 +1,3 @@
-abstract type LinearSolver end
-
 # residual
 function r!(r, z, θ, κ)
     @warn "residual not defined"

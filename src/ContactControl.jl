@@ -2,34 +2,32 @@
 module ContactControl
 
 using BenchmarkTools
-using InteractiveUtils
 using Colors
+using CoordinateTransformations
 using FFMPEG
+using FileIO
 using ForwardDiff
 using GeometryBasics
+using IfElse
+using InteractiveUtils
+using Ipopt
 using JLD2
+using LinearAlgebra
+using Logging
 using QDLDL
+using MathOptInterface
 using MeshCat
 using MeshCatMechanisms
 using Meshing
-using Symbolics
-using IfElse
+using MeshIO
 using Parameters
 using Plots
-using Rotations
-using CoordinateTransformations
-using StaticArrays
-using LinearAlgebra
-using Logging
 using Random
+using Rotations
 using SparseArrays
+using StaticArrays
+using Symbolics
 using Test
-using FileIO
-using MeshIO
-
-using Ipopt
-using MathOptInterface
-
 
 # Utilities
 include("utils.jl") #
@@ -37,7 +35,6 @@ include("utils.jl") #
 # Solver
 include("solver/cones.jl") #
 include("solver/interior_point.jl")
-include("solver/interior_point_base.jl")
 include("solver/mehrotra.jl")
 include("solver/lu.jl")
 include("solver/gn.jl")

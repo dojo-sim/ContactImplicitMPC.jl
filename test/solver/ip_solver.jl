@@ -2,9 +2,9 @@ using Random
 using LinearAlgebra
 # const ContactControl = Main
 
-include(joinpath(module_dir(), "src", "solver", "interior_point.jl"))
-include(joinpath(module_dir(), "src", "solver", "interior_point_base.jl"))
-include(joinpath(module_dir(), "src", "solver", "mehrotra.jl"))
+# include(joinpath(module_dir(), "src", "solver", "interior_point.jl"))
+# include(joinpath(module_dir(), "src", "solver", "interior_point_base.jl"))
+# include(joinpath(module_dir(), "src", "solver", "mehrotra.jl"))
 
 ################################################################################
 # Test Utils

@@ -22,7 +22,7 @@ using Quaternions
 # include("solver/gs.jl")
 # include("solver/schur.jl")
 # # include("solver/soc.jl")
-include("solver/ip_solver.jl")
+# include("solver/ip_solver.jl")
 
 # # Dynamics
 # include("dynamics/lagrangian.jl") # need to fix d_fast
@@ -53,5 +53,5 @@ include("solver/ip_solver.jl")
 # include("controller/newton_structure_solver.jl") # fails on github actions
 
 # # MPC examples
-# include("controller/mpc_quadruped.jl")
+include("controller/mpc_quadruped.jl")
 # include("controller/mpc_flamingo.jl")
