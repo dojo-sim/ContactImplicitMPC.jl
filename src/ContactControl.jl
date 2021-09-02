@@ -181,6 +181,10 @@ export
     repeat_ref_traj,
     Schur,
     schur_factorize!,
-    schur_solve!
-
+    schur_solve!,
+    LinearSolver,
+    LUSolver,
+    lu_solver,
+    factorize!,
+    linear_solve!
 end # module

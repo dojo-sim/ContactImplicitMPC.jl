@@ -91,7 +91,7 @@ end
     # simulator
     sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
-            r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :mgs_solver),
+            r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :lu_solver),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
     # simulate
@@ -108,7 +108,7 @@ end
     # simulator
     sim = ContactControl.simulator(s, q0, q1, h, T,
         ip_opts = ContactControl.InteriorPointOptions(
-            r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :mgs_solver),
+            r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :lu_solver),
         sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
     # simulate

@@ -52,7 +52,6 @@
         p = p,
         ip_opts = ContactControl.InteriorPointOptions(
             r_tol = 1.0e-8,
-            κ_init = 1.0e-8,
             κ_tol = 2.0e-8),
         sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
@@ -69,7 +68,6 @@
     uerr > 0.0437 * 1.2 && @warn "mild regression on u tracking: current tracking error = $uerr, nominal tracking error = 0.0437"
     γerr > 0.3740 * 1.2 && @warn "mild regression on γ tracking: current tracking error = $γerr, nominal tracking error = 0.374"
     berr > 0.0789 * 1.2 && @warn "mild regression on b tracking: current tracking error = $berr, nominal tracking error = 0.0789"
-
 end
 
 @testset "Linearized MPC: Policy for Quadruped on Sinusoidal Terrain" begin
@@ -132,8 +130,7 @@ end
         p = p,
         ip_opts = InteriorPointOptions(
             r_tol = 1.0e-8,
-            κ_init = 1.0e-6,
-            κ_tol = 2.0e-6),
+            κ_tol = 1.0e-6),
         sim_opts = SimulatorOptions(warmstart = true)
         )
 
@@ -149,7 +146,6 @@ end
     uerr > 0.0437 * 1.2 && @warn "mild regression on u tracking: current tracking error = $uerr, nominal tracking error = 0.0437"
     γerr > 0.3810 * 1.2 && @warn "mild regression on γ tracking: current tracking error = $γerr, nominal tracking error = 0.381"
     berr > 0.0795 * 1.2 && @warn "mild regression on b tracking: current tracking error = $berr, nominal tracking error = 0.0795"
-
 end
 
 @testset "MPC quadruped: long trajectory" begin
@@ -219,8 +215,7 @@ end
 	    p = p,
 	    ip_opts = ContactControl.InteriorPointOptions(
 	        r_tol = 1.0e-8,
-	        κ_init = 1.0e-6,
-	        κ_tol = 2.0e-6,
+	        κ_tol = 1.0e-6,
 	        diff_sol = true),
 	    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
@@ -235,8 +230,8 @@ end
 	uerr > 0.0437 * 1.2 && @warn "mild regression on u tracking: current tracking error = $uerr, nominal tracking error = 0.0437"
 	γerr > 0.3790 * 1.2 && @warn "mild regression on γ tracking: current tracking error = $γerr, nominal tracking error = 0.3780"
 	berr > 0.0798 * 1.2 && @warn "mild regression on b tracking: current tracking error = $berr, nominal tracking error = 0.0799"
-
 end
+
 
 # @testset "MPC quadruped: long trajectory with structured newton solver" begin
 #
@@ -305,8 +300,7 @@ end
 # 	    p = p,
 # 	    ip_opts = ContactControl.InteriorPointOptions(
 # 	        r_tol = 1.0e-8,
-# 	        κ_init = 1.0e-6,
-# 	        κ_tol = 2.0e-6,
+# 	        κ_tol = 1.0e-6,
 # 	        diff_sol = true),
 # 	    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 #

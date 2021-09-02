@@ -23,12 +23,11 @@
     sim = ContactControl.simulator(s, q0, q1, h, T,
         p = ContactControl.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u]),
         ip_opts = ContactControl.InteriorPointOptions(
-    		r_tol = 1.0e-8, κ_tol = 1.0e-8, κ_init = 1.0e-5, solver = :lu_solver),
+    		r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :lu_solver),
         sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
     # simulate
     status = ContactControl.simulate!(sim, verbose = false)
     @test status
     @test norm(ref_traj.q[end] - sim.traj.q[end], Inf) < 1.0e-3
-
 end

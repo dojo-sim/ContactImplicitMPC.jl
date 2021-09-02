@@ -27,7 +27,7 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	mode = :configurationforce,
 	ip_type::Symbol = :interior_point,
 	opts = eval(interior_point_options(ip_type))(
-			κ_init = κ[1],
+			# κ_init = κ[1],
 			κ_tol = 2.0 * κ[1],
 			r_tol = 1.0e-8,
 			diff_sol = true,
@@ -55,8 +55,6 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 
 	lin = [LinearizedStep(s, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
 
-
-	@warn "different init of ips"
 	ip =  [eval(ip_type)(
 			 deepcopy(ref_traj.z[t]),
 			 deepcopy(ref_traj.θ[t]),

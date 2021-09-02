@@ -77,8 +77,7 @@ end
     κ_tol::T = 1.0e-5
     ls_scale::T = 0.5
     max_iter_inner::Int = 100
-    # max_ls::Int = 3
-    max_ls::Int = 1
+    max_ls::Int = 3
     max_time::T = 60.0
     diff_sol::Bool = false
     reg::Bool = false
@@ -392,6 +391,12 @@ function rz!(ip::AbstractIPSolver, rz::AbstractMatrix{T}, z::AbstractVector{T},
     z_reg[ip.iy1] = max.(z[ip.iy1], reg)
     z_reg[ip.iy2] = max.(z[ip.iy2], reg)
     ip.methods.rz!(rz, z_reg, θ)
+    return nothing
+end
+
+function rθ!(ip::AbstractIPSolver, rθ::AbstractMatrix{T}, z::AbstractVector{T},
+        θ::AbstractVector{T}) where {T}
+    ip.methods.rθ!(rθ, z, θ)
     return nothing
 end
 

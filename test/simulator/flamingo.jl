@@ -74,8 +74,7 @@
 	    p = p,
 	    ip_opts = ContactControl.InteriorPointOptions(
 			r_tol = 1.0e-8,
-			κ_init = 1.0e-8,
-			κ_tol = 2.0e-8),
+			κ_tol = 1.0e-8),
 	    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 	# simulate

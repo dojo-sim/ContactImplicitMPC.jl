@@ -50,7 +50,6 @@
         p = p,
         ip_opts = InteriorPointOptions(
             r_tol = 1.0e-8,
-            κ_init = 1.0e-8,
             κ_tol = 2.0e-8),
         sim_opts = SimulatorOptions(warmstart = true)
         )
@@ -72,5 +71,4 @@
     uerr > 0.0829 * 1.2 && @warn "mild regression on u tracking: current tracking error = $uerr, nominal tracking error = 0.0829"
     γerr > 0.4440 * 1.2 && @warn "mild regression on γ tracking: current tracking error = $γerr, nominal tracking error = 0.444"
     berr > 0.0169 * 1.2 && @warn "mild regression on b tracking: current tracking error = $berr, nominal tracking error = 0.0169"
-
 end
