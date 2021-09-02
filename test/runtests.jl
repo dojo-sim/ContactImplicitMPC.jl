@@ -42,7 +42,7 @@ include("simulator/hopper_3D.jl")
 include("simulator/quadruped.jl")
 include("simulator/open_loop.jl")
 include("simulator/flamingo.jl")
-# include("simulator/biped.jl") #TODO:  improve this test #NEED FIX
+# include("simulator/biped.jl") #TODO:   improve this test #NEED FIX
 
 # Controller
 include("controller/objective.jl")
