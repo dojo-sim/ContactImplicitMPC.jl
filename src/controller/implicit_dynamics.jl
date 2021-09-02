@@ -66,7 +66,6 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 			 irst = linearization_term_index(model, env)[2],
 			 ibil = linearization_term_index(model, env)[3],
 			 r! = r!,
-			 rm! = rm!,
 			 rz! = rz!,
 			 rθ! = rθ!,
 			 r  = RLin(s, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),

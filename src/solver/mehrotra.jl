@@ -82,7 +82,7 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         idyn = collect(1:0),
         irst = collect(1:0),
         ibil = collect(1:0),
-        r! = r!, rm! = rm!, rz! = rz!, rθ! = rθ!,
+        r! = r!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
@@ -119,7 +119,7 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
     Ts = typeof.((r, rz, rθ))
     Mehrotra{T,nx,ny,Ts...}(
         s,
-        ResidualMethods(r!, rm!, rz!, rθ!),
+        ResidualMethods(r!, rz!, rθ!),
         z,
         Δaff,
         Δ,

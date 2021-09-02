@@ -405,21 +405,6 @@ function r!(r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, z::Vector{T}, θ::
     return nothing
 end
 
-"""
-	Update the residual rm.
-"""
-function rm!(r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, z::Vector{T}, Δ::Vector{T}, θ::Vector{T}, κ::T,
-        ) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
-    r.x  = z[r.ix]
-    r.y1 = z[r.iy1]
-    r.y2 = z[r.iy2]
-    r.θ  = θ[r.iθ]
-    r.rdyn = r.rdyn0 + r.Dx*(r.x - r.x0) + r.Dy1*(r.y1 - r.y10)                         + r.rθdyn*(r.θ - r.θ0)
-    r.rrst = r.rrst0 + r.Rx*(r.x - r.x0) + r.Ry1*(r.y1 - r.y10) + r.Ry2.*(r.y2 - r.y20) + r.rθrst*(r.θ - r.θ0) + SVector{ny}([r.alt; r.alt_zeros])
-    r.rbil = r.y1 .* r.y2 + Δ[r.iy1] .* Δ[r.iy2] .- κ
-    return nothing
-end
-
 function r_update!(r::RLin, r̄::RLin)
     r.x  = r̄.x
     r.y1 = r̄.y1

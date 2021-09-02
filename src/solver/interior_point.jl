@@ -16,7 +16,6 @@ end
 
 mutable struct ResidualMethods
     r!
-    rm!
     rz!
     rθ!
 end
@@ -25,12 +24,6 @@ end
 function r!(r, z, θ, κ)
     @warn "residual not defined"
     error()
-    nothing
-end
-
-# residual mehrotra
-function rm!(r, z, Δz, θ, κ)
-    @warn "residual mehrotra not defined"
     nothing
 end
 
@@ -152,7 +145,7 @@ function interior_point(z, θ;
         ibil = collect(1:0), # useless
         idx_pr = collect(1:s.n),
         idx_du = collect(1:0),
-        r! = r!, rm! = rm!, rz! = rz!, rθ! = rθ!,
+        r! = r!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
@@ -175,7 +168,7 @@ function interior_point(z, θ;
 
     InteriorPoint(
         s,
-        ResidualMethods(r!, rm!, rz!, rθ!),
+        ResidualMethods(r!, rz!, rθ!),
         z,
         r,
         deepcopy(r),

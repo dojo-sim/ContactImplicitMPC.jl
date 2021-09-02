@@ -68,7 +68,7 @@ function generate_markdown(tgs::Vector{<:TimingGain})
 	return md
 end
 
-# Run experiment for models in names
+# # Run experiment for models in names
 # names = ["hopper_2D", "hopper_3D", "pushbot", "flamingo", "quadruped"]
 # models = get_model.(names)
 # tgs = linearized_solver_timing_gain.(models)

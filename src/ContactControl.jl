@@ -33,15 +33,14 @@ using Test
 include("utils.jl") #
 
 # Solver
-include("solver/solver_structure.jl")
-include("solver/cones.jl") #
-include("solver/interior_point.jl")
-include("solver/mehrotra.jl")
-include("solver/lu.jl")
 include("solver/gn.jl")
+include("solver/lu.jl")
 include("solver/ldl.jl")
 include("solver/qr.jl")
 include("solver/schur.jl")
+include("solver/cones.jl") #
+include("solver/interior_point.jl")
+include("solver/mehrotra.jl")
 
 # Environment
 include("simulator/environment.jl")
@@ -139,7 +138,6 @@ export
     MehrotraOptions,
     interior_point_solve!,
     r!,
-    rm!,
     rz!,
     rθ!
 

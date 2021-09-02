@@ -27,10 +27,10 @@ x2 = qrM.R \ (qrM.Q' * b)
 @show norm(x2 - x0)
 
 # Custom QR
-dat = SDMGSData(M)
-factorize!(dat, M)
-@benchmark factorize!(dat, M)
-qr_solve!(dat, b)
-@benchmark qr_solve!(dat, b)
-x3 = dat.xs
+sol = SDMGSSolver(M)
+factorize!(sol, M)
+@benchmark factorize!(sol, M)
+qr_solve!(sol, b)
+@benchmark qr_solve!(sol, b)
+x3 = sol.xs
 @show norm(x3 - x0)

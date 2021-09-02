@@ -1,10 +1,20 @@
-# TODO: make more efficient
+abstract type LinearSolver end
+
+mutable struct EmptySolver <: LinearSolver
+    F::Any
+end
+
+function empty_solver(A::Any)
+    EmptySolver(A)
+end
+
 """
     GaussNewton solver
 """
 struct GNSolver <: LinearSolver end
 
 function gn_solver(A)
+    # TODO: make more efficient
     GNSolver()
 end
 

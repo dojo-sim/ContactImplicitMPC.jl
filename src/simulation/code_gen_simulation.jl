@@ -179,7 +179,6 @@ function instantiate_residual!(s::Simulation, path_res, path_jac;
 
 	# residual
 	s.res.r!  = eval(expr[:r])
-	# s.res.rm! = eval(expr[:rm])
 
 	# Jacobians
 	if jacobians == :full
@@ -209,7 +208,6 @@ function instantiate_residual!(fct::ResidualMethods, expr::Dict{Symbol,Expr};
 	jacobians = :full)
 
 	fct.r!  = eval(expr[:r])
-	# fct.rm! = eval(expr[:rm])
 
 	if jacobians == :full
 		fct.rz! = eval(expr[:rz])

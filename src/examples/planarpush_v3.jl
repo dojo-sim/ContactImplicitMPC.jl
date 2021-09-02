@@ -84,7 +84,6 @@ ip = mehrotra(
 		 irst = linearization_term_index(model, env)[2],
 		 ibil = linearization_term_index(model, env)[3],
 		 r! = s.res.r!,
-		 rm! = s.res.rm!,
 		 rz! = s.res.rz!,
 		 rθ! = s.res.rθ!,
 		 rz = rz,

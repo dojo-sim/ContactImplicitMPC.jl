@@ -16,6 +16,7 @@ function triangularize(rs::AbstractVector, n::Int)
 end
 
 function triu_perm(k::Int, j::Int)
+    # TODO would be better to precompute those indices and store them in the QRSolver structure.
     ind = Int((j - 1) * j / 2) + k
     return ind::Int
 end
@@ -87,7 +88,7 @@ function SDMGSSolver(A::AbstractMatrix{T}) where T
 end
 
 """
-    Gram-Schmidt algorithm perform on A.
+    Gram-Schmidt algorithm applied to A.
 """
 function factorize!(gs_solver::SDMGSSolver{n,T}, A::AbstractMatrix{T}) where {n,T}
     for j in eachindex(1:n)
@@ -98,7 +99,7 @@ function factorize!(gs_solver::SDMGSSolver{n,T}, A::AbstractMatrix{T}) where {n,
 end
 
 """
-    Gram-Schmidt algorithm perform on a.
+    Gram-Schmidt algorithm applied to a.
 """
 function factorize!(gs_solver::SDMGSSolver{n,T}, a::Vector{SVector{n,T}}) where {n,T}
     gs_solver.as .= a
@@ -107,7 +108,7 @@ function factorize!(gs_solver::SDMGSSolver{n,T}, a::Vector{SVector{n,T}}) where 
 end
 
 """
-    Gram-Schmidt algorithm perform on gs_solver.a.
+    Gram-Schmidt algorithm applied to gs_solver.a.
 """
 function factorize!(gs_solver::SDMGSSolver{n,T}) where {n,T}
     # Unpack
