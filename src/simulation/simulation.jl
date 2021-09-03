@@ -126,6 +126,20 @@ function unpack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	nc = model.dim.c
 	nb = nc * friction_dim(env)
 
+	# # system variables
+	# off = 0
+	# q2 =  z[off .+ (1:nq)]
+	# off += nq
+	# γ1 =  z[off .+ (1:nc)]
+	# off += nc
+	# b1 =  z[off .+ (1:nb)]
+	# off += nb
+	# s1 = z[off .+ (1:nc)]
+	# off += nc
+	# η1 =  z[off .+ (1:(nb + nc))]
+	# off += (nb + nc)
+	# s2 = z[off .+ (1:nc)]
+	# off += nc
 	# system variables
 	off = 0
 	q2 =  z[off .+ (1:nq)]
@@ -134,13 +148,15 @@ function unpack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	off += nc
 	b1 =  z[off .+ (1:nb)]
 	off += nb
-	η1 =  z[off .+ (1:(nb + nc))]
-	off += (nb + nc)
-	s1 = z[off .+ (1:nc)]
+	ψ1 =  z[off .+ (1:nc)]
 	off += nc
-	s2 = z[off .+ (1:nc)]
+	s1 =  z[off .+ (1:nc)]
 	off += nc
-	return q2, γ1, b1, η1, s1, s2
+	η1 =  z[off .+ (1:nb)]
+	off += nb
+	s2 =  z[off .+ (1:nc)]
+	off += nc
+	return q2, γ1, b1, ψ1, s1, η1, s2
 end
 
 function pack_z(model::ContactModel, env::Environment{<:World,LinearizedCone}, q2, γ1, b1, ψ1, η1)
@@ -149,31 +165,41 @@ function pack_z(model::ContactModel, env::Environment{<:World,LinearizedCone}, q
 	return [q2; γ1; b1; ψ1; s1; η1; s2]
 end
 
-function pack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, q2, γ1, b1, η1)
+function pack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, q2, γ1, b1, ψ1, η1)
 	s1 = ϕ_func(model, q2)
 	s2 = model.μ_world .* γ1
-	return [q2; γ1; b1; η1; s1; s2]
+	return [q2; γ1; b1; ψ1; s1; η1; s2]
 end
 
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q1)
-	z .= 1.0
 	iq2 = index_q2(model, env, nquat = 0)
+	z .= 1.0
 	z[iq2] = q1
 end
 
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q1)
-	nq = model.dim.q
-	nc = model.dim.c
-	nb = nc * friction_dim(env)
-	ne = dim(env)
+	# nq = model.dim.q
+	# nc = model.dim.c
+	# nb = nc * friction_dim(env)
+	# ne = dim(env)
+
+	iq2 = index_q2(model, env, nquat = 0)
+	ib1 = index_b1(model, env, nquat = 0)
+	iψ1 = index_ψ1(model, env, nquat = 0)
+	iη1 = index_η1(model, env, nquat = 0)
+	is2 = index_s2(model, env, nquat = 0)
 
     z .= 0.1
-    z[1:nq] = q1
+    z[iq2] = q1
 
 	# second-order cone initializations
-	z[nq + nc + nb .+ (1:(nb + nc))] = vcat([[1.0; 0.1 * ones(ne - 1)] for i = 1:model.dim.c]...)
-	z[nq + nc + nb + nb + nc + nc .+ (1:nc)] .= 1.0
+	z[ib1] .= 0.1 # primal cones: vector part # TODO redundant
+	z[iψ1] .= 1.0 # primal cones: scalar part
+	z[iη1] .= 0.1 # dual cones: vector part # TODO redundant
+	z[is2] .= 1.0 # dual cones: scalar part
 
+	# z[nq + nc + nb .+ (1:(nb + nc))] = vcat([[1.0; 0.1 * ones(ne - 1)] for i = 1:model.dim.c]...)
+	# z[nq + nc + nb + nb + nc + nc .+ (1:nc)] .= 1.0
 	return z
 end
 
@@ -212,13 +238,13 @@ end
 function num_var(model::ContactModel, env::Environment{<:World,LinearizedCone})
 	dim = model.dim
 	nb = dim.c * friction_dim(env)
-	dim.q + dim.c + nb + dim.c + nb + 2 * dim.c
+	dim.q + dim.c + nb + dim.c + dim.c + nb + dim.c
 end
 
 function num_var(model::ContactModel, env::Environment{<:World,NonlinearCone})
 	dim = model.dim
 	nb = dim.c * friction_dim(env)
-	dim.q + dim.c + nb + (nb + dim.c) + 2 * dim.c
+	dim.q + dim.c + nb + dim.c + dim.c + nb + dim.c
 end
 
 function num_bil(model::ContactModel, env::Environment{<:World,LinearizedCone})
@@ -232,55 +258,30 @@ function num_data(model::ContactModel)
 	dim.q + dim.q + dim.u + dim.w + 1 + 1
 end
 
-inequality_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}) = collect(model.dim.q .+ (1:(num_var(model, env) - model.dim.q)))
-function inequality_indices(model::ContactModel, env::Environment{<:World,NonlinearCone})
-	nb = model.dim.c * friction_dim(env)
-	collect([(model.dim.q .+ (1:model.dim.c))...,
-	         (model.dim.q + model.dim.c + nb + nb + model.dim.c .+ (1:model.dim.c))...])
-end
 
-soc_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}) = Vector{Int}[]
-
-function soc_indices(model::ContactModel, env::Environment{<:World,NonlinearCone})
-	nq = model.dim.q
-	nc = model.dim.c
-	ne = dim(env)
-	nf = friction_dim(env)
-	nb = nc * nf
-
-	b_idx = nq + nc .+ (1:nb)
-	η_idx = nq + nc + nb .+ (1:(nb + nc))
-	s2_idx = nq + nc + nb + nb + nc + nc .+ (1:nc)
-
-	pr_idx = [[s2_idx[i]; b_idx[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
-	du_idx = [[η_idx[(i - 1) * ne .+ (1:ne)]...] for i = 1:nc]
-
-	[pr_idx..., du_idx...]
-end
-
-function ort_indices(model::ContactModel, env::Environment{<:World,LinearizedCone})
-	ix, iy1, iy2 = linearization_var_index(model, env)
-	pr_idx = iy1
-	du_idx = iy2
-	return [pr_idx, du_idx]
-end
-
-function ort_indices(model::ContactModel, env::Environment{<:World,NonlinearCone})
-	nq = model.dim.q
-	nc = model.dim.c
-	ne = dim(env)
-	nf = friction_dim(env)
-	nb = nc * nf
-
-	b_idx = nq + nc .+ (1:nb)
-	η_idx = nq + nc + nb .+ (1:(nb + nc))
-	s2_idx = nq + nc + nb + nb + nc + nc .+ (1:nc)
-
-	pr_idx = [[s2_idx[i]; b_idx[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
-	du_idx = [[η_idx[(i - 1) * ne .+ (1:ne)]...] for i = 1:nc]
-
-	return [pr_idx, du_idx]
-end
+# function ort_indices(model::ContactModel, env::Environment{<:World,LinearizedCone})
+# 	ix, iy1, iy2 = linearization_var_index(model, env)
+# 	pr_idx = iy1
+# 	du_idx = iy2
+# 	return [pr_idx, du_idx]
+# end
+#
+# function ort_indices(model::ContactModel, env::Environment{<:World,NonlinearCone})
+# 	nq = model.dim.q
+# 	nc = model.dim.c
+# 	ne = dim(env)
+# 	nf = friction_dim(env)
+# 	nb = nc * nf
+#
+# 	b_idx = nq + nc .+ (1:nb)
+# 	η_idx = nq + nc + nb .+ (1:(nb + nc))
+# 	s2_idx = nq + nc + nb + nb + nc + nc .+ (1:nc)
+#
+# 	pr_idx = [[s2_idx[i]; b_idx[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
+# 	du_idx = [[η_idx[(i - 1) * ne .+ (1:ne)]...] for i = 1:nc]
+#
+# 	return [pr_idx, du_idx]
+# end
 
 function E_func(model::ContactModel, env::Environment{<:World,LinearizedCone})
 	nc = model.dim.c
@@ -291,7 +292,7 @@ end
 function residual(model::ContactModel, env::Environment{<:World,LinearizedCone}, z, θ, κ)
 	nc = model.dim.c
 	nb = nc * friction_dim(env)
-	nf = Int(nb / nc)
+	nf = friction_dim(env)
 	np = dim(env)
 
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
@@ -316,21 +317,30 @@ end
 
 function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, z, θ, κ)
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
-	q2, γ1, b1, η1, s1, s2 = unpack_z(model, env, z)
+	q2, γ1, b1, ψ1, s1, η1, s2 = unpack_z(model, env, z)
 
 	ϕ = ϕ_func(model, env, q2)
 	k = kinematics(model, q2)
 	λ1 = contact_forces(model, env, γ1, b1, q2, k)
 	vT = velocity_stack(model, env, q1, q2, k, h)
 
+	nc = model.dim.c
+	nf = friction_dim(env)
 	ne = dim(env)
 
 	[dynamics(model, env, h, q0, q1, u1, w1, λ1, q2);
 	 s1 - ϕ;
-	 vcat([η1[(i - 1) * ne .+ (2:ne)] - vT[(i - 1) * (ne - 1) .+ (1:(ne - 1))] for i = 1:model.dim.c]...);
-	 s2 - μ[1] * γ1;
+	 # vcat([η1[(i - 1) * ne .+ (2:ne)] - vT[(i - 1) * (ne - 1) .+ (1:(ne - 1))] for i = 1:model.dim.c]...);
+	 vcat([η1[(i - 1) * nf .+ (1:nf)] - vT[(i - 1) * nf .+ (1:nf)] for i = 1:nc]...);
 	 γ1 .* s1 .- κ;
-	 vcat([second_order_cone_product(η1[(i - 1) * ne .+ (1:ne)], [s2[i]; b1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]) - [κ; zeros(ne - 1)] for i = 1:model.dim.c]...)]
+	 # vcat([second_order_cone_product(η1[(i - 1) * ne .+ (1:ne)], [s2[i]; b1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]) - [κ; zeros(ne - 1)] for i = 1:model.dim.c]...)
+	 vcat([
+	 	second_order_cone_product( # [ψ1; b1] ∘ [s2; η1] - [κ; 0...0]
+			[ψ1[i]; b1[(i-1) * nf .+ (1:nf)]],
+			[s2[i]; η1[(i-1) * nf .+ (1:nf)]]
+			) - [κ; zeros(nf)]
+		for i = 1:nc]...)
+	 ]
 end
 
 function ResidualMethods()

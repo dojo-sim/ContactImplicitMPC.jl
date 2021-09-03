@@ -8,10 +8,94 @@
 	number of quaternions.
 """
 function index_q2(model::ContactModel, env::Environment; nquat::Int = 0)
-	nq = model.dim.q - nquat
-	iq2 = Vector(1:nq)
+	nq = model.dim.q
+	iq2 = Vector(1:nq - nquat)
 	return iq2
 end
+
+"""
+	Returns the indices of γ1 in z and Δγ1 in Δz. Important to note that for the indexing
+	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	number of quaternions.
+"""
+function index_γ1(model::ContactModel, env::Environment; nquat::Int = 0)
+	nq = model.dim.q
+	nc = model.dim.c
+	off = (nq - nquat)
+	iγ1 = Vector(off .+ (1:nc))
+	return iγ1
+end
+
+"""
+	Returns the indices of b1 in z and Δb1 in Δz. Important to note that for the indexing
+	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	number of quaternions.
+"""
+function index_b1(model::ContactModel, env::Environment; nquat::Int = 0)
+	nq = model.dim.q
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	off = (nq - nquat) + nc
+	ib1 = Vector(off .+ (1:nb))
+	return ib1
+end
+
+"""
+	Returns the indices of ψ1 in z and Δψ1 in Δz. Important to note that for the indexing
+	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	number of quaternions.
+"""
+function index_ψ1(model::ContactModel, env::Environment; nquat::Int = 0)
+	nq = model.dim.q
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	off = (nq - nquat) + nc + nb
+	iψ1 = Vector(off .+ (1:nc))
+	return iψ1
+end
+
+"""
+	Returns the indices of s1 in z and Δs1 in Δz. Important to note that for the indexing
+	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	number of quaternions.
+"""
+function index_s1(model::ContactModel, env::Environment; nquat::Int = 0)
+	nq = model.dim.q
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	off = (nq - nquat) + nc + nb + nc
+	is1 = Vector(off .+ (1:nc))
+	return is1
+end
+
+"""
+	Returns the indices of η1 in z and Δη1 in Δz. Important to note that for the indexing
+	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	number of quaternions.
+"""
+function index_η1(model::ContactModel, env::Environment; nquat::Int = 0)
+	nq = model.dim.q
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	off = (nq - nquat) + nc + nb + nc + nc
+	iη1 = Vector(off .+ (1:nb))
+	return iη1
+end
+
+"""
+	Returns the indices of s2 in z and Δs2 in Δz. Important to note that for the indexing
+	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	number of quaternions.
+"""
+function index_s2(model::ContactModel, env::Environment; nquat::Int = 0)
+	nq = model.dim.q
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	off = (nq - nquat) + nc + nb + nc + nc + nb
+	is2 = Vector(off .+ (1:nc))
+	return is2
+end
+
 
 """
 	Returns the indices of z and Δz, where 3 groups are formed.
@@ -35,7 +119,7 @@ function linearization_var_index(model::ContactModel, env::Environment; nquat::I
 	ny = nc + nb + nc
 
 	off = 0
-	iw1  = off .+ Vector(1:nq - nquat); off += nq - nquat
+	iw1 = off .+ Vector(1:nq - nquat); off += nq - nquat
 	iw2 = off .+ Vector(1:ny); off += ny
 	iw3 = off .+ Vector(1:ny); off += ny
 	return iw1, iw2, iw3
@@ -93,4 +177,59 @@ function get_bilinear_indices(model::ContactModel, env::Environment; nquat::Int 
 			 SVector{nc}(nq - nquat + 3nc + 2nb .+ (1:nc))], # ψ1, s2
 			]
 	return terms, vars
+end
+
+"""
+	Returns the positive orthant indices in z or Δz.
+"""
+function inequality_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0)
+	iγ1 = index_γ1(model, env, nquat = nquat)
+	ib1 = index_b1(model, env, nquat = nquat)
+	iψ1 = index_ψ1(model, env, nquat = nquat)
+	is1 = index_s1(model, env, nquat = nquat)
+	iη1 = index_η1(model, env, nquat = nquat)
+	is2 = index_s2(model, env, nquat = nquat)
+	return [iγ1; ib1; iψ1; is1; iη1; is2]
+end
+
+"""
+	Returns the positive orthant indices in z or Δz.
+"""
+function inequality_indices(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
+	# nb = model.dim.c * friction_dim(env)
+	# collect([(model.dim.q .+ (1:model.dim.c))...,
+	#          (model.dim.q + model.dim.c + nb + nb + model.dim.c .+ (1:model.dim.c))...])
+	iγ1 = index_γ1(model, env, nquat = nquat)
+	is1 = index_s1(model, env, nquat = nquat)
+	return [iγ1; is1]
+end
+
+"""
+	Returns the second order cone indices in z or Δz.
+"""
+soc_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0) = Vector{Int}[]
+
+"""
+	Returns the second order cone indices in z or Δz.
+"""
+function soc_indices(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
+	nc = model.dim.c
+	nf = friction_dim(env)
+
+	ib1 = index_b1(model, env, nquat = nquat) # primal cones: vector part
+	iψ1 = index_ψ1(model, env, nquat = nquat) # primal cones: scalar part
+	iη1 = index_η1(model, env, nquat = nquat) # dual cones: vector part
+	is2 = index_s2(model, env, nquat = nquat) # dual cones: scalar part
+
+	# b_idx = nq + nc .+ (1:nb)
+	# η_idx = nq + nc + nb .+ (1:(nb + nc))
+	# s2_idx = nq + nc + nb + nb + nc + nc .+ (1:nc)
+	#
+	# pr_idx = [[s2_idx[i]; b_idx[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
+	# du_idx = [[η_idx[(i - 1) * ne .+ (1:ne)]...] for i = 1:nc]
+	#
+	# [pr_idx..., du_idx...]
+	pr_idx = [[iψ1[i]; ib1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
+	du_idx = [[is2[i]; iη1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
+	[pr_idx..., du_idx...]
 end
