@@ -70,6 +70,31 @@ function pack_θ(model::ContactModel, q0, q1, u1, w1, μ, h)
 	return [q0; q1; u1; w1; μ; h]
 end
 
+# function unpack_z(model::ContactModel, env::Environment{<:World,LinearizedCone}, z)
+# 	nq = model.dim.q
+# 	nu = model.dim.u
+# 	nc = model.dim.c
+# 	nb = nc * friction_dim(env)
+#
+# 	# system variables
+# 	off = 0
+# 	q2 =  z[off .+ (1:nq)]
+# 	off += nq
+# 	γ1 =  z[off .+ (1:nc)]
+# 	off += nc
+# 	b1 =  z[off .+ (1:nb)]
+# 	off += nb
+# 	ψ1 =  z[off .+ (1:nc)]
+# 	off += nc
+# 	η1 =  z[off .+ (1:nb)]
+# 	off += nb
+# 	s1 = z[off .+ (1:nc)]
+# 	off += nc
+# 	s2 = z[off .+ (1:nc)]
+# 	off += nc
+# 	return q2, γ1, b1, ψ1, η1, s1, s2
+# end
+
 function unpack_z(model::ContactModel, env::Environment{<:World,LinearizedCone}, z)
 	nq = model.dim.q
 	nu = model.dim.u
@@ -86,13 +111,13 @@ function unpack_z(model::ContactModel, env::Environment{<:World,LinearizedCone},
 	off += nb
 	ψ1 =  z[off .+ (1:nc)]
 	off += nc
+	s1 =  z[off .+ (1:nc)]
+	off += nc
 	η1 =  z[off .+ (1:nb)]
 	off += nb
-	s1 = z[off .+ (1:nc)]
+	s2 =  z[off .+ (1:nc)]
 	off += nc
-	s2 = z[off .+ (1:nc)]
-	off += nc
-	return q2, γ1, b1, ψ1, η1, s1, s2
+	return q2, γ1, b1, ψ1, s1, η1, s2
 end
 
 function unpack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, z)
@@ -121,7 +146,7 @@ end
 function pack_z(model::ContactModel, env::Environment{<:World,LinearizedCone}, q2, γ1, b1, ψ1, η1)
 	s1 = ϕ_func(model, env, q2)
 	s2 = model.μ_world * γ1 .- E_func(model, env) * b1
-	return [q2; γ1; b1; ψ1; η1; s1; s2]
+	return [q2; γ1; b1; ψ1; s1; η1; s2]
 end
 
 function pack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, q2, γ1, b1, η1)
@@ -131,9 +156,9 @@ function pack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, q2
 end
 
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q1)
-	nq = model.dim.q
-    z .= 1.0
-    z[1:nq] = q1
+	z .= 1.0
+	iq2 = index_q2(model, env, nquat = 0)
+	z[iq2] = q1
 end
 
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q1)
@@ -153,7 +178,9 @@ function z_initialize!(z, model::ContactModel, env::Environment{<:World,Nonlinea
 end
 
 function z_warmstart!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q, a, idx_ineq)
-	z[1:model.dim.q] = q
+	iq2 = index_q2(model, env, nquat = 0)
+	z[iq2] = q
+	# TODO SIMON sort out idx_ineq
 	z[idx_ineq] .+= a * rand(length(idx_ineq))
 	nothing
 end

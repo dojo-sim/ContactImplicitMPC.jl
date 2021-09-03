@@ -89,7 +89,7 @@ sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = ContactControl.InteriorPointOptions(
         r_tol = 1.0e-8,
-        κ_init = 1.0e-6,
+        # κ_init = 1.0e-6,
         κ_tol = 2.0e-6,
         diff_sol = true),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))

@@ -203,7 +203,7 @@ end
 
 function update_friction_coefficient!(traj::ContactTraj, model::ContactModel, env::Environment)
 	for t = 1:traj.H
-		q2, γ1, b1, ψ1, η1, __ = unpack_z(model, env, traj.z[t])
+		q2, γ1, b1, ψ1, s1, η1, __ = unpack_z(model, env, traj.z[t])
 		q0, q1, u1, w1, _, h = unpack_θ(model, traj.θ[t])
 		traj.z[t] .= pack_z(model, env, q2, γ1, b1, ψ1, η1)
 		traj.θ[t] .= pack_θ(model, q0, q1, u1, w1, copy(model.μ_world), h)

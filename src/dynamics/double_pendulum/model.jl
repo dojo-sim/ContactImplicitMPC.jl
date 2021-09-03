@@ -139,7 +139,7 @@ function residual(model::DoublePendulum, env::Environment{<:World,LinearizedCone
     s1 = z[nq + nc .+ (1:nc)]
 
 	# q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
-	# q2, γ1, b1, ψ1, η1, s1, s2 = unpack_z(model, env, z)
+	# q2, γ1, b1, ψ1, s1, η1, s2 = unpack_z(model, env, z)
 
 	# ϕ = ϕ_func(model, env, q2)
     #
