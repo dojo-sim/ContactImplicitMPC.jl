@@ -280,7 +280,7 @@ function residual(model::ContactModel, env::Environment{<:World,LinearizedCone},
 
 	[model.dyn.d(h, q0, q1, u1, w1, Λ1, q2);
 	 s1 - ϕ;
-	 vT_stack + ψ_stack - η1;
+	 η1 - vT_stack - ψ_stack;
 	 s2 .- (μ[1] * γ1 .- E_func(model, env) * b1);
 	 γ1 .* s1 .- κ;
 	 b1 .* η1 .- κ;
