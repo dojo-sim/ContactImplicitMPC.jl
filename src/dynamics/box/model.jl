@@ -240,16 +240,6 @@ function Gz_func(model::Box, env, z)
 	 zeros(nz - 7, 6) I]
 end
 
-
-function residual_mehrotra(model::Box, env::Environment, z, Δz, θ, κ)
-	@warn "dummy residual mehrotra: need to implement it"
-	# ix, iy1, iy2 = linearization_var_index(model, env)
-	# idyn, irst, ibil, ialt = linearization_term_index(model, env)
-	rm = residual(model, env, z, θ, κ)
-	# rm[ibil] .+= Δz[iy1] .* Δz[iy2]
-	return rm
-end
-
 # Kinematics
 r = 0.5
 c1 = @SVector [r, r, r]

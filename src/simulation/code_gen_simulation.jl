@@ -130,13 +130,10 @@ function generate_residual_expressions(model::ContactModel, env::Environment;
 	# Residual
 	r = residual(model, env, z, θ, κ)
 	r = Symbolics.simplify.(r)
-	# rm = residual_mehrotra(model, env, z, Δ, θ, κ)
-	# rm = Symbolics.simplify.(rm)
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
 	expr[:r]  = build_function(r, z, θ, κ)[2]
-	# expr[:rm]  = build_function(rm, z, Δ, θ, κ)[2]
 
 	if jacobians == :full
 		# contact expressions

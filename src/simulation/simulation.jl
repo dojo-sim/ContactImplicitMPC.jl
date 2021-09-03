@@ -306,18 +306,10 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	 vcat([second_order_cone_product(η1[(i - 1) * ne .+ (1:ne)], [s2[i]; b1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]) - [κ; zeros(ne - 1)] for i = 1:model.dim.c]...)]
 end
 
-function residual(model::ContactModel, env::Environment, z, Δz, θ, κ)
-	ix, iy1, iy2 = linearization_var_index(model, env)
-	idyn, irst, ibil, ialt = linearization_term_index(model, env)
-	rm = residual(model, env, z, θ, κ)
-	rm[ibil] .+= Δz[iy1] .* Δz[iy2]
-	return rm
-end
-
 function ResidualMethods()
 	function f()
 		error("Not Implemented: use instantiate_residual!")
 		return nothing
 	end
-	return ResidualMethods(fill(f, 4)...)
+	return ResidualMethods(fill(f, 3)...)
 end
