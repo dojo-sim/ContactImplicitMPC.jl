@@ -72,14 +72,14 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 
 		dcf  = Symbolics.jacobian(cf, [q2; γ1; b1], simplify=true) # NOTE: input order change
 
-		vsq2 = Symbolics.jacobian(vs, q2, simplify = true)
-		vsq1h = Symbolics.jacobian(vs, [q1; h], simplify = true)
+		vsq2 = Symbolics.jacobian(-vs, q2, simplify = true)
+		vsq1h = Symbolics.jacobian(-vs, [q1; h], simplify = true)
 
 		# Maximum dissipation (eq.)
 		md = vt + transpose(E_func(model, env)) * ψ1 - η1
 		md = Symbolics.simplify.(md)
 		mdvs = Symbolics.jacobian(md, vt, simplify = true)
-		mdψη = Symbolics.jacobian(md, [ψ1; η1], simplify = true)
+		mdψη = Symbolics.jacobian(-md, [ψ1; η1], simplify = true)
 
 		# # Residual constraints
 		rc = res_con(model, env, z, θ, κ)
@@ -123,7 +123,6 @@ function generate_residual_expressions(model::ContactModel, env::Environment;
 
 	# Declare variables
 	@variables z[1:nz]
-	@variables Δ[1:nz]
 	@variables θ[1:nθ]
 	@variables κ
 
@@ -142,10 +141,10 @@ function generate_residual_expressions(model::ContactModel, env::Environment;
 
 		m = mapping(model, env, z)
 		m = simplify.(m)
-
 		rz = Symbolics.jacobian(r, z, simplify = true)
 		rz = rz * m
 		rz = simplify.(rz)
+
 
 		rθ = Symbolics.jacobian(r, θ, simplify = true) # TODO: sparse version
 

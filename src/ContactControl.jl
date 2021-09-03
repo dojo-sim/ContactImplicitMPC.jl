@@ -49,7 +49,7 @@ include("simulator/environment.jl")
 include("dynamics/model.jl")
 
 # Simulator
-# include("simulation/index.jl")
+include("simulation/index.jl")
 include("simulation/contact_methods.jl")
 include("simulation/simulation.jl")
 include("simulator/trajectory.jl")

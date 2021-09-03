@@ -79,8 +79,8 @@ r1 = zeros(nz)
 s.res.r!(r1, ip1.z, ip1.θ, 0.0)
 @testset "Interior Point Non Linear" begin
 	@test norm(r1, Inf) < 1e-8
-	@test abs(norm(r1, Inf) - 2.06e-9) < 1e-11
-	@test ip1.iterations == 8
+	@test abs(norm(r1, Inf) - 1.64e-9) < 1e-11
+	@test ip1.iterations == 9
 end
 # e_ip = 1e6 * interior_point_timing(ref_traj, t, ip1)
 
@@ -114,10 +114,9 @@ r2 = zeros(nz)
 ip2.methods.r!(r2, ip2.z, ip2.θ, 0.0)
 @testset "Mehrotra Nonlinear" begin
 	@test norm(r2, Inf) < 1e-8
-	@test abs(norm(r2, Inf) - 7.84e-9) < 1e-11
-	@test ip2.iterations == 9
+	@test abs(norm(r2, Inf) - 3.66e-9) < 1e-11
+	@test ip2.iterations == 10
 end
-
 # e_me = 1e6 * interior_point_timing(ref_traj, t, im_traj2.ip[t])
 
 # @profiler for k = 1:3000

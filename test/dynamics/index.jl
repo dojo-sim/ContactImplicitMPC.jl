@@ -7,23 +7,23 @@
 
     nq = model.dim.q
     nc = model.dim.c
+    nb = nc  * friction_dim(env)
     nquat = 1
     off = 0
 
-    iq2 = index_q2(model, env, nquat = nquat)
-    @test iq2 == Vector(off .+ (1:nq - nquat))
+    @test index_q2(model, env, nquat = nquat) == Vector(off .+ (1:nq - nquat))
     off += nq - nquat
-    index_γ1(model, env, nquat = nquat) == Vector(off .+ (1:nc))
+    @test index_γ1(model, env, nquat = nquat) == Vector(off .+ (1:nc))
     off += nc
-    index_b1(model, env, nquat = nquat) == Vector(off .+ (1:nb))
+    @test index_b1(model, env, nquat = nquat) == Vector(off .+ (1:nb))
     off += nb
-    index_ψ1(model, env, nquat = nquat) == Vector(off .+ (1:nc))
+    @test index_ψ1(model, env, nquat = nquat) == Vector(off .+ (1:nc))
     off += nc
-    index_s1(model, env, nquat = nquat) == Vector(off .+ (1:nc))
+    @test index_s1(model, env, nquat = nquat) == Vector(off .+ (1:nc))
     off += nc
-    index_η1(model, env, nquat = nquat) == Vector(off .+ (1:nb))
+    @test index_η1(model, env, nquat = nquat) == Vector(off .+ (1:nb))
     off += nb
-    index_s2(model, env, nquat = nquat) == Vector(off .+ (1:nc))
+    @test index_s2(model, env, nquat = nquat) == Vector(off .+ (1:nc))
     off += nc
 
     # Test aggregated indices
