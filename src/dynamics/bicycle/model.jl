@@ -171,8 +171,8 @@ function lagrangian(model::Bicycle11, q, q̇)
 	L += 0.5 * model.mw * l̇r^2
 	L += 0.5 * model.Jw * ωr^2
 
-	z_front = kinematics(model, q, body = :front)[2]
-	z_rear  = kinematics(model, q, body = :rear)[2]
+	z_front = kinematics_1(model, q, body = :front)[2]
+	z_rear  = kinematics_1(model, q, body = :rear)[2]
 	L -= model.mb * model.g * z
 	L -= model.mw * model.g * z_front
 	L -= model.mw * model.g * z_rear

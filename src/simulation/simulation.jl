@@ -47,7 +47,7 @@ end
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q1)
 	iq2 = index_q2(model, env, nquat = 0)
 	z .= 1.0
-	z[iq2] = q1
+	z[iq2] = deepcopy(q1)
 end
 
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q1)
@@ -58,7 +58,7 @@ function z_initialize!(z, model::ContactModel, env::Environment{<:World,Nonlinea
 	is2 = index_s2(model, env, nquat = 0)
 
     z .= 0.1
-    z[iq2] = q1
+    z[iq2] = deepcopy(q1)
 
 	# second-order cone initializations
 	z[ib1] .= 0.1 # primal cones: vector part # TODO redundant
@@ -82,7 +82,7 @@ function z_warmstart!(z, model::ContactModel, env::Environment{<:World,Nonlinear
 	nothing
 end
 
-function θ_initialize!(θ, model::ContactModel, q0, q1, u, w, μ, h)
+function θ_initialize!(θ, model::ContactModel, q0, q1, u1, w1, μ, h)
 	nθ = num_data(model)
 
 	iq0 = index_q0(model)
@@ -93,12 +93,12 @@ function θ_initialize!(θ, model::ContactModel, q0, q1, u, w, μ, h)
 	ih  = index_h(model)
 
 	θ = zeros(nθ)
-	θ[iq0] = q0
-	θ[iq1] = q1
-	θ[iu1] = u1
-	θ[iw1] = w1
-	θ[iμ] = μ
-	θ[ih] = h
+	θ[iq0] .= deepcopy(q0)
+	θ[iq1] .= deepcopy(q1)
+	θ[iu1] .= deepcopy(u1)
+	θ[iw1] .= deepcopy(w1)
+	θ[iμ] .= deepcopy(μ)
+	θ[ih] .= deepcopy(h)
 	return θ
 end
 

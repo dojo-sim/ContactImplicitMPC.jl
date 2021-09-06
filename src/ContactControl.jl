@@ -82,6 +82,10 @@ include("dynamics/planarpush/model.jl")
 include("dynamics/planarpush_2D/model.jl")
 include("dynamics/rigidbody/model.jl")
 include("dynamics/box/model.jl")
+include("dynamics/box_mrp/model.jl")
+include("dynamics/unicycle/model.jl")
+include("dynamics/bicycle/model.jl")
+include("dynamics/racecar/model.jl")
 
 # Simulator
 include("simulator/policy.jl")

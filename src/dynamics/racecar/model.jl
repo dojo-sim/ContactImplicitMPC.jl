@@ -400,23 +400,23 @@ racecar = Racecar12(Dimensions(nq, nu, nw, nc),
 			   SVector{nq}(μ_joint * [zeros(7); ones(4); zeros(4)]))
 
 
-m = zeros(3)
-rt = MRP(m...)
-
-@variables m_[1:3]
-@variables v_[1:3]
-rt_ = MRP(m_...)
-expr = Symbolics.jacobian(rt_*v_, m_)
-Symbolics.jacobian(rt_*[1,0,0], m_)
-Symbolics.jacobian(rt_*[0,1,0], m_)
-Symbolics.jacobian(rt_*[0,0,1], m_)
-
-cod = build_function(expr, m_, v_)[1]
-fct = eval(cod)
-
-m = rand(3)
-v = rand(3)
-
-∇s = fct(m, v)
-∇f = ForwardDiff.jacobian(m -> MRP(m...)*v, m)
-∇a = Rotations.∇rotate(MRP(m...), v)
+# m = zeros(3)
+# rt = MRP(m...)
+#
+# @variables m_[1:3]
+# @variables v_[1:3]
+# rt_ = MRP(m_...)
+# expr = Symbolics.jacobian(rt_*v_, m_)
+# Symbolics.jacobian(rt_*[1,0,0], m_)
+# Symbolics.jacobian(rt_*[0,1,0], m_)
+# Symbolics.jacobian(rt_*[0,0,1], m_)
+#
+# cod = build_function(expr, m_, v_)[1]
+# fct = eval(cod)
+#
+# m = rand(3)
+# v = rand(3)
+#
+# ∇s = fct(m, v)
+# ∇f = ForwardDiff.jacobian(m -> MRP(m...)*v, m)
+# ∇a = Rotations.∇rotate(MRP(m...), v)

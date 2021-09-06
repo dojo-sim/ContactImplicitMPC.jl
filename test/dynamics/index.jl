@@ -90,3 +90,22 @@ end
     soc_indices(model, env, nquat = nquat) == [(nq - nquat + nc) .+ [nb .+ (1:nc); 1:nb],
         (nq - nquat + nc + nb + nc + nc) .+ [nb .+ (1:nc); 1:nb]]
 end
+
+
+
+const ContactControl = Main
+s = ContactControl.get_simulation("hopper_2D", "flat_2D_nc", "flat")
+model = s.model
+env = s.env
+
+nz = num_var(model, env)
+nθ = num_var(model)
+
+z_ind = Vector(1:nz)
+θ_ind = Vector(1:nθ)
+
+z0 = rand(nz)
+θ0 = rand(nθ)
+
+pack_z(model, env, unpack_z(model, env, z)...)
+pack_θ(model, unpack_θ(model, θ)...)

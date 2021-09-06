@@ -200,6 +200,7 @@ end
 function index_mdp(model::ContactModel, env::Environment; nquat::Int = 0)
 	nq = model.dim.q
 	nc = model.dim.c
+	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc
 	imdp = Vector(off .+ (1:nb))
 	return imdp
@@ -307,7 +308,8 @@ function linearization_term_index(model::ContactModel, env::Environment; nquat::
 
 	irst = [iimp; imdp; ifri]
 	ibil = [ibimp; ibmdp; ibfri]
-	ialt = [iimp]
+	ialt = iimp
+
 	return idyn, irst, ibil, ialt
 end
 
@@ -407,12 +409,52 @@ function num_data(model::ContactModel)
 	dim.q + dim.q + dim.u + dim.w + 1 + 1
 end
 
+function index_ort(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0)
+	iγ1 = index_γ1(model, env, nquat = nquat)
+	ib1 = index_b1(model, env, nquat = nquat)
+	iψ1 = index_ψ1(model, env, nquat = nquat)
+	is1 = index_s1(model, env, nquat = nquat)
+	iη1 = index_η1(model, env, nquat = nquat)
+	is2 = index_s2(model, env, nquat = nquat)
+	iort = [[iγ1; ib1; iψ1], [is1; iη1; is2]]
+	return iort
+end
+
+function index_ort(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
+	iγ1 = index_γ1(model, env, nquat = nquat)
+	is1 = index_s1(model, env, nquat = nquat)
+	iort = [iγ1, is1]
+	return iort
+end
+
+function index_soc(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0)
+	isoc = [[], []]
+	return isoc
+end
+
+function index_soc(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
+	nc = model.dim.c
+	nf = friction_dim(env)
+
+	ib1 = index_b1(model, env, nquat = nquat)
+	iψ1 = index_ψ1(model, env, nquat = nquat)
+	iη1 = index_η1(model, env, nquat = nquat)
+	is2 = index_s2(model, env, nquat = nquat)
+
+	isoc = [
+		[[iψ1[i];  b1[(i-1) * nf .+ (1:nf)]] for i = 1:nc],
+		[[is2[i];  η1[(i-1) * nf .+ (1:nf)]] for i = 1:nc],
+		]
+	return isoc
+end
+
 
 ################################################################################
 # Packing and Unpacking Variables
 ################################################################################
 
 function unpack_θ(model::ContactModel, θ)
+	nθ = num_data(model)
 	iq0 = index_q0(model)
 	iq1 = index_q1(model)
 	iu1 = index_u1(model)
@@ -441,12 +483,12 @@ function pack_θ(model::ContactModel, q0, q1, u1, w1, μ, h)
 	ih  = index_h(model)
 
 	θ = zeros(nθ)
-	θ[iq0] = q0
-	θ[iq1] = q1
-	θ[iu1] = u1
-	θ[iw1] = w1
-	θ[iμ] = μ
-	θ[ih] = h
+	θ[iq0] .= q0
+	θ[iq1] .= q1
+	θ[iu1] .= u1
+	θ[iw1] .= w1
+	θ[iμ] .= μ
+	θ[ih] .= h
 	return θ
 end
 
