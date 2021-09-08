@@ -54,6 +54,7 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 	# Velocity stack
 	vs = velocity_stack(model, env, q1, q2, k, h)
 	vs = Symbolics.simplify.(vs)
+	ψ_stack = transpose(E_func(model, env)) * ψ1
 
 	# Dynamics
 	d = dynamics(model, env, h, q0, q1, u1, w1, λ1, q2)
@@ -76,10 +77,10 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 		vsq1h = Symbolics.jacobian(-vs, [q1; h], simplify = true)
 
 		# Maximum dissipation (eq.)
-		md = vt + transpose(E_func(model, env)) * ψ1 - η1
+		md = η1 - vt - ψ_stack
 		md = Symbolics.simplify.(md)
-		mdvs = Symbolics.jacobian(md, vt, simplify = true)
-		mdψη = Symbolics.jacobian(-md, [ψ1; η1], simplify = true)
+		mdvs = Symbolics.jacobian(-md, vt, simplify = true)
+		mdψη = Symbolics.jacobian(md, [ψ1; η1], simplify = true)
 
 		# # Residual constraints
 		rc = res_con(model, env, z, θ, κ)

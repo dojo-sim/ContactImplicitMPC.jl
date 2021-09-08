@@ -27,15 +27,31 @@ function rz_approx!(s, rz, z, θ)
 	vT = velocity_stack(model, env, q1, q2, k, h)
 
 	# Dynamics
-	rz[1:nq, 1:nq] = model.dyn.∂q2(h, q0, q1, u1, w1, λ1, q2) + s.con.dJ(λ1, q2)
-	rz[1:nq, 1:(nq + nc + nb)] += s.con.dλ1(q2) * s.con.dcf(γ1, b1, q2, k)
+	idyn = index_dyn(model, env, nquat = 0)
+	iimp = index_imp(model, env, nquat = 0)
+	imdp = index_mdp(model, env, nquat = 0)
+	ifri = index_fri(model, env, nquat = 0)
+	ibimp = index_bimp(model, env, nquat = 0)
+	ibmdp = index_bmdp(model, env, nquat = 0)
+	ibfri = index_bfri(model, env, nquat = 0)
+
+	iq2 = index_q2(model, env, nquat = 0)
+	iγ1 = index_γ1(model, env, nquat = 0)
+	ib1 = index_b1(model, env, nquat = 0)
+	iψ1 = index_ψ1(model, env, nquat = 0)
+	is1 = index_s1(model, env, nquat = 0)
+	iη1 = index_η1(model, env, nquat = 0)
+	is2 = index_s2(model, env, nquat = 0)
+
+	rz[idyn, iq2] = model.dyn.∂q2(h, q0, q1, u1, w1, λ1, q2) + s.con.dJ(λ1, q2)
+	rz[idyn, [iq2; iγ1; ib1]] += s.con.dλ1(q2)' * s.con.dcf(γ1, b1, q2, k)
 
 	# Maximum dissipation
-	rz[nq + nc .+ (1:nb), nq + nc + nb .+ [1:nc; 2nc .+ (1:nb)]] = s.con.mdψη(vT, ψ1, η1)
-	rz[nq + nc .+ (1:nb), 1:nq] += s.con.mdvs(vT, ψ1, η1) * s.con.vsq2(q1, q2, k, h)
+	rz[imdp, [iψ1; iη1]] = s.con.mdψη(vT, ψ1, η1)
+	rz[imdp, iq2] += s.con.mdvs(vT, ψ1, η1) * s.con.vsq2(q1, q2, k, h)
 
 	# Other constraints
-	s.con.rcz(view(rz, collect([(nq .+ (1:nc))..., ((nq + nc + nb + 1):num_var(model, env))...]), :), z, θ)
+	s.con.rcz(view(rz, collect([iimp; ifri; ibimp; ibmdp; ibfri]), :), z, θ)
 end
 
 function rθ_approx!(s, rθ, z, θ)
@@ -54,14 +70,29 @@ function rθ_approx!(s, rθ, z, θ)
 	λ1 = contact_forces(model, env, γ1, b1, q2, k)
 	vT = velocity_stack(model, env, q1, q2, k, h)
 
+	idyn = index_dyn(model, env, nquat = 0)
+	iimp = index_imp(model, env, nquat = 0)
+	imdp = index_mdp(model, env, nquat = 0)
+	ifri = index_fri(model, env, nquat = 0)
+	ibimp = index_bimp(model, env, nquat = 0)
+	ibmdp = index_bmdp(model, env, nquat = 0)
+	ibfri = index_bfri(model, env, nquat = 0)
+
+	iq0 = index_q0(model)
+	iq1 = index_q1(model)
+	iu1 = index_u1(model)
+	iw1 = index_w1(model)
+	iμ  = index_μ(model)
+	ih  = index_h(model)
+
 	# Dynamics
-	idx = collect([(1:2nq + model.dim.u + model.dim.w)..., num_data(model)])
-	rθ[1:nq, idx] = model.dyn.dθ(h, q0, q1, u1, w1, λ1, q2)
+	idx = collect([iq0; iq1; iu1; iw1; ih])
+	rθ[idyn, idx] = model.dyn.dθ(h, q0, q1, u1, w1, λ1, q2)
 
 	# Maximum dissipation
-	idx = collect([(nq .+ (1:nq))..., num_data(model)])
-	rθ[nq + nc .+ (1:nb), idx] = s.con.vsq1h(q1, q2, k, h)
+	idx = collect([iq1; ih])
+	rθ[imdp, idx] = s.con.vsq1h(q1, q2, k, h)
 
 	# Other constraints
-	s.con.rcθ(view(rθ, collect([(nq .+ (1:nc))..., ((nq + nc + nb + 1):num_var(model, env))...]), :), z, θ)
+	s.con.rcθ(view(rθ, collect([iimp; ifri; ibimp; ibmdp; ibfri]), :), z, θ)
 end

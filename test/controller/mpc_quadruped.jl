@@ -235,8 +235,6 @@ end
 end
 
 
-
-
 # @testset "MPC quadruped: long trajectory with structured newton solver" begin
 #
 # 	s = get_simulation("quadruped", "flat_2D_lc", "flat")

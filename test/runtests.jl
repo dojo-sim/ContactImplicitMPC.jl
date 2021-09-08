@@ -25,7 +25,7 @@ include("solver/ip_solver.jl")
 
 # Dynamics
 include("dynamics/lagrangian.jl") # need to fix d_fast
-include("dynamics/index.jl")
+include("dynamics/model.jl")
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
 include("dynamics/quaternion.jl")

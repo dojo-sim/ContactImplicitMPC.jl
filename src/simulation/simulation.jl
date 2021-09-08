@@ -45,9 +45,9 @@ function get_simulation(model::String, env::String, sim_name::String;
 end
 
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q1)
-	iq2 = index_q2(model, env, nquat = 0)
 	z .= 1.0
-	z[iq2] = deepcopy(q1)
+	iq2 = index_q2(model, env, nquat = 0)
+	z[iq2] = q1
 end
 
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q1)
@@ -58,7 +58,7 @@ function z_initialize!(z, model::ContactModel, env::Environment{<:World,Nonlinea
 	is2 = index_s2(model, env, nquat = 0)
 
     z .= 0.1
-    z[iq2] = deepcopy(q1)
+    z[iq2] = q1
 
 	# second-order cone initializations
 	z[ib1] .= 0.1 # primal cones: vector part # TODO redundant
@@ -71,7 +71,6 @@ end
 function z_warmstart!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q, a, idx_ineq)
 	iq2 = index_q2(model, env, nquat = 0)
 	z[iq2] = q
-	# TODO SIMON sort out idx_ineq
 	z[idx_ineq] .+= a * rand(length(idx_ineq))
 	nothing
 end
@@ -82,24 +81,22 @@ function z_warmstart!(z, model::ContactModel, env::Environment{<:World,Nonlinear
 	nothing
 end
 
-function θ_initialize!(θ, model::ContactModel, q0, q1, u1, w1, μ, h)
-	nθ = num_data(model)
-
-	iq0 = index_q0(model)
-	iq1 = index_q1(model)
-	iu1 = index_u1(model)
-	iw1 = index_w1(model)
-	iμ  = index_μ(model)
-	ih  = index_h(model)
-
-	θ = zeros(nθ)
-	θ[iq0] .= deepcopy(q0)
-	θ[iq1] .= deepcopy(q1)
-	θ[iu1] .= deepcopy(u1)
-	θ[iw1] .= deepcopy(w1)
-	θ[iμ] .= deepcopy(μ)
-	θ[ih] .= deepcopy(h)
-	return θ
+function θ_initialize!(θ, model::ContactModel, q0, q1, u, w, μ, h)
+	nq = model.dim.q
+	nu = model.dim.u
+	nw = model.dim.w
+	off = 0
+    θ[1:nq] = q0
+	off += nq
+    θ[off .+ (1:nq)] = q1
+	off += nq
+    θ[off .+ (1:nu)] = u
+	off += nu
+    θ[off .+ (1:nw)] = w
+	off += nw
+	θ[off .+ (1:1)] .= μ
+	off += 1
+    θ[off .+ (1:1)] .= h
 end
 
 function E_func(model::ContactModel, env::Environment{<:World,LinearizedCone})
@@ -111,7 +108,7 @@ end
 function residual(model::ContactModel, env::Environment{<:World,LinearizedCone}, z, θ, κ)
 	nc = model.dim.c
 	nb = nc * friction_dim(env)
-	nf = friction_dim(env)
+	nf = Int(nb / nc)
 	np = dim(env)
 
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
@@ -137,12 +134,10 @@ end
 function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, z, θ, κ)
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 	q2, γ1, b1, ψ1, s1, η1, s2 = unpack_z(model, env, z)
-
 	ϕ = ϕ_func(model, env, q2)
 	k = kinematics(model, q2)
 	λ1 = contact_forces(model, env, γ1, b1, q2, k)
 	vT = velocity_stack(model, env, q1, q2, k, h)
-
 	nc = model.dim.c
 	nf = friction_dim(env)
 	ne = dim(env)

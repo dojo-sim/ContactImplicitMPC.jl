@@ -82,7 +82,6 @@ include("dynamics/planarpush/model.jl")
 include("dynamics/planarpush_2D/model.jl")
 include("dynamics/rigidbody/model.jl")
 include("dynamics/box/model.jl")
-include("dynamics/box_mrp/model.jl")
 include("dynamics/unicycle/model.jl")
 include("dynamics/bicycle/model.jl")
 include("dynamics/racecar/model.jl")
@@ -122,12 +121,8 @@ include("controller/newton_structure_solver/methods.jl")
 include("dynamics/visuals.jl")
 include("dynamics/visual_utils.jl")
 
-export
-    SparseStructure,
-    LinearizedStep,
-    bil_addition!,
-    r_linearized!,
-    rz_linearized!
+export SparseStructure, LinearizedStep, get_bilinear_indices,
+    bil_addition!, r_linearized!, rz_linearized!
 
 export ImplicitTraj, linearization!, implicit_dynamics!
 export TrackingObjective, TrackingVelocityObjective
@@ -136,9 +131,13 @@ export RLin, RZLin, RθLin, ContactTraj, Simulation, num_var, num_data
 export get_simulation, get_trajectory
 export
     interior_point,
+    inequality_indices,
+    soc_indices,
     InteriorPointOptions,
     interior_point_solve!,
     mehrotra,
+    linearization_var_index,
+    linearization_term_index,
     MehrotraOptions,
     interior_point_solve!,
     r!,
@@ -187,18 +186,4 @@ export
     lu_solver,
     factorize!,
     linear_solve!
-
-export
-    index_q2,
-    index_γ1,
-    index_b1,
-    index_ψ1,
-    index_s1,
-    index_η1,
-    index_s2,
-    linearization_var_index,
-    linearization_term_index,
-    get_bilinear_indices,
-    inequality_indices,
-    soc_indices
 end # module

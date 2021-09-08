@@ -863,3 +863,25 @@ expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(sim, path_res, path_jac)
+
+################################################################################
+# Racecar Payload
+################################################################################
+dir_model = joinpath(module_dir(), "src/dynamics/racecar")
+dir_sim   = joinpath(module_dir(), "src/simulation/racecar")
+model = deepcopy(racecar_payload)
+env = deepcopy(flat_3D_lc)
+sim = Simulation(model, env)
+
+path_base = joinpath(dir_model, "dynamics_payload/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics_payload/dynamics.jld2")
+path_res = joinpath(dir_sim, "payload/residual.jld2")
+path_jac = joinpath(dir_sim, "payload/jacobians.jld2")
+
+instantiate_base!(sim.model, path_base)
+instantiate_dynamics!(sim.model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(sim, path_res, path_jac)

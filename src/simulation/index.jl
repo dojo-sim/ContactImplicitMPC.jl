@@ -309,7 +309,6 @@ function linearization_term_index(model::ContactModel, env::Environment; nquat::
 	irst = [iimp; imdp; ifri]
 	ibil = [ibimp; ibmdp; ibfri]
 	ialt = iimp
-
 	return idyn, irst, ibil, ialt
 end
 
@@ -405,56 +404,17 @@ function num_var(model::ContactModel, env::Environment; nquat::Int = 0)
 end
 
 function num_data(model::ContactModel)
-	dim = model.dim
-	dim.q + dim.q + dim.u + dim.w + 1 + 1
+	nq = model.dim.q
+	nu = model.dim.u
+	nw = model.dim.w
+	nq + nq + nu + nw + 1 + 1
 end
-
-function index_ort(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0)
-	iγ1 = index_γ1(model, env, nquat = nquat)
-	ib1 = index_b1(model, env, nquat = nquat)
-	iψ1 = index_ψ1(model, env, nquat = nquat)
-	is1 = index_s1(model, env, nquat = nquat)
-	iη1 = index_η1(model, env, nquat = nquat)
-	is2 = index_s2(model, env, nquat = nquat)
-	iort = [[iγ1; ib1; iψ1], [is1; iη1; is2]]
-	return iort
-end
-
-function index_ort(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
-	iγ1 = index_γ1(model, env, nquat = nquat)
-	is1 = index_s1(model, env, nquat = nquat)
-	iort = [iγ1, is1]
-	return iort
-end
-
-function index_soc(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0)
-	isoc = [[], []]
-	return isoc
-end
-
-function index_soc(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
-	nc = model.dim.c
-	nf = friction_dim(env)
-
-	ib1 = index_b1(model, env, nquat = nquat)
-	iψ1 = index_ψ1(model, env, nquat = nquat)
-	iη1 = index_η1(model, env, nquat = nquat)
-	is2 = index_s2(model, env, nquat = nquat)
-
-	isoc = [
-		[[iψ1[i];  b1[(i-1) * nf .+ (1:nf)]] for i = 1:nc],
-		[[is2[i];  η1[(i-1) * nf .+ (1:nf)]] for i = 1:nc],
-		]
-	return isoc
-end
-
 
 ################################################################################
 # Packing and Unpacking Variables
 ################################################################################
 
 function unpack_θ(model::ContactModel, θ)
-	nθ = num_data(model)
 	iq0 = index_q0(model)
 	iq1 = index_q1(model)
 	iu1 = index_u1(model)
@@ -462,7 +422,6 @@ function unpack_θ(model::ContactModel, θ)
 	iμ  = index_μ(model)
 	ih  = index_h(model)
 
-	θ = zeros(nθ)
 	q0 = θ[iq0]
 	q1 = θ[iq1]
 	u1 = θ[iu1]
@@ -473,24 +432,28 @@ function unpack_θ(model::ContactModel, θ)
 end
 
 function pack_θ(model::ContactModel, q0, q1, u1, w1, μ, h)
-	nθ = num_data(model)
-
-	iq0 = index_q0(model)
-	iq1 = index_q1(model)
-	iu1 = index_u1(model)
-	iw1 = index_w1(model)
-	iμ  = index_μ(model)
-	ih  = index_h(model)
-
-	θ = zeros(nθ)
-	θ[iq0] .= q0
-	θ[iq1] .= q1
-	θ[iu1] .= u1
-	θ[iw1] .= w1
-	θ[iμ] .= μ
-	θ[ih] .= h
-	return θ
+	return [q0; q1; u1; w1; μ; h]
 end
+
+# function pack_θ(model::ContactModel, q0, q1, u1, w1, μ, h)
+# 	nθ = num_data(model)
+#
+# 	iq0 = index_q0(model)
+# 	iq1 = index_q1(model)
+# 	iu1 = index_u1(model)
+# 	iw1 = index_w1(model)
+# 	iμ  = index_μ(model)
+# 	ih  = index_h(model)
+#
+# 	θ = zeros(nθ)
+# 	θ[iq0] = q0
+# 	θ[iq1] = q1
+# 	θ[iu1] = u1
+# 	θ[iw1] = w1
+# 	θ[iμ] = μ
+# 	θ[ih] = h
+# 	return θ
+# end
 
 function unpack_z(model::ContactModel, env::Environment, z)
 	iq2 = index_q2(model, env, nquat = 0)
@@ -525,23 +488,27 @@ function pack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, q2
 end
 
 function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, s1, η1, s2)
-	nz = num_var(model, env)
-	iq2 = index_q2(model, env, nquat = 0)
-	iγ1 = index_γ1(model, env, nquat = 0)
-	ib1 = index_b1(model, env, nquat = 0)
-	iψ1 = index_ψ1(model, env, nquat = 0)
-	is1 = index_s1(model, env, nquat = 0)
-	iη1 = index_η1(model, env, nquat = 0)
-	is2 = index_s2(model, env, nquat = 0)
-
-	z = zeros(nz)
-
-	z[iq2] = q2
-	z[iγ1] = γ1
-	z[ib1] = b1
-	z[iψ1] = ψ1
-	z[is1] = s1
-	z[iη1] = η1
-	z[is2] = s2
-	return z
+	return [q2; γ1; b1; ψ1; s1; η1; s2]
 end
+
+# function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, s1, η1, s2)
+# 	nz = num_var(model, env)
+# 	iq2 = index_q2(model, env, nquat = 0)
+# 	iγ1 = index_γ1(model, env, nquat = 0)
+# 	ib1 = index_b1(model, env, nquat = 0)
+# 	iψ1 = index_ψ1(model, env, nquat = 0)
+# 	is1 = index_s1(model, env, nquat = 0)
+# 	iη1 = index_η1(model, env, nquat = 0)
+# 	is2 = index_s2(model, env, nquat = 0)
+#
+# 	z = zeros(nz)
+#
+# 	z[iq2] = q2
+# 	z[iγ1] = γ1
+# 	z[ib1] = b1
+# 	z[iψ1] = ψ1
+# 	z[is1] = s1
+# 	z[iη1] = η1
+# 	z[is2] = s2
+# 	return z
+# end

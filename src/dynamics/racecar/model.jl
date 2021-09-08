@@ -376,6 +376,7 @@ g = 9.81 # gravity
 μ_joint = 10.0
 
 mb = 4.0 # body mass
+m_payload = 2.0 # payload mass
 Jb = 0.1 # body inertia
 lb = 1.0 # body length
 wb = 0.5 # body width
@@ -396,6 +397,12 @@ nc = 4
 racecar = Racecar12(Dimensions(nq, nu, nw, nc),
 			   mb, Jb, lb, wb, mw, Jw, rw, l0, k,
 			   μ_world, μ_joint, g,
+			   BaseMethods(), DynamicsMethods(),
+			   SVector{nq}(μ_joint * [zeros(7); ones(4); zeros(4)]))
+
+racecar_payload = Racecar12(Dimensions(nq, nu, nw, nc),
+			   mb + m_payload, Jb, lb, wb, mw, Jw, rw, l0, k,
+			   μ_world/2, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),
 			   SVector{nq}(μ_joint * [zeros(7); ones(4); zeros(4)]))
 

@@ -55,7 +55,7 @@
     @test status
     @test isapprox.(sim.traj.q[end][3], 0.0, atol = 1.0e-6)
     @test all(isapprox.((sim.traj.q[end] - sim.traj.q[end-1]) ./ h, 0.0, atol = 1.0e-6))
-    @show (sim.traj.q[end] - sim.traj.q[end-1]) ./ h
+    # @show (sim.traj.q[end] - sim.traj.q[end-1]) ./ h
 
     ## DROP (warmstart)
     # simulator

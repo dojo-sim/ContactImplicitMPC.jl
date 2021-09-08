@@ -3,34 +3,34 @@ function plot_lines!(vis::Visualizer, model::Racecar12, q::AbstractVector;
 
 	# Point Traj
 	body_point = Vector{Point{3,Float64}}()
-	wheel_points = [Vector{Point{3,Float64}}() for i=1:2]
+	wheel_points = [Vector{Point{3,Float64}}() for i=1:4]
 
 	for qi in q
-		push!(body_point, Point(qi[1], -offset, qi[2]))
+		push!(body_point, Point(qi[1], qi[2], qi[3]))
 		p1 = kinematics_2(model, qi, body = :wheel_hub1)
 		p2 = kinematics_2(model, qi, body = :wheel_hub2)
 		p3 = kinematics_2(model, qi, body = :wheel_hub3)
 		p4 = kinematics_2(model, qi, body = :wheel_hub4)
-		push!(wheel_points[1], Point(p1[1], -offset, p1[2]))
-		push!(wheel_points[2], Point(p2[1], -offset, p2[2]))
-		push!(wheel_points[3], Point(p3[1], -offset, p3[2]))
-		push!(wheel_points[4], Point(p4[1], -offset, p4[2]))
+		push!(wheel_points[1], Point(p1[1], p1[2], p1[3]))
+		push!(wheel_points[2], Point(p2[1], p2[2], p2[3]))
+		push!(wheel_points[3], Point(p3[1], p3[2], p3[3]))
+		push!(wheel_points[4], Point(p4[1], p4[2], p4[3]))
 	end
 
 	# Set lines
 	orange_mat, blue_mat, black_mat = get_line_material(size)
 	if col
-		setobject!(vis[name]["/lines/body"], MeshCat.Line(body_point, orange_mat))
-		setobject!(vis[name]["/lines/wheel1"], MeshCat.Line(wheel_points[1], blue_mat))
-		setobject!(vis[name]["/lines/wheel2"], MeshCat.Line(wheel_points[2], blue_mat))
-		setobject!(vis[name]["/lines/wheel3"], MeshCat.Line(wheel_points[3], blue_mat))
-		setobject!(vis[name]["/lines/wheel4"], MeshCat.Line(wheel_points[4], blue_mat))
+		setobject!(vis[name]["lines/body"], MeshCat.Line(body_point, orange_mat))
+		setobject!(vis[name]["lines/wheel1"], MeshCat.Line(wheel_points[1], blue_mat))
+		setobject!(vis[name]["lines/wheel2"], MeshCat.Line(wheel_points[2], blue_mat))
+		setobject!(vis[name]["lines/wheel3"], MeshCat.Line(wheel_points[3], blue_mat))
+		setobject!(vis[name]["lines/wheel4"], MeshCat.Line(wheel_points[4], blue_mat))
 	else
-		setobject!(vis[name]["/lines/body"], MeshCat.Line(body_point, black_mat))
-		setobject!(vis[name]["/lines/wheel1"], MeshCat.Line(wheel_points[1], blue_mat))
-		setobject!(vis[name]["/lines/wheel2"], MeshCat.Line(wheel_points[2], blue_mat))
-		setobject!(vis[name]["/lines/wheel3"], MeshCat.Line(wheel_points[3], blue_mat))
-		setobject!(vis[name]["/lines/wheel4"], MeshCat.Line(wheel_points[4], blue_mat))
+		setobject!(vis[name]["lines/body"], MeshCat.Line(body_point, black_mat))
+		setobject!(vis[name]["lines/wheel1"], MeshCat.Line(wheel_points[1], black_mat))
+		setobject!(vis[name]["lines/wheel2"], MeshCat.Line(wheel_points[2], black_mat))
+		setobject!(vis[name]["lines/wheel3"], MeshCat.Line(wheel_points[3], black_mat))
+		setobject!(vis[name]["lines/wheel4"], MeshCat.Line(wheel_points[4], black_mat))
 	end
 	return nothing
 end
