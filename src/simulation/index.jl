@@ -491,6 +491,7 @@ function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, s1, η1
 	return [q2; γ1; b1; ψ1; s1; η1; s2]
 end
 
+
 # function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, s1, η1, s2)
 # 	nz = num_var(model, env)
 # 	iq2 = index_q2(model, env, nquat = 0)
