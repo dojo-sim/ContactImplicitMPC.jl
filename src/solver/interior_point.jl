@@ -86,6 +86,11 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
+
+    iz                         # indices of z = (iw1, iort, isoc)
+    iΔz                        # indices of Δz = (iw1, iort, isoc)
+    ir                         # indices of the residual
+
     idx_ineq::Vector{Int}      # indices for inequality constraints
     idx_ort::Vector{Vector{Int}}  # indices for inequality constraints split between primal and dual for z
     idx_orts::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual for Δz
@@ -116,6 +121,9 @@ function interior_point(z, θ;
         s = Euclidean(length(z)),
         num_var = length(z),
         num_data = length(θ),
+        iz = nothing,
+        iΔz = nothing,
+        ir = nothing,
         idx_ineq = collect(1:0),
         idx_ort = [collect(1:0), collect(1:0)],
         idx_orts = [collect(1:0), collect(1:0)],
@@ -153,6 +161,9 @@ function interior_point(z, θ;
         rz,
         rθ,
         zeros(s.n),
+        iz,
+        iΔz,
+        ir,
         idx_ineq,
         idx_ort,
         idx_orts,

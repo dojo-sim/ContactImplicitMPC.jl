@@ -409,12 +409,12 @@ end
 """
 	Returns the second order cone indices in z or Δz.
 """
-soc_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false) = Vector{Int}[]
+index_soc(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false) = Vector{Int}[]
 
 """
 	Returns the second order cone indices in z or Δz.
 """
-function soc_indices(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
+function index_soc(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
 	nc = model.dim.c
 	nf = friction_dim(env)
 
@@ -546,3 +546,45 @@ end
 # 	z[is2] = s2
 # 	return z
 # end
+
+
+################################################################################
+# Aggregated indices
+################################################################################
+
+function index_variable(model::ContactModel, env::Environment; quat::Bool = false)
+	iq2 = index_q2(model, env, quat = quat)
+	iγ1 = index_γ1(model, env, quat = quat)
+	ib1 = index_b1(model, env, quat = quat)
+	iψ1 = index_ψ1(model, env, quat = quat)
+	is1 = index_s1(model, env, quat = quat)
+	iη1 = index_η1(model, env, quat = quat)
+	is2 = index_s2(model, env, quat = quat)
+
+	iw1 = iq2
+	iort = index_ort(model, env, quat = quat)
+	isoc = index_soc(model, env, quat = quat)
+	return iw1, iort, isoc
+end
+
+function index_residual(model::ContactModel, env::Environment; quat::Bool = false)
+	# dyn = [dyn]
+	# rst = [s1  - ..., ≡ ialt
+	#        η1  - ...,
+	#        s2  - ...,]
+	# bil = [γ1 .* s1 .- κ;
+	#        b1 .* η1 .- κ;
+	#        ψ1 .* s2 .- κ]
+	idyn = index_dyn(model, env, quat = quat)
+	iimp = index_imp(model, env, quat = quat)
+	imdp = index_mdp(model, env, quat = quat)
+	ifri = index_fri(model, env, quat = quat)
+	ibimp = index_bimp(model, env, quat = quat)
+	ibmdp = index_bmdp(model, env, quat = quat)
+	ibfri = index_bfri(model, env, quat = quat)
+
+	irst = [iimp; imdp; ifri]
+	ibil = [ibimp; ibmdp; ibfri]
+	ialt = iimp
+	return idyn, irst, ibil, ialt
+end

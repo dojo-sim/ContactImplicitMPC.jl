@@ -132,7 +132,7 @@ export get_simulation, get_trajectory
 export
     interior_point,
     inequality_indices,
-    soc_indices,
+    index_soc,
     InteriorPointOptions,
     interior_point_solve!,
     mehrotra,

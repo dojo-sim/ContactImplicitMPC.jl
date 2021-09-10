@@ -570,7 +570,7 @@ end
 
 idx_ineq = inequality_indices()
 
-function soc_indices()
+function index_soc()
 	off = nq + N * nq + nf * 3 + nr * 2
 
 	b_idx = off + nc + nc .+ (1:(nc * nb))
@@ -583,7 +583,7 @@ function soc_indices()
 	[pr_idx..., du_idx...]
 end
 
-idx_soc = soc_indices()
+idx_soc = index_soc()
 
 function z_initialize(q_hist, s = 1.0)
 	off = nq + N * nq + nf * 3 + nr * 2

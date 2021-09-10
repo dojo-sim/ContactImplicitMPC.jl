@@ -27,6 +27,11 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     r::R                            # residual
     rz::RZ                           # residual Jacobian wrt z
     rθ::Rθ                           # residual Jacobian wrt θ
+
+    iz                         # indices of z = (iw1, iort, isoc)
+    iΔz                        # indices of Δz = (iw1, iort, isoc)
+    ir                         # indices of the residual
+
     idx_ineq::Vector{Int}        # indices for inequality constraints
     idx_ort::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual
     idx_orts::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual
@@ -59,6 +64,9 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         s = Euclidean(length(z)),
         num_var = length(z),
         num_data = length(θ),
+        iz = nothing,
+        iΔz = nothing,
+        ir = nothing,
         idx_ineq = collect(1:0),
         idx_ort = [collect(1:0), collect(1:0)],
         idx_orts = [collect(1:0), collect(1:0)],
@@ -103,6 +111,9 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         r,
         rz,
         rθ,
+        iz,
+        iΔz,
+        ir,
         idx_ineq,
         idx_ort,
         idx_orts,

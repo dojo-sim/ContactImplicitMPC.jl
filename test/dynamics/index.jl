@@ -40,7 +40,7 @@
 #
 #     nquat = 1
 #     inequality_indices(model, env, nquat = nquat) == Vector(nq:num_var(model, env) .- nquat)
-#     soc_indices(model, env, nquat = nquat) == []
+#     index_soc(model, env, nquat = nquat) == []
 # end
 #
 #
@@ -87,7 +87,7 @@
 #
 #     nquat = 1
 #     inequality_indices(model, env, nquat = nquat) == [(nq - nquat) .+ (1:nc); (nq - nquat + nc + nb + nc) .+ (1:nc)]
-#     soc_indices(model, env, nquat = nquat) == [(nq - nquat + nc) .+ [nb .+ (1:nc); 1:nb],
+#     index_soc(model, env, nquat = nquat) == [(nq - nquat + nc) .+ [nb .+ (1:nc); 1:nb],
 #         (nq - nquat + nc + nb + nc + nc) .+ [nb .+ (1:nc); 1:nb]]
 # end
 #
