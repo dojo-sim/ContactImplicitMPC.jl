@@ -407,26 +407,70 @@ function least_squares!(ip::AbstractIPSolver, z::AbstractVector{T}, θ::Abstract
     return nothing
 end
 
-function initial_state!(z::AbstractVector{T}, iy1::SVector{ny,Int}, iy2::SVector{ny,Int},
-        idx_ineq, idx_soc; ϵ::T=1e-20) where {T,ny}
+# function initial_state!(z::AbstractVector{T}, iy1::SVector{ny,Int}, iy2::SVector{ny,Int},
+#         idx_ineq, idx_soc; ϵ::T=1e-20) where {T,ny}
+#
+#     nc = length(idx_soc[1])
+#     nsoc = Int(length(idx_soc) / 2)
+#     nineq = Int(length(idx_ineq) / 2)
+#
+#     # Split between primals and duals
+#     idx_soc_p = idx_soc[1]
+#     idx_soc_d = idx_soc[2]
+#     idx_ineq_1 = intersect(iy1, idx_ineq)
+#     idx_ineq_2 = intersect(iy2, idx_ineq)
+#
+#     n_soc = length(idx_soc_p)
+#     n_ort = length(idx_ineq_1)
+#
+#     # ineq
+#     y1 = z[idx_ineq_1]
+#     y2 = z[idx_ineq_2]
+#     δy1 = max(-1.5 * minimum(y1), 0)
+#     δy2 = max(-1.5 * minimum(y2), 0)
+#
+#     y1h = y1 .+ δy1
+#     y2h = y2 .+ δy2
+#     δhy1 = 0.5 * y1h'*y2h / (sum(y2h) + ϵ)
+#     δhy2 = 0.5 * y1h'*y2h / (sum(y1h) + ϵ)
+#
+#     y10 = y1h .+ δhy1
+#     y20 = y2h .+ δhy2
+#     z[idx_ineq_1] .= y10
+#     z[idx_ineq_2] .= y20
+#
+#     # soc
+#     for i in eachindex(idx_soc[1])
+#         e = [1; zeros(length(idx_soc_p[i]) - 1)] # identity element
+#         y1 = z[idx_soc_p[i]]
+#         y2 = z[idx_soc_d[i]]
+#         δy1 = max(-1.5 * (y1[1] - norm(y1[2:end])), 0)
+#         δy2 = max(-1.5 * (y2[1] - norm(y2[2:end])), 0)
+#
+#         y1h = y1 + δy1 * e
+#         y2h = y2 + δy2 * e
+#         δhy1 = 0.5 * y1h'*y2h / ((y2h[1] + norm(y2h[2,end])) + ϵ)
+#         δhy2 = 0.5 * y1h'*y2h / ((y1h[1] + norm(y1h[2,end])) + ϵ)
+#
+#         y10 = y1h + δhy1 * e
+#         y20 = y2h + δhy2 * e
+#         z[idx_soc_p[i]] .= y10
+#         z[idx_soc_d[i]] .= y20
+#     end
+#     return z
+# end
 
-        #show idx_soc
-    nc = length(idx_soc[1])
-    nsoc = Int(length(idx_soc) / 2)
-    nineq = Int(length(idx_ineq) / 2)
+function initial_state!(z::AbstractVector{T}, iort, isoc; ϵ::T=1e-20) where {T}
 
     # Split between primals and duals
-    idx_soc_p = idx_soc[1]
-    idx_soc_d = idx_soc[2]
-    idx_ineq_1 = intersect(iy1, idx_ineq)
-    idx_ineq_2 = intersect(iy2, idx_ineq)
-
-    n_soc = length(idx_soc_p)
-    n_ort = length(idx_ineq_1)
+    isoc_p = isoc[1]
+    isoc_d = isoc[2]
+    iort_p = iort[1]
+    iort_d = iort[2]
 
     # ineq
-    y1 = z[idx_ineq_1]
-    y2 = z[idx_ineq_2]
+    y1 = z[iort_p]
+    y2 = z[iort_d]
     δy1 = max(-1.5 * minimum(y1), 0)
     δy2 = max(-1.5 * minimum(y2), 0)
 
@@ -437,14 +481,14 @@ function initial_state!(z::AbstractVector{T}, iy1::SVector{ny,Int}, iy2::SVector
 
     y10 = y1h .+ δhy1
     y20 = y2h .+ δhy2
-    z[idx_ineq_1] .= y10
-    z[idx_ineq_2] .= y20
+    z[iort_p] .= y10
+    z[iort_d] .= y20
 
     # soc
-    for i in eachindex(idx_soc[1])
-        e = [1; zeros(length(idx_soc_p[i]) - 1)] # identity element
-        y1 = z[idx_soc_p[i]]
-        y2 = z[idx_soc_d[i]]
+    for i in eachindex(isoc_p)
+        e = [1; zeros(length(isoc_p[i]) - 1)] # identity element
+        y1 = z[isoc_p[i]]
+        y2 = z[isoc_d[i]]
         δy1 = max(-1.5 * (y1[1] - norm(y1[2:end])), 0)
         δy2 = max(-1.5 * (y2[1] - norm(y2[2:end])), 0)
 
@@ -455,8 +499,8 @@ function initial_state!(z::AbstractVector{T}, iy1::SVector{ny,Int}, iy2::SVector
 
         y10 = y1h + δhy1 * e
         y20 = y2h + δhy2 * e
-        z[idx_soc_p[i]] .= y10
-        z[idx_soc_d[i]] .= y20
+        z[isoc_p[i]] .= y10
+        z[isoc_d[i]] .= y20
     end
     return z
 end
@@ -528,57 +572,6 @@ end
 
 function bilinear_violation(ip::AbstractIPSolver, r::AbstractVector{T}; nquat::Int = 0) where {T}
     norm(r[ip.ibil .- nquat], Inf)
-end
-
-function general_bilinear_violation(z::AbstractVector{T}, idx_ineq, idx_soc, iy1, iy2) where {T}
-    # USELESS
-    nc = length(idx_soc[1])
-    nsoc = Int(length(idx_soc) / 2)
-    nineq = Int(length(idx_ineq) / 2)
-
-    # Split between primals and duals
-    idx_soc_p = idx_soc[1]
-    idx_soc_d = idx_soc[2]
-    idx_ineq_1 = intersect(iy1, idx_ineq)
-    idx_ineq_2 = intersect(iy2, idx_ineq)
-
-    κ_vio = 0.0
-    for i = 1:nc
-        # scalar part
-        soc_vio_s = z[idx_soc_p[i]]' * z[idx_soc_d[i]]
-        # vector part
-        soc_vio_v = z[idx_soc_p[i][1]] * z[idx_soc_d[i][2:end]] + z[idx_soc_d[i][1]] * z[idx_soc_p[i][2:end]]
-        κ_vio = max(κ_vio, abs(soc_vio_s))
-        κ_vio = max(κ_vio, maximum(abs.(soc_vio_v)))
-    end
-    ineq_vio = maximum(abs.(z[idx_ineq_1] .* z[idx_ineq_2]))
-    κ_vio = max(κ_vio, ineq_vio)
-end
-
-
-function general_bilinear_violation(z::AbstractVector{T}, irot, iorts, isoc, isocs) where {T}
-    # USELESS
-    nc = length(idx_soc[1])
-    nsoc = Int(length(idx_soc) / 2)
-    nineq = Int(length(idx_ineq) / 2)
-
-    # Split between primals and duals
-    idx_soc_p = idx_soc[1]
-    idx_soc_d = idx_soc[2]
-    idx_ineq_1 = intersect(iy1, idx_ineq)
-    idx_ineq_2 = intersect(iy2, idx_ineq)
-
-    κ_vio = 0.0
-    for i = 1:nc
-        # scalar part
-        soc_vio_s = z[isoc[1][i]]' * z[isoc[2][i]]
-        # vector part
-        soc_vio_v = z[isoc[1][i][1]] * z[isoc[2][i][2:end]] + z[isoc[2][i][1]] * z[isoc[1][i][2:end]]
-        κ_vio = max(κ_vio, abs(soc_vio_s))
-        κ_vio = max(κ_vio, maximum(abs.(soc_vio_v)))
-    end
-    ort_vio = maximum(abs.(z[iort[1]] .* z[iorts[2]]))
-    κ_vio = max(κ_vio, ort_vio)
 end
 
 function soc_value(u::AbstractVector)
