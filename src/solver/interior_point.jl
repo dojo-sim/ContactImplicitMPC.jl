@@ -243,12 +243,12 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     ip.methods.r!(r, z, θ, 0.0)
     # TODO need least squares init /!|
     least_squares!(ip, z, θ, r, rz) # seems to be harmful for performance (failure and iteration count)
-    z .= initial_state!(z, iy1, iy2, idx_ineq, idx_soc) # decrease failure rate for linearized case
+    z .= initial_state!(z, iort, isoc) # decrease failure rate for linearized case
     # println("z1: ", scn(norm(z), digits = 7))
 
     ip.methods.r!(r, z, θ, 0.0)
 
-    κ_vio = bilinear_violation(ip, r, nquat = nquat)
+    κ_vio = bilinear_violation(ip, r)
     r_vio = residual_violation(ip, r)
     elapsed_time = 0.0
 
@@ -262,7 +262,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             ip.iterations += 1
 
             # Compute regularization level
-            κ_vio = bilinear_violation(ip, r, nquat = nquat)
+            κ_vio = bilinear_violation(ip, r)
             ip.reg_val = κ_vio < κ_reg ? κ_vio * γ_reg : 0.0
 
             # compute residual Jacobian
@@ -277,7 +277,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             # println("Δaff1: ", scn(norm(Δ), digits = 7))
 
             α_ort = ort_step_length(z, Δ, iort, iorts; τ = 1.0)
-            α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0, nquat = nquat, verbose = false)
+            α_soc = soc_step_length(z, Δ, isoc, isocs; τ = 1.0, verbose = false)
             α = min(α_ort, α_soc)
             # println("αaff1: ", scn(norm(α), digits = 7))
 
@@ -304,7 +304,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             # println("τ: ", scn(norm(τ), digits = 7))
 
             α_ort = ort_step_length(z, Δ, iort, iorts; τ = τ)
-            α_soc = soc_step_length(z, Δ, idx_soc; τ = min(τ, 0.99), nquat = nquat, verbose = false)
+            α_soc = soc_step_length(z, Δ, isoc, isocs; τ = min(τ, 0.99), verbose = false)
             α = min(α_ort, α_soc)
             # println("α: ", scn(norm(α), digits = 7))
 
@@ -314,7 +314,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             r_vio_cand = 0.0
             for i = 1:max_ls
                 ip.methods.r!(r, z, θ, 0.0)
-                κ_vio_cand = bilinear_violation(ip, r, nquat = nquat)
+                κ_vio_cand = bilinear_violation(ip, r)
                 r_vio_cand = residual_violation(ip, r)
                 if (r_vio_cand <= r_vio) || (κ_vio_cand <= κ_vio)
                     break
@@ -570,8 +570,8 @@ function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
 	return μ, σ
 end
 
-function bilinear_violation(ip::AbstractIPSolver, r::AbstractVector{T}; nquat::Int = 0) where {T}
-    norm(r[ip.ibil .- nquat], Inf)
+function bilinear_violation(ip::AbstractIPSolver, r::AbstractVector{T}) where {T}
+    norm(r[ip.ir[3]], Inf)
 end
 
 function soc_value(u::AbstractVector)
@@ -622,14 +622,15 @@ function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
 end
 
 function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		idx_soc; τ::T=0.99, nquat::Int = 0, verbose::Bool = false) where {T}
+		isoc, isocs; τ::T=0.99, verbose::Bool = false) where {T}
         # We need to make this much more efficient (allocation free)
         # by choosing the right structure for idx_soc.
     α = 1.0
-    for (i,idx) in enumerate([idx_soc[1]..., idx_soc[2]...])
-        # we need -Δ here because we will taking the step x - α Δ
-        α = min(α, soc_step_length(z[idx], -Δ[idx .- nquat], τ = τ, verbose = verbose))
-        # α = min(α, soc_step_length(z[idx], -Δ[idx], τ = τ, verbose = verbose))
+    for i = 1:2 # primal - dual
+        for j in eachindex(isoc[i]) # number of cones
+            # we need -Δ here because we will taking the step x - α Δ
+            α = min(α, soc_step_length(z[isoc[i][j]], -Δ[isocs[i][j]], τ = τ, verbose = verbose))
+        end
     end
     return α
 end
