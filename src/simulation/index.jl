@@ -591,7 +591,6 @@ function index_residual(model::ContactModel, env::Environment; quat::Bool = fals
 	return idyn, irst, ibil, ialt, ibil_ort, ibil_soc
 end
 
-
 function index_bil_ort(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
 	ibimp = index_bimp(model, env, quat = quat)
 	ibmdp = index_bmdp(model, env, quat = quat)

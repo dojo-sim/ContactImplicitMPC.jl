@@ -189,6 +189,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     iw1s = ip.iΔz[1]
     iorts = ip.iΔz[2]
     isocs = ip.iΔz[3]
+    ibil = ip.ir[3]
     ibil_ort = ip.ir[5]
     ibil_soc = ip.ir[6]
 
@@ -307,7 +308,7 @@ function rθ!(ip::AbstractIPSolver, rθ::AbstractMatrix{T}, z::AbstractVector{T}
 end
 
 function general_correction_term!(r::AbstractVector{T}, Δ, ibil_ort, ibil_soc, iorts, isocs) where {T}
-
+    # @warn "define residual order"
     nc = length(isocs[1])
     # Split between primals and duals
     isocs_p = isocs[1]

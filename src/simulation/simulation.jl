@@ -131,6 +131,7 @@ function residual(model::ContactModel, env::Environment{<:World,LinearizedCone},
 	vT_stack = velocity_stack(model, env, q1, q2, k, h)
 	ψ_stack = transpose(E_func(model, env)) * ψ1
 
+	# @warn "define residual order"
 	[model.dyn.d(h, q0, q1, u1, w1, Λ1, q2);
 	 s1 - ϕ;
 	 η1 - vT_stack - ψ_stack;
@@ -151,6 +152,7 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	nf = friction_dim(env)
 	ne = dim(env)
 
+	# @warn "define residual order"
 	[dynamics(model, env, h, q0, q1, u1, w1, λ1, q2);
 	 s1 - ϕ;
 	 vcat([η1[(i - 1) * nf .+ (1:nf)] - vT[(i - 1) * nf .+ (1:nf)] for i = 1:nc]...);

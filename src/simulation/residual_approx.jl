@@ -3,6 +3,7 @@ function res_con(model::ContactModel, env::Environment{<:World,LinearizedCone}, 
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 	q2, γ1, b1, ψ1, s1, η1, s2 = unpack_z(model, env, z)
 
+	@warn "define residual order"
 	[s1 .- ϕ_func(model, env, q2);
 	 s2 .- (μ[1] * γ1 .- E_func(model, env) * b1);
 	 γ1 .* s1 .- κ;
