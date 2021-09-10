@@ -212,7 +212,7 @@ function benchmark_interior_point!(stats::BenchmarkStatistics, s::Simulation,
 			linear = opts.linear)
 		interior_point_solve!(ip, z, θ)
 		rv = residual_violation(ip, ip.r)
-		κv = general_bilinear_violation(ip.z, ip.idx_ineq, ip.idx_soc, ip.iy1, ip.iy2)
+		κv = bilinear_violation(ip, ip.r)
 		fl = !((rv < opts.r_tol) && (κv < opts.κ_tol))
 		record!(stats, fl, ip.iterations, rv, κv, NaN)
 	end

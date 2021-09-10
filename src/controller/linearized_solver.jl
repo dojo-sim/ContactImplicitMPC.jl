@@ -553,7 +553,7 @@ function least_squares!(ip::AbstractIPSolver, z::Vector{T}, θ::AbstractVector{T
 	return nothing
 end
 
-function residual_violation(ip::AbstractIPSolver, r::RLin{T}) where {T}
+function residual_violation(ip::AbstractIPSolver, r::RLin{T}; nquat::Int = 0) where {T}
     max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
 end
 
