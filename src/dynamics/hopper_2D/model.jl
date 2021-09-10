@@ -97,9 +97,9 @@ nq = 4
 nu = 2
 nw = 2
 nc = 1
-nb = 2
+nquat = 0
 
-hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc),
+hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nquat),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, gravity,
 			   BaseMethods(), DynamicsMethods(),

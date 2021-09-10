@@ -450,9 +450,8 @@ end
 nq = 2 + 5 + 2            # configuration dimension
 nu = 6                    # control dimension
 nc = 4                    # number of contact points
-nf = 2                    # number of parameters for friction cone
-nb = nc * nf              # number of friction parameters
 nw = 2                    # disturbance dimension
+nquat = 0
 
 # World parameters
 μ_world = 0.9      # coefficient of friction
@@ -480,7 +479,7 @@ J_thigh = 0.01256
 J_calf = 0.00952
 J_foot = 0.0015
 
-flamingo = Flamingo(Dimensions(nq, nu, nw, nc),
+flamingo = Flamingo(Dimensions(nq, nu, nw, nc, nquat),
 			  gravity, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,

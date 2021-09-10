@@ -1,7 +1,7 @@
 """
-    Bicycle11
+    Bicycle
 """
-mutable struct Bicycle11{T} <: ContactModel
+mutable struct Bicycle{T} <: ContactModel
     dim::Dimensions
 
 	mb::T # body mass
@@ -27,7 +27,7 @@ end
 
 
 # Kinematics
-function kinematics_1(model::Bicycle11, q; body::Symbol=:front)
+function kinematics_1(model::Bicycle, q; body::Symbol=:front)
 	x = q[1]
 	z = q[2]
 	θ = q[3]
@@ -42,7 +42,7 @@ function kinematics_1(model::Bicycle11, q; body::Symbol=:front)
 	end
 end
 
-function kinematics_2(model::Bicycle11, q; body::Symbol=:front_hub)
+function kinematics_2(model::Bicycle, q; body::Symbol=:front_hub)
 	θ = q[3]
 	lf = q[4]
 	lr = q[5]
@@ -57,7 +57,7 @@ function kinematics_2(model::Bicycle11, q; body::Symbol=:front_hub)
 	end
 end
 
-function kinematics_3(model::Bicycle11, q; body::Symbol=:front_contact)
+function kinematics_3(model::Bicycle, q; body::Symbol=:front_contact)
 	rw = model.rw
 	if body == :front_contact
 		p_front_hub = kinematics_2(model, q; body = :front_hub)
@@ -70,7 +70,7 @@ function kinematics_3(model::Bicycle11, q; body::Symbol=:front_contact)
 	end
 end
 
-function kinematics(model::Bicycle11, q)
+function kinematics(model::Bicycle, q)
 	p_front = kinematics_3(model, q, body = :front_contact)
 	p_rear  = kinematics_3(model, q, body = :rear_contact)
 
@@ -78,7 +78,7 @@ function kinematics(model::Bicycle11, q)
 end
 
 
-function jacobian_1(model::Bicycle11, q; body = :frame, mode = :com)
+function jacobian_1(model::Bicycle, q; body = :frame, mode = :com)
 	jac = zeros(eltype(q), 2, model.dim.q)
 	jac[1, 1] = 1.0
 	jac[2, 2] = 1.0
@@ -99,7 +99,7 @@ function jacobian_1(model::Bicycle11, q; body = :frame, mode = :com)
 	return jac
 end
 
-function jacobian_2(model::Bicycle11, q; body = :front_hub)
+function jacobian_2(model::Bicycle, q; body = :front_hub)
 	θ = q[3]
 
 	if body == :front_hub
@@ -124,7 +124,7 @@ function jacobian_2(model::Bicycle11, q; body = :front_hub)
 	return jac
 end
 
-function jacobian_3(model::Bicycle11, q; body = :front_contact)
+function jacobian_3(model::Bicycle, q; body = :front_contact)
 	rw = model.rw
 
 	if body == :front_contact
@@ -143,7 +143,7 @@ end
 
 
 
-function lagrangian(model::Bicycle11, q, q̇)
+function lagrangian(model::Bicycle, q, q̇)
 	L = 0.0
 
 	x = q[1]
@@ -182,7 +182,7 @@ function lagrangian(model::Bicycle11, q, q̇)
 end
 
 # Methods
-function M_func(model::Bicycle11, q) #false
+function M_func(model::Bicycle, q) #false
 	Diagonal(@SVector [model.mb + 2model.mw,
 					   model.mb + 2model.mw,
 					   model.Jb + (model.lb/2)^2 * 2model.mw,
@@ -193,7 +193,7 @@ function M_func(model::Bicycle11, q) #false
 					   ])
  end
 
-function C_func(model::Bicycle11, q, q̇) #false
+function C_func(model::Bicycle, q, q̇) #false
 	@SVector [0.0,
 			  0.0,
 			  0.0,
@@ -204,7 +204,7 @@ function C_func(model::Bicycle11, q, q̇) #false
 			  ]
 end
 
-function ϕ_func(model::Bicycle11, env::Environment, q)
+function ϕ_func(model::Bicycle, env::Environment, q)
 	# assumes point of contact is on the suspension axis (flat ground)
 	p_front = kinematics_3(model, q, body = :front_contact)
 	p_rear  = kinematics_3(model, q, body = :rear_contact)
@@ -214,7 +214,7 @@ function ϕ_func(model::Bicycle11, env::Environment, q)
 		])
 end
 
-function J_func(model::Bicycle11, env::Environment, q)
+function J_func(model::Bicycle, env::Environment, q)
 	J_front = jacobian_3(model, q, body = :front_contact)
 	J_rear  = jacobian_3(model, q, body = :rear_contact)
 
@@ -223,14 +223,14 @@ function J_func(model::Bicycle11, env::Environment, q)
 end
 
 
-function B_func(model::Bicycle11, q)
+function B_func(model::Bicycle, q)
 	@SMatrix [ 0.0  0.0  0.0  1.0  0.0  0.0      0.0;
 	 		   0.0  0.0  0.0  0.0  1.0  0.0      0.0;
 			   0.0  0.0  0.0  0.0  0.0  1.0/100  0.0;
 			   0.0  0.0  0.0  0.0  0.0  0.0      1.0/100] # /100 scaling
 end
 
-function A_func(::Bicycle11, q)
+function A_func(::Bicycle, q)
 	@SMatrix [ 1.0  0.0  0.0  0.0  0.0  0.0  0.0;
 			   0.0  1.0  0.0  0.0  0.0  0.0  0.0]
 end
@@ -256,8 +256,9 @@ nq = 7
 nu = 4
 nw = 2
 nc = 2
+nquat = 0
 
-bicycle = Bicycle11(Dimensions(nq, nu, nw, nc),
+bicycle = Bicycle(Dimensions(nq, nu, nw, nc, nquat),
 			   mb, Jb, lb, mw, Jw, rw, l0, k,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),

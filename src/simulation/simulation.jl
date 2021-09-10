@@ -46,16 +46,16 @@ end
 
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q1)
 	z .= 1.0
-	iq2 = index_q2(model, env, nquat = 0)
+	iq2 = index_q2(model, env, quat = false)
 	z[iq2] = q1
 end
 
 function z_initialize!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q1)
-	iq2 = index_q2(model, env, nquat = 0)
-	ib1 = index_b1(model, env, nquat = 0)
-	iψ1 = index_ψ1(model, env, nquat = 0)
-	iη1 = index_η1(model, env, nquat = 0)
-	is2 = index_s2(model, env, nquat = 0)
+	iq2 = index_q2(model, env, quat = false)
+	ib1 = index_b1(model, env, quat = false)
+	iψ1 = index_ψ1(model, env, quat = false)
+	iη1 = index_η1(model, env, quat = false)
+	is2 = index_s2(model, env, quat = false)
 
     z .= 0.1
     z[iq2] = q1
@@ -69,7 +69,7 @@ function z_initialize!(z, model::ContactModel, env::Environment{<:World,Nonlinea
 end
 
 function z_warmstart!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q, a, idx_ineq)
-	iq2 = index_q2(model, env, nquat = 0)
+	iq2 = index_q2(model, env, quat = false)
 	z[iq2] = q
 	z[idx_ineq] .+= a * rand(length(idx_ineq))
 	nothing

@@ -69,7 +69,10 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
 			 θ,
 			 s = space,
 			 idx_ineq = inequality_indices(model, env),
+			 idx_ort = index_ort(model, env),
+			 idx_orts = index_ort(model, env),
 			 idx_soc = soc_indices(model, env),
+			 idx_socs = soc_indices(model, env),
 			 ix = linearization_var_index(model, env)[1],
 			 iy1 = linearization_var_index(model, env)[2],
 			 iy2 = linearization_var_index(model, env)[3],
@@ -82,8 +85,6 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
 			 # r  = r,
 			 rz = rz,
 			 rθ = rθ,
-			 v_pr = view(zeros(1,1), 1,1),
-			 v_du = view(zeros(1,1), 1,1),
 			 opts = ip_opts)
 
 

@@ -393,14 +393,15 @@ nq = 15
 nu = 5
 nw = 3
 nc = 4
+nquat = 0
 
-racecar = Racecar12(Dimensions(nq, nu, nw, nc),
+racecar = Racecar12(Dimensions(nq, nu, nw, nc, nquat),
 			   mb, Jb, lb, wb, mw, Jw, rw, l0, k,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),
 			   SVector{nq}(μ_joint * [zeros(7); ones(4); zeros(4)]))
 
-racecar_payload = Racecar12(Dimensions(nq, nu, nw, nc),
+racecar_payload = Racecar12(Dimensions(nq, nu, nw, nc, nquat),
 			   mb + m_payload, Jb, lb, wb, mw, Jw, rw, l0, k,
 			   μ_world/2, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),

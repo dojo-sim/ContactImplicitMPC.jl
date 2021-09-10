@@ -1,4 +1,4 @@
-function plot_lines!(vis::Visualizer, model::Bicycle11, q::AbstractVector;
+function plot_lines!(vis::Visualizer, model::Bicycle, q::AbstractVector;
 		offset=0.02, size=10, name::Symbol=:bicycle, col::Bool=true)
 
 	# Point Traj
@@ -27,7 +27,7 @@ function plot_lines!(vis::Visualizer, model::Bicycle11, q::AbstractVector;
 	return nothing
 end
 
-function build_robot!(vis::Visualizer, model::Bicycle11; name::Symbol=:Bicycle11, r_sus=0.02, d=0.20, α=1.0)
+function build_robot!(vis::Visualizer, model::Bicycle; name::Symbol=:Bicycle, r_sus=0.02, d=0.20, α=1.0)
 	lb = convert(Float32, model.lb)
 	rw = convert(Float32, model.rw)
 	r_sus = convert(Float32, r_sus)
@@ -67,8 +67,8 @@ function build_robot!(vis::Visualizer, model::Bicycle11; name::Symbol=:Bicycle11
 	return nothing
 end
 
-function set_robot!(vis::Visualizer, model::Bicycle11, q::AbstractVector;
-		name::Symbol=:Bicycle11, r=0.10, r_sus=0.02, d=0.20)
+function set_robot!(vis::Visualizer, model::Bicycle, q::AbstractVector;
+		name::Symbol=:Bicycle, r=0.10, r_sus=0.02, d=0.20)
 	r = convert(Float32, r)
 	r_sus = convert(Float32, r_sus)
 	d = convert(Float32, d)
@@ -107,7 +107,7 @@ function set_robot!(vis::Visualizer, model::Bicycle11, q::AbstractVector;
 	return nothing
 end
 
-function contact_point(model::Bicycle11, q::AbstractVector)
+function contact_point(model::Bicycle, q::AbstractVector)
 	p_front_contact = cast3d(kinematics_3(model, q, body = :front_contact))
 	p_rear_contact  = cast3d(kinematics_3(model, q, body = :rear_contact))
 	pc = [p_front_contact, p_rear_contact]

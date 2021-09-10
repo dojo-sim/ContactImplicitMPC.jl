@@ -45,9 +45,10 @@ end
 nq = 2
 nu = 1
 nw = 0
-nc = 0#6
+nc = 0
+nquat = 0
 
-model = Cartpole(Dimensions(nq, nu, nw, nc), 1.0, 0.2, 0.5, 9.81, 0.1, 0.05)
+model = Cartpole(Dimensions(nq, nu, nw, nc, nquat), 1.0, 0.2, 0.5, 9.81, 0.1, 0.05)
 env = flat_2D_lc
 
 s = Simulation(model, env)

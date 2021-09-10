@@ -101,6 +101,6 @@ function velocity_stack(model::Particle2D, env::Environment{<:World, NonlinearCo
 end
 
 # Model (flat surface)
-particle_2D = Particle2D(Dimensions(2, 2, 2, 1), 1.0, 9.81, 1.0, 0.0,
+particle_2D = Particle2D(Dimensions(2, 2, 2, 1, 0), 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(),
 	SVector{2}(zeros(2)))

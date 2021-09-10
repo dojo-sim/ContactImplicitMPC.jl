@@ -144,9 +144,8 @@ end
 nq = 3 + 3 + 3 * 4        # configuration dimension
 nu = 4 * 3                # control dimension
 nc = 4                    # number of contact points
-nf = 4                    # number of parameters for friction cone
-nb = nc * nf
 nw = 3
+nquat = 0
 
 # World parameters
 g = 9.81      # gravity
@@ -177,7 +176,7 @@ Iz = 0.242
 l_torso = 0.5 * 0.38 # dimension from com
 w_torso = 0.5 * 0.203 # dimension from com
 
-quadruped_simple = QuadrupedSimple(Dimensions(nq, nu, nw, nc),
+quadruped_simple = QuadrupedSimple(Dimensions(nq, nu, nw, nc, nquat),
 				g, μ_world, μ_joint,
 				mb, mf, Ix, Iy, Iz, l_torso, w_torso,
 				BaseMethods(), DynamicsMethods(),

@@ -2,7 +2,7 @@
 @with_kw mutable struct MehrotraOptions{T} <: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
-    max_iter_inner::Int = 100
+    max_iter::Int = 100
     max_time::T = 1e5
     diff_sol::Bool = false
     res_norm::Real = Inf
@@ -25,11 +25,13 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     Δaff::Vector{T}              # affine search direction
     Δ::Vector{T}                 # corrector search direction
     r::R                            # residual
-    r̄::R #useless                            # candidate residual
     rz::RZ                           # residual Jacobian wrt z
     rθ::Rθ                           # residual Jacobian wrt θ
     idx_ineq::Vector{Int}        # indices for inequality constraints
+    idx_ort::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual
+    idx_orts::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual
     idx_soc::Vector{Vector{Int}} # indices for second-order cone constraints
+    idx_socs::Vector{Vector{Int}} # indices for second-order cone constraints
     δz::Matrix{T}                # solution gradients (this is always dense)
     δzs::Matrix{T}               # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}                 # problem data
@@ -58,7 +60,10 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         num_var = length(z),
         num_data = length(θ),
         idx_ineq = collect(1:0),
+        idx_ort = [collect(1:0), collect(1:0)],
+        idx_orts = [collect(1:0), collect(1:0)],
         idx_soc = Vector{Int}[],
+        idx_socs = Vector{Int}[],
         ix = collect(1:0),
         iy1 = collect(1:0),
         iy2 = collect(1:0),
@@ -96,11 +101,13 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         Δaff,
         Δ,
         r,
-        deepcopy(r), #useless
         rz,
         rθ,
         idx_ineq,
+        idx_ort,
+        idx_orts,
         idx_soc,
+        idx_socs,
         zeros(length(z), num_data),
         zeros(s.n, num_data),
         θ,
@@ -133,7 +140,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     opts = ip.opts
     r_tol = opts.r_tol
     κ_tol = opts.κ_tol
-    max_iter_inner = opts.max_iter_inner
+    max_iter = opts.max_iter
     max_time = opts.max_time
     diff_sol = opts.diff_sol
     res_norm = opts.res_norm
@@ -150,6 +157,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     r = ip.r
     rz = ip.rz
     idx_ineq = ip.idx_ineq
+    idx_ort = ip.idx_ort
     idx_soc = ip.idx_soc
     θ = ip.θ
     κ = ip.κ
@@ -168,7 +176,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     comp && println("**** rl:", scn(norm(r, res_norm), digits=4))
 
     least_squares!(ip, z, θ, r, rz) # this one uses indices from global scope in nonlinear mode
-    z .= initial_state!(z, ix, iy1, iy2; comp = comp)
+    z .= initial_state!(z, ix, iy1, iy2)
     # println("z1: ", scn(norm(z), digits = 7))
 
     ip.methods.r!(r, z, θ, 0.0) # here we set κ = 0, Δ = 0
@@ -178,7 +186,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     κ_vio = bilinear_violation(ip, r)
     elapsed_time = 0.0
 
-    for j = 1:max_iter_inner
+    for j = 1:max_iter
         elapsed_time >= max_time && break
         elapsed_time += @elapsed begin
             # check for converged residual
@@ -269,32 +277,20 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 end
 
 function initial_state!(z::AbstractVector{T}, ix::SVector{nx,Int},
-        iy1::SVector{ny,Int}, iy2::SVector{ny,Int}; comp::Bool=true, ϵ::T=1e-20) where {T,nx,ny}
+        iy1::SVector{ny,Int}, iy2::SVector{ny,Int}; ϵ::T=1e-20) where {T,nx,ny}
 
     xt = z[ix]
     y1t = z[iy1]
     y2t = z[iy2]
-    comp && println("**** xt :", scn(norm(xt), digits=4))
-    comp && println("**** y1t :", scn(norm(y1t), digits=4))
-    comp && println("**** y2t :", scn(norm(y2t), digits=4))
 
     δy1 = max(-1.5 * minimum(y1t), 0)
     δy2 = max(-1.5 * minimum(y2t), 0)
-    comp && println("**** δw2:", scn(norm(δy1), digits=4))
-    comp && println("**** δw3:", scn(norm(δy2), digits=4))
 
     y1h = y1t .+ δy1
     y2h = y2t .+ δy2
-    # comp && println("**** w2h:", scn.(y1h[1:3], digits=4))
-    # comp && println("**** w3h:", scn.(y2h[1:3], digits=4))
 
     δhy1 = 0.5 * y1h'*y2h / (sum(y2h) + ϵ)
     δhy2 = 0.5 * y1h'*y2h / (sum(y1h) + ϵ)
-    comp && println("**** sum(y1h):", scn(sum(y1h), digits=4))
-    comp && println("**** sum(y2h):", scn(sum(y2h), digits=4))
-    comp && println("****  dot:", scn(norm(0.5 * y1h'*y2h), digits=4))
-    comp && println("**** δhw2:", scn(norm(δhy1), digits=4))
-    comp && println("**** δhw3:", scn(norm(δhy2), digits=4))
 
     x0 = xt
     y10 = y1h .+ δhy1

@@ -451,8 +451,8 @@ nq = 2 + 5 + 2            # configuration dimension
 nu = 6                    # control dimension
 nc = 4                    # number of contact points
 nf = 2                    # number of parameters for friction cone
-nb = nc * nf              # number of friction parameters
 nw = 2                    # disturbance dimension
+nquat = 0
 
 # World parameters
 μ_world = 0.9      # coefficient of friction
@@ -482,7 +482,7 @@ J_calf = 0.00398
 J_foot = 0.4 * J_calf # 1.0 / 12.0 * m_foot * (l_foot + d_foot)^2.0
 
 
-biped = Biped(Dimensions(nq, nu, nw, nc),
+biped = Biped(Dimensions(nq, nu, nw, nc, nquat),
 			  g, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,

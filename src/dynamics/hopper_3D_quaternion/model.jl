@@ -186,6 +186,7 @@ nq = 8 # configuration dimension
 nu = 3 # control dimension
 nw = 3 # disturbance dimension
 nc = 1 # number of contact points
+nquat = 1 # number of quaternions
 
 # Parameters
 g = 9.81 # gravity
@@ -198,7 +199,7 @@ ml = 0.3  # leg mass
 Jb = 0.75 # body inertia
 Jl = 0.075 # leg inertia
 
-hopper_3D_quaternion = Hopper3DQuaternion(Dimensions(nq, nu, nw, nc),
+hopper_3D_quaternion = Hopper3DQuaternion(Dimensions(nq, nu, nw, nc, nquat),
 			mb, ml, Jb, Jl,
 			μ_world, μ_joint, g,
 			BaseMethods(), DynamicsMethods(),

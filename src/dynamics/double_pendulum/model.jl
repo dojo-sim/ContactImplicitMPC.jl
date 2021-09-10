@@ -91,7 +91,7 @@ nw = 0
 nc = 1
 nb = 0
 
-model = DoublePendulum(Dimensions(nq, nu, nw, nc),
+model = DoublePendulum(Dimensions(nq, nu, nw, nc, nquat),
     1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
 env = flat_2D_lc
 
@@ -169,7 +169,7 @@ end
 nq = model.dim.q
 nu = model.dim.u
 nc = model.dim.c
-# nb = nc * friction_dim(env)
+nquat = 0
 nz = nq + nc + nc
 nθ = nq + nq + nu + 1
 

@@ -226,9 +226,8 @@ end
 nq = 3 + 1 + 3            # configuration dimension
 nu = 2                    # control dimension
 nc = 3                    # number of contact points
-nf = 4                    # number of parameters for friction cone
-nb = nc * nf              # number of friction parameters
 nw = 3                    # disturbance dimension
+nquat = 0
 
 # World parameters
 # μ_world = 0.50      # coefficient of friction
@@ -244,7 +243,7 @@ r = 0.2
 rp = 0.04
 
 
-planarpush = PlanarPush(Dimensions(nq, nu, nw, nc),
+planarpush = PlanarPush(Dimensions(nq, nu, nw, nc, nquat),
 			  μ_world, μ_joint, g,
 			  m, J, mp, r, rp,
 			  BaseMethods(), DynamicsMethods(),

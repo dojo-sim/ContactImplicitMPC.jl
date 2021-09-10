@@ -497,9 +497,8 @@ end
 nq = 2 + 5 + 4            # configuration dimension
 nu = 4 + 4                # control dimension
 nc = 4                    # number of contact points
-nf = 2                    # number of parameters for friction cone
-nb = nc * nf
 nw = 2
+nquat = 0
 
 # World parameters
 g = 9.81      # gravity
@@ -526,6 +525,7 @@ d_leg = 0.5 * l_leg - 0.006435
 
 m_payload = 3.0
 J_payload = 0.03
+
 # Model parameters
 # m_torso = 4.713 + 4 * 0.696
 # m_thigh = 1.013
@@ -547,7 +547,7 @@ J_payload = 0.03
 # m_payload = 5.0
 # J_payload = 0.05
 
-quadruped = Quadruped(Dimensions(nq, nu, nw, nc),
+quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nquat),
 				g, μ_world, μ_joint,
 				l_torso, d_torso, m_torso, J_torso,
 				l_thigh, d_thigh, m_thigh, J_thigh,
@@ -561,7 +561,7 @@ quadruped = Quadruped(Dimensions(nq, nu, nw, nc),
 				BaseMethods(), DynamicsMethods(),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
-quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc),
+quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc, nquat),
 				g, μ_world, μ_joint,
 				l_torso, d_torso,
 				m_torso + m_payload,

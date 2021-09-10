@@ -7,23 +7,25 @@
 
 """
 	Returns the indices of q2 in z and Δq2 in Δz. Important to note that for the indexing
-	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	in z, we want to set quat = false. For indexing in Δz, we set quat = true, so that nquat =
 	number of quaternions.
 """
-function index_q2(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_q2(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
+	nquat = quat ? model.dim.quat : 0
 	iq2 = Vector(1:nq - nquat)
 	return iq2
 end
 
 """
 	Returns the indices of γ1 in z and Δγ1 in Δz. Important to note that for the indexing
-	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	in z, we want to set quat = false. For indexing in Δz, we set quat = true, so that nquat =
 	number of quaternions.
 """
-function index_γ1(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_γ1(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	off = (nq - nquat)
 	iγ1 = Vector(off .+ (1:nc))
 	return iγ1
@@ -31,12 +33,13 @@ end
 
 """
 	Returns the indices of b1 in z and Δb1 in Δz. Important to note that for the indexing
-	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	in z, we want to set quat = false. For indexing in Δz, we set quat = true, so that nquat =
 	number of quaternions.
 """
-function index_b1(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_b1(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc
 	ib1 = Vector(off .+ (1:nb))
@@ -45,12 +48,13 @@ end
 
 """
 	Returns the indices of ψ1 in z and Δψ1 in Δz. Important to note that for the indexing
-	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	in z, we want to set quat = false. For indexing in Δz, we set quat = true, so that nquat =
 	number of quaternions.
 """
-function index_ψ1(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_ψ1(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc + nb
 	iψ1 = Vector(off .+ (1:nc))
@@ -59,12 +63,13 @@ end
 
 """
 	Returns the indices of s1 in z and Δs1 in Δz. Important to note that for the indexing
-	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	in z, we want to set quat = false. For indexing in Δz, we set quat = true, so that nquat =
 	number of quaternions.
 """
-function index_s1(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_s1(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc + nb + nc
 	is1 = Vector(off .+ (1:nc))
@@ -73,12 +78,13 @@ end
 
 """
 	Returns the indices of η1 in z and Δη1 in Δz. Important to note that for the indexing
-	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	in z, we want to set quat = false. For indexing in Δz, we set quat = true, so that nquat =
 	number of quaternions.
 """
-function index_η1(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_η1(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc + nb + nc + nc
 	iη1 = Vector(off .+ (1:nb))
@@ -87,12 +93,13 @@ end
 
 """
 	Returns the indices of s2 in z and Δs2 in Δz. Important to note that for the indexing
-	in z, we want to set nquat = 0. For indexing in Δz, we set nquat to the
+	in z, we want to set quat = false. For indexing in Δz, we set quat = true, so that nquat =
 	number of quaternions.
 """
-function index_s2(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_s2(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc + nb + nc + nc + nb
 	is2 = Vector(off .+ (1:nc))
@@ -177,8 +184,9 @@ end
 """
 	Returns the indices of the dynamics equation in the residual r.
 """
-function index_dyn(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_dyn(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
+	nquat = quat ? model.dim.quat : 0
 	idyn = Vector(1:nq - nquat)
 	return idyn
 end
@@ -186,9 +194,10 @@ end
 """
 	Returns the indices of the impact equation in the residual r.
 """
-function index_imp(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_imp(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	off = (nq - nquat)
 	iimp = Vector(off .+ (1:nc))
 	return iimp
@@ -197,9 +206,10 @@ end
 """
 	Returns the indices of the maximum dissipation principle equation in the residual r.
 """
-function index_mdp(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_mdp(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc
 	imdp = Vector(off .+ (1:nb))
@@ -209,9 +219,10 @@ end
 """
 	Returns the indices of the friction cone equation in the residual r.
 """
-function index_fri(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_fri(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc + nb
 	ifri = Vector(off .+ (1:nc))
@@ -221,9 +232,10 @@ end
 """
 	Returns the indices of the bilinear impact equation in the residual r.
 """
-function index_bimp(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_bimp(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc + nb + nc
 	ibimp = Vector(off .+ (1:nc))
@@ -233,9 +245,10 @@ end
 """
 	Returns the indices of the bilinear maximum dissipation principle equation in the residual r.
 """
-function index_bmdp(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_bmdp(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc + nb + nc + nc
 	ibmdp = Vector(off .+ (1:nb))
@@ -245,9 +258,10 @@ end
 """
 	Returns the indices of the bilinear friction equation in the residual r.
 """
-function index_bfri(model::ContactModel, env::Environment; nquat::Int = 0)
+function index_bfri(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
 	off = (nq - nquat) + nc + nb + nc + nc + nb
 	ibfri = Vector(off .+ (1:nc))
@@ -272,14 +286,14 @@ end
 	Note that Δq2 does not have the same size as q2 when optimizing over
 	non-euclidean spaces.
 """
-function linearization_var_index(model::ContactModel, env::Environment; nquat::Int = 0)
-	iq2 = index_q2(model, env, nquat = nquat)
-	iγ1 = index_γ1(model, env, nquat = nquat)
-	ib1 = index_b1(model, env, nquat = nquat)
-	iψ1 = index_ψ1(model, env, nquat = nquat)
-	is1 = index_s1(model, env, nquat = nquat)
-	iη1 = index_η1(model, env, nquat = nquat)
-	is2 = index_s2(model, env, nquat = nquat)
+function linearization_var_index(model::ContactModel, env::Environment; quat::Bool = false)
+	iq2 = index_q2(model, env, quat = quat)
+	iγ1 = index_γ1(model, env, quat = quat)
+	ib1 = index_b1(model, env, quat = quat)
+	iψ1 = index_ψ1(model, env, quat = quat)
+	is1 = index_s1(model, env, quat = quat)
+	iη1 = index_η1(model, env, quat = quat)
+	is2 = index_s2(model, env, quat = quat)
 	iw1 = iq2
 	iw2 = [iγ1; ib1; iψ1]
 	iw3 = [is1; iη1; is2]
@@ -290,7 +304,7 @@ end
 	Returns the indices of the residual r, where 3 groups are formed.
 	r = (rdyn, rrst, rbil)
 """
-function linearization_term_index(model::ContactModel, env::Environment; nquat::Int = 0)
+function linearization_term_index(model::ContactModel, env::Environment; quat::Bool = false)
 	# dyn = [dyn]
 	# rst = [s1  - ..., ≡ ialt
 	#        η1  - ...,
@@ -298,13 +312,13 @@ function linearization_term_index(model::ContactModel, env::Environment; nquat::
 	# bil = [γ1 .* s1 .- κ;
 	#        b1 .* η1 .- κ;
 	#        ψ1 .* s2 .- κ]
-	idyn = index_dyn(model, env, nquat = nquat)
-	iimp = index_imp(model, env, nquat = nquat)
-	imdp = index_mdp(model, env, nquat = nquat)
-	ifri = index_fri(model, env, nquat = nquat)
-	ibimp = index_bimp(model, env, nquat = nquat)
-	ibmdp = index_bmdp(model, env, nquat = nquat)
-	ibfri = index_bfri(model, env, nquat = nquat)
+	idyn = index_dyn(model, env, quat = quat)
+	iimp = index_imp(model, env, quat = quat)
+	imdp = index_mdp(model, env, quat = quat)
+	ifri = index_fri(model, env, quat = quat)
+	ibimp = index_bimp(model, env, quat = quat)
+	ibmdp = index_bmdp(model, env, quat = quat)
+	ibfri = index_bfri(model, env, quat = quat)
 
 	irst = [iimp; imdp; ifri]
 	ibil = [ibimp; ibmdp; ibfri]
@@ -317,26 +331,22 @@ end
 	associated with them. For each bilinear residual terms we associate 2
 	variables.
 """
-function get_bilinear_indices(model::ContactModel, env::Environment; nquat::Int = 0)
-	nq = model.dim.q
-	nc = model.dim.c
-	nb = nc * friction_dim(env)
+function get_bilinear_indices(model::ContactModel, env::Environment; quat::Bool = false)
+	idyn = index_dyn(model, env, quat = quat)
+	iimp = index_imp(model, env, quat = quat)
+	imdp = index_mdp(model, env, quat = quat)
+	ifri = index_fri(model, env, quat = quat)
+	ibimp = index_bimp(model, env, quat = quat)
+	ibmdp = index_bmdp(model, env, quat = quat)
+	ibfri = index_bfri(model, env, quat = quat)
 
-	idyn = index_dyn(model, env, nquat = nquat)
-	iimp = index_imp(model, env, nquat = nquat)
-	imdp = index_mdp(model, env, nquat = nquat)
-	ifri = index_fri(model, env, nquat = nquat)
-	ibimp = index_bimp(model, env, nquat = nquat)
-	ibmdp = index_bmdp(model, env, nquat = nquat)
-	ibfri = index_bfri(model, env, nquat = nquat)
-
-	iq2 = index_q2(model, env, nquat = nquat)
-	iγ1 = index_γ1(model, env, nquat = nquat)
-	ib1 = index_b1(model, env, nquat = nquat)
-	iψ1 = index_ψ1(model, env, nquat = nquat)
-	is1 = index_s1(model, env, nquat = nquat)
-	iη1 = index_η1(model, env, nquat = nquat)
-	is2 = index_s2(model, env, nquat = nquat)
+	iq2 = index_q2(model, env, quat = quat)
+	iγ1 = index_γ1(model, env, quat = quat)
+	ib1 = index_b1(model, env, quat = quat)
+	iψ1 = index_ψ1(model, env, quat = quat)
+	is1 = index_s1(model, env, quat = quat)
+	iη1 = index_η1(model, env, quat = quat)
+	is2 = index_s2(model, env, quat = quat)
 
 	terms = [SVector{length(ibimp),Int}(ibimp), # γ1, s1
 			 SVector{length(ibmdp),Int}(ibmdp), # b1, η1
@@ -355,74 +365,75 @@ end
 """
 	Returns the positive orthant indices in z or Δz.
 """
-function inequality_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0)
-	iγ1 = index_γ1(model, env, nquat = nquat)
-	ib1 = index_b1(model, env, nquat = nquat)
-	iψ1 = index_ψ1(model, env, nquat = nquat)
-	is1 = index_s1(model, env, nquat = nquat)
-	iη1 = index_η1(model, env, nquat = nquat)
-	is2 = index_s2(model, env, nquat = nquat)
+function inequality_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
+	iγ1 = index_γ1(model, env, quat = quat)
+	ib1 = index_b1(model, env, quat = quat)
+	iψ1 = index_ψ1(model, env, quat = quat)
+	is1 = index_s1(model, env, quat = quat)
+	iη1 = index_η1(model, env, quat = quat)
+	is2 = index_s2(model, env, quat = quat)
 	return [iγ1; ib1; iψ1; is1; iη1; is2]
 end
 
 """
 	Returns the positive orthant indices in z or Δz.
 """
-function inequality_indices(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
-	iγ1 = index_γ1(model, env, nquat = nquat)
-	is1 = index_s1(model, env, nquat = nquat)
+function inequality_indices(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
+	iγ1 = index_γ1(model, env, quat = quat)
+	is1 = index_s1(model, env, quat = quat)
 	return [iγ1; is1]
 end
 
 """
 	Returns the positive orthant indices in z or Δz.
 """
-function index_ort(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0)
-	iγ1 = index_γ1(model, env, nquat = nquat)
-	ib1 = index_b1(model, env, nquat = nquat)
-	iψ1 = index_ψ1(model, env, nquat = nquat)
-	is1 = index_s1(model, env, nquat = nquat)
-	iη1 = index_η1(model, env, nquat = nquat)
-	is2 = index_s2(model, env, nquat = nquat)
-	return [[iγ1; ib1; iψ1]; [is1; iη1; is2]]
+function index_ort(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
+	iγ1 = index_γ1(model, env, quat = quat)
+	ib1 = index_b1(model, env, quat = quat)
+	iψ1 = index_ψ1(model, env, quat = quat)
+	is1 = index_s1(model, env, quat = quat)
+	iη1 = index_η1(model, env, quat = quat)
+	is2 = index_s2(model, env, quat = quat)
+	return [[iγ1; ib1; iψ1], [is1; iη1; is2]]
 end
 
 """
 	Returns the positive orthant indices in z or Δz.
 """
-function index_ort(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
-	iγ1 = index_γ1(model, env, nquat = nquat)
-	is1 = index_s1(model, env, nquat = nquat)
+function index_ort(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
+	iγ1 = index_γ1(model, env, quat = quat)
+	is1 = index_s1(model, env, quat = quat)
 	return [iγ1, is1]
 end
 
 """
 	Returns the second order cone indices in z or Δz.
 """
-soc_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0) = Vector{Int}[]
+soc_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false) = Vector{Int}[]
 
 """
 	Returns the second order cone indices in z or Δz.
 """
-function soc_indices(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
+function soc_indices(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
 	nc = model.dim.c
 	nf = friction_dim(env)
 
-	ib1 = index_b1(model, env, nquat = nquat) # primal cones: vector part
-	iψ1 = index_ψ1(model, env, nquat = nquat) # primal cones: scalar part
-	iη1 = index_η1(model, env, nquat = nquat) # dual cones: vector part
-	is2 = index_s2(model, env, nquat = nquat) # dual cones: scalar part
+	ib1 = index_b1(model, env, quat = quat) # primal cones: vector part
+	iψ1 = index_ψ1(model, env, quat = quat) # primal cones: scalar part
+	iη1 = index_η1(model, env, quat = quat) # dual cones: vector part
+	is2 = index_s2(model, env, quat = quat) # dual cones: scalar part
 
 	pr_idx = [[iψ1[i]; ib1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
 	du_idx = [[is2[i]; iη1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
 	[pr_idx..., du_idx...]
 end
 
-function num_var(model::ContactModel, env::Environment; nquat::Int = 0)
+function num_var(model::ContactModel, env::Environment; quat::Bool = false)
 	nq = model.dim.q
 	nc = model.dim.c
+	nquat = quat ? model.dim.quat : 0
 	nb = nc * friction_dim(env)
-	nq + nc + nb + nc + nc + nb + nc
+	(nq - nquat) + nc + nb + nc + nc + nb + nc
 end
 
 function num_data(model::ContactModel)
@@ -478,13 +489,13 @@ end
 # end
 
 function unpack_z(model::ContactModel, env::Environment, z)
-	iq2 = index_q2(model, env, nquat = 0)
-	iγ1 = index_γ1(model, env, nquat = 0)
-	ib1 = index_b1(model, env, nquat = 0)
-	iψ1 = index_ψ1(model, env, nquat = 0)
-	is1 = index_s1(model, env, nquat = 0)
-	iη1 = index_η1(model, env, nquat = 0)
-	is2 = index_s2(model, env, nquat = 0)
+	iq2 = index_q2(model, env, quat = false)
+	iγ1 = index_γ1(model, env, quat = false)
+	ib1 = index_b1(model, env, quat = false)
+	iψ1 = index_ψ1(model, env, quat = false)
+	is1 = index_s1(model, env, quat = false)
+	iη1 = index_η1(model, env, quat = false)
+	is2 = index_s2(model, env, quat = false)
 
 	# system variables
 	q2 = z[iq2]
@@ -516,13 +527,13 @@ end
 
 # function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, s1, η1, s2)
 # 	nz = num_var(model, env)
-# 	iq2 = index_q2(model, env, nquat = 0)
-# 	iγ1 = index_γ1(model, env, nquat = 0)
-# 	ib1 = index_b1(model, env, nquat = 0)
-# 	iψ1 = index_ψ1(model, env, nquat = 0)
-# 	is1 = index_s1(model, env, nquat = 0)
-# 	iη1 = index_η1(model, env, nquat = 0)
-# 	is2 = index_s2(model, env, nquat = 0)
+# 	iq2 = index_q2(model, env, quat = false)
+# 	iγ1 = index_γ1(model, env, quat = false)
+# 	ib1 = index_b1(model, env, quat = false)
+# 	iψ1 = index_ψ1(model, env, quat = false)
+# 	is1 = index_s1(model, env, quat = false)
+# 	iη1 = index_η1(model, env, quat = false)
+# 	is2 = index_s2(model, env, quat = false)
 #
 # 	z = zeros(nz)
 #

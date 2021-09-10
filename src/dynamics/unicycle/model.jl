@@ -113,8 +113,9 @@ nq = 4
 nu = 2
 nw = 2
 nc = 1
+nquat = 1
 
-unicycle = Unicycle(Dimensions(nq, nu, nw, nc),
+unicycle = Unicycle(Dimensions(nq, nu, nw, nc, nquat),
 			   mb, Jb, mw, Jw, rw, l0, k,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),

@@ -62,18 +62,22 @@ ip1 = interior_point(z1, θ1,
 	irst = linearization_term_index(model, env)[2],
 	ibil = linearization_term_index(model, env)[3],
     idx_ineq = inequality_indices(model, env),
-    idx_soc = soc_indices(model, env),
+	idx_ort = index_ort(model, env),
+	idx_orts = index_ort(model, env),
+	idx_soc = soc_indices(model, env),
+	idx_socs = soc_indices(model, env),
 	r! = s.res.r!,
     rz! = s.res.rz!,
     rθ! = s.res.rθ!,
     rz = s.rz,
     rθ = s.rθ,
     opts = InteriorPointOptions(
-        max_iter_inner=30,
+        max_iter=30,
         r_tol=1e-8,
         κ_tol=1e-8,
 		# verbose=true
 		))
+
 interior_point_solve!(ip1)
 r1 = zeros(nz)
 s.res.r!(r1, ip1.z, ip1.θ, 0.0)
@@ -97,14 +101,17 @@ ip2 = mehrotra(z2, θ2,
 	irst = linearization_term_index(model, env)[2],
 	ibil = linearization_term_index(model, env)[3],
     idx_ineq = inequality_indices(model, env),
-    idx_soc = soc_indices(model, env),
+	idx_ort = index_ort(model, env),
+	idx_orts = index_ort(model, env),
+	idx_soc = soc_indices(model, env),
+	idx_socs = soc_indices(model, env),
 	r! = s.res.r!,
     rz! = s.res.rz!,
     rθ! = s.res.rθ!,
     rz = s.rz,
     rθ = s.rθ,
     opts = MehrotraOptions(
-        max_iter_inner=30,
+        max_iter=30,
         r_tol=1e-8,
         κ_tol=1e-8,
 		# verbose=true
@@ -140,7 +147,7 @@ im_traj1 = ImplicitTraj(ref_traj, s;
 			κ_tol = 1.0e-8,
 			r_tol = 1.0e-8,
 			diff_sol = true,
-			max_iter_inner=100,
+			max_iter=100,
 			ϵ_min=0.05,
 			solver=:empty_solver,
 			# verbose=true
@@ -176,7 +183,7 @@ im_traj2 = ImplicitTraj(ref_traj, s;
 			κ_tol = 1.0e-8,
 			r_tol = 1.0e-8,
 			diff_sol = true,
-			max_iter_inner=100,
+			max_iter=100,
 			ϵ_min=0.05,
 			solver=:empty_solver,
 			# verbose=true
@@ -203,6 +210,7 @@ end
 # 		 deepcopy(ref_traj.z[t]),
 # 		 deepcopy(ref_traj.θ[t]),
 # 		 idx_ineq = inequality_indices(model, env),
+		# idx_ort = index_ort(model, env),
 # 		 ix = linearization_var_index(model, env)[1],
 # 		 iy1 = linearization_var_index(model, env)[2],
 # 		 iy2 = linearization_var_index(model, env)[3],
@@ -215,8 +223,6 @@ end
 # 		 r  = RLin(s, lin.z, lin.θ, lin.r, lin.rz, lin.rθ),
 # 		 rz = RZLin(s, lin.rz),
 # 		 rθ = RθLin(s, lin.rθ),
-# 		 v_pr = view(zeros(1,1), 1,1),
-# 		 v_du = view(zeros(1,1), 1,1),
 # 		 opts = opts)
 #
 # interior_point_solve!(ip)
@@ -248,7 +254,7 @@ end
 # 			κ_tol = 1.0e-8,
 # 			r_tol = 1.0e-8,
 # 			diff_sol = true,
-# 			max_iter_inner=100,
+# 			max_iter=100,
 # 			ϵ_min=0.05,
 # 			solver=:empty_solver,
 # 			# verbose=true
@@ -261,7 +267,7 @@ end
 # 			κ_tol = 1.0e-8,
 # 			r_tol = 1.0e-8,
 # 			diff_sol = true,
-# 			max_iter_inner=100,
+# 			max_iter=100,
 # 			ϵ_min=0.05,
 # 			solver=:empty_solver,
 # 			# verbose=true
@@ -297,7 +303,7 @@ end
 # 			κ_tol = 2.0 * 1e-8,
 # 			r_tol = 1.0e-8,
 # 			diff_sol = true,
-# 			max_iter_inner=100,
+# 			max_iter=100,
 # 			ϵ_min=0.05,
 # 			solver=:empty_solver,
 # 			verbose=true
@@ -320,7 +326,7 @@ end
 # 			κ_tol = 2.0 * 1e-8,
 # 			r_tol = 1.0e-8,
 # 			diff_sol = true,
-# 			max_iter_inner=100,
+# 			max_iter=100,
 # 			ϵ_min=0.05,
 # 			max_ls = 1,
 # 			solver=:empty_solver,

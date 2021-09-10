@@ -349,17 +349,6 @@ function r!(r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, z::Vector{T}, θ::
     return nothing
 end
 
-function r_update!(r::RLin, r̄::RLin)
-    r.x  = r̄.x
-    r.y1 = r̄.y1
-    r.y2 = r̄.y2
-    r.θ  = r̄.θ
-    r.rdyn = r̄.rdyn
-    r.rrst = r̄.rrst
-    r.rbil = r̄.rbil
-    return nothing
-end
-
 """
 	Update the Jacobian rz, and update its Schur complement factorization.
 """

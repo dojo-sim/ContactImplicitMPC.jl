@@ -180,7 +180,7 @@ function Gz_func(model::RigidBody, env, z)
 end
 
 # Model
-rigidbody = RigidBody(Dimensions(7, 6, 3, 1),
+rigidbody = RigidBody(Dimensions(7, 6, 3, 1, 1),
 	10.0, [0.01, 0.01, 0.01], 9.81, 1.0, 0.25,
 	BaseMethods(), DynamicsMethods(),
 	SVector{6}(zeros(6)))

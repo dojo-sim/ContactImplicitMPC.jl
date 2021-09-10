@@ -387,9 +387,8 @@ end
 nq = 6 + 4 * 3           # configuration dimension
 nu = 4 * 3                # control dimension
 nc = 4                    # number of contact points
-nf = 4                    # number of parameters for friction cone
-nb = nc * nf
 nw = 3
+nquat = 0
 
 # World parameters
 g = 9.81      # gravity
@@ -416,7 +415,7 @@ d_leg = 0.5 * l_leg - 0.006435
 
 w_torso = 0.5 * 0.203
 
-quadruped = Quadruped3DAlt(Dimensions(nq, nu, nw, nc),
+quadruped = Quadruped3DAlt(Dimensions(nq, nu, nw, nc, nquat),
 				g, μ_world, μ_joint,
 				l_torso, d_torso, w_torso, m_torso, [J_torso, J_torso, J_torso],
 				l_thigh, d_thigh, m_thigh, J_thigh,

@@ -124,10 +124,9 @@ nq = 2
 nu = 2
 nw = nq
 nc = 2
-nf = 2
-nb = nc * nf
+nquat = 0
 
-pushbot = PushBot(Dimensions(nq, nu, nw, nc),
+pushbot = PushBot(Dimensions(nq, nu, nw, nc, nquat),
 			   mb, ma, l,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),

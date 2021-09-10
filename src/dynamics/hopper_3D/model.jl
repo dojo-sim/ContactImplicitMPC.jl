@@ -94,8 +94,7 @@ nq = 7 # configuration dimension
 nu = 3 # control dimension
 nw = 3 # disturbance dimension
 nc = 1 # number of contact points
-nf = 4 # number of faces for friction cone pyramid
-nb = nc * nf
+nquat = 1 # number of quaternions
 
 # Parameters
 g = 9.81 # gravity
@@ -108,7 +107,7 @@ ml = 0.3  # leg mass
 Jb = 0.75 # body inertia
 Jl = 0.075 # leg inertia
 
-hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc),
+hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc, nquat),
 			mb, ml, Jb, Jl,
 			μ_world, μ_joint, g,
 			:MRP,

@@ -36,10 +36,6 @@ function rθ!(rθ, z, θ)
     nothing
 end
 
-function r_update!(r, r̄)
-    r .= r̄
-end
-
 # optimization spaces
 abstract type Space end
 
@@ -65,7 +61,7 @@ end
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
     ls_scale::T = 0.5
-    max_iter_inner::Int = 100
+    max_iter::Int = 100
     max_ls::Int = 3
     max_time::T = 1e5
     diff_sol::Bool = false
@@ -87,12 +83,14 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     methods::ResidualMethods
     z::Vector{T}                # current point
     r#::Vector{T}               # residual
-    r̄#::Vector{T}               # candidate residual   #useless
     rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
     idx_ineq::Vector{Int}      # indices for inequality constraints
-    idx_soc::Vector{Vector{Int}} # indices for second-order cone constraints
+    idx_ort::Vector{Vector{Int}}  # indices for inequality constraints split between primal and dual for z
+    idx_orts::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual for Δz
+    idx_soc::Vector{Vector{Int}}  # indices for second-order cone constraints for z
+    idx_socs::Vector{Vector{Int}}  # indices for second-order cone constraints for Δz
 
     ix
     iy1
@@ -119,7 +117,10 @@ function interior_point(z, θ;
         num_var = length(z),
         num_data = length(θ),
         idx_ineq = collect(1:0),
+        idx_ort = [collect(1:0), collect(1:0)],
+        idx_orts = [collect(1:0), collect(1:0)],
         idx_soc = Vector{Int}[],
+        idx_socs = Vector{Int}[],
         ix = collect(1:0), # useless
         iy1 = collect(1:0), # useless
         iy2 = collect(1:0), # useless
@@ -149,12 +150,14 @@ function interior_point(z, θ;
         ResidualMethods(r!, rz!, rθ!),
         z,
         r,
-        deepcopy(r),
         rz,
         rθ,
         zeros(s.n),
         idx_ineq,
+        idx_ort,
+        idx_orts,
         idx_soc,
+        idx_socs,
         ix,
         iy1,
         iy2,
@@ -186,7 +189,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     r_tol = opts.r_tol
     κ_tol = opts.κ_tol
     ls_scale = opts.ls_scale
-    max_iter_inner = opts.max_iter_inner
+    max_iter = opts.max_iter
     max_time = opts.max_time
     max_ls = opts.max_ls
     diff_sol = opts.diff_sol
@@ -203,6 +206,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     rz = ip.rz
     Δ = ip.Δ
     idx_ineq = ip.idx_ineq
+    idx_ort = ip.idx_ort
     idx_soc = ip.idx_soc
     ix = ip.ix
     iy1 = ip.iy1
@@ -229,7 +233,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     r_vio = residual_violation(ip, r)
     elapsed_time = 0.0
 
-    for j = 1:max_iter_inner
+    for j = 1:max_iter
         elapsed_time >= max_time && break
         elapsed_time += @elapsed begin
             # check for converged residual
@@ -595,6 +599,30 @@ end
 
 function ineq_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
 		idx_ineq::AbstractVector{Int}; τ::T=0.9995, nquat::Int=0) where {T}
+        # We need to make this much more efficient (allocation free)
+        # by choosing the right structure for idx_ineq.
+
+    n = Int(length(idx_ineq) / 2)
+
+    ατ_p = 1.0 # primal
+    ατ_d = 1.0 # dual
+    for i = 1:n
+        ip = idx_ineq[i]
+        id = idx_ineq[i + n]
+        if Δ[ip .- nquat] > 0.0
+            ατ_p = min(ατ_p, τ * z[ip] / Δ[ip .- nquat])
+        end
+        if Δ[id .- nquat] > 0.0
+            ατ_d = min(ατ_d, τ * z[id] / Δ[id .- nquat])
+        end
+    end
+    α = min(ατ_p, ατ_d)
+    return α
+end
+
+function ineq_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
+		idx_ort::AbstractVector{Vector{Int}}, idx_orts::AbstractVector{Vector{Int}};
+        τ::T=0.9995) where {T}
         # We need to make this much more efficient (allocation free)
         # by choosing the right structure for idx_ineq.
 

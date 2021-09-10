@@ -17,7 +17,7 @@
 		The body frame defined by 3 vectors expressed in the world frame:
 			R = MRP(rot) = [xb | yb | zb]_W
 """
-mutable struct Quadruped3D11{T} <: ContactModel
+mutable struct Quadruped3D{T} <: ContactModel
 	dim::Dimensions
 
 	g::T
@@ -123,7 +123,7 @@ end
 # BRhip o___________________________|___________________________o FRhip
 #                    183 mm                    183mm
 # kinematics
-function kinematics_1(model::Quadruped3D11, q; body = :torso, mode = :ee)
+function kinematics_1(model::Quadruped3D, q; body = :torso, mode = :ee)
 	x = q[1]
 	y = q[2]
 	z = q[3]
@@ -172,7 +172,7 @@ function kinematics_1(model::Quadruped3D11, q; body = :torso, mode = :ee)
 	end
 end
 
-function jacobian_1(model::Quadruped3D11, q; body = :torso, mode = :ee)
+function jacobian_1(model::Quadruped3D, q; body = :torso, mode = :ee)
 	jac = zeros(eltype(q), 3, model.dim.q)
 	jac[1, 1] = 1.0
 	jac[2, 2] = 1.0
@@ -211,7 +211,7 @@ function jacobian_1(model::Quadruped3D11, q; body = :torso, mode = :ee)
 	return jac
 end
 
-function kinematics_2(model::Quadruped3D11, q; body = :thigh_1, mode = :ee)
+function kinematics_2(model::Quadruped3D, q; body = :thigh_1, mode = :ee)
 	R = eval(model.orientation)(view(q, 4:6)...)
 	xb = R[1:3,1]
 	yb = R[1:3,2]
@@ -283,7 +283,7 @@ function kinematics_2(model::Quadruped3D11, q; body = :thigh_1, mode = :ee)
 	end
 end
 
-function jacobian_2(model::Quadruped3D11, q; body = :thigh_1, mode = :ee)
+function jacobian_2(model::Quadruped3D, q; body = :thigh_1, mode = :ee)
 
 	R = eval(model.orientation)(view(q, 4:6)...)
 	xb = R[1:3,1]
@@ -343,7 +343,7 @@ function jacobian_2(model::Quadruped3D11, q; body = :thigh_1, mode = :ee)
 	return jac
 end
 
-function kinematics_3(model::Quadruped3D11, q; body = :calf_1, mode = :ee)
+function kinematics_3(model::Quadruped3D, q; body = :calf_1, mode = :ee)
 	R = eval(model.orientation)(view(q, 4:6)...)
 	xb = R[1:3,1]
 	yb = R[1:3,2]
@@ -414,7 +414,7 @@ function kinematics_3(model::Quadruped3D11, q; body = :calf_1, mode = :ee)
 	end
 end
 
-function jacobian_3(model::Quadruped3D11, q; body = :calf_1, mode = :ee)
+function jacobian_3(model::Quadruped3D, q; body = :calf_1, mode = :ee)
 
 	R = eval(model.orientation)(view(q, 4:6)...)
 	xb = R[1:3,1]
@@ -483,7 +483,7 @@ function jacobian_3(model::Quadruped3D11, q; body = :calf_1, mode = :ee)
 	return jac
 end
 
-function kinematics_4(model::Quadruped3D11, q; body = :calf_3, mode = :ee)
+function kinematics_4(model::Quadruped3D, q; body = :calf_3, mode = :ee)
 	R = eval(model.orientation)(view(q, 4:6)...)
 	xb = R[1:3,1]
 	yb = R[1:3,2]
@@ -524,7 +524,7 @@ function kinematics_4(model::Quadruped3D11, q; body = :calf_3, mode = :ee)
 	end
 end
 
-function jacobian_4(model::Quadruped3D11, q; body = :calf_3, mode = :ee)
+function jacobian_4(model::Quadruped3D, q; body = :calf_3, mode = :ee)
 
 	R = eval(model.orientation)(view(q, 4:6)...)
 	xb = R[1:3,1]
@@ -569,7 +569,7 @@ end
 
 
 # Lagrangian
-function lagrangian(model::Quadruped3D11, q, q̇)
+function lagrangian(model::Quadruped3D, q, q̇)
 	L = 0.0
 
 	# torso
@@ -694,17 +694,17 @@ function lagrangian(model::Quadruped3D11, q, q̇)
 	return L
 end
 
-function _dLdq(model::Quadruped3D11, q, q̇)
+function _dLdq(model::Quadruped3D, q, q̇)
 	Lq(x) = lagrangian(model, x, q̇)
 	ForwardDiff.gradient(Lq, q)
 end
 
-function _dLdq̇(model::Quadruped3D11, q, q̇)
+function _dLdq̇(model::Quadruped3D, q, q̇)
 	Lq̇(x) = lagrangian(model, q, x)
 	ForwardDiff.gradient(Lq̇, q̇)
 end
 
-function kinematics(model::Quadruped3D11, q)
+function kinematics(model::Quadruped3D, q)
 	p_calf_1 = kinematics_3(model, q, body = :calf_1, mode = :ee)
 	p_calf_2 = kinematics_3(model, q, body = :calf_2, mode = :ee)
 	p_calf_3 = kinematics_4(model, q, body = :calf_3, mode = :ee)
@@ -714,7 +714,7 @@ function kinematics(model::Quadruped3D11, q)
 end
 
 # Methods
-function M_func(model::Quadruped3D11, q)
+function M_func(model::Quadruped3D, q)
 	M = Diagonal([0.0, 0.0, 0.0,
 		0.0, model.J_torso, 0.0,
 		model.J_shoulder1, model.J_thigh1, model.J_calf1,
@@ -767,7 +767,7 @@ function M_func(model::Quadruped3D11, q)
 	return M
 end
 
-function ϕ_func(model::Quadruped3D11, q)
+function ϕ_func(model::Quadruped3D, q)
 	p_calf_1 = kinematics_3(model, q, body = :calf_1, mode = :ee)
 	p_calf_2 = kinematics_3(model, q, body = :calf_2, mode = :ee)
 	p_calf_3 = kinematics_4(model, q, body = :calf_3, mode = :ee)
@@ -779,7 +779,7 @@ function ϕ_func(model::Quadruped3D11, q)
 				p_calf_4[3] - model.env.surf(p_calf_4[1:1])])
 end
 
-function B_func(model::Quadruped3D11, q) #wrong, we need to use the matrix MRP(r)
+function B_func(model::Quadruped3D, q) #wrong, we need to use the matrix MRP(r)
 	@SMatrix [
 			  0.0  0.0  0.0  -1.0  0.0  0.0   1.0  0.0  0.0   0.0  0.0  0.0   0.0  0.0  0.0   0.0  0.0  0.0;
 			  0.0  0.0  0.0   0.0 -1.0  0.0   0.0  1.0  0.0   0.0  0.0  0.0   0.0  0.0  0.0   0.0  0.0  0.0;
@@ -799,13 +799,13 @@ function B_func(model::Quadruped3D11, q) #wrong, we need to use the matrix MRP(r
 			  ]
 end
 
-function A_func(model::Quadruped3D11, q)
+function A_func(model::Quadruped3D, q)
 	@SMatrix [1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::Quadruped3D11, q)
+function J_func(model::Quadruped3D, q)
 	J_calf_1 = jacobian_3(model, q, body = :calf_1, mode = :ee)
 	J_calf_2 = jacobian_3(model, q, body = :calf_2, mode = :ee)
 	J_calf_3 = jacobian_4(model, q, body = :calf_3, mode = :ee)
@@ -817,14 +817,14 @@ function J_func(model::Quadruped3D11, q)
 			J_calf_4]
 end
 
-function C_func(model::Quadruped3D11, q, q̇)
+function C_func(model::Quadruped3D, q, q̇)
 	tmp_q(z) = _dLdq̇(model, z, q̇)
 	tmp_q̇(z) = _dLdq̇(model, q, z)
 
 	ForwardDiff.jacobian(tmp_q, q) * q̇ - _dLdq(model, q, q̇)
 end
 
-function contact_forces(model::Quadruped3D11, γ1, b1, q2, k)
+function contact_forces(model::Quadruped3D, γ1, b1, q2, k)
 	k = kinematics(model, q2)
 	m = friction_mapping(model.env)
 
@@ -834,7 +834,7 @@ function contact_forces(model::Quadruped3D11, γ1, b1, q2, k)
 				 transpose(rotation(model.env, k[7:7])) * [m * b1[13:16]; γ1[4]]])
 end
 
-function velocity_stack(model::Quadruped3D11, q1, q2, k, h)
+function velocity_stack(model::Quadruped3D, q1, q2, k, h)
 	k = kinematics(model, q2)
 	v = J_func(model, q2) * (q2 - q1) / h[1]
 
@@ -862,9 +862,8 @@ end
 nq = 3 + 3 + 4*3          # configuration dimension
 nu = 4 + 4 + 4            # control dimension
 nc = 4                    # number of contact points
-nf = 4                    # number of parameters for friction cone
-nb = nc * nf
 nw = 3
+nquat = 0
 
 # World parameters
 g = 9.81      # gravity
@@ -899,7 +898,7 @@ d_leg = 0.5 * l_leg - 0.006435
 m_payload = 5.0
 J_payload = 0.05
 
-quadruped_3D = Quadruped3D11(Dimensions(nq, nu, nw, nc),
+quadruped_3D = Quadruped3D(Dimensions(nq, nu, nw, nc, nquat),
 				g, μ_world, μ_joint,
 				orientation, shoulder_lateral_offset,
 				l_torso, d_torso, m_torso, J_torso,
@@ -921,7 +920,7 @@ quadruped_3D = Quadruped3D11(Dimensions(nq, nu, nw, nc),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]),
 				environment_2D_flat())
 
-quadruped_payload_3D = Quadruped3D11(Dimensions(nq, nu, nw, nc),
+quadruped_payload_3D = Quadruped3D(Dimensions(nq, nu, nw, nc, nquat),
 				g, μ_world, μ_joint,
 				orientation, shoulder_lateral_offset,
 				l_torso, d_torso,

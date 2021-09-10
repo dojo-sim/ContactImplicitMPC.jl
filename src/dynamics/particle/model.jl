@@ -113,6 +113,6 @@ nu = 3              # control dimension
 nw = 3              # disturbance dimension
 nc = 1              # number of contact points
 
-particle = Particle(Dimensions(3, 3, 3, 1), 1.0, 9.81, 1.0, 0.0,
+particle = Particle(Dimensions(3, 3, 3, 1, 0), 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(),
 	SVector{3}(zeros(3)))

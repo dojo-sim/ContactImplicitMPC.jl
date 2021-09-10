@@ -5,6 +5,7 @@ struct Dimensions
     u::Int         # control
 	w::Int         # disturbance
 	c::Int         # contact points
+    quat::Int      # number of quaternions in the configuration
 end
 
 # https://github.com/HarvardAgileRoboticsLab/drake/blob/75b260c9eb250d08ffbbf3daa80758e4fe558d7f/drake/matlab/solvers/trajectoryOptimization/VariationalTrajectoryOptimization.m
