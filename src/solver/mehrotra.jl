@@ -177,6 +177,15 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     iy2 = ip.iy2
     solver = ip.solver
 
+    iw1 = ip.iz[1]
+    iort = ip.iz[2]
+    isoc = ip.iz[3]
+    iw1s = ip.iΔz[1]
+    iorts = ip.iΔz[2]
+    isocs = ip.iΔz[3]
+    ibil_ort = ip.ir[5]
+    ibil_soc = ip.ir[6]
+
     # Initialization
     ip.iterations = 0
     ip.reg_val = 0.0
@@ -231,7 +240,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             # println("r: ", scn(norm(r.rdyn), digits = 7))
             # println("r: ", scn(norm(r.rrst), digits = 7))
             # println("r: ", scn(norm(r.rbil), digits = 7))
-            general_correction_term!(r, Δaff, ip.ibil, idx_ineq, idx_soc, iy1, iy2)
+            general_correction_term!(r, Δaff, ibil_ort, ibil_soc, iorts, isocs)
             # println("r: ", scn(norm(r.rbil), digits = 7))
             # println("μ: ", scn(ip.μ, digits=6))
             # println("σ: ", scn(ip.σ, digits=6))

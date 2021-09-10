@@ -561,35 +561,24 @@ function bilinear_violation(ip::AbstractIPSolver, r::RLin{T}; nquat::Int = 0) wh
     norm(r.rbil, Inf)
 end
 
-function general_correction_term!(r::RLin, Δ, ibil, idx_ineq, idx_soc,
-        iy1, iy2; nquat::Int = 0) where {T}
-    nc = length(idx_soc[1])
-    nsoc = Int(length(idx_soc) / 2)
-    nineq = Int(length(idx_ineq) / 2)
+function general_correction_term!(r::RLin, Δ, ibil_ort, ibil_soc, iorts, isocs) where {T}
 
+	nc = length(isocs[1])
     # Split between primals and duals
-    idx_soc_p = idx_soc[1:nsoc]
-    idx_soc_d = idx_soc[nsoc+1:2nsoc]
-    idx_ineq_1 = intersect(iy1, idx_ineq)
-    idx_ineq_2 = intersect(iy2, idx_ineq)
+    isocs_p = isocs[1]
+    isocs_d = isocs[2]
+    iorts_1 = iorts[1]
+    iorts_2 = iorts[2]
 
-    n_soc = length(idx_soc_p)
-    n_ort = length(idx_ineq_1)
+	@warn "indexing need ibil_ort, ibil_soc"
     r.rbil += vcat(
-		Δ[idx_ineq_1 .- nquat] .* Δ[idx_ineq_2 .- nquat], # ORT
-        [second_order_cone_product( # SOC
-            Δ[idx_soc_d[i] .- nquat],
-            # Δη1[(i - 1) * ne .+ (1:ne)],
-            Δ[idx_soc_p[i] .- nquat],
-            # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
-        ) for i = 1:nc]...)
+		Δ[iorts_1] .* Δ[iorts_2], # ORT
+		[second_order_cone_product( # SOC
+			Δ[isocs_d[i]],
+			Δ[isocs_p[i]],
+		) for i = 1:nc]...)
     return nothing
 end
-
-# function r!(r::RLin{T}, z::AbstractVector{T}, θ::AbstractVector{T}, κ::T) where {T}
-# 	r!(r, z, θ, κ)
-# 	return nothing
-# end
 
 function rz!(ip::AbstractIPSolver, rz::RZLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
