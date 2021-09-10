@@ -2,14 +2,13 @@
 @with_kw mutable struct MehrotraOptions{T} <: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
-    κ_init::T = 1.0                   # useless
     max_iter_inner::Int = 100
     max_time::T = 1e5
     diff_sol::Bool = false
     res_norm::Real = Inf
     reg::Bool = false
-    reg_pr_init = 0.0
-    reg_du_init = 0.0
+    # reg_pr_init = 0.0
+    # reg_du_init = 0.0
     ϵ_min = 0.05 # ∈ [0.005, 0.25]
         # smaller -> faster
         # larger  -> slower, more robust
@@ -44,20 +43,20 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     solver::LinearSolver
     v_pr # view
     v_du # view
-    z_y1 # view into z corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is z space)
-    z_y2 # view into z corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is z space)
-    Δaff_y1 # view into Δaff corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
-    Δaff_y2 # view into Δaff corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
-    Δ_y1 # view into Δ corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
-    Δ_y2 # view into Δ corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
+    # z_y1 # view into z corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is z space)
+    # z_y2 # view into z corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is z space)
+    # Δaff_y1 # view into Δaff corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
+    # Δaff_y2 # view into Δaff corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
+    # Δ_y1 # view into Δ corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
+    # Δ_y2 # view into Δ corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
     ix::SVector{nx,Int}
     iy1::SVector{ny,Int}
     iy2::SVector{ny,Int}
     idyn::SVector{nx,Int}
     irst::SVector{ny,Int}
     ibil::SVector{ny,Int}
-    reg_pr
-    reg_du
+    # reg_pr
+    # reg_du
     reg_val::T
     τ::T
     σ::T
@@ -86,7 +85,7 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         r  = zeros(s.n),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
-        reg_pr = [0.0], reg_du = [0.0],
+        # reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
         opts::MehrotraOptions = MehrotraOptions()) where T
@@ -108,13 +107,13 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
     ibil = SVector{ny, Int}(ibil)
     ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra solve."
 
-    # Views
-    z_y1 = view(z, iy1)
-    z_y2 = view(z, iy2)
-    Δaff_y1 = view(Δaff, iy1) # TODO this should be in Δ space
-    Δaff_y2 = view(Δaff, iy2) # TODO this should be in Δ space
-    Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
-    Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
+    # # Views
+    # z_y1 = view(z, iy1)
+    # z_y2 = view(z, iy2)
+    # Δaff_y1 = view(Δaff, iy1) # TODO this should be in Δ space
+    # Δaff_y2 = view(Δaff, iy2) # TODO this should be in Δ space
+    # Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
+    # Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
 
     Ts = typeof.((r, rz, rθ))
     Mehrotra{T,nx,ny,Ts...}(
@@ -140,19 +139,19 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         eval(opts.solver)(rz),
         v_pr,
         v_du,
-        z_y1,
-        z_y2,
-        Δaff_y1,
-        Δaff_y2,
-        Δ_y1,
-        Δ_y2,
+        # z_y1,
+        # z_y2,
+        # Δaff_y1,
+        # Δaff_y2,
+        # Δ_y1,
+        # Δ_y2,
         ix,
         iy1,
         iy2,
         idyn,
         irst,
         ibil,
-        reg_pr, reg_du,
+        # reg_pr, reg_du,
         0.0,
         0.0,
         0.0,
@@ -197,8 +196,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     ix = ip.ix
     iy1 = ip.iy1
     iy2 = ip.iy2
-    reg_pr = ip.reg_pr
-    reg_du = ip.reg_du
+    # reg_pr = ip.reg_pr
+    # reg_du = ip.reg_du
     solver = ip.solver
 
     # Initialization
@@ -207,8 +206,8 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     comp = false
 
     # initialize regularization
-    reg_pr[1] = opts.reg_pr_init
-    reg_du[1] = opts.reg_du_init
+    # reg_pr[1] = opts.reg_pr_init
+    # reg_du[1] = opts.reg_du_init
 
     # compute residual, residual Jacobian
     ip.methods.r!(r, z, θ, 0.0) # here we set κ = 0, Δ = 0
@@ -243,7 +242,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             rz!(ip, rz, z, θ, reg = ip.reg_val)
 
             # regularize (fixed, TODO: adaptive)
-            reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
+            # reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r, reg = ip.reg_val)

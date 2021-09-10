@@ -4,15 +4,12 @@ abstract type AbstractIPOptions end
 function interior_point_options(ip_type::Symbol)
     if ip_type == :interior_point
         return Symbol("InteriorPointOptions")
-    elseif ip_type == :interior_point_base
-        return Symbol("InteriorPointBaseOptions")
     elseif ip_type == :mehrotra
         return Symbol("MehrotraOptions")
     else
         error("Unknown ip_type.")
     end
 end
-
 
 mutable struct ResidualMethods
     r!
@@ -73,8 +70,8 @@ end
     max_time::T = 1e5
     diff_sol::Bool = false
     reg::Bool = false
-    reg_pr_init = 0.0
-    reg_du_init = 0.0
+    # reg_pr_init = 0.0
+    # reg_du_init = 0.0
     ϵ_min = 0.05 # ∈ [0.005, 0.25]
         # smaller -> faster
         # larger  -> slower, more robust
@@ -87,11 +84,11 @@ end
     warn::Bool = false
 end
 
-# regularize Jacobian / Hessian
-function regularize!(v_pr, v_du, reg_pr, reg_du)
-    v_pr .+= reg_pr
-    v_du .-= reg_du
-end
+# # regularize Jacobian / Hessian
+# function regularize!(v_pr, v_du, reg_pr, reg_du)
+#     v_pr .+= reg_pr
+#     v_du .-= reg_du
+# end
 
 mutable struct InteriorPoint{T} <: AbstractIPSolver
     s::Space
@@ -122,8 +119,8 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     solver::LinearSolver
     v_pr
     v_du
-    reg_pr
-    reg_du
+    # reg_pr
+    # reg_du
     reg_val
     iterations::Int
     opts::InteriorPointOptions
@@ -149,7 +146,7 @@ function interior_point(z, θ;
         r  = zeros(s.n),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
-        reg_pr = [0.0], reg_du = [0.0],
+        # reg_pr = [0.0], reg_du = [0.0],
         v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
         v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
         opts::InteriorPointOptions = InteriorPointOptions()) where T
@@ -193,7 +190,7 @@ function interior_point(z, θ;
         eval(opts.solver)(rz),
         v_pr,
         v_du,
-        reg_pr, reg_du,
+        # reg_pr, reg_du,
         0.0,
         0,
         opts,
@@ -241,15 +238,15 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     θ = ip.θ
     v_pr = ip.v_pr
     v_du = ip.v_du
-    reg_pr = ip.reg_pr
-    reg_du = ip.reg_du
+    # reg_pr = ip.reg_pr
+    # reg_du = ip.reg_du
     solver = ip.solver
     ip.iterations = 0
     comp = false
 
-    # initialize regularization
-    reg_pr[1] = opts.reg_pr_init
-    reg_du[1] = opts.reg_du_init
+    # # initialize regularization
+    # reg_pr[1] = opts.reg_pr_init
+    # reg_du[1] = opts.reg_du_init
 
 
     # compute residual, residual Jacobian
@@ -284,7 +281,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             rz!(ip, rz, z, θ, reg = ip.reg_val) # this is not adapted to the second order cone
 
             # regularize (fixed, TODO: adaptive)
-            reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
+            # reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
             # compute step
             # TODO need to use reg_val here

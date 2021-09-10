@@ -375,6 +375,28 @@ function inequality_indices(model::ContactModel, env::Environment{<:World,Nonlin
 end
 
 """
+	Returns the positive orthant indices in z or Δz.
+"""
+function index_ort(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0)
+	iγ1 = index_γ1(model, env, nquat = nquat)
+	ib1 = index_b1(model, env, nquat = nquat)
+	iψ1 = index_ψ1(model, env, nquat = nquat)
+	is1 = index_s1(model, env, nquat = nquat)
+	iη1 = index_η1(model, env, nquat = nquat)
+	is2 = index_s2(model, env, nquat = nquat)
+	return [[iγ1; ib1; iψ1]; [is1; iη1; is2]]
+end
+
+"""
+	Returns the positive orthant indices in z or Δz.
+"""
+function index_ort(model::ContactModel, env::Environment{<:World,NonlinearCone}; nquat::Int = 0)
+	iγ1 = index_γ1(model, env, nquat = nquat)
+	is1 = index_s1(model, env, nquat = nquat)
+	return [iγ1, is1]
+end
+
+"""
 	Returns the second order cone indices in z or Δz.
 """
 soc_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}; nquat::Int = 0) = Vector{Int}[]
