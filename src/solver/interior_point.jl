@@ -223,6 +223,8 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     iw1s = ip.iΔz[1]
     iorts = ip.iΔz[2]
     isocs = ip.iΔz[3]
+    ibil_ort = ip.ir[5]
+    ibil_soc = ip.ir[6]
 
     idx_ineq = ip.idx_ineq
     idx_ort = ip.idx_ort
@@ -293,7 +295,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             # println("r: ", scn(norm(r.rdyn), digits = 7))
             # println("r: ", scn(norm(r.rrst), digits = 7))
             # println("r: ", scn(norm(r.rbil), digits = 7))
-            general_correction_term!(r, Δ, ibil, idx_ineq, idx_soc, iy1, iy2, nquat = nquat)
+            general_correction_term!(r, Δ, ibil_ort, ibil_soc, iorts, isocs, nquat = nquat)
             # println("r: ", scn(norm(r.rbil), digits = 7))
 
             # Compute corrector search direction
@@ -374,27 +376,20 @@ function rθ!(ip::AbstractIPSolver, rθ::AbstractMatrix{T}, z::AbstractVector{T}
     return nothing
 end
 
-function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_soc,
-        iy1, iy2; nquat::Int = 0) where {T}
-    nc = length(idx_soc[1])
-    nsoc = Int(length(idx_soc) / 2)
-    nineq = Int(length(idx_ineq) / 2)
+function general_correction_term!(r::AbstractVector{T}, Δ, ibil_ort, ibil_soc, iorts, isocs) where {T}
 
+    nc = length(isocs[1])
     # Split between primals and duals
-    idx_soc_p = idx_soc[1]
-    idx_soc_d = idx_soc[2]
-    idx_ineq_1 = intersect(iy1, idx_ineq)
-    idx_ineq_2 = intersect(iy2, idx_ineq)
+    isocs_p = isocs[1]
+    isocs_d = isocs[2]
+    iorts_1 = iorts[1]
+    iorts_2 = iorts[2]
 
-    n_soc = length(idx_soc_p)
-    n_ort = length(idx_ineq_1)
-    r[ibil[1:n_ort] .- nquat] .+= Δ[idx_ineq_1 .- nquat] .* Δ[idx_ineq_2 .- nquat]
-    r[ibil[n_ort+1:end] .- nquat] .+= vcat(
+    r[ibil_ort] .+= Δ[iorts_1] .* Δ[iorts_2]
+    r[ibil_soc] .+= vcat(
         [second_order_cone_product(
-            Δ[idx_soc_d[i] .- nquat],
-            # Δη1[(i - 1) * ne .+ (1:ne)],
-            Δ[idx_soc_p[i] .- nquat],
-            # [Δs2[i]; Δb1[(i-1) * (ne - 1) .+ (1:(ne - 1))]]
+            Δ[isocs_d[i]],
+            Δ[isocs_p[i]],
         ) for i = 1:nc]...)
     return nothing
 end
@@ -475,8 +470,7 @@ function differentiate_solution!(ip::AbstractIPSolver; reg = 0.0)
     linear_solve!(ip.solver, δzs, rz, rθ, reg = reg)
     @inbounds @views @. δzs .*= -1.0
     mapping!(δz, s, δzs, z)
-
-    nothing
+    return nothing
 end
 
 

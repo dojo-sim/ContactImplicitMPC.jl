@@ -586,5 +586,34 @@ function index_residual(model::ContactModel, env::Environment; quat::Bool = fals
 	irst = [iimp; imdp; ifri]
 	ibil = [ibimp; ibmdp; ibfri]
 	ialt = iimp
-	return idyn, irst, ibil, ialt
+	ibil_ort = index_bil_ort(model, env, quat = quat)
+	ibil_soc = index_bil_soc(model, env, quat = quat)
+	return idyn, irst, ibil, ialt, ibil_ort, ibil_soc
+end
+
+
+function index_bil_ort(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
+	ibimp = index_bimp(model, env, quat = quat)
+	ibmdp = index_bmdp(model, env, quat = quat)
+	ibfri = index_bfri(model, env, quat = quat)
+	ibil_ort = [ibimp; ibmdp; ibfri]
+	return ibil_ort
+end
+
+function index_bil_ort(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
+	ibimp = index_bimp(model, env, quat = quat)
+	ibil_ort = ibimp
+	return ibil_ort
+end
+
+function index_bil_soc(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
+	ibil_soc = Vector{Int64}()
+	return ibil_soc
+end
+
+function index_bil_soc(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
+	ibmdp = index_bmdp(model, env, quat = quat)
+	ibfri = index_bfri(model, env, quat = quat)
+	ibil_soc = [ibmdp; ibfri]
+	return ibil_soc
 end
