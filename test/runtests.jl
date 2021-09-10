@@ -52,3 +52,14 @@ include("controller/newton_structure_solver.jl") # fails on github actions
 # # MPC examples
 include("controller/mpc_quadruped.jl")
 include("controller/mpc_flamingo.jl")
+
+
+
+
+# n = 20
+# a = rand(n)
+# ibil = Vector(6:15)
+# ibil_ort = Vector(6:10)
+# ibil_soc = Vector(11:15)
+# irel_ort = [findfirst(x -> x == i, ibil) for i in ibil_ort]
+# irel_soc = [findfirst(x -> x == i, ibil) for i in ibil_soc]

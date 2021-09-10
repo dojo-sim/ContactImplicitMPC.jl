@@ -68,14 +68,23 @@ function z_initialize!(z, model::ContactModel, env::Environment{<:World,Nonlinea
 	return z
 end
 
-function z_warmstart!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q, a, idx_ineq)
+function z_warmstart!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q, a)
 	iq2 = index_q2(model, env, quat = false)
+	iort = index_ort(model, env, quat = false)
+	isoc = index_soc(model, env, quat = false)
 	z[iq2] = q
-	z[idx_ineq] .+= a * rand(length(idx_ineq))
+	for i in eachindex(iort)
+		z[iort[i]] .+= a * rand(length(iort[i]))
+	end
+	for i in eachindex(isoc)
+		for j in eachindex(isoc[i])
+			z[isoc[i][j]] .+= a * rand(length(isoc[i][j]))
+		end
+	end
 	nothing
 end
 
-function z_warmstart!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q, a, idx_ineq)
+function z_warmstart!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q, a)
 	@warn "warm start for second-order cone not implemented"
 	z_initialize!(z, model, env, q)
 	nothing
