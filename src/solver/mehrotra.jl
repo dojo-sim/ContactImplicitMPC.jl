@@ -35,8 +35,8 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     idx_ineq::Vector{Int}        # indices for inequality constraints
     idx_ort::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual
     idx_orts::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual
-    idx_soc::Vector{Vector{Int}} # indices for second-order cone constraints
-    idx_socs::Vector{Vector{Int}} # indices for second-order cone constraints
+    idx_soc # indices for second-order cone constraints
+    idx_socs # indices for second-order cone constraints
     δz::Matrix{T}                # solution gradients (this is always dense)
     δzs::Matrix{T}               # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}                 # problem data

@@ -94,8 +94,8 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     idx_ineq::Vector{Int}      # indices for inequality constraints
     idx_ort::Vector{Vector{Int}}  # indices for inequality constraints split between primal and dual for z
     idx_orts::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual for Δz
-    idx_soc::Vector{Vector{Int}}  # indices for second-order cone constraints for z
-    idx_socs::Vector{Vector{Int}}  # indices for second-order cone constraints for Δz
+    idx_soc  # indices for second-order cone constraints for z
+    idx_socs  # indices for second-order cone constraints for Δz
 
     ix
     iy1
@@ -216,6 +216,14 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     r = ip.r
     rz = ip.rz
     Δ = ip.Δ
+
+    iw1 = ip.iz[1]
+    iort = ip.iz[2]
+    isoc = ip.iz[3]
+    iw1s = ip.iΔz[1]
+    iorts = ip.iΔz[2]
+    isocs = ip.iΔz[3]
+
     idx_ineq = ip.idx_ineq
     idx_ort = ip.idx_ort
     idx_soc = ip.idx_soc
@@ -268,12 +276,12 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
             # println("Δaff1: ", scn(norm(Δ), digits = 7))
 
-            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = 1.0, nquat = nquat)
+            α_ort = ort_step_length(z, Δ, iort, iorts; τ = 1.0)
             α_soc = soc_step_length(z, Δ, idx_soc; τ = 1.0, nquat = nquat, verbose = false)
-            α = min(α_ineq, α_soc)
+            α = min(α_ort, α_soc)
             # println("αaff1: ", scn(norm(α), digits = 7))
 
-            μ, σ = general_centering(z, Δ, idx_ineq, idx_soc, iy1, iy2, α, nquat = nquat)
+            μ, σ = general_centering(z, Δ, iort, iorts, isoc, isocs, α)
             # println("σ*μ: ", scn(norm(σ*μ), digits = 7))
             αaff = α
 
@@ -290,15 +298,14 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
 
             # Compute corrector search direction
             warn && @warn "changed"
-            # linear_solve!(solver, Δ, rz, r)
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val, fact = false)
             # println("Δ: ", scn(norm(Δ), digits = 7))
             τ = max(0.95, 1 - max(r_vio, κ_vio)^2)
             # println("τ: ", scn(norm(τ), digits = 7))
 
-            α_ineq = ineq_step_length(z, Δ, idx_ineq; τ = τ, nquat = nquat)
+            α_ort = ort_step_length(z, Δ, iort, iorts; τ = τ)
             α_soc = soc_step_length(z, Δ, idx_soc; τ = min(τ, 0.99), nquat = nquat, verbose = false)
-            α = min(α_ineq, α_soc)
+            α = min(α_ort, α_soc)
             # println("α: ", scn(norm(α), digits = 7))
 
             # reduce norm of residual
@@ -369,13 +376,13 @@ end
 
 function general_correction_term!(r::AbstractVector{T}, Δ, ibil, idx_ineq, idx_soc,
         iy1, iy2; nquat::Int = 0) where {T}
-    nc = Int(length(idx_soc) / 2)
+    nc = length(idx_soc[1])
     nsoc = Int(length(idx_soc) / 2)
     nineq = Int(length(idx_ineq) / 2)
 
     # Split between primals and duals
-    idx_soc_p = idx_soc[1:nsoc]
-    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_soc_p = idx_soc[1]
+    idx_soc_d = idx_soc[2]
     idx_ineq_1 = intersect(iy1, idx_ineq)
     idx_ineq_2 = intersect(iy2, idx_ineq)
 
@@ -403,13 +410,14 @@ end
 function initial_state!(z::AbstractVector{T}, iy1::SVector{ny,Int}, iy2::SVector{ny,Int},
         idx_ineq, idx_soc; ϵ::T=1e-20) where {T,ny}
 
-    nc = Int(length(idx_soc) / 2)
+        #show idx_soc
+    nc = length(idx_soc[1])
     nsoc = Int(length(idx_soc) / 2)
     nineq = Int(length(idx_ineq) / 2)
 
     # Split between primals and duals
-    idx_soc_p = idx_soc[1:nsoc]
-    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_soc_p = idx_soc[1]
+    idx_soc_d = idx_soc[2]
     idx_ineq_1 = intersect(iy1, idx_ineq)
     idx_ineq_2 = intersect(iy2, idx_ineq)
 
@@ -433,7 +441,7 @@ function initial_state!(z::AbstractVector{T}, iy1::SVector{ny,Int}, iy2::SVector
     z[idx_ineq_2] .= y20
 
     # soc
-    for i = 1:nc
+    for i in eachindex(idx_soc[1])
         e = [1; zeros(length(idx_soc_p[i]) - 1)] # identity element
         y1 = z[idx_soc_p[i]]
         y2 = z[idx_soc_d[i]]
@@ -490,27 +498,26 @@ function residual_violation(ip::AbstractIPSolver, r::AbstractVector{T}; nquat::I
 end
 
 function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
-		idx_ineq, idx_soc, iy1::SVector{n,Int}, iy2::SVector{n,Int}, αaff::T; nquat::Int = 0) where {n,T}
+        iort, iorts, isoc, isocs, αaff::T) where {T}
         # See Section 5.1.3 in CVXOPT
         # μ only depends on the dot products (no cone product)
         # The CVXOPT linear and quadratic cone program solvers
-    nc = Int(length(idx_soc) / 2)
-    nsoc = Int(length(idx_soc) / 2)
-    nineq = Int(length(idx_ineq) / 2)
 
     # Split between primals and duals
-    idx_soc_p = idx_soc[1:nsoc]
-    idx_soc_d = idx_soc[nsoc+1:2nsoc]
-    idx_ineq_1 = intersect(iy1, idx_ineq)
-    idx_ineq_2 = intersect(iy2, idx_ineq)
+    isoc_p = isoc[1]
+    isoc_d = isoc[2]
+    isocs_p = isocs[1]
+    isocs_d = isocs[2]
+
+    n = length(iort[1]) + sum(length.(isoc_p))
 
     # ineq
-    μ = z[idx_ineq_1]' * z[idx_ineq_2]
-    μaff = (z[idx_ineq_1] - αaff * Δaff[idx_ineq_1 .- nquat])' * (z[idx_ineq_2] - αaff * Δaff[idx_ineq_2 .- nquat])
+    μ = z[iort[1]]' * z[iort[2]]
+    μaff = (z[iort[1]] - αaff * Δaff[iorts[1]])' * (z[iort[2]] - αaff * Δaff[iorts[2]])
     # soc
-    for i = 1:nc
-        μ += z[idx_soc_p[i]]' * z[idx_soc_d[i]]
-        μaff += (z[idx_soc_p[i]] - αaff * Δaff[idx_soc_p[i] .- nquat])' * (z[idx_soc_d[i]] - αaff * Δaff[idx_soc_d[i] .- nquat])
+    for i in eachindex(isoc_p)
+        μ += z[isoc_p[i]]' * z[isoc_d[i]]
+        μaff += (z[isoc_p[i]] - αaff * Δaff[isocs_p[i]])' * (z[isoc_d[i]] - αaff * Δaff[isocs_d[i]])
     end
     μ /= n
     μaff /= n
@@ -525,13 +532,13 @@ end
 
 function general_bilinear_violation(z::AbstractVector{T}, idx_ineq, idx_soc, iy1, iy2) where {T}
     # USELESS
-    nc = Int(length(idx_soc) / 2)
+    nc = length(idx_soc[1])
     nsoc = Int(length(idx_soc) / 2)
     nineq = Int(length(idx_ineq) / 2)
 
     # Split between primals and duals
-    idx_soc_p = idx_soc[1:nsoc]
-    idx_soc_d = idx_soc[nsoc+1:2nsoc]
+    idx_soc_p = idx_soc[1]
+    idx_soc_d = idx_soc[2]
     idx_ineq_1 = intersect(iy1, idx_ineq)
     idx_ineq_2 = intersect(iy2, idx_ineq)
 
@@ -546,6 +553,32 @@ function general_bilinear_violation(z::AbstractVector{T}, idx_ineq, idx_soc, iy1
     end
     ineq_vio = maximum(abs.(z[idx_ineq_1] .* z[idx_ineq_2]))
     κ_vio = max(κ_vio, ineq_vio)
+end
+
+
+function general_bilinear_violation(z::AbstractVector{T}, irot, iorts, isoc, isocs) where {T}
+    # USELESS
+    nc = length(idx_soc[1])
+    nsoc = Int(length(idx_soc) / 2)
+    nineq = Int(length(idx_ineq) / 2)
+
+    # Split between primals and duals
+    idx_soc_p = idx_soc[1]
+    idx_soc_d = idx_soc[2]
+    idx_ineq_1 = intersect(iy1, idx_ineq)
+    idx_ineq_2 = intersect(iy2, idx_ineq)
+
+    κ_vio = 0.0
+    for i = 1:nc
+        # scalar part
+        soc_vio_s = z[isoc[1][i]]' * z[isoc[2][i]]
+        # vector part
+        soc_vio_v = z[isoc[1][i][1]] * z[isoc[2][i][2:end]] + z[isoc[2][i][1]] * z[isoc[1][i][2:end]]
+        κ_vio = max(κ_vio, abs(soc_vio_s))
+        κ_vio = max(κ_vio, maximum(abs.(soc_vio_v)))
+    end
+    ort_vio = maximum(abs.(z[iort[1]] .* z[iorts[2]]))
+    κ_vio = max(κ_vio, ort_vio)
 end
 
 function soc_value(u::AbstractVector)
@@ -596,11 +629,11 @@ function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
 end
 
 function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		idx_soc::AbstractVector{Vector{Int}}; τ::T=0.99, nquat::Int = 0, verbose::Bool = false) where {T}
+		idx_soc; τ::T=0.99, nquat::Int = 0, verbose::Bool = false) where {T}
         # We need to make this much more efficient (allocation free)
         # by choosing the right structure for idx_soc.
     α = 1.0
-    for (i,idx) in enumerate(idx_soc)
+    for (i,idx) in enumerate([idx_soc[1]..., idx_soc[2]...])
         # we need -Δ here because we will taking the step x - α Δ
         α = min(α, soc_step_length(z[idx], -Δ[idx .- nquat], τ = τ, verbose = verbose))
         # α = min(α, soc_step_length(z[idx], -Δ[idx], τ = τ, verbose = verbose))
@@ -608,50 +641,26 @@ function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
     return α
 end
 
-function ineq_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		idx_ineq::AbstractVector{Int}; τ::T=0.9995, nquat::Int=0) where {T}
-        # We need to make this much more efficient (allocation free)
-        # by choosing the right structure for idx_ineq.
-
-    n = Int(length(idx_ineq) / 2)
-
-    ατ_p = 1.0 # primal
-    ατ_d = 1.0 # dual
-    for i = 1:n
-        ip = idx_ineq[i]
-        id = idx_ineq[i + n]
-        if Δ[ip .- nquat] > 0.0
-            ατ_p = min(ατ_p, τ * z[ip] / Δ[ip .- nquat])
-        end
-        if Δ[id .- nquat] > 0.0
-            ατ_d = min(ατ_d, τ * z[id] / Δ[id .- nquat])
-        end
-    end
-    α = min(ατ_p, ατ_d)
-    return α
-end
-
-function ineq_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		idx_ort::AbstractVector{Vector{Int}}, idx_orts::AbstractVector{Vector{Int}};
+function ort_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
+		iort::AbstractVector{Vector{Int}}, iorts::AbstractVector{Vector{Int}};
         τ::T=0.9995) where {T}
         # We need to make this much more efficient (allocation free)
-        # by choosing the right structure for idx_ineq.
 
-    n = Int(length(idx_ineq) / 2)
-
-    ατ_p = 1.0 # primal
-    ατ_d = 1.0 # dual
-    for i = 1:n
-        ip = idx_ineq[i]
-        id = idx_ineq[i + n]
-        if Δ[ip .- nquat] > 0.0
-            ατ_p = min(ατ_p, τ * z[ip] / Δ[ip .- nquat])
+    αp = 1.0 # primal
+    αd = 1.0 # dual
+    for i in eachindex(iort[1])
+        ip = iort[1][i] # z
+        id = iort[2][i] # z
+        ips = iorts[1][i] # Δz
+        ids = iorts[2][i] # Δz
+        if Δ[ips] > 0.0
+            αp = min(αp, τ * z[ip] / Δ[ips])
         end
-        if Δ[id .- nquat] > 0.0
-            ατ_d = min(ατ_d, τ * z[id] / Δ[id .- nquat])
+        if Δ[ids] > 0.0
+            αd = min(αd, τ * z[id] / Δ[ids])
         end
     end
-    α = min(ατ_p, ατ_d)
+    α = min(αp, αd)
     return α
 end
 

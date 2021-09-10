@@ -409,7 +409,7 @@ end
 """
 	Returns the second order cone indices in z or Δz.
 """
-index_soc(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false) = Vector{Int}[]
+index_soc(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false) = [Vector{Int}[], Vector{Int}[]]
 
 """
 	Returns the second order cone indices in z or Δz.
@@ -425,7 +425,7 @@ function index_soc(model::ContactModel, env::Environment{<:World,NonlinearCone};
 
 	pr_idx = [[iψ1[i]; ib1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
 	du_idx = [[is2[i]; iη1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
-	[pr_idx..., du_idx...]
+	[pr_idx, du_idx]
 end
 
 function num_var(model::ContactModel, env::Environment; quat::Bool = false)

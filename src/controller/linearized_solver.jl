@@ -563,7 +563,7 @@ end
 
 function general_correction_term!(r::RLin, Δ, ibil, idx_ineq, idx_soc,
         iy1, iy2; nquat::Int = 0) where {T}
-    nc = Int(length(idx_soc) / 2)
+    nc = length(idx_soc[1])
     nsoc = Int(length(idx_soc) / 2)
     nineq = Int(length(idx_ineq) / 2)
 

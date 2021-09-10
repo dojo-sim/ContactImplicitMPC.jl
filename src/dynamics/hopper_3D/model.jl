@@ -94,7 +94,7 @@ nq = 7 # configuration dimension
 nu = 3 # control dimension
 nw = 3 # disturbance dimension
 nc = 1 # number of contact points
-nquat = 1 # number of quaternions
+nquat = 0 # number of quaternions
 
 # Parameters
 g = 9.81 # gravity
