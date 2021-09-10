@@ -91,19 +91,6 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     iΔz                        # indices of Δz = (iw1, iort, isoc)
     ir                         # indices of the residual
 
-    idx_ineq::Vector{Int}      # indices for inequality constraints
-    idx_ort::Vector{Vector{Int}}  # indices for inequality constraints split between primal and dual for z
-    idx_orts::Vector{Vector{Int}} # indices for inequality constraints split between primal and dual for Δz
-    idx_soc  # indices for second-order cone constraints for z
-    idx_socs  # indices for second-order cone constraints for Δz
-
-    ix
-    iy1
-    iy2
-    idyn
-    irst
-    ibil
-
     δz::Matrix{T}              # solution gradients (this is always dense)
     δzs::Matrix{T}             # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}               # problem data
@@ -141,16 +128,6 @@ function interior_point(z, θ;
         rθ = spzeros(s.n, num_data),
         opts::InteriorPointOptions = InteriorPointOptions()) where T
 
-    # Indices
-    nx = length(ix)
-    ny = length(iy1)
-    ix = SVector{nx, Int}(ix)
-    iy1 = SVector{ny, Int}(iy1)
-    iy2 = SVector{ny, Int}(iy2)
-    idyn = SVector{nx, Int}(idyn)
-    irst = SVector{ny, Int}(irst)
-    ibil = SVector{ny, Int}(ibil)
-
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
 
     InteriorPoint(
@@ -164,17 +141,6 @@ function interior_point(z, θ;
         iz,
         iΔz,
         ir,
-        idx_ineq,
-        idx_ort,
-        idx_orts,
-        idx_soc,
-        idx_socs,
-        ix,
-        iy1,
-        iy2,
-        idyn,
-        irst,
-        ibil,
         zeros(length(z), num_data),
         zeros(s.n, num_data),
         θ,
@@ -225,9 +191,6 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     isocs = ip.iΔz[3]
     ibil_ort = ip.ir[5]
     ibil_soc = ip.ir[6]
-
-    iy1 = ip.iy1
-    iy2 = ip.iy2
 
     θ = ip.θ
     solver = ip.solver
@@ -325,15 +288,6 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
         return false
     end
 end
-
-# function rz!(ip::AbstractIPSolver, rz::AbstractMatrix{T}, z::AbstractVector{T},
-#         θ::AbstractVector{T}; reg = 0.0) where {T}
-#     z_reg = deepcopy(z)
-#     z_reg[ip.iy1] = max.(z[ip.iy1], reg)
-#     z_reg[ip.iy2] = max.(z[ip.iy2], reg)
-#     ip.methods.rz!(rz, z_reg, θ)
-#     return nothing
-# end
 
 function rz!(ip::AbstractIPSolver, rz::AbstractMatrix{T}, z::AbstractVector{T},
         θ::AbstractVector{T}; reg = 0.0) where {T}
