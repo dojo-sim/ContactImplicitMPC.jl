@@ -101,16 +101,12 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     irst
     ibil
 
-    # idx_pr::Vector{Int}        # indices for primal variables
-    # idx_du::Vector{Int}        # indices for dual variables
     δz::Matrix{T}              # solution gradients (this is always dense)
     δzs::Matrix{T}             # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}               # problem data
     num_var::Int
     num_data::Int
     solver::LinearSolver
-    # v_pr
-    # v_du
     reg_val
     iterations::Int
     opts::InteriorPointOptions
@@ -130,14 +126,10 @@ function interior_point(z, θ;
         idyn = collect(1:0), # useless
         irst = collect(1:0), # useless
         ibil = collect(1:0), # useless
-        # idx_pr = collect(1:s.n),
-        # idx_du = collect(1:0),
         r! = r!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
-        # v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
-        # v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
         opts::InteriorPointOptions = InteriorPointOptions()) where T
 
     # Indices
@@ -169,16 +161,12 @@ function interior_point(z, θ;
         idyn,
         irst,
         ibil,
-        # idx_pr,
-        # idx_du,
         zeros(length(z), num_data),
         zeros(s.n, num_data),
         θ,
         num_var,
         num_data,
         eval(opts.solver)(rz),
-        # v_pr,
-        # v_du,
         0.0,
         0,
         opts,
@@ -224,8 +212,6 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     ibil = ip.ibil
 
     θ = ip.θ
-    # v_pr = ip.v_pr
-    # v_du = ip.v_du
     solver = ip.solver
     ip.iterations = 0
     comp = false

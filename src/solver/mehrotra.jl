@@ -30,8 +30,6 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     rθ::Rθ                           # residual Jacobian wrt θ
     idx_ineq::Vector{Int}        # indices for inequality constraints
     idx_soc::Vector{Vector{Int}} # indices for second-order cone constraints
-    # idx_pr::Vector{Int}          # indices for primal variables
-    # idx_du::Vector{Int}          # indices for dual variables
     δz::Matrix{T}                # solution gradients (this is always dense)
     δzs::Matrix{T}               # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}                 # problem data
@@ -39,8 +37,6 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     num_var::Int
     num_data::Int
     solver::LinearSolver
-    # v_pr # view
-    # v_du # view
     ix::SVector{nx,Int}
     iy1::SVector{ny,Int}
     iy2::SVector{ny,Int}
@@ -63,8 +59,6 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         num_data = length(θ),
         idx_ineq = collect(1:0),
         idx_soc = Vector{Int}[],
-        # idx_pr = collect(1:s.n),
-        # idx_du = collect(1:0),
         ix = collect(1:0),
         iy1 = collect(1:0),
         iy2 = collect(1:0),
@@ -75,8 +69,6 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         r  = zeros(s.n),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
-        # v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
-        # v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
         opts::MehrotraOptions = MehrotraOptions()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
@@ -96,14 +88,6 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
     ibil = SVector{ny, Int}(ibil)
     ny == 0 && @warn "ny == 0, we will get NaNs during the Mehrotra solve."
 
-    # # Views
-    # z_y1 = view(z, iy1)
-    # z_y2 = view(z, iy2)
-    # Δaff_y1 = view(Δaff, iy1) # TODO this should be in Δ space
-    # Δaff_y2 = view(Δaff, iy2) # TODO this should be in Δ space
-    # Δ_y1 = view(Δ, iy1) # TODO this should be in Δ space
-    # Δ_y2 = view(Δ, iy2) # TODO this should be in Δ space
-
     Ts = typeof.((r, rz, rθ))
     Mehrotra{T,nx,ny,Ts...}(
         s,
@@ -117,8 +101,6 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         rθ,
         idx_ineq,
         idx_soc,
-        # idx_pr,
-        # idx_du,
         zeros(length(z), num_data),
         zeros(s.n, num_data),
         θ,
@@ -126,8 +108,6 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         num_var,
         num_data,
         eval(opts.solver)(rz),
-        # v_pr,
-        # v_du,
         ix,
         iy1,
         iy2,
@@ -173,8 +153,6 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     idx_soc = ip.idx_soc
     θ = ip.θ
     κ = ip.κ
-    # v_pr = ip.v_pr
-    # v_du = ip.v_du
     ix = ip.ix
     iy1 = ip.iy1
     iy2 = ip.iy2
