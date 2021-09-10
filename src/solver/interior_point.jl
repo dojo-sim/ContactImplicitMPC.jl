@@ -70,8 +70,6 @@ end
     max_time::T = 1e5
     diff_sol::Bool = false
     reg::Bool = false
-    # reg_pr_init = 0.0
-    # reg_du_init = 0.0
     ϵ_min = 0.05 # ∈ [0.005, 0.25]
         # smaller -> faster
         # larger  -> slower, more robust
@@ -83,12 +81,6 @@ end
     verbose::Bool = false
     warn::Bool = false
 end
-
-# # regularize Jacobian / Hessian
-# function regularize!(v_pr, v_du, reg_pr, reg_du)
-#     v_pr .+= reg_pr
-#     v_du .-= reg_du
-# end
 
 mutable struct InteriorPoint{T} <: AbstractIPSolver
     s::Space
@@ -109,18 +101,16 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     irst
     ibil
 
-    idx_pr::Vector{Int}        # indices for primal variables
-    idx_du::Vector{Int}        # indices for dual variables
+    # idx_pr::Vector{Int}        # indices for primal variables
+    # idx_du::Vector{Int}        # indices for dual variables
     δz::Matrix{T}              # solution gradients (this is always dense)
     δzs::Matrix{T}             # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}               # problem data
     num_var::Int
     num_data::Int
     solver::LinearSolver
-    v_pr
-    v_du
-    # reg_pr
-    # reg_du
+    # v_pr
+    # v_du
     reg_val
     iterations::Int
     opts::InteriorPointOptions
@@ -140,15 +130,14 @@ function interior_point(z, θ;
         idyn = collect(1:0), # useless
         irst = collect(1:0), # useless
         ibil = collect(1:0), # useless
-        idx_pr = collect(1:s.n),
-        idx_du = collect(1:0),
+        # idx_pr = collect(1:s.n),
+        # idx_du = collect(1:0),
         r! = r!, rz! = rz!, rθ! = rθ!,
         r  = zeros(s.n),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
-        # reg_pr = [0.0], reg_du = [0.0],
-        v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
-        v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
+        # v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
+        # v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
         opts::InteriorPointOptions = InteriorPointOptions()) where T
 
     # Indices
@@ -180,17 +169,16 @@ function interior_point(z, θ;
         idyn,
         irst,
         ibil,
-        idx_pr,
-        idx_du,
+        # idx_pr,
+        # idx_du,
         zeros(length(z), num_data),
         zeros(s.n, num_data),
         θ,
         num_var,
         num_data,
         eval(opts.solver)(rz),
-        v_pr,
-        v_du,
-        # reg_pr, reg_du,
+        # v_pr,
+        # v_du,
         0.0,
         0,
         opts,
@@ -236,18 +224,11 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     ibil = ip.ibil
 
     θ = ip.θ
-    v_pr = ip.v_pr
-    v_du = ip.v_du
-    # reg_pr = ip.reg_pr
-    # reg_du = ip.reg_du
+    # v_pr = ip.v_pr
+    # v_du = ip.v_du
     solver = ip.solver
     ip.iterations = 0
     comp = false
-
-    # # initialize regularization
-    # reg_pr[1] = opts.reg_pr_init
-    # reg_du[1] = opts.reg_du_init
-
 
     # compute residual, residual Jacobian
     ip.methods.r!(r, z, θ, 0.0)
@@ -277,11 +258,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
 
             # compute residual Jacobian
             warn && @warn "changed"
-            # ip.methods.rz!(rz, z, θ)
             rz!(ip, rz, z, θ, reg = ip.reg_val) # this is not adapted to the second order cone
-
-            # regularize (fixed, TODO: adaptive)
-            # reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
             # compute step
             # TODO need to use reg_val here
@@ -652,3 +629,5 @@ function ineq_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
     α = min(ατ_p, ατ_d)
     return α
 end
+
+#650 lines before cleanup

@@ -7,8 +7,6 @@
     diff_sol::Bool = false
     res_norm::Real = Inf
     reg::Bool = false
-    # reg_pr_init = 0.0
-    # reg_du_init = 0.0
     ϵ_min = 0.05 # ∈ [0.005, 0.25]
         # smaller -> faster
         # larger  -> slower, more robust
@@ -32,8 +30,8 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     rθ::Rθ                           # residual Jacobian wrt θ
     idx_ineq::Vector{Int}        # indices for inequality constraints
     idx_soc::Vector{Vector{Int}} # indices for second-order cone constraints
-    idx_pr::Vector{Int}          # indices for primal variables
-    idx_du::Vector{Int}          # indices for dual variables
+    # idx_pr::Vector{Int}          # indices for primal variables
+    # idx_du::Vector{Int}          # indices for dual variables
     δz::Matrix{T}                # solution gradients (this is always dense)
     δzs::Matrix{T}               # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}                 # problem data
@@ -41,22 +39,14 @@ mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     num_var::Int
     num_data::Int
     solver::LinearSolver
-    v_pr # view
-    v_du # view
-    # z_y1 # view into z corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is z space)
-    # z_y2 # view into z corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is z space)
-    # Δaff_y1 # view into Δaff corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
-    # Δaff_y2 # view into Δaff corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
-    # Δ_y1 # view into Δ corresponding to the first set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
-    # Δ_y2 # view into Δ corresponding to the second set of variables in the bilinear constraints y1 .* y2 = 0 (/!\this is Δ space)
+    # v_pr # view
+    # v_du # view
     ix::SVector{nx,Int}
     iy1::SVector{ny,Int}
     iy2::SVector{ny,Int}
     idyn::SVector{nx,Int}
     irst::SVector{ny,Int}
     ibil::SVector{ny,Int}
-    # reg_pr
-    # reg_du
     reg_val::T
     τ::T
     σ::T
@@ -73,8 +63,8 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         num_data = length(θ),
         idx_ineq = collect(1:0),
         idx_soc = Vector{Int}[],
-        idx_pr = collect(1:s.n),
-        idx_du = collect(1:0),
+        # idx_pr = collect(1:s.n),
+        # idx_du = collect(1:0),
         ix = collect(1:0),
         iy1 = collect(1:0),
         iy2 = collect(1:0),
@@ -85,9 +75,8 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         r  = zeros(s.n),
         rz = spzeros(s.n, s.n),
         rθ = spzeros(s.n, num_data),
-        # reg_pr = [0.0], reg_du = [0.0],
-        v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
-        v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
+        # v_pr = view(rz, CartesianIndex.(idx_pr, idx_pr)),
+        # v_du = view(rz, CartesianIndex.(idx_du, idx_du)),
         opts::MehrotraOptions = MehrotraOptions()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
@@ -128,8 +117,8 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         rθ,
         idx_ineq,
         idx_soc,
-        idx_pr,
-        idx_du,
+        # idx_pr,
+        # idx_du,
         zeros(length(z), num_data),
         zeros(s.n, num_data),
         θ,
@@ -137,21 +126,14 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         num_var,
         num_data,
         eval(opts.solver)(rz),
-        v_pr,
-        v_du,
-        # z_y1,
-        # z_y2,
-        # Δaff_y1,
-        # Δaff_y2,
-        # Δ_y1,
-        # Δ_y2,
+        # v_pr,
+        # v_du,
         ix,
         iy1,
         iy2,
         idyn,
         irst,
         ibil,
-        # reg_pr, reg_du,
         0.0,
         0.0,
         0.0,
@@ -191,23 +173,17 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
     idx_soc = ip.idx_soc
     θ = ip.θ
     κ = ip.κ
-    v_pr = ip.v_pr
-    v_du = ip.v_du
+    # v_pr = ip.v_pr
+    # v_du = ip.v_du
     ix = ip.ix
     iy1 = ip.iy1
     iy2 = ip.iy2
-    # reg_pr = ip.reg_pr
-    # reg_du = ip.reg_du
     solver = ip.solver
 
     # Initialization
     ip.iterations = 0
     ip.reg_val = 0.0
     comp = false
-
-    # initialize regularization
-    # reg_pr[1] = opts.reg_pr_init
-    # reg_du[1] = opts.reg_du_init
 
     # compute residual, residual Jacobian
     ip.methods.r!(r, z, θ, 0.0) # here we set κ = 0, Δ = 0
@@ -240,9 +216,6 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
 
             # compute residual Jacobian
             rz!(ip, rz, z, θ, reg = ip.reg_val)
-
-            # regularize (fixed, TODO: adaptive)
-            # reg && regularize!(v_pr, v_du, reg_pr[1], reg_du[1])
 
             # compute affine search direction
             linear_solve!(solver, Δaff, rz, r, reg = ip.reg_val)
