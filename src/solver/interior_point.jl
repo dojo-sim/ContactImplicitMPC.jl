@@ -249,7 +249,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     ip.methods.r!(r, z, θ, 0.0)
 
     κ_vio = bilinear_violation(ip, r)
-    r_vio = residual_violation(ip, r)
+    r_vio = residual_violation(ip, r, nquat = nquat)
     elapsed_time = 0.0
 
     for j = 1:max_iter
@@ -315,7 +315,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             for i = 1:max_ls
                 ip.methods.r!(r, z, θ, 0.0)
                 κ_vio_cand = bilinear_violation(ip, r)
-                r_vio_cand = residual_violation(ip, r)
+                r_vio_cand = residual_violation(ip, r, nquat = nquat)
                 if (r_vio_cand <= r_vio) || (κ_vio_cand <= κ_vio)
                     break
                 end

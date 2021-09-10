@@ -2,7 +2,6 @@ using Random
 using LinearAlgebra
 const ContactControl = Main
 
-include(joinpath(module_dir(), "src", "solver", "interior_point_base.jl"))
 include(joinpath(module_dir(), "src", "solver", "interior_point.jl"))
 include(joinpath(module_dir(), "src", "solver", "mehrotra.jl"))
 
@@ -21,66 +20,6 @@ function get_benchmark_initialization(ref_traj::ContactTraj{T, nq},
 	θ = deepcopy(ref_traj.θ[t])
 	θ[1:nq] += θ_dis * ones(nq)
 	return z, θ
-end
-
-function get_interior_point_base_solver(s::Simulation, space::Space, z, θ;
-	r_tol = 1e-8, κ_tol = 1e-8, linear = false)
-	model = s.model
-	env = s.env
-	lin = LinearizedStep(s, z, θ, 0.0) # /!| here we do not use κ from ref_traj
-	if linear
-		ip = interior_point_base(z, θ,
-			s = space,
-			ix = linearization_var_index(model, env)[1],
-			iy1 = linearization_var_index(model, env)[2],
-			iy2 = linearization_var_index(model, env)[3],
-			idyn = linearization_term_index(model, env)[1],
-			irst = linearization_term_index(model, env)[2],
-			ibil = linearization_term_index(model, env)[3],
-			idx_ineq = inequality_indices(model, env),
-			idx_ort = index_ort(model, env),
-			idx_orts = index_ort(model, env),
-			idx_soc = index_soc(model, env),
-			idx_socs = index_soc(model, env),
-			iz = index_variable(model, env, quat = false),
-			iΔz = index_variable(model, env, quat = true),
-			ir = index_residual(model, env, quat = true),
-			r!  = r!,
-			rz! = rz!,
-			rθ! = rθ!,
-			r  = RLin(s, lin.z, lin.θ, lin.r, lin.rz, lin.rθ),
-			rz = RZLin(s, lin.rz),
-			rθ = RθLin(s, lin.rθ),
-			opts = InteriorPointBaseOptions(
-			max_iter = 100,
-			r_tol = r_tol,
-			κ_tol = κ_tol,
-			solver = :empty_solver,
-			))
-	else
-		ip = interior_point_base(z, θ,
-			s = space,
-			idx_ineq = inequality_indices(model, env),
-			idx_ort = index_ort(model, env),
-			idx_orts = index_ort(model, env),
-			idx_soc = index_soc(model, env),
-			idx_socs = index_soc(model, env),
-			iz = index_variable(model, env, quat = false),
-			iΔz = index_variable(model, env, quat = true),
-			ir = index_residual(model, env, quat = true),
-			r! = s.res.r!,
-			rz! = s.res.rz!,
-			rθ! = s.res.rθ!,
-			rz = s.rz,
-			rθ = s.rθ,
-			opts = InteriorPointBaseOptions(
-			max_iter = 100,
-			r_tol = r_tol,
-			κ_init = κ_tol,
-			κ_tol = 2κ_tol,
-			))
-	end
-	return ip
 end
 
 function get_interior_point_solver(s::Simulation, space::Space, z, θ;
@@ -259,26 +198,6 @@ function record!(stats::BenchmarkStatistics, s, i, r, κ, c)
 	return nothing
 end
 
-function benchmark_interior_point_base!(stats::BenchmarkStatistics, s::Simulation,
-	ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions)
-
-	nz = num_var(s.model, s.env)
-	for t = 1:ref_traj.H
-		z, θ = get_benchmark_initialization(ref_traj, s.model, s.env, t,
-			z_dis = opts.z_dis,
-			θ_dis = opts.θ_dis)
-		ip = get_interior_point_base_solver(s, space, deepcopy(ref_traj.z[t]), deepcopy(ref_traj.θ[t]),
-			r_tol = opts.r_tol,
-			κ_tol = opts.κ_tol,
-			linear = opts.linear)
-		interior_point_solve!(ip, z, θ)
-		rv = norm(ip.r, Inf)
-		fl = !(rv < opts.r_tol)
-		record!(stats, fl, ip.iterations, rv, NaN, NaN)
-	end
-	return nothing
-end
-
 function benchmark_interior_point!(stats::BenchmarkStatistics, s::Simulation,
 	ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions)
 
@@ -324,9 +243,7 @@ end
 
 function benchmark!(stats::BenchmarkStatistics, s::Simulation,
 		ref_traj::ContactTraj, space::Space; opts::BenchmarkOptions, solver::Symbol)
-	if solver == :interior_point_base
-		benchmark_interior_point_base!(stats, s, ref_traj, space; opts = opts)
-	elseif solver == :interior_point
+	if solver == :interior_point
 		benchmark_interior_point!(stats, s, ref_traj, space; opts = opts)
 	elseif solver == :mehrotra
 		benchmark_mehrotra!(stats, s, ref_traj, space; opts = opts)
@@ -447,31 +364,11 @@ opts_nonlin = BenchmarkOptions(r_tol = tol, κ_tol = tol, linear = false)
 opts_lin = BenchmarkOptions(r_tol = tol, κ_tol = tol, linear = true)
 stats = Dict{Symbol, AbstractVector{BenchmarkStatistics}}()
 keys = [
-	:interior_point_base_lin,
-	:interior_point_base_nonlin,
 	:interior_point_lin,
 	:interior_point_nonlin,
 	:mehrotra_lin,
 	:mehrotra_nonlin,
 	]
-
-stats[:interior_point_base_nonlin] = benchmark(
-	s,
-	deepcopy.(ref_traj),
-	space,
-	dist,
-	opts = opts_nonlin,
-	solver = :interior_point_base,
-	)
-
-stats[:interior_point_base_lin] = benchmark(
-	s,
-	deepcopy.(ref_traj),
-	space,
-	dist,
-	opts = opts_lin,
-	solver = :interior_point_base,
-	)
 
 stats[:interior_point_nonlin] = benchmark(
 	s,
