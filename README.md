@@ -1,5 +1,12 @@
 # ContactControl.jl
 [![CI](https://github.com/simon-lc/ContactControl.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/simon-lc/ContactControl.jl/actions/workflows/CI.yml)
+## TODO
+- [ ] imdp and ifri in the soc case
+- [ ] gather all the residual defining functions
+- [ ] profile of IP solver
+- [ ] create a new space structure to pass to the IP solver
+- [ ] remove Mehrotra solver
+
 ## Features
 - [x] Contact dynamics computation
 - [x] Differentiable contact simulator
@@ -37,7 +44,7 @@
 
 # Interior Point Roadmap
 ## full friction cone
-### models 
+### models
 - [x] create particle models with/without linear friction cone
 - [x] create box with/without linear friction cone
 - [ ] check with Zac how to finite difference MRPs
@@ -54,7 +61,7 @@
 - [ ] ensure that condition number remains reasonable
 
 ## quaternions
-### models 
+### models
 - [ ] create box models with/without quaternion, with/without linear friction cone
 ### algorithm
 - [ ] deal with non-euclidean space
@@ -67,4 +74,3 @@
 - [ ] simplify indexing: `index_soc` `ix` `iy1` `iy2` etc. to match the paper's ordering
 - [ ] change the sign of some residual eqauliy terms to math the paper and get an identity block
 - [ ] introduce `ort_indices` to gather the positive orthant indices in the linearized and nonlinear cone settings
-

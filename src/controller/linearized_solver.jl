@@ -561,7 +561,7 @@ function bilinear_violation(ip::AbstractIPSolver, r::RLin{T}; nquat::Int = 0) wh
 end
 
 function general_correction_term!(r::RLin, Δ, ibil_ort, ibil_soc, iorts, isocs) where {T}
-	@warn "define residual order"
+	# @warn "define residual order"
 	nc = length(isocs[1])
     # Split between primals and duals
     isocs_p = isocs[1]

@@ -353,6 +353,29 @@ save_expressions(expr_res, path_res, overwrite=true)
 instantiate_residual!(sim, path_res, path_jac, jacobians = :approx)
 
 ################################################################################
+# Quadruped Downhill
+################################################################################
+dir_model = joinpath(module_dir(), "src/dynamics/quadruped")
+dir_sim   = joinpath(module_dir(), "src/simulation/quadruped")
+model = deepcopy(quadruped_downhill)
+env = deepcopy(piecewise2_2D_lc)
+sim = Simulation(model, env)
+
+path_base = joinpath(dir_model, "dynamics_downhill/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics_downhill/dynamics.jld2")
+path_res = joinpath(dir_sim, "downhill/residual.jld2")
+path_jac = joinpath(dir_sim, "downhill/jacobians.jld2")
+
+instantiate_base!(sim.model, path_base)
+expr_dyn = generate_dynamics_expressions(sim.model, derivs = true)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(sim.model, path_dyn, derivs = true)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, jacobians = :approx)
+save_expressions(expr_res, path_res, overwrite=true)
+@save path_jac rz_sp rθ_sp
+instantiate_residual!(sim, path_res, path_jac, jacobians = :approx)
+################################################################################
 # Quadruped (3D)
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/quadruped_3D")

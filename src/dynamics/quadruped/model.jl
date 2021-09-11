@@ -503,6 +503,7 @@ nquat = 0
 # World parameters
 g = 9.81      # gravity
 μ_world = 1.0 # coefficient of friction
+μ_world_downhill = 0.7 # coefficient of friction
 μ_joint = 0.1 # coefficient of torque friction at the joints
 
 # ~Unitree A1
@@ -566,6 +567,22 @@ quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc, nquat),
 				l_torso, d_torso,
 				m_torso + m_payload,
 				J_torso + J_payload,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				l_thigh, d_thigh, m_thigh, J_thigh,
+				l_leg, d_leg, m_leg, J_leg,
+				BaseMethods(), DynamicsMethods(),
+				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
+
+quadruped_downhill = Quadruped(Dimensions(nq, nu, nw, nc, nquat),
+				g, μ_world_downhill, μ_joint,
+				l_torso, d_torso,
+				m_torso,
+				J_torso,
 				l_thigh, d_thigh, m_thigh, J_thigh,
 				l_leg, d_leg, m_leg, J_leg,
 				l_thigh, d_thigh, m_thigh, J_thigh,
