@@ -443,6 +443,12 @@ function num_data(model::ContactModel)
 	nq + nq + nu + nw + 1 + 1
 end
 
+function num_bilinear(model::ContactModel, env::Environment)
+	nc = model.dim.c
+	nb = nc * friction_dim(env)
+	nc + nb + nc
+end
+
 ################################################################################
 # Packing and Unpacking Variables
 ################################################################################
@@ -552,19 +558,28 @@ end
 # Aggregated indices
 ################################################################################
 
+function index_eq(model::ContactModel, env::Environment; quat::Bool = false)
+	iq2 = index_q2(model, env, quat = quat)
+	iγ1 = index_γ1(model, env, quat = quat)
+	ib1 = index_b1(model, env, quat = quat)
+	iψ1 = index_ψ1(model, env, quat = quat)
+
+	iequ = [iq2; iγ1; ib1; iψ1]
+	iort = index_ort(model, env, quat = quat)
+	isoc = index_soc(model, env, quat = quat)
+	return iequ, iort, isoc
+end
+
 function index_variable(model::ContactModel, env::Environment; quat::Bool = false)
 	iq2 = index_q2(model, env, quat = quat)
 	iγ1 = index_γ1(model, env, quat = quat)
 	ib1 = index_b1(model, env, quat = quat)
 	iψ1 = index_ψ1(model, env, quat = quat)
-	is1 = index_s1(model, env, quat = quat)
-	iη1 = index_η1(model, env, quat = quat)
-	is2 = index_s2(model, env, quat = quat)
 
-	iw1 = iq2
+	iequ = [iq2; iγ1; ib1; iψ1]
 	iort = index_ort(model, env, quat = quat)
 	isoc = index_soc(model, env, quat = quat)
-	return iw1, iort, isoc
+	return iequ, iort, isoc
 end
 
 function index_residual(model::ContactModel, env::Environment; quat::Bool = false)
@@ -586,33 +601,137 @@ function index_residual(model::ContactModel, env::Environment; quat::Bool = fals
 	irst = [iimp; imdp; ifri]
 	ibil = [ibimp; ibmdp; ibfri]
 	ialt = iimp
-	ibil_ort = index_bil_ort(model, env, quat = quat)
-	ibil_soc = index_bil_soc(model, env, quat = quat)
+	ibil_ort = index_ortr(model, env, quat = quat)
+	ibil_soc = index_socr(model, env, quat = quat)
 	return idyn, irst, ibil, ialt, ibil_ort, ibil_soc
 end
 
-function index_bil_ort(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
+function index_equr(model::ContactModel, env::Environment; quat::Bool = false)
+	idyn = index_dyn(model, env, quat = quat)
+	iimp = index_imp(model, env, quat = quat)
+	imdp = index_mdp(model, env, quat = quat)
+	ifri = index_fri(model, env, quat = quat)
+	iequ = [idyn; iimp; imdp; ifri]
+	return iequ
+end
+
+function index_ortr(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
 	ibimp = index_bimp(model, env, quat = quat)
 	ibmdp = index_bmdp(model, env, quat = quat)
 	ibfri = index_bfri(model, env, quat = quat)
-	ibil_ort = [ibimp; ibmdp; ibfri]
-	return ibil_ort
+	iortr = [ibimp; ibmdp; ibfri]
+	return iortr
 end
 
-function index_bil_ort(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
+function index_ortr(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
 	ibimp = index_bimp(model, env, quat = quat)
-	ibil_ort = ibimp
-	return ibil_ort
+	iortr = ibimp
+	return iortr
 end
 
-function index_bil_soc(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
-	ibil_soc = Vector{Int64}()
-	return ibil_soc
+function index_socr(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
+	isocr = Vector{Int64}()
+	return isocr
 end
 
-function index_bil_soc(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
+function index_socr(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
 	ibmdp = index_bmdp(model, env, quat = quat)
 	ibfri = index_bfri(model, env, quat = quat)
-	ibil_soc = [ibmdp; ibfri]
-	return ibil_soc
+	isocr = [ibmdp; ibfri]
+	return isocr
+end
+
+################################################################################
+# Optimization Space
+################################################################################
+
+abstract type OptimizationSpace
+end
+
+mutable struct OptimizationSpace12 <: OptimizationSpace
+	# Set the residual to 0
+	# r(z) = 0
+	# z <- z + Δz
+
+	# Dimensions
+	nz::Int # dimension of the optimization variable z
+	nΔ::Int # dimension of the optimization variable Δz and of the residual r
+	ny::Int # dimension of the bilinear vaiables
+	nquat::Int # number of quaternions
+
+	# Variables
+	dynz::Vector{Int} # indices of the variables associated with the dynamics constraints in z
+	dynΔ::Vector{Int} # indices of the variables associated with the dynamics constraints in Δz
+	ortz::Vector{Vector{Int}} # indices of the variables associated with the positive ORThant constraints in z
+	ortΔ::Vector{Vector{Int}} # indices of the variables associated with the positive ORThant constraints in Δz
+	socz::Vector{Vector{Vector{Int}}} # indices of the variables associated with the Second Order Cone constraints in z
+	socΔ::Vector{Vector{Vector{Int}}} # indices of the variables associated with the Second Order Cone constraints in Δz
+
+	# Residual
+	equr::Vector{Int} # indices of the residual associated with the EQUality constraints in r
+	ortr::Vector{Int} # indices of the residual associated with the positive ORThant constraints in r
+	socr::Vector{Vector{Int}} # indices of the residual associated with the Second Order Cone constraints in r
+	dyn::Vector{Int} # indices of the residual associated with the dynamics constraints in r
+	rst::Vector{Int} # indices of the residual associated with the remaining constraints in r
+	bil::Vector{Int} # indices of the residual associated with the bilinear constraints in r
+	alt::Vector{Int} # indices of the residual associated with the altitude constraints in r
+end
+
+function OptimizationSpace12(model::ContactModel, env::Environment)
+	# Dimensions
+	nz = num_var(model, env, quat = false)
+	nΔ = num_var(model, env, quat = true)
+	ny = num_bilinear(model, env)
+	nquat = model.dim.quat
+
+	# Variables
+	dynz = index_q2(model, env, quat = false)
+	dynΔ = index_q2(model, env, quat = true)
+	ortz = index_ort(model, env, quat = true)
+	ortΔ = index_ort(model, env, quat = false)
+	socz = index_soc(model, env, quat = true)
+	socΔ = index_soc(model, env, quat = false)
+
+	# Residual
+	# dyn = [dyn]
+	# rst = [s1  - ..., ≡ ialt
+	#        η1  - ...,
+	#        s2  - ...,]
+	# bil = [γ1 .* s1 .- κ;
+	#        b1 .* η1 .- κ;
+	#        ψ1 .* s2 .- κ]
+
+	equr = index_equr(model, env, quat = true)
+	ortr = index_ortr(model, env, quat = true)
+	socr = index_socr(model, env, quat = true)
+
+	dyn = index_dyn(model, env, quat = true)
+	imp = index_imp(model, env, quat = true)
+	mdp = index_mdp(model, env, quat = true)
+	fri = index_fri(model, env, quat = true)
+	bimp = index_bimp(model, env, quat = true)
+	bmdp = index_bmdp(model, env, quat = true)
+	bfri = index_bfri(model, env, quat = true)
+
+	rst = [imp; mdp; fri]
+	bil = [bimp; bmdp; bfri]
+	alt = imp
+
+	s = OptimizationSpace12(
+		nz, nΔ, ny, nquat,
+		dynz, dynΔ, ortz, ortΔ, socz, socΔ,
+		equr, ortr, socr, dyn, rst, bil, alt)
+	return s
+end
+
+function OptimizationSpace12()
+	v1 = Vector{Int}()
+	v2 = Vector{Vector{Int}}()
+	v3 = Vector{Vector{Vector{Int}}}()
+
+	s = OptimizationSpace12(
+		0, 0, 0, 0,
+		v1, v1, v2, v2, v3, v3,
+		v1, v1, v2, v1, v1, v1, v1)
+	return s
 end

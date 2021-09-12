@@ -3,7 +3,6 @@ using LinearAlgebra
 # const ContactControl = Main
 
 # include(joinpath(module_dir(), "src", "solver", "interior_point.jl"))
-# include(joinpath(module_dir(), "src", "solver", "interior_point_base.jl"))
 # include(joinpath(module_dir(), "src", "solver", "mehrotra.jl"))
 
 ################################################################################
@@ -21,16 +20,27 @@ end
 function interior_point_timing(ref_traj, t, ip0)
 	e1 = @belapsed begin
 		z, θ = get_initialization(ref_traj, t)
-		ip = deepcopy(ip1)
+		ip = deepcopy(ip0)
 	end
 	e2 = @belapsed begin
 		z, θ = get_initialization(ref_traj, t)
-		ip = deepcopy(ip1)
+		ip = deepcopy(ip0)
 		interior_point_solve!(ip, z, θ)
 	end
 	@show e1
 	@show e2
 	return e2 - e1
+end
+
+function interior_point_profiling(ref_traj, t, ip0, N::Int = 100)
+	@profiler begin
+		for i = 1:N
+			z, θ = get_initialization(ref_traj, t)
+			ip = deepcopy(ip0)
+			interior_point_solve!(ip, z, θ)
+		end
+	end
+	return nothing
 end
 
 ################################################################################
@@ -55,17 +65,6 @@ nθ = num_data(model)
 
 z1, θ1 = get_initialization(ref_traj, t)
 ip1 = interior_point(z1, θ1,
-	ix = linearization_var_index(model, env)[1],
-	iy1 = linearization_var_index(model, env)[2],
-	iy2 = linearization_var_index(model, env)[3],
-	idyn = linearization_term_index(model, env)[1],
-	irst = linearization_term_index(model, env)[2],
-	ibil = linearization_term_index(model, env)[3],
-    idx_ineq = inequality_indices(model, env),
-	idx_ort = index_ort(model, env),
-	idx_orts = index_ort(model, env, quat = true),
-	idx_soc = index_soc(model, env),
-	idx_socs = index_soc(model, env, quat = true),
 	iz = index_variable(model, env, quat = false),
 	iΔz = index_variable(model, env, quat = true),
 	ir = index_residual(model, env, quat = true),
@@ -170,11 +169,11 @@ end
 
 # e_ip = 1e6 * interior_point_timing(ref_traj, t, im_traj1.ip[t])
 
-# @profiler for k = 1:5000
-# 	z1, θ1 = get_initialization(ref_traj, t)
-# 	ip1 = deepcopy(im_traj1.ip[10])
-# 	interior_point_solve!(ip1, z1, θ1)
-# end
+@profiler for k = 1:15000
+	z1, θ1 = get_initialization(ref_traj, t)
+	ip1 = deepcopy(im_traj1.ip[t])
+	interior_point_solve!(ip1, z1, θ1)
+end
 
 
 
@@ -205,146 +204,8 @@ s.res.r!(r2, ip2.z, ip2.θ, 0.0)
 	@test ip2.iterations == 3
 end
 
-
-
-
-
-#
-# lin = LinearizedStep(s, ref_traj.z[t], ref_traj.θ[t], ref_traj.κ[1])
-# opts = MehrotraOptions(solver = :empty_solver)
-# ip = mehrotra(
-# 		 deepcopy(ref_traj.z[t]),
-# 		 deepcopy(ref_traj.θ[t]),
-# 		 idx_ineq = inequality_indices(model, env),
-		# idx_ort = index_ort(model, env),
-# 		 ix = linearization_var_index(model, env)[1],
-# 		 iy1 = linearization_var_index(model, env)[2],
-# 		 iy2 = linearization_var_index(model, env)[3],
-# 		 idyn = linearization_term_index(model, env)[1],
-# 		 irst = linearization_term_index(model, env)[2],
-# 		 ibil = linearization_term_index(model, env)[3],
-# 		 r! = r!,
-# 		 rz! = rz!,
-# 		 rθ! = rθ!,
-# 		 r  = RLin(s, lin.z, lin.θ, lin.r, lin.rz, lin.rθ),
-# 		 rz = RZLin(s, lin.rz),
-# 		 rθ = RθLin(s, lin.rθ),
-# 		 opts = opts)
-#
-# interior_point_solve!(ip)
-
-
-
-# e_me = 1e6 * mehrotra_timing(ref_traj, t, im_traj2.ip[t])
-
-# @profiler for k = 1:5000
-# 	z2, θ2 = get_initialization(ref_traj, t)
-# 	ip2 = deepcopy(im_traj2[10])
-# 	interior_point_solve!(ip2, z2, θ2)
-# end
-# @elapsed for k = 1:3000
-# 	z2, θ2 = get_initialization(ref_traj, t)
-# 	interior_point_solve!(ip2, z2, θ2)
-# end
-
-
-
-#
-# ################################################################################
-# # Test Mehrotra on the linearized problem
-# ################################################################################
-# im_traj2 = ImplicitTraj(ref_traj, s;
-# 	κ = 1e-8,
-# 	ip_type = :mehrotra,
-# 	opts = MehrotraOptions(
-# 			κ_tol = 1.0e-8,
-# 			r_tol = 1.0e-8,
-# 			diff_sol = true,
-# 			max_iter=100,
-# 			ϵ_min=0.05,
-# 			solver=:empty_solver,
-# 			# verbose=true
-# 			))
-#
-# im_traj3 = ImplicitTraj(ref_traj, s;
-# 	κ = 1e-8,
-# 	ip_type = :interior_point,
-# 	opts = InteriorPointOptions(
-# 			κ_tol = 1.0e-8,
-# 			r_tol = 1.0e-8,
-# 			diff_sol = true,
-# 			max_iter=100,
-# 			ϵ_min=0.05,
-# 			solver=:empty_solver,
-# 			# verbose=true
-# 			))
-#
-# for t = 1:ref_traj.H
-# 	z, θ = get_initialization(ref_traj, t)
-# 	ip2 = deepcopy(im_traj2.ip[t])
-# 	interior_point_solve!(ip2, deepcopy(z), deepcopy(θ))
-# 	r2 = zeros(nz)
-# 	s.res.r!(r2, ip2.z, ip2.θ, 0.0)
-#
-# 	ip3 = deepcopy(im_traj3.ip[t])
-# 	interior_point_solve!(ip3, deepcopy(z), deepcopy(θ))
-# 	r3 = zeros(nz)
-# 	s.res.r!(r3, ip3.z, ip3.θ, 0.0)
-# 	@test norm(r2, Inf) < 1e-8
-# 	@test norm(r3, Inf) < 1e-8
-# 	# @test norm((r2 - r3) ./ max.(r3, 1e-10), Inf) < 1e-1
-# 	# @show scn.(ip2.z - ip3.z)
-# 	# @show scn(norm(ip2.z - ip3.z, Inf))
-# 	# @test norm((ip2.z - ip3.z) , Inf) < 1e-1
-# 	@test ip2.iterations == ip3.iterations
-# end
-#
-#
-#
-#
-# im_traj2 = ImplicitTraj(ref_traj, s;
-# 	κ = 1e-8,
-# 	ip_type = :mehrotra,
-# 	opts = MehrotraOptions(
-# 			κ_tol = 2.0 * 1e-8,
-# 			r_tol = 1.0e-8,
-# 			diff_sol = true,
-# 			max_iter=100,
-# 			ϵ_min=0.05,
-# 			solver=:empty_solver,
-# 			verbose=true
-# 			))
-# z2, θ2 = get_initialization(ref_traj, t)
-# ip2 = deepcopy(im_traj2.ip[t])
-# interior_point_solve!(ip2, z2, θ2)
-# r2 = zeros(nz)
-# s.res.r!(r2, ip2.z, ip2.θ, 0.0)
-# @testset "Mehrotra Linear" begin
-# 	@test norm(r2, Inf) < 1e-8
-# 	@test (norm(r2, Inf) - 4.4e-9) < 1e-13
-# 	@test ip2.iterations == 3
-# end
-#
-# im_traj3 = ImplicitTraj(ref_traj, s;
-# 	κ = 1e-8,
-# 	ip_type = :interior_point,
-# 	opts = InteriorPointOptions(
-# 			κ_tol = 2.0 * 1e-8,
-# 			r_tol = 1.0e-8,
-# 			diff_sol = true,
-# 			max_iter=100,
-# 			ϵ_min=0.05,
-# 			max_ls = 1,
-# 			solver=:empty_solver,
-# 			verbose=true
-# 			))
-# z3, θ3 = get_initialization(ref_traj, t)
-# ip3 = deepcopy(im_traj3.ip[t])
-# interior_point_solve!(ip3, z3, θ3)
-# r3 = zeros(nz)
-# s.res.r!(r3, ip3.z, ip3.θ, 0.0)
-# @testset "Mehrotra Linear" begin
-# 	@test norm(r3, Inf) < 1e-8
-# 	@test (norm(r3, Inf) - 4.4e-9) < 1e-13
-# 	@test ip3.iterations == 3
-# end
+@profiler for k = 1:15000
+	z2, θ2 = get_initialization(ref_traj, t)
+	ip2 = deepcopy(im_traj2.ip[t])
+	interior_point_solve!(ip2, z2, θ2)
+end

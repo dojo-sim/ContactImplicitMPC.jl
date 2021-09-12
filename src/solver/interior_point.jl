@@ -80,6 +80,7 @@ end
 
 mutable struct InteriorPoint{T} <: AbstractIPSolver
     s::Space
+    oss::OptimizationSpace
     methods::ResidualMethods
     z::Vector{T}                # current point
     r#::Vector{T}               # residual
@@ -106,6 +107,7 @@ end
 
 function interior_point(z, θ;
         s = Euclidean(length(z)),
+        oss = OptimizationSpace12(),
         num_var = length(z),
         num_data = length(θ),
         iz = nothing,
@@ -132,6 +134,7 @@ function interior_point(z, θ;
 
     InteriorPoint(
         s,
+        oss,
         ResidualMethods(r!, rz!, rθ!),
         z,
         r,
@@ -159,6 +162,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
 
     # space
     s = ip.s
+    oss = ip.oss
     nquat = ip.num_var - s.n
 
     # options

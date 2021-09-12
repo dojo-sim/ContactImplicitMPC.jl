@@ -62,6 +62,7 @@ end
 
 function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
         s = Euclidean(length(z)),
+        oss = OptimizationSpace12(),
         num_var = length(z),
         num_data = length(θ),
         iz = nothing,
