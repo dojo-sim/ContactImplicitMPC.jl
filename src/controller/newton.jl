@@ -36,7 +36,7 @@ end
 function Newton(s::Simulation, H::Int, h::T,
     traj::ContactTraj, im_traj::ImplicitTraj;
     obj::Objective = TrackingObjective(s.model, s.env, H),
-    opts::NewtonOptions = NewtonOptions(), κ::T=im_traj.ip[1].opts.κ_tol) where T
+    opts::NewtonOptions = NewtonOptions(), κ::T=im_traj.ip[1].κ[1]) where T
 
     model = s.model
     env = s.env
@@ -173,7 +173,7 @@ function newton_solve!(core::Newton, s::Simulation,
 	reset!(core, ref_traj, warm_start = warm_start, q0 = q0, q1 = q1)
 
     # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].opts.κ_tol)
+	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
     # Compute residual
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
 
@@ -200,7 +200,7 @@ function newton_solve!(core::Newton, s::Simulation,
 	        update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	        # Compute implicit dynamics for candidate
-			implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].opts.κ_tol)
+			implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
 
 	        # Compute residual for candidate
 	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
@@ -217,7 +217,7 @@ function newton_solve!(core::Newton, s::Simulation,
 	            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	            # Compute implicit dynamics about trial_traj
-				implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].opts.κ_tol)
+				implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
 
 	            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
 	            r_cand_norm = norm(core.res_cand.r, 1)
@@ -243,7 +243,7 @@ function newton_solve!(core::Newton, s::Simulation,
 	                "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits = 0),
 	                "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
 	                "     α: ", -Int(round(log(α))),
-	                "     κ: ", scn(im_traj.ip[1].opts.κ_tol, digits = 0))
+	                "     κ: ", scn(im_traj.ip[1].κ, digits = 0))
 		end
     end
 
