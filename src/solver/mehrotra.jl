@@ -243,13 +243,13 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             # update
             ip.methods.r!(r, z, θ, 0.0) # we set κ= 0.0 to measure the bilinear constraint violation
             verbose && println("iter:", j,
-            "  r: ", scn(norm(r, res_norm)),
-            "  r_vio: ", scn(r_vio),
-            "  κ_vio: ", scn(κ_vio),
-            "  Δ: ", scn(norm(Δ)),
-            "  Δaff: ", scn(norm(Δaff)),
-            "  τ: ", scn(norm(ip.τ)),
-            "  α: ", scn(norm(α)))
+                "  r: ", scn(norm(r, res_norm)),
+                "  r_vio: ", scn(r_vio),
+                "  κ_vio: ", scn(κ_vio),
+                "  Δ: ", scn(norm(Δ)),
+                "  Δaff: ", scn(norm(Δaff)),
+                "  τ: ", scn(norm(ip.τ)),
+                "  α: ", scn(norm(α)))
 
             r_vio = residual_violation(ip, r)
             κ_vio = bilinear_violation(ip, r)
@@ -261,9 +261,14 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
                      )
 
     if (r_vio > r_tol) || (κ_vio > κ_tol)
+        @show (r_vio > r_tol)
+        @show (κ_vio > κ_tol)
         @error "Mehrotra solver failed to reduce residual below r_tol."
         return false
     end
+    # @show R
+    # @show scn.(κ)
+    # @show scn(opts.κ_tol)
     # differentiate solution
     # @warn "wrong reg_val"
     # diff_sol && differentiate_solution!(ip, reg = ip.reg_val)

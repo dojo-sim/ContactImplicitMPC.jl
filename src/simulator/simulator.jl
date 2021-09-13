@@ -2,6 +2,7 @@
     warmstart::Bool = true
     z_warmstart::T = 0.001
     κ_warmstart::T = 0.001
+	failure_abort::Int = 50
 end
 
 mutable struct SimulatorStatistics{T}
@@ -195,6 +196,7 @@ function simulate!(sim::Simulator; verbose = false)
         verbose && println("t = $t / $(sim.traj.H)")
         status = step!(sim, t)
         !status && (@error "failed step (t = $t)")
+		!status && break
     end
 
     return status

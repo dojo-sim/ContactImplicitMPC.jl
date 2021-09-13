@@ -13,7 +13,7 @@ ref_traj_ = deepcopy(ContactControl.get_trajectory(s.model, s.env,
     joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
     load_type = :split_traj_alt))
 ref_traj = deepcopy(ref_traj_)
-# update_friction_coefficient!(ref_traj, model, env)
+update_friction_coefficient!(ref_traj, model, env)
 
 R = Dict{Symbol,Vector}(
 	:dyn => [],
@@ -62,7 +62,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 100 #4000 #3000
+H_sim = 10000 #4000 #3000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -131,8 +131,9 @@ q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = ContactControl.InteriorPointOptions(
+		undercut = Inf,
         r_tol = 1.0e-8,
-        κ_tol = 2.0e-6,
+        κ_tol = 1.0e-7,
         diff_sol = true),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 

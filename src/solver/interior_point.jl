@@ -74,6 +74,7 @@ end
         # 0   -> faster & ill-conditioned
         # 0.1 -> slower & better-conditioned
     solver::Symbol = :lu_solver
+    undercut::T = 5.0
     verbose::Bool = false
     warn::Bool = false
 end
@@ -94,6 +95,7 @@ mutable struct InteriorPoint{T,R,RZ,Rθ} <: AbstractIPSolver
     reg_val::T
     iterations::Int
     opts::InteriorPointOptions{T}
+    κ
 end
 
 function interior_point(z, θ;
@@ -138,6 +140,7 @@ function interior_point(z, θ;
         0.0,
         0,
         opts,
+        zeros(1),
         )
 end
 
@@ -183,11 +186,12 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
     # Initialization
     solver = ip.solver
     ip.iterations = 0
+    no_progress = 0
 
     # compute residual, residual Jacobian
     ip.methods.r!(r, z, θ, 0.0)
     # TODO need least squares init /!|
-    least_squares!(ip, z, θ, r, rz) # seems to be harmful for performance (failure and iteration count)
+    # least_squares!(ip, z, θ, r, rz) # seems to be harmful for performance (failure and iteration count)
     z .= initial_state!(z, ortz, socz) # decrease failure rate for linearized case
 
     ip.methods.r!(r, z, θ, 0.0)
@@ -222,7 +226,7 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
             αaff = α
 
             # Compute corrector residual
-            ip.methods.r!(r, z, θ, max(σ * μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            ip.methods.r!(r, z, θ, max(σ * μ, κ_tol/opts.undercut)) # here we set κ = σ*μ, Δ = Δaff
             general_correction_term!(r, Δ, ortr, socr, ortΔ, socΔ)
 
             # Compute corrector search direction
@@ -248,13 +252,18 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
                 # backtracking
                 candidate_point!(z, s, z, Δ, -α * ls_scale^i)
             end
+
             κ_vio = κ_vio_cand
             r_vio = r_vio_cand
-
+            # nc = Int(oss.ny/4)
+            # nb = Int(oss.ny/2)
             verbose && println("iter:", j,
                 "  r: ", scn(norm(r, Inf)),
                 "  r_vio: ", scn(r_vio),
                 "  κ_vio: ", scn(κ_vio),
+                # "  κ: ", scn(norm(r[oss.bil[1:nc]], Inf)),
+                # "  κ: ", scn(norm(r[oss.bil[nc .+ (1:nb)]], Inf)),
+                # "  κ: ", scn(norm(r[oss.bil[nc + nb .+ (1:nc)]], Inf)),
                 "  Δ: ", scn(norm(Δ)),
                 "  α: ", scn(norm(α)))
 
@@ -270,6 +279,19 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
     end
     if (r_vio < r_tol) && (κ_vio < κ_tol)
         # differentiate solution
+        ########################################################################
+        if R <: RLin
+            # regularize solution so that k_vio == k_tol for all bilinear constraints
+            for i in eachindex(oss.ortz[1])
+                ip.methods.r!(r, z, θ, 0.0)
+                if z[oss.ortz[1][i]] <= z[oss.ortz[2][i]]
+                    z[oss.ortz[1][i]] *= κ_tol / r.rbil[i]
+                else
+                    z[oss.ortz[2][i]] *= κ_tol / r.rbil[i]
+                end
+            end
+        end
+        ########################################################################
         diff_sol && differentiate_solution!(ip, reg = max(ip.reg_val, κ_tol * γ_reg))
         return true
     else
@@ -313,8 +335,10 @@ end
 function least_squares!(ip::AbstractIPSolver, z::AbstractVector{T}, θ::AbstractVector{T},
         r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
     # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
-        # A = rz[[ip.dyn; ip.rst], [ip.ix; ip.iy1; ip.iy2]]
-        # z[[ip.ix; ip.iy1; ip.iy2]] .+= A' * ((A * A') \ r[[ip.dyn; ip.rst]])
+        dyn = ip.oss.dyn
+        rst = ip.oss.rst
+        A = rz[[dyn; rst], :]
+        z .+= A' * ((A * A') \ r[[dyn; rst]])
     return nothing
 end
 

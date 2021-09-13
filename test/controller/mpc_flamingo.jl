@@ -5,7 +5,7 @@
 
     ref_traj_ = deepcopy(ContactControl.get_trajectory(s.model, s.env,
         joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
-        load_type = :split_traj_alt))
+        load_type = :split_traj_alt), update_friction = false)
     ref_traj = deepcopy(ref_traj_)
 
     H = ref_traj.H
