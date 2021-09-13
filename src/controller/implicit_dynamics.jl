@@ -58,6 +58,7 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	ip =  [eval(ip_type)(
 			 deepcopy(ref_traj.z[t]),
 			 deepcopy(ref_traj.θ[t]),
+			 oss = OptimizationSpace13(model, env),
 			 idx_ineq = inequality_indices(model, env),
 			 idx_ort = index_ort(model, env),
 			 idx_orts = index_ort(model, env, quat = true),

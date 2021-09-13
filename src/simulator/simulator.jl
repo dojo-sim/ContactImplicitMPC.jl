@@ -68,6 +68,7 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
 			 z,
 			 θ,
 			 s = space,
+			 oss = OptimizationSpace13(model, env),
 			 idx_ineq = inequality_indices(model, env),
 			 idx_ort = index_ort(model, env),
 			 idx_orts = index_ort(model, env),

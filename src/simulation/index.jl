@@ -648,7 +648,7 @@ end
 abstract type OptimizationSpace
 end
 
-mutable struct OptimizationSpace12 <: OptimizationSpace
+mutable struct OptimizationSpace13 <: OptimizationSpace
 	# Set the residual to 0
 	# r(z) = 0
 	# z <- z + Δz
@@ -670,14 +670,14 @@ mutable struct OptimizationSpace12 <: OptimizationSpace
 	# Residual
 	equr::Vector{Int} # indices of the residual associated with the EQUality constraints in r
 	ortr::Vector{Int} # indices of the residual associated with the positive ORThant constraints in r
-	socr::Vector{Vector{Int}} # indices of the residual associated with the Second Order Cone constraints in r
+	socr::Vector{Int} # indices of the residual associated with the Second Order Cone constraints in r
 	dyn::Vector{Int} # indices of the residual associated with the dynamics constraints in r
 	rst::Vector{Int} # indices of the residual associated with the remaining constraints in r
 	bil::Vector{Int} # indices of the residual associated with the bilinear constraints in r
 	alt::Vector{Int} # indices of the residual associated with the altitude constraints in r
 end
 
-function OptimizationSpace12(model::ContactModel, env::Environment)
+function OptimizationSpace13(model::ContactModel, env::Environment)
 	# Dimensions
 	nz = num_var(model, env, quat = false)
 	nΔ = num_var(model, env, quat = true)
@@ -717,19 +717,19 @@ function OptimizationSpace12(model::ContactModel, env::Environment)
 	bil = [bimp; bmdp; bfri]
 	alt = imp
 
-	s = OptimizationSpace12(
+	s = OptimizationSpace13(
 		nz, nΔ, ny, nquat,
 		dynz, dynΔ, ortz, ortΔ, socz, socΔ,
 		equr, ortr, socr, dyn, rst, bil, alt)
 	return s
 end
 
-function OptimizationSpace12()
+function OptimizationSpace13()
 	v1 = Vector{Int}()
 	v2 = Vector{Vector{Int}}()
 	v3 = Vector{Vector{Vector{Int}}}()
 
-	s = OptimizationSpace12(
+	s = OptimizationSpace13(
 		0, 0, 0, 0,
 		v1, v1, v2, v2, v3, v3,
 		v1, v1, v2, v1, v1, v1, v1)

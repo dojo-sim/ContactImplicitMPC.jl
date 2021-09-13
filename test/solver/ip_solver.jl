@@ -65,9 +65,10 @@ nθ = num_data(model)
 
 z1, θ1 = get_initialization(ref_traj, t)
 ip1 = interior_point(z1, θ1,
-	iz = index_variable(model, env, quat = false),
-	iΔz = index_variable(model, env, quat = true),
-	ir = index_residual(model, env, quat = true),
+	oss = OptimizationSpace13(model, env),
+	# iz = index_variable(model, env, quat = false),
+	# iΔz = index_variable(model, env, quat = true),
+	# ir = index_residual(model, env, quat = true),
 	r! = s.res.r!,
     rz! = s.res.rz!,
     rθ! = s.res.rθ!,

@@ -107,7 +107,7 @@ end
 
 function interior_point(z, θ;
         s = Euclidean(length(z)),
-        oss = OptimizationSpace12(),
+        oss = OptimizationSpace13(),
         num_var = length(z),
         num_data = length(θ),
         iz = nothing,
@@ -159,11 +159,9 @@ end
 
 # interior point solver
 function interior_point_solve!(ip::InteriorPoint{T}) where T
-
     # space
     s = ip.s
     oss = ip.oss
-    nquat = ip.num_var - s.n
 
     # options
     opts = ip.opts
@@ -187,15 +185,14 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     rz = ip.rz
     Δ = ip.Δ
 
-    iw1 = ip.iz[1]
-    iort = ip.iz[2]
-    isoc = ip.iz[3]
-    iw1s = ip.iΔz[1]
-    iorts = ip.iΔz[2]
-    isocs = ip.iΔz[3]
-    ibil = ip.ir[3]
-    ibil_ort = ip.ir[5]
-    ibil_soc = ip.ir[6]
+    # unpack indices
+    ortz = oss.ortz
+    socz = oss.socz
+    ortΔ = oss.ortΔ
+    socΔ = oss.socΔ
+    bil = oss.bil
+    ortr = oss.ortr
+    socr = oss.socr
 
     θ = ip.θ
     solver = ip.solver
@@ -205,7 +202,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     ip.methods.r!(r, z, θ, 0.0)
     # TODO need least squares init /!|
     least_squares!(ip, z, θ, r, rz) # seems to be harmful for performance (failure and iteration count)
-    z .= initial_state!(z, iort, isoc) # decrease failure rate for linearized case
+    z .= initial_state!(z, ortz, socz) # decrease failure rate for linearized case
 
     ip.methods.r!(r, z, θ, 0.0)
 
@@ -232,22 +229,22 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             # compute step
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val)
 
-            α_ort = ort_step_length(z, Δ, iort, iorts; τ = 1.0)
-            α_soc = soc_step_length(z, Δ, isoc, isocs; τ = 1.0, verbose = false)
+            α_ort = ort_step_length(z, Δ, ortz, ortΔ; τ = 1.0)
+            α_soc = soc_step_length(z, Δ, socz, socΔ; τ = 1.0, verbose = false)
             α = min(α_ort, α_soc)
-            μ, σ = general_centering(z, Δ, iort, iorts, isoc, isocs, α)
+            μ, σ = general_centering(z, Δ, ortz, ortΔ, socz, socΔ, α)
             αaff = α
 
             # Compute corrector residual
             ip.methods.r!(r, z, θ, max(σ * μ, κ_tol/50)) # here we set κ = σ*μ, Δ = Δaff
-            general_correction_term!(r, Δ, ibil_ort, ibil_soc, iorts, isocs)
+            general_correction_term!(r, Δ, ortr, socr, ortΔ, socΔ)
 
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val, fact = false)
             τ = max(0.95, 1 - max(r_vio, κ_vio)^2)
 
-            α_ort = ort_step_length(z, Δ, iort, iorts; τ = τ)
-            α_soc = soc_step_length(z, Δ, isoc, isocs; τ = min(τ, 0.99), verbose = false)
+            α_ort = ort_step_length(z, Δ, ortz, ortΔ; τ = τ)
+            α_soc = soc_step_length(z, Δ, socz, socΔ; τ = min(τ, 0.99), verbose = false)
             α = min(α_ort, α_soc)
 
             # reduce norm of residual
@@ -297,10 +294,10 @@ end
 function rz!(ip::AbstractIPSolver, rz::AbstractMatrix{T}, z::AbstractVector{T},
         θ::AbstractVector{T}; reg = 0.0) where {T}
     z_reg = deepcopy(z)
-    iort = ip.iz[2]
-    isoc = ip.iz[3]
-    z_reg[iort[1]] = max.(z[iort[1]], reg)
-    z_reg[iort[2]] = max.(z[iort[2]], reg)
+    ortz = ip.oss.ortz
+    socz = ip.oss.socz
+    z_reg[ortz[1]] = max.(z[ortz[1]], reg)
+    z_reg[ortz[2]] = max.(z[ortz[2]], reg)
     ip.methods.rz!(rz, z_reg, θ)
     return nothing
 end
@@ -311,20 +308,20 @@ function rθ!(ip::AbstractIPSolver, rθ::AbstractMatrix{T}, z::AbstractVector{T}
     return nothing
 end
 
-function general_correction_term!(r::AbstractVector{T}, Δ, ibil_ort, ibil_soc, iorts, isocs) where {T}
+function general_correction_term!(r::AbstractVector{T}, Δ, ibil_ort, ibil_soc, iortΔ, isocΔ) where {T}
     # @warn "define residual order"
-    nc = length(isocs[1])
+    nc = length(isocΔ[1])
     # Split between primals and duals
-    isocs_p = isocs[1]
-    isocs_d = isocs[2]
-    iorts_1 = iorts[1]
-    iorts_2 = iorts[2]
+    isocΔ_p = isocΔ[1]
+    isocΔ_d = isocΔ[2]
+    iortΔ_1 = iortΔ[1]
+    iortΔ_2 = iortΔ[2]
 
-    r[ibil_ort] .+= Δ[iorts_1] .* Δ[iorts_2]
+    r[ibil_ort] .+= Δ[iortΔ_1] .* Δ[iortΔ_2]
     r[ibil_soc] .+= vcat(
         [second_order_cone_product(
-            Δ[isocs_d[i]],
-            Δ[isocs_p[i]],
+            Δ[isocΔ_d[i]],
+            Δ[isocΔ_p[i]],
         ) for i = 1:nc]...)
     return nothing
 end
@@ -414,27 +411,27 @@ end
 ################################################################################
 
 function residual_violation(ip::AbstractIPSolver, r::AbstractVector{T}) where {T}
-    idyn = ip.ir[1]
-    irst = ip.ir[2]
-    max(norm(r[idyn], Inf), norm(r[irst], Inf))
+    dyn = ip.oss.dyn
+    rst = ip.oss.rst
+    max(norm(r[dyn], Inf), norm(r[rst], Inf))
 end
 
 function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
-        iort, iorts, isoc, isocs, αaff::T) where {T}
+        iort, iortΔ, isoc, isocΔ, αaff::T) where {T}
         # See Section 5.1.3 in CVXOPT
         # μ only depends on the dot products (no cone product)
         # The CVXOPT linear and quadratic cone program solvers
 
     # Split between primals and duals
-    n = length(iort[1]) + sum(length.(isocs[1]))
+    n = length(iort[1]) + sum(length.(isocΔ[1]))
 
     # ineq
     μ = z[iort[1]]' * z[iort[2]]
-    μaff = (z[iort[1]] - αaff * Δaff[iorts[1]])' * (z[iort[2]] - αaff * Δaff[iorts[2]])
+    μaff = (z[iort[1]] - αaff * Δaff[iortΔ[1]])' * (z[iort[2]] - αaff * Δaff[iortΔ[2]])
     # soc
     for i in eachindex(isoc[1])
         μ += z[isoc[1][i]]' * z[isoc[2][i]]
-        μaff += (z[isoc[1][i]] - αaff * Δaff[isocs[1][i]])' * (z[isoc[2][i]] - αaff * Δaff[isocs[2][i]])
+        μaff += (z[isoc[1][i]] - αaff * Δaff[isocΔ[1][i]])' * (z[isoc[2][i]] - αaff * Δaff[isocΔ[2][i]])
     end
     μ /= n
     μaff /= n
@@ -443,8 +440,8 @@ function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
 end
 
 function bilinear_violation(ip::AbstractIPSolver, r::AbstractVector{T}) where {T}
-    ibil = ip.ir[3]
-    return norm(r[ibil], Inf)
+    bil = ip.oss.bil[3]
+    return norm(r[bil], Inf)
 end
 
 function soc_value(u::AbstractVector)
@@ -495,27 +492,27 @@ function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
 end
 
 function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		isoc, isocs; τ::T=0.99, verbose::Bool = false) where {T}
+		isoc, isocΔ; τ::T=0.99, verbose::Bool = false) where {T}
         # We need to make this much more efficient (allocation free)
     α = 1.0
     for i = 1:2 # primal - dual
         for j in eachindex(isoc[i]) # number of cones
             # we need -Δ here because we will taking the step x - α Δ
-            α = min(α, soc_step_length(z[isoc[i][j]], -Δ[isocs[i][j]], τ = τ, verbose = verbose))
+            α = min(α, soc_step_length(z[isoc[i][j]], -Δ[isocΔ[i][j]], τ = τ, verbose = verbose))
         end
     end
     return α
 end
 
 function ort_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		iort::AbstractVector{Vector{Int}}, iorts::AbstractVector{Vector{Int}};
+		iort::AbstractVector{Vector{Int}}, iortΔ::AbstractVector{Vector{Int}};
         τ::T=0.9995) where {T}
         # We need to make this much more efficient (allocation free)
     α = 1.0
     for i = 1:2 # primal-dual
         for j in eachindex(iort[i])
             k = iort[i][j] # z
-            ks = iorts[i][j] # Δz
+            ks = iortΔ[i][j] # Δz
             if Δ[ks] > 0.0
                 α = min(α, τ * z[k] / Δ[ks])
             end
