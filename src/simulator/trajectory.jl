@@ -211,17 +211,8 @@ function update_friction_coefficient!(traj::ContactTraj, model::ContactModel, en
 	nothing
 end
 
-function get_trajectory(name::String, gait::String; model_name = name, load_type::Symbol=:split_traj,
-	model::ContactModel=eval(Symbol(model_name)))
-	#TODO: assert model exists
-	path = joinpath(@__DIR__, name)
-	gait_path = joinpath(path, "gaits/" * gait * ".jld2")
-	traj = get_trajectory(model, gait_path; load_type=load_type)
-	return traj
-end
-
 function get_trajectory(model::ContactModel, env::Environment, gait_path::String;
-		load_type::Symbol = :split_traj, update_friction::Bool = false)
+		load_type::Symbol = :split_traj, update_friction::Bool = true)
 	#TODO: assert model exists
 
 	nq = model.dim.q

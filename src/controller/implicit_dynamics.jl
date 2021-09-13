@@ -110,7 +110,7 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 
 	H = ref_traj.H
 	for t = 1:H
-		fill!(im_traj.ip[t].opts.κ_tol, κ)
+		im_traj.ip[t].opts.κ_tol = κ
 	end
 	for t = 1:H-1
 		im_traj.lin[t]   = im_traj.lin[t+1]

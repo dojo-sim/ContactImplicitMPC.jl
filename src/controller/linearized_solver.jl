@@ -560,21 +560,15 @@ function bilinear_violation(ip::AbstractIPSolver, r::RLin{T}; nquat::Int = 0) wh
     norm(r.rbil, Inf)
 end
 
-function general_correction_term!(r::RLin, Δ, ibil_ort, ibil_soc, iorts, isocs) where {T}
+function general_correction_term!(r::RLin, Δ::AbstractVector{T}, ortr::Vector{Int},
+		socr::Vector{Int}, ortΔ::Vector{Vector{Int}}, socΔ::Vector{Vector{Vector{Int}}}) where {T}
 	# @warn "define residual order"
-	nc = length(isocs[1])
-    # Split between primals and duals
-    isocs_p = isocs[1]
-    isocs_d = isocs[2]
-    iorts_1 = iorts[1]
-    iorts_2 = iorts[2]
-
     r.rbil += vcat(
-		Δ[iorts_1] .* Δ[iorts_2], # ORT
+		Δ[ortΔ[1]] .* Δ[ortΔ[2]], # ORT
 		[second_order_cone_product( # SOC
-			Δ[isocs_d[i]],
-			Δ[isocs_p[i]],
-		) for i = 1:nc]...)
+			Δ[socΔ[2][i]],
+			Δ[socΔ[1][i]],
+		) for i in eachindex(socΔ[1])]...)
     return nothing
 end
 

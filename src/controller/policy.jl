@@ -61,8 +61,6 @@ function linearized_mpc_policy(traj, s, obj;
 
 	stride = get_stride(s.model, traj)
 	altitude = zeros(s.model.dim.c)
-	# @info "not sure why we need to do this update."
-	# update!(im_traj, traj, s, altitude, κ = κ_mpc)
 	if newton_mode == :direct
 		newton = Newton(s, H_mpc, traj.h, traj, im_traj, obj = obj, opts = n_opts)
 	elseif newton_mode == :structure

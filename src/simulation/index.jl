@@ -521,7 +521,9 @@ function pack_z(model::ContactModel, env::Environment{<:World,LinearizedCone}, q
 end
 
 function pack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, q2, γ1, b1, ψ1, η1)
-	s1 = ϕ_func(model, q2)
+	@warn "changed"
+	# s1 = ϕ_func(model, q2)
+	s1 = ϕ_func(model, env, q2)
 	s2 = model.μ_world .* γ1
 	return pack_z(model, env, q2, γ1, b1, ψ1, s1, η1, s2)
 end
@@ -529,7 +531,6 @@ end
 function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, s1, η1, s2)
 	return [q2; γ1; b1; ψ1; s1; η1; s2]
 end
-
 
 # function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, s1, η1, s2)
 # 	nz = num_var(model, env)

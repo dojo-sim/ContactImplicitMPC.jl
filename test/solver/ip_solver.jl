@@ -177,6 +177,9 @@ end
 # 	interior_point_solve!(ip1, z1, θ1)
 # end
 
+# z1, θ1 = get_initialization(ref_traj, t)
+# ip1 = deepcopy(im_traj1.ip[t])
+# @code_warntype interior_point_solve!(ip1)
 
 
 ################################################################################

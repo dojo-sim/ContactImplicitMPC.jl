@@ -78,22 +78,22 @@ end
     warn::Bool = false
 end
 
-mutable struct InteriorPoint{T} <: AbstractIPSolver
+mutable struct InteriorPoint{T,R,RZ,Rθ} <: AbstractIPSolver
     s::Space
     oss::OptimizationSpace
     methods::ResidualMethods
-    z::Vector{T}                # current point
-    r#::Vector{T}               # residual
-    rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
-    rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
+    z::Vector{T}               # current point
+    r::R                       # residual
+    rz::RZ                     # residual Jacobian wrt z
+    rθ::Rθ                     # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
     δz::Matrix{T}              # solution gradients (this is always dense)
     δzs::Matrix{T}             # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}               # problem data
     solver::LinearSolver
-    reg_val
+    reg_val::T
     iterations::Int
-    opts::InteriorPointOptions
+    opts::InteriorPointOptions{T}
 end
 
 function interior_point(z, θ;
@@ -142,7 +142,7 @@ function interior_point(z, θ;
 end
 
 # interior point solver
-function interior_point_solve!(ip::InteriorPoint{T}) where T
+function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
 
     # space
     s = ip.s
@@ -296,7 +296,7 @@ function rθ!(ip::AbstractIPSolver, rθ::AbstractMatrix{T}, z::AbstractVector{T}
 end
 
 function general_correction_term!(r::AbstractVector{T}, Δ::AbstractVector{T},
-    ortr::Vector{Vector{Int}}, socr::Vector{Vector{Vector{Int}}},
+    ortr::Vector{Int}, socr::Vector{Int},
     ortΔ::Vector{Vector{Int}}, socΔ::Vector{Vector{Vector{Int}}}) where {T}
     # @warn "define residual order"
     nc = length(socΔ[1])
