@@ -88,8 +88,8 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
 
-    iz                         # indices of z = (iw1, iort, isoc)
-    iΔz                        # indices of Δz = (iw1, iort, isoc)
+    iz                         # indices of z = (iw1, ortz, socz)
+    iΔz                        # indices of Δz = (iw1, ortz, socz)
     ir                         # indices of the residual
 
     δz::Matrix{T}              # solution gradients (this is always dense)
@@ -107,7 +107,7 @@ end
 
 function interior_point(z, θ;
         s = Euclidean(length(z)),
-        oss = OptimizationSpace13(),
+        oss = OptimizationSpace12(),
         num_var = length(z),
         num_data = length(θ),
         iz = nothing,
@@ -159,6 +159,7 @@ end
 
 # interior point solver
 function interior_point_solve!(ip::InteriorPoint{T}) where T
+
     # space
     s = ip.s
     oss = ip.oss
@@ -184,17 +185,18 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
     r = ip.r
     rz = ip.rz
     Δ = ip.Δ
+    θ = ip.θ
 
-    # unpack indices
+    # indices
     ortz = oss.ortz
-    socz = oss.socz
     ortΔ = oss.ortΔ
+    socz = oss.socz
     socΔ = oss.socΔ
     bil = oss.bil
     ortr = oss.ortr
     socr = oss.socr
 
-    θ = ip.θ
+    # Initialization
     solver = ip.solver
     ip.iterations = 0
 
@@ -308,20 +310,20 @@ function rθ!(ip::AbstractIPSolver, rθ::AbstractMatrix{T}, z::AbstractVector{T}
     return nothing
 end
 
-function general_correction_term!(r::AbstractVector{T}, Δ, ibil_ort, ibil_soc, iortΔ, isocΔ) where {T}
+function general_correction_term!(r::AbstractVector{T}, Δ, ortr, socr, ortΔ, socΔ) where {T}
     # @warn "define residual order"
-    nc = length(isocΔ[1])
+    nc = length(socΔ[1])
     # Split between primals and duals
-    isocΔ_p = isocΔ[1]
-    isocΔ_d = isocΔ[2]
-    iortΔ_1 = iortΔ[1]
-    iortΔ_2 = iortΔ[2]
+    socΔ_p = socΔ[1]
+    socΔ_d = socΔ[2]
+    ortΔ_1 = ortΔ[1]
+    ortΔ_2 = ortΔ[2]
 
-    r[ibil_ort] .+= Δ[iortΔ_1] .* Δ[iortΔ_2]
-    r[ibil_soc] .+= vcat(
+    r[ortr] .+= Δ[ortΔ_1] .* Δ[ortΔ_2]
+    r[socr] .+= vcat(
         [second_order_cone_product(
-            Δ[isocΔ_d[i]],
-            Δ[isocΔ_p[i]],
+            Δ[socΔ_d[i]],
+            Δ[socΔ_p[i]],
         ) for i = 1:nc]...)
     return nothing
 end
@@ -329,22 +331,22 @@ end
 function least_squares!(ip::AbstractIPSolver, z::AbstractVector{T}, θ::AbstractVector{T},
         r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
     # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
-        # A = rz[[ip.idyn; ip.irst], [ip.ix; ip.iy1; ip.iy2]]
-        # z[[ip.ix; ip.iy1; ip.iy2]] .+= A' * ((A * A') \ r[[ip.idyn; ip.irst]])
+        # A = rz[[ip.dyn; ip.rst], [ip.ix; ip.iy1; ip.iy2]]
+        # z[[ip.ix; ip.iy1; ip.iy2]] .+= A' * ((A * A') \ r[[ip.dyn; ip.rst]])
     return nothing
 end
 
-function initial_state!(z::AbstractVector{T}, iort, isoc; ϵ::T=1e-20) where {T}
+function initial_state!(z::AbstractVector{T}, ortz, socz; ϵ::T=1e-20) where {T}
 
     # Split between primals and duals
-    isoc_p = isoc[1]
-    isoc_d = isoc[2]
-    iort_p = iort[1]
-    iort_d = iort[2]
+    socz_p = socz[1]
+    socz_d = socz[2]
+    ortz_p = ortz[1]
+    ortz_d = ortz[2]
 
     # ineq
-    y1 = z[iort_p]
-    y2 = z[iort_d]
+    y1 = z[ortz_p]
+    y2 = z[ortz_d]
     δy1 = max(-1.5 * minimum(y1), 0)
     δy2 = max(-1.5 * minimum(y2), 0)
 
@@ -355,14 +357,14 @@ function initial_state!(z::AbstractVector{T}, iort, isoc; ϵ::T=1e-20) where {T}
 
     y10 = y1h .+ δhy1
     y20 = y2h .+ δhy2
-    z[iort_p] .= y10
-    z[iort_d] .= y20
+    z[ortz_p] .= y10
+    z[ortz_d] .= y20
 
     # soc
-    for i in eachindex(isoc_p)
-        e = [1; zeros(length(isoc_p[i]) - 1)] # identity element
-        y1 = z[isoc_p[i]]
-        y2 = z[isoc_d[i]]
+    for i in eachindex(socz_p)
+        e = [1; zeros(length(socz_p[i]) - 1)] # identity element
+        y1 = z[socz_p[i]]
+        y2 = z[socz_d[i]]
         δy1 = max(-1.5 * (y1[1] - norm(y1[2:end])), 0)
         δy2 = max(-1.5 * (y2[1] - norm(y2[2:end])), 0)
 
@@ -373,8 +375,8 @@ function initial_state!(z::AbstractVector{T}, iort, isoc; ϵ::T=1e-20) where {T}
 
         y10 = y1h + δhy1 * e
         y20 = y2h + δhy2 * e
-        z[isoc_p[i]] .= y10
-        z[isoc_d[i]] .= y20
+        z[socz_p[i]] .= y10
+        z[socz_d[i]] .= y20
     end
     return z
 end
@@ -411,27 +413,27 @@ end
 ################################################################################
 
 function residual_violation(ip::AbstractIPSolver, r::AbstractVector{T}) where {T}
-    dyn = ip.oss.dyn
-    rst = ip.oss.rst
+    dyn = ip.ir[1]
+    rst = ip.ir[2]
     max(norm(r[dyn], Inf), norm(r[rst], Inf))
 end
 
 function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
-        iort, iortΔ, isoc, isocΔ, αaff::T) where {T}
+        ortz, ortΔ, socz, socΔ, αaff::T) where {T}
         # See Section 5.1.3 in CVXOPT
         # μ only depends on the dot products (no cone product)
         # The CVXOPT linear and quadratic cone program solvers
 
     # Split between primals and duals
-    n = length(iort[1]) + sum(length.(isocΔ[1]))
+    n = length(ortz[1]) + sum(length.(socΔ[1]))
 
     # ineq
-    μ = z[iort[1]]' * z[iort[2]]
-    μaff = (z[iort[1]] - αaff * Δaff[iortΔ[1]])' * (z[iort[2]] - αaff * Δaff[iortΔ[2]])
+    μ = z[ortz[1]]' * z[ortz[2]]
+    μaff = (z[ortz[1]] - αaff * Δaff[ortΔ[1]])' * (z[ortz[2]] - αaff * Δaff[ortΔ[2]])
     # soc
-    for i in eachindex(isoc[1])
-        μ += z[isoc[1][i]]' * z[isoc[2][i]]
-        μaff += (z[isoc[1][i]] - αaff * Δaff[isocΔ[1][i]])' * (z[isoc[2][i]] - αaff * Δaff[isocΔ[2][i]])
+    for i in eachindex(socz[1])
+        μ += z[socz[1][i]]' * z[socz[2][i]]
+        μaff += (z[socz[1][i]] - αaff * Δaff[socΔ[1][i]])' * (z[socz[2][i]] - αaff * Δaff[socΔ[2][i]])
     end
     μ /= n
     μaff /= n
@@ -440,7 +442,7 @@ function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
 end
 
 function bilinear_violation(ip::AbstractIPSolver, r::AbstractVector{T}) where {T}
-    bil = ip.oss.bil[3]
+    bil = ip.ir[3]
     return norm(r[bil], Inf)
 end
 
@@ -492,27 +494,27 @@ function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
 end
 
 function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		isoc, isocΔ; τ::T=0.99, verbose::Bool = false) where {T}
+		socz, socΔ; τ::T=0.99, verbose::Bool = false) where {T}
         # We need to make this much more efficient (allocation free)
     α = 1.0
     for i = 1:2 # primal - dual
-        for j in eachindex(isoc[i]) # number of cones
+        for j in eachindex(socz[i]) # number of cones
             # we need -Δ here because we will taking the step x - α Δ
-            α = min(α, soc_step_length(z[isoc[i][j]], -Δ[isocΔ[i][j]], τ = τ, verbose = verbose))
+            α = min(α, soc_step_length(z[socz[i][j]], -Δ[socΔ[i][j]], τ = τ, verbose = verbose))
         end
     end
     return α
 end
 
 function ort_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		iort::AbstractVector{Vector{Int}}, iortΔ::AbstractVector{Vector{Int}};
+		ortz::AbstractVector{Vector{Int}}, ortΔ::AbstractVector{Vector{Int}};
         τ::T=0.9995) where {T}
         # We need to make this much more efficient (allocation free)
     α = 1.0
     for i = 1:2 # primal-dual
-        for j in eachindex(iort[i])
-            k = iort[i][j] # z
-            ks = iortΔ[i][j] # Δz
+        for j in eachindex(ortz[i])
+            k = ortz[i][j] # z
+            ks = ortΔ[i][j] # Δz
             if Δ[ks] > 0.0
                 α = min(α, τ * z[k] / Δ[ks])
             end

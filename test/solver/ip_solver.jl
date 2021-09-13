@@ -66,9 +66,9 @@ nθ = num_data(model)
 z1, θ1 = get_initialization(ref_traj, t)
 ip1 = interior_point(z1, θ1,
 	oss = OptimizationSpace13(model, env),
-	# iz = index_variable(model, env, quat = false),
-	# iΔz = index_variable(model, env, quat = true),
-	# ir = index_residual(model, env, quat = true),
+	iz = index_variable(model, env, quat = false),
+	iΔz = index_variable(model, env, quat = true),
+	ir = index_residual(model, env, quat = true),
 	r! = s.res.r!,
     rz! = s.res.rz!,
     rθ! = s.res.rθ!,
@@ -170,11 +170,11 @@ end
 
 # e_ip = 1e6 * interior_point_timing(ref_traj, t, im_traj1.ip[t])
 
-@profiler for k = 1:15000
-	z1, θ1 = get_initialization(ref_traj, t)
-	ip1 = deepcopy(im_traj1.ip[t])
-	interior_point_solve!(ip1, z1, θ1)
-end
+# @profiler for k = 1:15000
+# 	z1, θ1 = get_initialization(ref_traj, t)
+# 	ip1 = deepcopy(im_traj1.ip[t])
+# 	interior_point_solve!(ip1, z1, θ1)
+# end
 
 
 
@@ -205,8 +205,8 @@ s.res.r!(r2, ip2.z, ip2.θ, 0.0)
 	@test ip2.iterations == 3
 end
 
-@profiler for k = 1:15000
-	z2, θ2 = get_initialization(ref_traj, t)
-	ip2 = deepcopy(im_traj2.ip[t])
-	interior_point_solve!(ip2, z2, θ2)
-end
+# @profiler for k = 1:15000
+# 	z2, θ2 = get_initialization(ref_traj, t)
+# 	ip2 = deepcopy(im_traj2.ip[t])
+# 	interior_point_solve!(ip2, z2, θ2)
+# end
