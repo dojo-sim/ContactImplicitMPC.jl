@@ -204,7 +204,7 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTraj, obj::Objec
 
         # Dual regularization
         # jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
-        jac.reg_du .-= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+        jac.reg_du .-= 1.0 * β * im_traj.ip[t].opts.κ_tol # TODO sort the κ stuff, maybe make it a prameter of this function
     end
 
     return nothing

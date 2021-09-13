@@ -206,7 +206,6 @@ end
 		.+ core.ν[1][1], Inf) < 1.0e-8)
 end
 
-
 @testset "Newton: Residual and Jacobian (configurations)" begin
 	s = get_simulation("quadruped", "flat_2D_lc", "flat")
 	model = s.model
