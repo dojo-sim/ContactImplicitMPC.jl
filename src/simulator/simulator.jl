@@ -157,7 +157,7 @@ function step!(sim::Simulator, t)
         sim.traj.q[t+2] = q2
         sim.traj.γ[t] = γ
         sim.traj.b[t] = b
-        sim.traj.κ[1] = ip.κ[1] # the last κ used in the solve.
+        sim.traj.κ[1] = ip.opts.κ_tol
 
         if sim.ip.opts.diff_sol
             sim.deriv_traj.dq2dq0[t] = sim.deriv_traj.vqq

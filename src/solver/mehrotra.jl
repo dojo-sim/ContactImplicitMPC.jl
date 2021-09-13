@@ -20,6 +20,7 @@ end
 
 mutable struct Mehrotra{T,nx,ny,R,RZ,Rθ} <: AbstractIPSolver
     s::Space
+    oss::OptimizationSpace13
     methods::ResidualMethods
     z::Vector{T}                 # current point
     Δaff::Vector{T}              # affine search direction
@@ -105,6 +106,7 @@ function mehrotra(z::AbstractVector{T}, θ::AbstractVector{T};
     Ts = typeof.((r, rz, rθ))
     Mehrotra{T,nx,ny,Ts...}(
         s,
+        oss,
         ResidualMethods(r!, rz!, rθ!),
         z,
         Δaff,

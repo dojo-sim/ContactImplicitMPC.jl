@@ -81,7 +81,6 @@ ldiv!(ip.Δ, fact, r)
 @test status
 @test norm(ip.r, Inf) < opts.r_tol
 @test !ContactControl.inequality_check(ip.z, ip.idx_ineq)
-@test ip.κ[1] < opts.κ_tol
 
 
 

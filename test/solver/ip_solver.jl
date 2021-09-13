@@ -86,8 +86,8 @@ r1 = zeros(nz)
 s.res.r!(r1, ip1.z, ip1.θ, 0.0)
 @testset "Interior Point Non Linear" begin
 	@test norm(r1, Inf) < 1e-8
-	@test abs(norm(r1, Inf) - 1.64e-9) < 1e-11
-	@test ip1.iterations == 9
+	@test abs(norm(r1, Inf) - 3.66e-9) < 1e-11
+	@test ip1.iterations == 10
 end
 # e_ip = 1e6 * interior_point_timing(ref_traj, t, ip1)
 
@@ -97,6 +97,7 @@ end
 
 z2, θ2 = get_initialization(ref_traj, t)
 ip2 = mehrotra(z2, θ2,
+	oss = OptimizationSpace13(model, env),
 	ix = linearization_var_index(model, env)[1],
 	iy1 = linearization_var_index(model, env)[2],
 	iy2 = linearization_var_index(model, env)[3],

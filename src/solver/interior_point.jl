@@ -87,29 +87,18 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     rz#::SparseMatrixCSC{T,Int} # residual Jacobian wrt z
     rθ#::SparseMatrixCSC{T,Int} # residual Jacobian wrt θ
     Δ::Vector{T}               # search direction
-
-    iz                         # indices of z = (iw1, ortz, socz)
-    iΔz                        # indices of Δz = (iw1, ortz, socz)
-    ir                         # indices of the residual
-
     δz::Matrix{T}              # solution gradients (this is always dense)
     δzs::Matrix{T}             # solution gradients (in optimization space; δz = δzs for Euclidean)
     θ::Vector{T}               # problem data
-    num_var::Int
-    num_data::Int
     solver::LinearSolver
     reg_val
     iterations::Int
     opts::InteriorPointOptions
-
-    κ::Vector{T} # useless
 end
 
 function interior_point(z, θ;
         s = Euclidean(length(z)),
         oss = OptimizationSpace12(),
-        num_var = length(z),
-        num_data = length(θ),
         iz = nothing,
         iΔz = nothing,
         ir = nothing,
@@ -125,12 +114,13 @@ function interior_point(z, θ;
         irst = collect(1:0), # useless
         ibil = collect(1:0), # useless
         r! = r!, rz! = rz!, rθ! = rθ!,
-        r  = zeros(s.n),
-        rz = spzeros(s.n, s.n),
-        rθ = spzeros(s.n, num_data),
+        r  = zeros(oss.nΔ),
+        rz = spzeros(oss.nΔ, oss.nΔ),
+        rθ = spzeros(oss.nΔ, length(θ)),
         opts::InteriorPointOptions = InteriorPointOptions()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
+    num_data = length(θ)
 
     InteriorPoint(
         s,
@@ -140,20 +130,14 @@ function interior_point(z, θ;
         r,
         rz,
         rθ,
-        zeros(s.n),
-        iz,
-        iΔz,
-        ir,
-        zeros(length(z), num_data),
-        zeros(s.n, num_data),
+        zeros(oss.nΔ),
+        zeros(oss.nz, num_data),
+        zeros(oss.nΔ, num_data),
         θ,
-        num_var,
-        num_data,
         eval(opts.solver)(rz),
         0.0,
         0,
         opts,
-        [opts.κ_tol],
         )
 end
 
@@ -238,7 +222,7 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             αaff = α
 
             # Compute corrector residual
-            ip.methods.r!(r, z, θ, max(σ * μ, κ_tol/50)) # here we set κ = σ*μ, Δ = Δaff
+            ip.methods.r!(r, z, θ, max(σ * μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
             general_correction_term!(r, Δ, ortr, socr, ortΔ, socΔ)
 
             # Compute corrector search direction
@@ -298,8 +282,9 @@ function rz!(ip::AbstractIPSolver, rz::AbstractMatrix{T}, z::AbstractVector{T},
     z_reg = deepcopy(z)
     ortz = ip.oss.ortz
     socz = ip.oss.socz
-    z_reg[ortz[1]] = max.(z[ortz[1]], reg)
-    z_reg[ortz[2]] = max.(z[ortz[2]], reg)
+    for i in eachindex(ortz) # primal-dual
+        z_reg[ortz[i]] = max.(z[ortz[i]], reg)
+    end
     ip.methods.rz!(rz, z_reg, θ)
     return nothing
 end
@@ -310,20 +295,17 @@ function rθ!(ip::AbstractIPSolver, rθ::AbstractMatrix{T}, z::AbstractVector{T}
     return nothing
 end
 
-function general_correction_term!(r::AbstractVector{T}, Δ, ortr, socr, ortΔ, socΔ) where {T}
+function general_correction_term!(r::AbstractVector{T}, Δ::AbstractVector{T},
+    ortr::Vector{Vector{Int}}, socr::Vector{Vector{Vector{Int}}},
+    ortΔ::Vector{Vector{Int}}, socΔ::Vector{Vector{Vector{Int}}}) where {T}
     # @warn "define residual order"
     nc = length(socΔ[1])
-    # Split between primals and duals
-    socΔ_p = socΔ[1]
-    socΔ_d = socΔ[2]
-    ortΔ_1 = ortΔ[1]
-    ortΔ_2 = ortΔ[2]
 
-    r[ortr] .+= Δ[ortΔ_1] .* Δ[ortΔ_2]
+    r[ortr] .+= Δ[ortΔ[1]] .* Δ[ortΔ[2]]
     r[socr] .+= vcat(
         [second_order_cone_product(
-            Δ[socΔ_d[i]],
-            Δ[socΔ_p[i]],
+            Δ[socΔ[2][i]],
+            Δ[socΔ[1][i]],
         ) for i = 1:nc]...)
     return nothing
 end
@@ -336,7 +318,8 @@ function least_squares!(ip::AbstractIPSolver, z::AbstractVector{T}, θ::Abstract
     return nothing
 end
 
-function initial_state!(z::AbstractVector{T}, ortz, socz; ϵ::T=1e-20) where {T}
+function initial_state!(z::AbstractVector{T}, ortz::Vector{Vector{Int}},
+        socz::Vector{Vector{Vector{Int}}}; ϵ::T=1e-20) where {T}
 
     # Split between primals and duals
     socz_p = socz[1]
@@ -396,8 +379,6 @@ function differentiate_solution!(ip::AbstractIPSolver; reg = 0.0)
     δz = ip.δz
     δzs = ip.δzs
 
-    κ = ip.κ
-
     rz!(ip, rz, z, θ, reg = reg)
     rθ!(ip, rθ, z, θ)
 
@@ -413,20 +394,19 @@ end
 ################################################################################
 
 function residual_violation(ip::AbstractIPSolver, r::AbstractVector{T}) where {T}
-    dyn = ip.ir[1]
-    rst = ip.ir[2]
+    dyn = ip.oss.dyn
+    rst = ip.oss.rst
     max(norm(r[dyn], Inf), norm(r[rst], Inf))
 end
 
 function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
-        ortz, ortΔ, socz, socΔ, αaff::T) where {T}
+        ortz::Vector{Vector{Int}}, ortΔ::Vector{Vector{Int}},
+        socz::Vector{Vector{Vector{Int}}}, socΔ::Vector{Vector{Vector{Int}}}, αaff::T) where {T}
         # See Section 5.1.3 in CVXOPT
         # μ only depends on the dot products (no cone product)
         # The CVXOPT linear and quadratic cone program solvers
 
-    # Split between primals and duals
     n = length(ortz[1]) + sum(length.(socΔ[1]))
-
     # ineq
     μ = z[ortz[1]]' * z[ortz[2]]
     μaff = (z[ortz[1]] - αaff * Δaff[ortΔ[1]])' * (z[ortz[2]] - αaff * Δaff[ortΔ[2]])
@@ -442,11 +422,11 @@ function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
 end
 
 function bilinear_violation(ip::AbstractIPSolver, r::AbstractVector{T}) where {T}
-    bil = ip.ir[3]
+    bil = ip.oss.bil
     return norm(r[bil], Inf)
 end
 
-function soc_value(u::AbstractVector)
+function soc_value(u::AbstractVector{T}) where {T}
     u0 = u[1]
     u1 = u[2:end]
     return (u0^2 - u1' * u1)
@@ -494,10 +474,11 @@ function soc_step_length(λ::AbstractVector{T}, Δ::AbstractVector{T};
 end
 
 function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		socz, socΔ; τ::T=0.99, verbose::Bool = false) where {T}
+		socz::Vector{Vector{Vector{Int}}}, socΔ::Vector{Vector{Vector{Int}}};
+        τ::T=0.99, verbose::Bool = false) where {T}
         # We need to make this much more efficient (allocation free)
     α = 1.0
-    for i = 1:2 # primal - dual
+    for i in eachindex(socz) # primal-dual
         for j in eachindex(socz[i]) # number of cones
             # we need -Δ here because we will taking the step x - α Δ
             α = min(α, soc_step_length(z[socz[i][j]], -Δ[socΔ[i][j]], τ = τ, verbose = verbose))
@@ -507,11 +488,11 @@ function soc_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
 end
 
 function ort_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
-		ortz::AbstractVector{Vector{Int}}, ortΔ::AbstractVector{Vector{Int}};
+		ortz::Vector{Vector{Int}}, ortΔ::Vector{Vector{Int}};
         τ::T=0.9995) where {T}
         # We need to make this much more efficient (allocation free)
     α = 1.0
-    for i = 1:2 # primal-dual
+    for i in eachindex(ortz) # primal-dual
         for j in eachindex(ortz[i])
             k = ortz[i][j] # z
             ks = ortΔ[i][j] # Δz

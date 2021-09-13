@@ -520,7 +520,6 @@ z_sol = solve(z_sol + 0.001 * randn(nz), prob,
 c0 = zeros(np)
 moi_con!(c0, z_sol)
 norm(c0, Inf)
-@show d.ip.κ
 
 x_traj = [z_sol[q_idx[t]] for t = 1:T]
 u_traj = [z_sol[u_idx[t]] for t = 1:T-2]
