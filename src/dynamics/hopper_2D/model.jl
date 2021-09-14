@@ -49,7 +49,8 @@ function C_func(model::Hopper2D, q, q̇)
 end
 
 function ϕ_func(model::Hopper2D, env::Environment, q)
-    SVector{1}(q[2] - q[4] * cos(q[3]) - env.surf(q[1] + q[4] * sin(q[3])))
+	k = kinematics(model, q)
+	SVector{1}([k[2] - env.surf(k[1:1])])
 end
 
 function J_func(::Hopper2D, env::Environment, q)

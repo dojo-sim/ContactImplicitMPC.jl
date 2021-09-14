@@ -17,14 +17,17 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 3000 #35000
+H_sim = 1000 #35000
 
 p = pratt_policy(model, h_sim)
 
-q1_ref = copy(ref_traj.q[2])
-q0_ref = copy(ref_traj.q[1])
+# q1_ref = copy(ref_traj.q[2])
+# q0_ref = copy(ref_traj.q[1])
+q1_ref = [0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2]
+q0_ref = [0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2]
 q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
@@ -56,8 +59,9 @@ plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', colo
 plot_surface!(vis, env, xlims=[-0.5, 1.5], ylims = [-0.5, 0.5])
 plot_lines!(vis, model, sim.traj.q)
 # anim = visualize_robot!(vis, model, sim.traj, sample=10)
-anim = visualize_meshrobot!(vis, model, sim.traj, sample=10)
+anim = visualize_meshrobot!(vis, model, sim.traj, sample=2)
 anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample=10)
+
 
 # filename = "flamingo_100_steps"
 # MeshCat.convert_frames_to_video(
@@ -77,3 +81,8 @@ anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample=10
 #
 # # Animation
 # flamingo_animation!(vis, sim, x -> 0.0)
+
+qref = [0.0, 0.849, -0.00, 0.1, 0.295, -0.3, 0.1, π/2, π/2]
+set_robot!(vis, model, qref)
+qref = [0.0, 0.849, -0.00, -0.3, 0.1, 0.1, 0.295, π/2, π/2]
+set_robot!(vis, model, qref)

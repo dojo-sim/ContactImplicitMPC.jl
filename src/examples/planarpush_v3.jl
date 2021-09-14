@@ -57,52 +57,6 @@ plot(hcat([x[1:nu] for x in sim0.traj.u]...)')
 plot(hcat([x[1:nw] for x in sim0.traj.w]...)')
 plot(hcat([x[1:nc] for x in sim0.traj.γ]...)')
 plot(hcat([x[1:nb] for x in sim0.traj.b]...)')
-# plot(hcat([x[1:8] for x in sim0.traj.b]...)')
-
-
-
-
-
-
-# t = 1
-# z = deepcopy(ref_traj.z[t])
-# θ = deepcopy(ref_traj.θ[t]) + [1e-3rand(nθ-2); zeros(2)]
-# model = s.model
-# env = s.env
-# ip_opts = MehrotraOptions(
-# 				verbose = true,
-# 				r_tol = 1e-8,
-# 				κ_tol = 1e-8,
-# 				)
-# ip = mehrotra(
-# 		 z,
-# 		 θ,
-# 		 idx_ineq = inequality_indices(model, env),
-# 		 idx_ort = index_ort(model, env),
-# 		 idx_orts = index_ort(model, env),
-# 		 idx_soc = index_soc(model, env),
-# 		 idx_socs = index_soc(model, env),
-# 		 iz = index_variable(model, env, quat = false),
-# 		 iΔz = index_variable(model, env, quat = true),
-# 		 ir = index_residual(model, env, quat = true),
-# 		 ix = linearization_var_index(model, env)[1],
-# 		 iy1 = linearization_var_index(model, env)[2],
-# 		 iy2 = linearization_var_index(model, env)[3],
-# 		 idyn = linearization_term_index(model, env)[1],
-# 		 irst = linearization_term_index(model, env)[2],
-# 		 ibil = linearization_term_index(model, env)[3],
-# 		 r! = s.res.r!,
-# 		 rz! = s.res.rz!,
-# 		 rθ! = s.res.rθ!,
-# 		 rz = rz,
-# 		 rθ = rθ,
-# 		 opts = ip_opts)
-#
-# interior_point_solve!(ip, z, θ)
-# residual_violation(ip, ip.r)
-# bilinear_violation(ip, ip.r)
-# ip.iterations
-# M_fast(s.model, q0)
 
 ################################################################################
 # MPC Control
