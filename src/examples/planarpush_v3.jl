@@ -1,7 +1,6 @@
 const ContactControl = Main
 vis = Visualizer()
 open(vis)
-# render(vis)
 include(joinpath(@__DIR__, "..", "dynamics", "planarpush", "visuals.jl"))
 
 ################################################################################
@@ -21,17 +20,17 @@ nθ = num_data(model)
 
 # time
 h = 0.01
-H = 550
+H = 700
 N_sample = 1
 
 # initial conditions
 q0 = @SVector [0.0, 0.0, 0.0, 0.0, -0.25, 1e-4, 0.0]
 q1 = @SVector [0.0, 0.0, 0.0, 0.0, -0.25, 1e-4, 0.0]
 
-# p = open_loop_policy(fill(SVector{nu}([10.0*h, -0.0]), H*2), N_sample=N_sample)
+p = open_loop_policy(fill(SVector{nu}([10.0*h, -0.0]), H*2), N_sample=N_sample)
 # p = open_loop_policy(fill(SVector{nu}([40*h, -0.0]), H), N_sample=N_sample)
-p = open_loop_policy([SVector{nu}([15*h*(0.5+sin(t/50)), 0.0]) for t=1:H], N_sample=N_sample)
-p = open_loop_policy([SVector{nu}([15*h, 0.0]) for t=1:H], N_sample=N_sample)
+# p = open_loop_policy([SVector{nu}([15*h*(0.5+sin(t/50)), 0.0]) for t=1:H], N_sample=N_sample)
+# p = open_loop_policy([SVector{nu}([15*h, 0.0]) for t=1:H], N_sample=N_sample)
 p = open_loop_policy([SVector{nu}([10*h*(1.0+1.0sin(t/50)), 0.0]) for t=1:H], N_sample=N_sample)
 
 # p = open_loop_policy(fill(SVector{nu}([32*h, -0.0]), H), N_sample=N_sample)
@@ -41,7 +40,10 @@ p = open_loop_policy([SVector{nu}([10*h*(1.0+1.0sin(t/50)), 0.0]) for t=1:H], N_
 sim0 = simulator(s, q0, q1, h, H,
 				p = p,
 				ip_opts = ContactControl.InteriorPointOptions(
-					r_tol = 1.0e-8, κ_init=1e-6, κ_tol = 2.0e-6),
+					γ_reg = 0.0,
+					undercut = Inf,
+					r_tol = 1.0e-8,
+					κ_tol = 1.0e-8),
 				sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 # simulate
@@ -62,45 +64,45 @@ plot(hcat([x[1:nb] for x in sim0.traj.b]...)')
 
 
 
-t = 1
-z = deepcopy(ref_traj.z[t])
-θ = deepcopy(ref_traj.θ[t]) + [1e-3rand(nθ-2); zeros(2)]
-model = s.model
-env = s.env
-ip_opts = MehrotraOptions(
-				verbose = true,
-				r_tol = 1e-8,
-				κ_tol = 1e-8,
-				)
-ip = mehrotra(
-		 z,
-		 θ,
-		 idx_ineq = inequality_indices(model, env),
-		 idx_ort = index_ort(model, env),
-		 idx_orts = index_ort(model, env),
-		 idx_soc = index_soc(model, env),
-		 idx_socs = index_soc(model, env),
-		 iz = index_variable(model, env, quat = false),
-		 iΔz = index_variable(model, env, quat = true),
-		 ir = index_residual(model, env, quat = true),
-		 ix = linearization_var_index(model, env)[1],
-		 iy1 = linearization_var_index(model, env)[2],
-		 iy2 = linearization_var_index(model, env)[3],
-		 idyn = linearization_term_index(model, env)[1],
-		 irst = linearization_term_index(model, env)[2],
-		 ibil = linearization_term_index(model, env)[3],
-		 r! = s.res.r!,
-		 rz! = s.res.rz!,
-		 rθ! = s.res.rθ!,
-		 rz = rz,
-		 rθ = rθ,
-		 opts = ip_opts)
-
-interior_point_solve!(ip, z, θ)
-residual_violation(ip, ip.r)
-bilinear_violation(ip, ip.r)
-ip.iterations
-M_fast(s.model, q0)
+# t = 1
+# z = deepcopy(ref_traj.z[t])
+# θ = deepcopy(ref_traj.θ[t]) + [1e-3rand(nθ-2); zeros(2)]
+# model = s.model
+# env = s.env
+# ip_opts = MehrotraOptions(
+# 				verbose = true,
+# 				r_tol = 1e-8,
+# 				κ_tol = 1e-8,
+# 				)
+# ip = mehrotra(
+# 		 z,
+# 		 θ,
+# 		 idx_ineq = inequality_indices(model, env),
+# 		 idx_ort = index_ort(model, env),
+# 		 idx_orts = index_ort(model, env),
+# 		 idx_soc = index_soc(model, env),
+# 		 idx_socs = index_soc(model, env),
+# 		 iz = index_variable(model, env, quat = false),
+# 		 iΔz = index_variable(model, env, quat = true),
+# 		 ir = index_residual(model, env, quat = true),
+# 		 ix = linearization_var_index(model, env)[1],
+# 		 iy1 = linearization_var_index(model, env)[2],
+# 		 iy2 = linearization_var_index(model, env)[3],
+# 		 idyn = linearization_term_index(model, env)[1],
+# 		 irst = linearization_term_index(model, env)[2],
+# 		 ibil = linearization_term_index(model, env)[3],
+# 		 r! = s.res.r!,
+# 		 rz! = s.res.rz!,
+# 		 rθ! = s.res.rθ!,
+# 		 rz = rz,
+# 		 rθ = rθ,
+# 		 opts = ip_opts)
+#
+# interior_point_solve!(ip, z, θ)
+# residual_violation(ip, ip.r)
+# bilinear_violation(ip, ip.r)
+# ip.iterations
+# M_fast(s.model, q0)
 
 ################################################################################
 # MPC Control
@@ -111,28 +113,29 @@ ref_traj.H
 
 # MPC
 N_sample = 1
-H_mpc = 10
+H_mpc = 20
 h_sim = h / N_sample
-H_sim = min((H-H_mpc-1)*N_sample, 540)
+H_sim = min((H-H_mpc-1)*N_sample, 675)
 
 # barrier parameter
-κ_mpc = 1.0e-3
+κ_mpc = 5.0e-4
 
 # Aggressive
 obj = TrackingVelocityObjective(model, s.env, H_mpc,
-	q = [Diagonal(1.0e-4 * [1e2, 1e2, 1e-1, 1e-1, 1e-0, 1e-0, 1e-0,]) for t = 1:H_mpc],
+	# q = [Diagonal(1.0e-4 * [1e2, 1e2, 1e-1, 1e-1, 1e-0, 1e-0, 1e-0,]) for t = 1:H_mpc],
+	q = [Diagonal(1.0e-4 * [1e2, 1e2, 1e-1, 1e-1, 1e1, 1e1, 1e-0,]) for t = 1:H_mpc],
 	v = [Diagonal(1.0e-3 * ones(model.dim.q)) for t = 1:H_mpc],
 	u = [Diagonal(1.0e-6 * ones(model.dim.u)) for t = 1:H_mpc],
 	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
 	b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H_mpc])
 
-#
-obj = TrackingVelocityObjective(model, s.env, H_mpc,
-	q = [Diagonal(1.0e-0 * [1e1, 1e1, 1e0, 1e1, 1e-2, 1e-2, 1e-2,]) for t = 1:H_mpc],
-	v = [Diagonal(1.0e-1 * ones(model.dim.q)) for t = 1:H_mpc],
-	u = [Diagonal(1.0e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-	b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H_mpc])
+# #
+# obj = TrackingVelocityObjective(model, s.env, H_mpc,
+# 	q = [Diagonal(1.0e-1 * [1e1, 1e1, 1e0, 1e1, 1e-2, 1e-2, 1e-2,]) for t = 1:H_mpc],
+# 	v = [Diagonal(1.0e-0 * ones(model.dim.q)) for t = 1:H_mpc],
+# 	u = [Diagonal(1.0e-3 * ones(model.dim.u)) for t = 1:H_mpc],
+# 	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
+# 	b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H_mpc])
 
 p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -141,63 +144,33 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     n_opts = NewtonOptions(
 		r_tol = 3e-4,
 		β_init = 1e-5,
-        # r_tol = 5e1,
-        solver = :ldl_solver,
-		verbose=true,
+        # solver = :ldl_solver,
+		# verbose=true,
 		max_iter = 5),
-		# max_iter = 50),
     mpc_opts = LinearizedMPCOptions(
 		# live_plotting=true
 		))
-
-p = linearized_mpc_policy(ref_traj, s, obj,
-    H_mpc = H_mpc,
-    N_sample = N_sample,
-    κ_mpc = κ_mpc,
-	# mode = :configurationforce,
-	mode = :configuration,
-	ip_type = :mehrotra,
-    n_opts = NewtonOptions(
-        r_tol = 3e-4,
-        max_iter = 5,
-		# max_time = ref_traj.h, # HARD REAL TIME
-		),
-    mpc_opts = LinearizedMPCOptions(
-        # live_plotting=true,
-        # altitude_update = true,
-        # altitude_impact_threshold = 0.02,
-        # altitude_verbose = true,
-        ),
-	ip_opts = MehrotraOptions(
-		max_iter = 100,
-		# verbose = true,
-		r_tol = 3.0e-4,
-		κ_tol = 3.0e-4,
-		diff_sol = true,
-		# κ_reg = 1e-3,
-		# γ_reg = 1e-1,
-		solver = :empty_solver,
-		),
-    )
 
 # p = open_loop_policy(fill(SVector{nu}([40*h, -0.0]), H*2), N_sample=N_sample)
 using Random
 Random.seed!(100)
 # d = open_loop_disturbances([[0.05*rand(), 0.0, 0.4*rand()] for t=1:H_sim], N_sample)
 # d = open_loop_disturbances([[0.0, 0.0, 0.25*rand()+0.5] for t=1:H_sim], N_sample)
-d = open_loop_disturbances([[0.0, 0.0, 0.0] for t=1:H_sim], N_sample)
+# d = open_loop_disturbances([[0.0, 0.0, 0.35] for t=1:H_sim], N_sample)
+d = open_loop_disturbances([[0.0, 0.0, 0.15] for t=1:H_sim], N_sample)
+
 
 q0_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 1e-4, 0.0]
 q1_sim = @SVector [0.00, 0.00, 0.0, 0.0, -0.25, 1e-4, 0.0]
 
 sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-	# d = d,
+	d = d,
     ip_opts = ContactControl.InteriorPointOptions(
+		γ_reg = 0.0,
+		undercut = Inf,
         r_tol = 1.0e-8,
-        κ_init = 1.0e-6,
-        κ_tol = 2.0e-6,
-		diff_sol=true),
+        κ_tol = 1.0e-8),
     sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
 sim.traj.H

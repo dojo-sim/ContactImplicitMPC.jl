@@ -243,7 +243,7 @@ function newton_solve!(core::Newton, s::Simulation,
 	                "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits = 0),
 	                "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
 	                "     α: ", -Int(round(log(α))),
-	                "     κ: ", scn(im_traj.ip[1].κ, digits = 0))
+	                "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0))
 		end
     end
 

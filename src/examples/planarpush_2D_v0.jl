@@ -1,7 +1,6 @@
 const ContactControl = Main
 vis = Visualizer()
 open(vis)
-# render(vis)
 include(joinpath(@__DIR__, "..", "dynamics", "planarpush_2D", "visuals.jl"))
 
 ################################################################################
@@ -38,7 +37,10 @@ p = open_loop_policy([SVector{nu}([15*h*(0.5+sin(t/50))]) for t=1:H], N_sample=N
 sim0 = simulator(s, q0, q1, h, H,
 				p = p,
 				ip_opts = ContactControl.InteriorPointOptions(
-					r_tol = 1.0e-8, κ_init=1e-6, κ_tol = 2.0e-6),
+					γ_reg = 0.0,
+					undercut = Inf,
+					r_tol = 1.0e-8,
+					κ_tol = 1.0e-8),
 				sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 # simulate
@@ -73,7 +75,7 @@ H_sim = min((H-H_mpc-1)*N_sample, 5500)
 # H_sim = 1
 
 # barrier parameter
-κ_mpc = 1.0e-4
+κ_mpc = 2.0e-4
 # κ_mpc = 1.0e-2
 
 # Aggressive
@@ -84,13 +86,13 @@ obj = TrackingVelocityObjective(model, s.env, H_mpc,
 	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
 	b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H_mpc])
 
-#
-obj = TrackingVelocityObjective(model, s.env, H_mpc,
-	q = [Diagonal(1.0e-0 * [1e0, 1e0, 1e-4, 1e-4]) for t = 1:H_mpc],
-	v = [Diagonal(1.0e-1 * ones(model.dim.q)) for t = 1:H_mpc],
-	u = [Diagonal(1.0e-5 * ones(model.dim.u)) for t = 1:H_mpc],
-	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-	b = [Diagonal(1.0e-b * ones(nb)) for t = 1:H_mpc])
+# #
+# obj = TrackingVelocityObjective(model, s.env, H_mpc,
+# 	q = [Diagonal(1.0e-0 * [1e0, 1e0, 1e-4, 1e-4]) for t = 1:H_mpc],
+# 	v = [Diagonal(1.0e-1 * ones(model.dim.q)) for t = 1:H_mpc],
+# 	u = [Diagonal(1.0e-5 * ones(model.dim.u)) for t = 1:H_mpc],
+# 	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
+# 	b = [Diagonal(1.0e-100 * ones(nb)) for t = 1:H_mpc])
 
 p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -133,10 +135,10 @@ sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
 	d = d,
     ip_opts = ContactControl.InteriorPointOptions(
-        r_tol = 1.0e-8,
-        κ_init = 1.0e-6,
-        κ_tol = 2.0e-6,
-		diff_sol=true),
+		γ_reg = 0.0,
+		undercut = Inf,
+		r_tol = 1.0e-8,
+        κ_tol = 1.0e-8,),
     sim_opts = ContactControl.SimulatorOptions(warmstart = false))
 
 sim.traj.H
@@ -148,7 +150,6 @@ anim = visualize_robot!(vis, model, ref_traj, name=:ref, anim=anim, sample = 1, 
 
 plot([t*h for t=0:H-1], hcat([x[1:1] ./ N_sample for x in ref_traj.u[1:H]]...)')
 scatter!([t*h/N_sample for t=0:H_sim-1], hcat([x[1:1] for x in sim.traj.u[1:H_sim]]...)')
-# scatter(hcat([x[1:2] for x in sim.traj.u[1:end]]...)')
 
 iu = Vector(2nq .+ (1:nu))
 iq2 = Vector(1:nq)
