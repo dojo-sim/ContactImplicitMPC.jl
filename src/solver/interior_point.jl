@@ -73,8 +73,12 @@ end
     γ_reg = 1e-1 # regularization scaling parameters ∈ [0, 0.1]:
         # 0   -> faster & ill-conditioned
         # 0.1 -> slower & better-conditioned
+        # simulation choose γ_reg = 0.1
+        # MPC choose γ_reg = 0.0
     solver::Symbol = :lu_solver
-    undercut::T = 5.0
+    undercut::T = 5.0 # the solver will aim at reaching κ_vio = κ_tol / undercut
+        # simulation choose undercut = Inf
+        # MPC choose undercut = 5.0
     verbose::Bool = false
     warn::Bool = false
 end
@@ -124,7 +128,8 @@ function interior_point(z, θ;
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
     num_data = length(θ)
 
-    InteriorPoint(
+    TYPE = typeof.([z[1], r, rz, rθ])
+    InteriorPoint{TYPE...}(
         s,
         oss,
         ResidualMethods(r!, rz!, rθ!),
@@ -280,7 +285,7 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
     if (r_vio < r_tol) && (κ_vio < κ_tol)
         # differentiate solution
         ########################################################################
-        if R <: RLin
+        if false && R <: RLin
             # regularize solution so that k_vio == k_tol for all bilinear constraints
             for i in eachindex(oss.ortz[1])
                 ip.methods.r!(r, z, θ, 0.0)

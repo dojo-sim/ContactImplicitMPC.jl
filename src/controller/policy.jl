@@ -41,8 +41,9 @@ function linearized_mpc_policy(traj, s, obj;
 		live_plotting = false),
 	mpc_opts = LinearizedMPCOptions(),
 	ip_opts = eval(interior_point_options(ip_type))(
-				# κ_init = κ_mpc,
-				κ_tol = 2.0 * κ_mpc,
+				γ_reg = 0.1,
+				undercut = 5.0,
+				κ_tol = κ_mpc,
 				r_tol = 1.0e-8,
 				diff_sol = true,
 				solver = :empty_solver,

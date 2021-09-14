@@ -39,8 +39,7 @@ include("solver/ldl.jl")
 include("solver/qr.jl")
 include("solver/schur.jl")
 include("solver/cones.jl") #
-include("solver/interior_point.jl")
-include("solver/mehrotra.jl")
+
 
 # Environment
 include("simulator/environment.jl")
@@ -50,6 +49,12 @@ include("dynamics/model.jl")
 
 # Simulator
 include("simulation/index.jl")
+
+# Solver
+include("solver/interior_point.jl")
+include("solver/mehrotra.jl")
+
+# Simulator
 include("simulation/contact_methods.jl")
 include("simulation/simulation.jl")
 include("simulator/trajectory.jl")
@@ -185,5 +190,42 @@ export
     LUSolver,
     lu_solver,
     factorize!,
-    linear_solve!
+    linear_solve!,
+    OptimizationSpace,
+    OptimizationSpace13,
+    index_q2,
+    index_γ1,
+    index_b1,
+    index_ψ1,
+    index_s1,
+    index_η1,
+    index_s2,
+    index_q0,
+    index_q1,
+    index_u1,
+    index_w1,
+    index_μ,
+    index_h,
+    index_dyn,
+    index_imp,
+    index_mdp,
+    index_fri,
+    index_bimp,
+    index_bmdp,
+    index_bfri,
+    linearization_var_index,
+    linearization_term_index,
+    get_bilinear_indices,
+    inequality_indices,
+    index_ort,
+    index_soc,
+    num_var,
+    num_data,
+    num_bilinear,
+    index_eq,
+    index_variable,
+    index_residual,
+    index_equr,
+    index_ortr,
+    index_socr
 end # module

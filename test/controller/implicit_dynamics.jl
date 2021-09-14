@@ -26,6 +26,7 @@
 
 	ContactControl.simulate!(sim, verbose = false)
 	ref_traj = deepcopy(sim.traj)
+	ref_traj.κ .= κ # sets κ_tol for the im_traj IP solvers
 	traj0 = deepcopy(ref_traj)
 
 	im_traj = ContactControl.ImplicitTraj(ref_traj, s, mode = :configuration)

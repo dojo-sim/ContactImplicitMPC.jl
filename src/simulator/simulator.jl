@@ -48,7 +48,10 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
     rθ = s.rθ,
     space = Euclidean(num_var(s.model, s.env)),
     ip_type::Symbol = :interior_point, # mehrotra
-    ip_opts = eval(interior_point_options(ip_type))(),
+    ip_opts = eval(interior_point_options(ip_type))(
+		undercut = Inf,
+		γ_reg = 0.0,
+		),
     sim_opts = SimulatorOptions{S}()) where S
 
     model = s.model

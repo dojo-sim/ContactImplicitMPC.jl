@@ -14,6 +14,9 @@
     γ_reg = 1e-1 # regularization scaling parameters ∈ [0, 0.1]:
         # 0   -> faster & ill-conditioned
         # 0.1 -> slower & better-conditioned
+    undercut::T = 5.0 # the solver will aim at reaching κ_vio = κ_tol / undercut
+        # simulation choose undercut = Inf
+        # MPC choose undercut = 5.0
     solver::Symbol = :lu_solver
     verbose::Bool = false
 end
@@ -228,7 +231,7 @@ function interior_point_solve!(ip::Mehrotra{T,nx,ny,R,RZ,Rθ}) where {T,nx,ny,R,
             centering!(ip, z, Δaff, iy1, iy2, αaff)
 
             # Compute corrector residual
-            ip.methods.r!(r, z, θ, max(ip.σ*ip.μ, κ_tol/5)) # here we set κ = σ*μ, Δ = Δaff
+            ip.methods.r!(r, z, θ, max(ip.σ*ip.μ, κ_tol/opts.undercut)) # here we set κ = σ*μ, Δ = Δaff
             general_correction_term!(r, Δaff, ibil_ort, ibil_soc, iorts, isocs)
 
             # Compute corrector search direction

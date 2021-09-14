@@ -5,7 +5,7 @@
 
     ref_traj_ = deepcopy(ContactControl.get_trajectory(s.model, s.env,
         joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
-        load_type = :split_traj_alt), update_friction = false)
+        load_type = :split_traj_alt, update_friction = false))
     ref_traj = deepcopy(ref_traj_)
 
     H = ref_traj.H
@@ -16,7 +16,7 @@
     H_sim = 2100
 
     # barrier parameter
-    κ_mpc = 1.0e-4
+    κ_mpc = 2.0e-4
 
     obj = TrackingVelocityObjective(model, env, H_mpc,
         v = [Diagonal(1e-3 * [1e0,1,1e4,1,1,1,1,1e4,1e4]) for t = 1:H_mpc],
@@ -49,8 +49,10 @@
     sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
         p = p,
         ip_opts = InteriorPointOptions(
+            undercut = Inf,
+            γ_reg = 0.0,
             r_tol = 1.0e-8,
-            κ_tol = 2.0e-8),
+            κ_tol = 1.0e-8),
         sim_opts = SimulatorOptions(warmstart = true)
         )
 
