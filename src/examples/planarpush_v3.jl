@@ -98,7 +98,6 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     n_opts = NewtonOptions(
 		r_tol = 3e-4,
 		β_init = 1e-5,
-        # solver = :ldl_solver,
 		# verbose=true,
 		max_iter = 5),
     mpc_opts = LinearizedMPCOptions(
@@ -183,11 +182,11 @@ plot(Gray.(abs.(rz[[virst;], [viy1; ]])))
 
 # scatter(hcat([x[1:2] for x in sim.traj.u[1:end]]...)')
 
-# filename = "planarpush_precise"
+# filename = "planarpush_new_IP"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
 #     "/home/simon/Documents/$filename.mp4", overwrite=true)
 #
 # convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)
+#     "/home/simon/Documents/video/$filename.mp4",
+#     "/home/simon/Documents/video/$filename.gif", overwrite=true)

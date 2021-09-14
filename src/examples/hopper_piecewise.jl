@@ -5,7 +5,7 @@ vis = Visualizer()
 open(vis)
 
 # get hopper model
-s_sim = get_simulation("hopper_2D", "sine2_2D_lc", "sinusoidal")
+s_sim = get_simulation("hopper_2D", "piecewise1_2D_lc", "piecewise", approx = true)
 s = get_simulation("hopper_2D", "flat_2D_lc", "flat")
 model = s.model
 env = s.env
@@ -93,11 +93,11 @@ plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))
 plot!(plt[1,1], hcat(Vector.(sim.traj.q)...)', color=:blue, linewidth=1.0)
 plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
-plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
-plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
+plot!(plt[2,1], hcat(Vector.([u[1:model.dim.u] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
+plot!(plt[3,1], hcat(Vector.([γ[1:model.dim.c] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 
 plot_lines!(vis, model, sim.traj.q[1:10:end])
-plot_surface!(vis, s_sim.env, n=200)
+plot_surface!(vis, s_sim.env, n=200, xlims = [-1, 40])
 anim = visualize_robot!(vis, model, sim.traj, sample=5)
 anim = visualize_force!(vis, model, s_sim.env, sim.traj, anim=anim, h=h_sim, sample = 5)
 
