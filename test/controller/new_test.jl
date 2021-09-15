@@ -25,5 +25,5 @@ p = open_loop_policy(ref_traj.u; N_sample = 1)
 sim_b = simulator(s, q0_sim, q1_sim, h, H, p=p, ip_type=:interior_point,
     sim_opts = SimulatorOptions(warmstart=true))
 sim_m = simulator(s, q0_sim, q1_sim, h, H, p=p, ip_type=:mehrotra,
-    ip_opts = MehrotraOptions(max_iter=100),
+    ip_opts = InteriorPointOptions(max_iter=100),
     sim_opts = SimulatorOptions(warmstart=false))

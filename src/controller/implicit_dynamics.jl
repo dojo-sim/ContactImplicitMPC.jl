@@ -60,20 +60,6 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 			 deepcopy(ref_traj.z[t]),
 			 deepcopy(ref_traj.θ[t]),
 			 oss = OptimizationSpace13(model, env),
-			 idx_ineq = inequality_indices(model, env),
-			 idx_ort = index_ort(model, env),
-			 idx_orts = index_ort(model, env, quat = true),
-			 idx_soc = index_soc(model, env),
-			 idx_socs = index_soc(model, env, quat = true),
-			 ix = linearization_var_index(model, env)[1],
-			 iy1 = linearization_var_index(model, env)[2],
-			 iy2 = linearization_var_index(model, env)[3],
-			 idyn = linearization_term_index(model, env)[1],
-			 irst = linearization_term_index(model, env)[2],
-			 ibil = linearization_term_index(model, env)[3],
-			 iz = index_variable(model, env, quat = false),
-			 iΔz = index_variable(model, env, quat = true),
-			 ir = index_residual(model, env, quat = true),
 			 r! = r!,
 			 rz! = rz!,
 			 rθ! = rθ!,
@@ -150,12 +136,6 @@ function set_altitude!(im_traj::ImplicitTraj, alt::Vector)
 end
 
 function set_altitude!(ip::InteriorPoint, alt::Vector)
-	# altitude
-	ip.r.alt = alt
-	return nothing
-end
-
-function set_altitude!(ip::Mehrotra, alt::Vector)
 	# altitude
 	ip.r.alt = alt
 	return nothing

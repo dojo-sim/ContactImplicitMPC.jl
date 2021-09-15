@@ -5,7 +5,7 @@
 - [ ] gather all the residual defining functions
 - [ ] profile of IP solver
 - [ ] create a new space structure to pass to the IP solver
-- [ ] remove Mehrotra solver
+- [x] remove Mehrotra solver
 
 ## Features
 - [x] Contact dynamics computation

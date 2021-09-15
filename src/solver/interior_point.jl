@@ -5,7 +5,7 @@ function interior_point_options(ip_type::Symbol)
     if ip_type == :interior_point
         return Symbol("InteriorPointOptions")
     elseif ip_type == :mehrotra
-        return Symbol("MehrotraOptions")
+        return Symbol("InteriorPointOptions")
     else
         error("Unknown ip_type.")
     end
@@ -105,20 +105,6 @@ end
 function interior_point(z, θ;
         s = Euclidean(length(z)),
         oss = OptimizationSpace12(),
-        iz = nothing,
-        iΔz = nothing,
-        ir = nothing,
-        idx_ineq = collect(1:0),
-        idx_ort = [collect(1:0), collect(1:0)],
-        idx_orts = [collect(1:0), collect(1:0)],
-        idx_soc = Vector{Int}[],
-        idx_socs = Vector{Int}[],
-        ix = collect(1:0), # useless
-        iy1 = collect(1:0), # useless
-        iy2 = collect(1:0), # useless
-        idyn = collect(1:0), # useless
-        irst = collect(1:0), # useless
-        ibil = collect(1:0), # useless
         r! = r!, rz! = rz!, rθ! = rθ!,
         r  = zeros(oss.nΔ),
         rz = spzeros(oss.nΔ, oss.nΔ),
@@ -326,14 +312,12 @@ function general_correction_term!(r::AbstractVector{T}, Δ::AbstractVector{T},
     ortr::Vector{Int}, socr::Vector{Int},
     ortΔ::Vector{Vector{Int}}, socΔ::Vector{Vector{Vector{Int}}}) where {T}
     # @warn "define residual order"
-    nc = length(socΔ[1])
-
     r[ortr] .+= Δ[ortΔ[1]] .* Δ[ortΔ[2]]
     r[socr] .+= vcat(
         [second_order_cone_product(
             Δ[socΔ[2][i]],
             Δ[socΔ[1][i]],
-        ) for i = 1:nc]...)
+        ) for i in eachindex(socΔ[1])]...)
     return nothing
 end
 

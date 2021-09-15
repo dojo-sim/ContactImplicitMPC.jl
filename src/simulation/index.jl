@@ -327,64 +327,6 @@ function linearization_term_index(model::ContactModel, env::Environment; quat::B
 end
 
 """
-	Returns the 3 residual bilinear terms and the 3 couples of variables
-	associated with them. For each bilinear residual terms we associate 2
-	variables.
-"""
-function get_bilinear_indices(model::ContactModel, env::Environment; quat::Bool = false)
-	idyn = index_dyn(model, env, quat = quat)
-	iimp = index_imp(model, env, quat = quat)
-	imdp = index_mdp(model, env, quat = quat)
-	ifri = index_fri(model, env, quat = quat)
-	ibimp = index_bimp(model, env, quat = quat)
-	ibmdp = index_bmdp(model, env, quat = quat)
-	ibfri = index_bfri(model, env, quat = quat)
-
-	iq2 = index_q2(model, env, quat = quat)
-	iγ1 = index_γ1(model, env, quat = quat)
-	ib1 = index_b1(model, env, quat = quat)
-	iψ1 = index_ψ1(model, env, quat = quat)
-	is1 = index_s1(model, env, quat = quat)
-	iη1 = index_η1(model, env, quat = quat)
-	is2 = index_s2(model, env, quat = quat)
-
-	terms = [SVector{length(ibimp),Int}(ibimp), # γ1, s1
-			 SVector{length(ibmdp),Int}(ibmdp), # b1, η1
-			 SVector{length(ibfri),Int}(ibfri)] # ψ1, s2
-
-	vars = [[SVector{length(iγ1),Int}(iγ1),
-			 SVector{length(is1),Int}(is1)], # γ1, s1
-			[SVector{length(ib1),Int}(ib1),
-			 SVector{length(iη1),Int}(iη1)], # b1, η1
-			[SVector{length(iψ1),Int}(iψ1),
-			 SVector{length(is2),Int}(is2)], # ψ1, s2
-			]
-	return terms, vars
-end
-
-"""
-	Returns the positive orthant indices in z or Δz.
-"""
-function inequality_indices(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
-	iγ1 = index_γ1(model, env, quat = quat)
-	ib1 = index_b1(model, env, quat = quat)
-	iψ1 = index_ψ1(model, env, quat = quat)
-	is1 = index_s1(model, env, quat = quat)
-	iη1 = index_η1(model, env, quat = quat)
-	is2 = index_s2(model, env, quat = quat)
-	return [iγ1; ib1; iψ1; is1; iη1; is2]
-end
-
-"""
-	Returns the positive orthant indices in z or Δz.
-"""
-function inequality_indices(model::ContactModel, env::Environment{<:World,NonlinearCone}; quat::Bool = false)
-	iγ1 = index_γ1(model, env, quat = quat)
-	is1 = index_s1(model, env, quat = quat)
-	return [iγ1; is1]
-end
-
-"""
 	Returns the positive orthant indices in z or Δz.
 """
 function index_ort(model::ContactModel, env::Environment{<:World,LinearizedCone}; quat::Bool = false)
@@ -474,26 +416,6 @@ function pack_θ(model::ContactModel, q0, q1, u1, w1, μ, h)
 	return [q0; q1; u1; w1; μ; h]
 end
 
-# function pack_θ(model::ContactModel, q0, q1, u1, w1, μ, h)
-# 	nθ = num_data(model)
-#
-# 	iq0 = index_q0(model)
-# 	iq1 = index_q1(model)
-# 	iu1 = index_u1(model)
-# 	iw1 = index_w1(model)
-# 	iμ  = index_μ(model)
-# 	ih  = index_h(model)
-#
-# 	θ = zeros(nθ)
-# 	θ[iq0] = q0
-# 	θ[iq1] = q1
-# 	θ[iu1] = u1
-# 	θ[iw1] = w1
-# 	θ[iμ] = μ
-# 	θ[ih] = h
-# 	return θ
-# end
-
 function unpack_z(model::ContactModel, env::Environment, z)
 	iq2 = index_q2(model, env, quat = false)
 	iγ1 = index_γ1(model, env, quat = false)
@@ -521,8 +443,6 @@ function pack_z(model::ContactModel, env::Environment{<:World,LinearizedCone}, q
 end
 
 function pack_z(model::ContactModel, env::Environment{<:World,NonlinearCone}, q2, γ1, b1, ψ1, η1)
-	@warn "changed"
-	# s1 = ϕ_func(model, q2)
 	s1 = ϕ_func(model, env, q2)
 	s2 = model.μ_world .* γ1
 	return pack_z(model, env, q2, γ1, b1, ψ1, s1, η1, s2)
@@ -532,80 +452,9 @@ function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, s1, η1
 	return [q2; γ1; b1; ψ1; s1; η1; s2]
 end
 
-# function pack_z(model::ContactModel, env::Environment, q2, γ1, b1, ψ1, s1, η1, s2)
-# 	nz = num_var(model, env)
-# 	iq2 = index_q2(model, env, quat = false)
-# 	iγ1 = index_γ1(model, env, quat = false)
-# 	ib1 = index_b1(model, env, quat = false)
-# 	iψ1 = index_ψ1(model, env, quat = false)
-# 	is1 = index_s1(model, env, quat = false)
-# 	iη1 = index_η1(model, env, quat = false)
-# 	is2 = index_s2(model, env, quat = false)
-#
-# 	z = zeros(nz)
-#
-# 	z[iq2] = q2
-# 	z[iγ1] = γ1
-# 	z[ib1] = b1
-# 	z[iψ1] = ψ1
-# 	z[is1] = s1
-# 	z[iη1] = η1
-# 	z[is2] = s2
-# 	return z
-# end
-
-
 ################################################################################
 # Aggregated indices
 ################################################################################
-
-function index_eq(model::ContactModel, env::Environment; quat::Bool = false)
-	iq2 = index_q2(model, env, quat = quat)
-	iγ1 = index_γ1(model, env, quat = quat)
-	ib1 = index_b1(model, env, quat = quat)
-	iψ1 = index_ψ1(model, env, quat = quat)
-
-	iequ = [iq2; iγ1; ib1; iψ1]
-	iort = index_ort(model, env, quat = quat)
-	isoc = index_soc(model, env, quat = quat)
-	return iequ, iort, isoc
-end
-
-function index_variable(model::ContactModel, env::Environment; quat::Bool = false)
-	iq2 = index_q2(model, env, quat = quat)
-	iγ1 = index_γ1(model, env, quat = quat)
-	ib1 = index_b1(model, env, quat = quat)
-	iψ1 = index_ψ1(model, env, quat = quat)
-
-	iequ = [iq2; iγ1; ib1; iψ1]
-	iort = index_ort(model, env, quat = quat)
-	isoc = index_soc(model, env, quat = quat)
-	return iequ, iort, isoc
-end
-
-function index_residual(model::ContactModel, env::Environment; quat::Bool = false)
-	# dyn = [dyn]
-	# rst = [s1  - ..., ≡ ialt
-	#        η1  - ...,
-	#        s2  - ...,]
-	# bil = [γ1 .* s1 .- κ;
-	#        b1 .* η1 .- κ;
-	#        ψ1 .* s2 .- κ]
-	idyn = index_dyn(model, env, quat = quat)
-	iimp = index_imp(model, env, quat = quat)
-	imdp = index_mdp(model, env, quat = quat)
-	ifri = index_fri(model, env, quat = quat)
-	ibimp = index_bimp(model, env, quat = quat)
-	ibmdp = index_bmdp(model, env, quat = quat)
-	ibfri = index_bfri(model, env, quat = quat)
-
-	irst = [iimp; imdp; ifri]
-	ibil = [ibimp; ibmdp; ibfri]
-	ialt = iimp
-	ibil_ort = index_ortr(model, env, quat = quat)
-	ibil_soc = index_socr(model, env, quat = quat)
-	return idyn, irst, ibil, ialt, ibil_ort, ibil_soc
-end
 
 function index_equr(model::ContactModel, env::Environment; quat::Bool = false)
 	idyn = index_dyn(model, env, quat = quat)

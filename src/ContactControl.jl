@@ -52,7 +52,6 @@ include("simulation/index.jl")
 
 # Solver
 include("solver/interior_point.jl")
-include("solver/mehrotra.jl")
 
 # Simulator
 include("simulation/contact_methods.jl")
@@ -61,12 +60,6 @@ include("simulator/trajectory.jl")
 
 include("dynamics/code_gen_dynamics.jl")
 include("dynamics/fast_methods_dynamics.jl")
-
-export World, LinearizedCone, NonlinearCone
-export ContactModel, Dimensions, BaseMethods, DynamicsMethods,
-    ResidualMethods, Environment
-export environment_2D, environment_3D, environment_2D_flat,
-    environment_3D_flat, get_model
 
 # Models
 include("dynamics/quaternions.jl")
@@ -126,30 +119,48 @@ include("controller/newton_structure_solver/methods.jl")
 include("dynamics/visuals.jl")
 include("dynamics/visual_utils.jl")
 
-export SparseStructure, LinearizedStep, get_bilinear_indices,
-    bil_addition!, r_linearized!, rz_linearized!
-
-export ImplicitTraj, linearization!, implicit_dynamics!
-export TrackingObjective, TrackingVelocityObjective
-export second_order_cone_product, generate_base_expressions
-export RLin, RZLin, RθLin, ContactTraj, Simulation, num_var, num_data
-export get_simulation, get_trajectory
 export
+    World,
+    LinearizedCone,
+    NonlinearCone,
+    ContactModel,
+    Dimensions,
+    BaseMethods,
+    DynamicsMethods,
+    ResidualMethods,
+    Environment,
+    environment_2D,
+    environment_3D,
+    environment_2D_flat,
+    environment_3D_flat,
+    get_model,
+    SparseStructure,
+    LinearizedStep,
+    bil_addition!,
+    r_linearized!,
+    rz_linearized!,
+    ImplicitTraj,
+    linearization!,
+    implicit_dynamics!,
+    TrackingObjective,
+    TrackingVelocityObjective,
+    second_order_cone_product,
+    generate_base_expressions,
+    RLin,
+    RZLin,
+    RθLin,
+    ContactTraj,
+    Simulation,
+    num_var,
+    num_data,
+    get_simulation,
+    get_trajectory,
     interior_point,
-    inequality_indices,
-    index_soc,
     InteriorPointOptions,
-    interior_point_solve!,
-    mehrotra,
-    linearization_var_index,
-    linearization_term_index,
-    MehrotraOptions,
     interior_point_solve!,
     r!,
     rz!,
-    rθ!
-
-export
+    rθ,
     generate_base_expressions,
     save_expressions,
     instantiate_base!,
@@ -215,17 +226,13 @@ export
     index_bfri,
     linearization_var_index,
     linearization_term_index,
-    get_bilinear_indices,
-    inequality_indices,
     index_ort,
     index_soc,
     num_var,
     num_data,
     num_bilinear,
-    index_eq,
-    index_variable,
-    index_residual,
     index_equr,
     index_ortr,
     index_socr
+
 end # module

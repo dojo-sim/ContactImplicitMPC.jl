@@ -21,12 +21,8 @@
 
     sim_b = simulator(s, q0_sim, q1_sim, h, H, p=p, ip_type=:interior_point,
         sim_opts = SimulatorOptions(warmstart=true))
-    sim_m = simulator(s, q0_sim, q1_sim, h, H, p=p, ip_type=:mehrotra,
-        ip_opts = MehrotraOptions(max_iter=100),
-        sim_opts = SimulatorOptions(warmstart=false))
 
     @time simulate!(sim_b)
-    @time simulate!(sim_m)
     qerr, uerr, γerr, berr = tracking_error(ref_traj, sim_b.traj, 1, idx_shift = 1)
     @test qerr < 0.0555 * 1.5
     @test uerr < 0.0001 * 1.5
@@ -37,25 +33,8 @@
     γerr > 0.0491 * 1.2 && @warn "simulator regression: γ"
     berr > 0.0871 * 1.2 && @warn "simulator regression: b"
 
-    qerr, uerr, γerr, berr = tracking_error(ref_traj, sim_m.traj, 1, idx_shift = 1)
-    @test qerr < 0.0374 * 1.5
-    @test uerr < 0.0001 * 1.5
-    @test γerr < 0.0389 * 1.5
-    @test berr < 0.0787 * 1.5
-    qerr > 0.0374 * 1.2 && @warn "simulator regression: q"
-    uerr > 0.0001 * 1.2 && @warn "simulator regression: u"
-    γerr > 0.0389 * 1.2 && @warn "simulator regression: γ"
-    berr > 0.0787 * 1.2 && @warn "simulator regression: b"
-
-
     # @btime simulate!(deepcopy(sim_b))
-    # @btime simulate!(deepcopy(sim_m))
-
     # plot_surface!(vis, s.env, ylims=[-0.5, 0.5])
     # anim = visualize_meshrobot!(vis, s.model, sim_b.traj, α=0.3, sample=1, name=:basic)
-    # anim = visualize_meshrobot!(vis, s.model, sim_m.traj, α=1.0, sample=1, name=:mehrotra, anim=anim)
-
     # plot(hcat(sim_b.traj.q...)', legend=false)
-    # plot!(hcat(sim_m.traj.q...)', legend=false)
-
 end

@@ -73,7 +73,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         altitude_impact_threshold = 0.05,
         altitude_verbose = true,
         ),
-	ip_opts = MehrotraOptions(
+	ip_opts = InteriorPointOptions(
 		max_iter = 100,
 		# verbose = true,
 		r_tol = 1.0e-4,

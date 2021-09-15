@@ -267,7 +267,7 @@ end
 # 			# max_time = ref_traj.h, # HARD REAL TIME
 # 			),
 # 	    mpc_opts = LinearizedMPCOptions(),
-# 		ip_opts = MehrotraOptions(
+# 		ip_opts = InteriorPointOptions(
 # 			max_iter = 100,
 # 			verbose = false,
 # 			r_tol = 1.0e-4,

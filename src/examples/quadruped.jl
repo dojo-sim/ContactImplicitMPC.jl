@@ -120,43 +120,43 @@ end
 
 
 
-R = Dict{Symbol,Vector}(
-	:dyn => [],
-	:imp => [],
-	:mdp => [],
-	:fri => [],
-	:bimp => [],
-	:bmdp => [],
-	:bfri => [],
-	)
-nz = num_var(model, env)
-dyn = index_dyn(model, env, quat = true)
-imp = index_imp(model, env, quat = true)
-mdp = index_mdp(model, env, quat = true)
-fri = index_fri(model, env, quat = true)
-bimp = index_bimp(model, env, quat = true)
-bmdp = index_bmdp(model, env, quat = true)
-bfri = index_bfri(model, env, quat = true)
-for t = 1:ref_traj.H
-
-	z = deepcopy(ref_traj.z[t])
-	θ = deepcopy(ref_traj.θ[t])
-	r = zeros(nz)
-	r = residual(model, env, z, θ, 0.0)
-	s.res.r!(r, z, θ, 1e-6)
-	push!(R[:dyn], norm(r[dyn]))
-	push!(R[:imp], norm(r[imp]))
-	push!(R[:mdp], norm(r[mdp]))
-	push!(R[:fri], norm(r[fri]))
-	push!(R[:bimp], norm(r[bimp]))
-	push!(R[:bmdp], norm(r[bmdp]))
-	push!(R[:bfri], norm(r[bfri]))
-end
-plt = plot()
-plot!(plt, R[:dyn], label = "dyn")
-plot!(plt, R[:imp], label = "imp")
-plot!(plt, R[:mdp], label = "mdp")
-plot!(plt, R[:fri], label = "fri")
-plot!(plt, R[:bimp], label = "bimp")
-plot!(plt, R[:bmdp], label = "bmdp")
-plot!(plt, R[:bfri], label = "bfri")
+# R = Dict{Symbol,Vector}(
+# 	:dyn => [],
+# 	:imp => [],
+# 	:mdp => [],
+# 	:fri => [],
+# 	:bimp => [],
+# 	:bmdp => [],
+# 	:bfri => [],
+# 	)
+# nz = num_var(model, env)
+# dyn = index_dyn(model, env, quat = true)
+# imp = index_imp(model, env, quat = true)
+# mdp = index_mdp(model, env, quat = true)
+# fri = index_fri(model, env, quat = true)
+# bimp = index_bimp(model, env, quat = true)
+# bmdp = index_bmdp(model, env, quat = true)
+# bfri = index_bfri(model, env, quat = true)
+# for t = 1:ref_traj.H
+#
+# 	z = deepcopy(ref_traj.z[t])
+# 	θ = deepcopy(ref_traj.θ[t])
+# 	r = zeros(nz)
+# 	r = residual(model, env, z, θ, 0.0)
+# 	s.res.r!(r, z, θ, 1e-6)
+# 	push!(R[:dyn], norm(r[dyn]))
+# 	push!(R[:imp], norm(r[imp]))
+# 	push!(R[:mdp], norm(r[mdp]))
+# 	push!(R[:fri], norm(r[fri]))
+# 	push!(R[:bimp], norm(r[bimp]))
+# 	push!(R[:bmdp], norm(r[bmdp]))
+# 	push!(R[:bfri], norm(r[bfri]))
+# end
+# plt = plot()
+# plot!(plt, R[:dyn], label = "dyn")
+# plot!(plt, R[:imp], label = "imp")
+# plot!(plt, R[:mdp], label = "mdp")
+# plot!(plt, R[:fri], label = "fri")
+# plot!(plt, R[:bimp], label = "bimp")
+# plot!(plt, R[:bmdp], label = "bmdp")
+# plot!(plt, R[:bfri], label = "bfri")

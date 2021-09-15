@@ -51,7 +51,7 @@ function run_policy(s::Simulation; H_sim::Int = 4000, verbose = verbose,
 			),
 	    mpc_opts = LinearizedMPCOptions(
 	        ),
-		ip_opts = MehrotraOptions(
+		ip_opts = InteriorPointOptions(
 			max_iter = 100,
 			verbose = false,
 			r_tol = 1.0e-4,
