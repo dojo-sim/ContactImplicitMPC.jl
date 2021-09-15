@@ -12,7 +12,7 @@ using Random
 using SparseArrays
 using BenchmarkTools
 using Quaternions
-const ContactControl = Main
+# const ContactControl = Main
 
 # Solver
 include("solver/qr.jl")
