@@ -27,8 +27,8 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	mode = :configurationforce,
 	ip_type::Symbol = :interior_point,
 	opts = eval(interior_point_options(ip_type))(
-			γ_reg = 0.1,
 			undercut = 5.0,
+			γ_reg = 0.1,
 			κ_tol = κ[1],
 			r_tol = 1.0e-8,
 			diff_sol = true,
