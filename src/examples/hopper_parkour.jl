@@ -18,7 +18,7 @@ s_sim = get_simulation("hopper_2D", "stairs3_2D_lc", "stairs")
 # MPC parameters
 N_sample = 10
 H_mpc = 10
-κ_mpc = 1.0e-4
+κ_mpc = 2.0e-4
 n_opts = NewtonOptions(
     r_tol = 3e-4,
     max_iter = 5)
@@ -38,19 +38,21 @@ ref_traj_ = get_trajectory(s.model, s.env,
     load_type=:split_traj_alt)
 ref_traj = deepcopy(ref_traj_)
 
+visualize_robot!(vis, model, ref_traj)
+
 # Horizon
 H = ref_traj.H
 h = ref_traj.h
 h_sim = h / N_sample
-H_sim = 254*N_sample
+H_sim = 240*N_sample
 
 # Objective
 obj = TrackingVelocityObjective(s.model, s.env, H_mpc,
-    v = [Diagonal(1e-3 * [0.1,1,1,10]) for t = 1:H_mpc],
-    q = [[Diagonal(1.0e-0 * [0.3,0.3,0.3,1])   for t = 1:H_mpc]; [Diagonal(1.0e+2 * [5,0.3,0.3,0.1])   for t = 1:H_mpc]],
-    u = [Diagonal(1.0e-1 * [1e0, 1e-0]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-3 * ones(s.model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-3 * ones(s.model.dim.c * friction_dim(s.env))) for t = 1:H_mpc])
+    v = [Diagonal(1e-3 * [1e-2,1,1,10]) for t = 1:H_mpc],
+    q = [[Diagonal(1e-0 * [1e1,1e-1,1,1])   for t = 1:H_mpc-5]; [Diagonal(1e-1 * [1,1e-1,1e1,0.1])   for t = 1:5]],
+    u = [Diagonal(1e-0 * [1e0, 1e0]) for t = 1:H_mpc],
+    γ = [Diagonal(1e-100 * ones(s.model.dim.c)) for t = 1:H_mpc],
+    b = [Diagonal(1e-100 * ones(s.model.dim.c * friction_dim(s.env))) for t = 1:H_mpc])
 
 # Policy
 p = linearized_mpc_policy(ref_traj, s, obj,
@@ -67,21 +69,34 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
+# p = open_loop_policy(ref_traj.u, N_sample = N_sample)
 # Simulate the stair climbing
 sim_stair = ContactControl.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = ContactControl.InteriorPointOptions(
+        γ_reg = 0.0,
+        undercut = Inf,
         r_tol = 1.0e-8,
-        κ_init = 1.0e-8,
-        κ_tol = 2.0e-8),
+        κ_tol = 1.0e-8),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 @time status = simulate!(sim_stair)
 
 
 # plot_surface!(vis, s_sim.env, n=400)
-plot_surface!(vis, s.env, xlims=[-5.0, 5.0], ylims=[-1.0, 1.0])
 anim = visualize_robot!(vis, model, sim_stair.traj, sample=10, name=:Sim, α=1.0)
+
+
+plt = plot(layout=(3,1), legend=false)
+plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
+    color=:red, linewidth=3.0)
+plot!(plt[1,1], hcat(Vector.(sim_stair.traj.q)...)', color=:blue, linewidth=1.0)
+plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
+    color=:red, linewidth=3.0)
+plot!(plt[2,1], hcat(Vector.([u[1:model.dim.u] for u in sim_stair.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
+plot!(plt[3,1], hcat(Vector.([γ[1:model.dim.c] for γ in sim_stair.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
+
+
 
 # ghost
 ref_traj_full_ = get_trajectory(s.model, s.env,
@@ -89,7 +104,7 @@ ref_traj_full_ = get_trajectory(s.model, s.env,
     load_type=:split_traj_alt)
 ref_traj_full = deepcopy(ref_traj_full_)
 
-idx = [1, 300, 500, 1100, 1300, 1900, 2100]
+idx = [10, 300, 500, 1100, 1300, 1900, 2100]
 α = [0.2, 0.2, 0.4, 0.4, 0.6, 0.6, 0.6]
 hopper_parkour_ghost!(vis, sim_stair, sim_stair.traj, ref_traj_full, idx = idx, α = α)
 
@@ -115,11 +130,11 @@ H_sim = 64*N_sample
 
 # Objective
 obj = TrackingVelocityObjective(s.model, s.env, H_mpc,
-    v = [Diagonal(1e-3 * [0.1,1,1,10]) for t = 1:H_mpc],
-    q = [[Diagonal(1.0e-1 * [0.1,10,3,3]) for t = 1:H_mpc]; [Diagonal(1.0e+2 * [5,10,3,10])   for t = 1:H_mpc]],
-    u = [Diagonal(1.0e-1 * [1e0, 5e-1]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-3 * ones(s.model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-3 * ones(s.model.dim.c * friction_dim(s.env))) for t = 1:H_mpc])
+    v = [Diagonal(1e-13 * [1e-2,1,1,10]) for t = 1:H_mpc],
+    q = [[Diagonal(1e-10 * [1e1,1e1,1,1])   for t = 1:H_mpc-5]; [Diagonal(1e-11 * [1,1e1,1e1,0.1])   for t = 1:5]],
+    u = [Diagonal(1e-0 * [1e0, 1e0]) for t = 1:H_mpc],
+    γ = [Diagonal(1e-100 * ones(s.model.dim.c)) for t = 1:H_mpc],
+    b = [Diagonal(1e-100 * ones(s.model.dim.c * friction_dim(s.env))) for t = 1:H_mpc])
 
 # Policy
 p = linearized_mpc_policy(ref_traj, s, obj,
@@ -137,17 +152,18 @@ q1_sim = deepcopy(SVector{model.dim.q}(sim_stair.traj.q[end]))
 sim_flip = ContactControl.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = ContactControl.InteriorPointOptions(
+        γ_reg = 0.0,
+        undercut = Inf,
         r_tol = 1.0e-8,
-        κ_init = 1.0e-8,
-        κ_tol = 2.0e-8),
+        κ_tol = 1.0e-8),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 @time status = ContactControl.simulate!(sim_flip)
 
 
 # plot_surface!(vis, model_sim.env, n=400)
-# anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)
-# anim = visualize_robot!(vis, model, ref_traj, anim=anim, name=:Ref, α=0.3)
+anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)
+anim = visualize_robot!(vis, model, ref_traj, anim=anim, name=:Ref, α=0.3)
 
 ################################################################################
 # Full trajectory
