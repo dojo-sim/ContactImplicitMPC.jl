@@ -161,7 +161,7 @@ sim_flip = ContactControl.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
 @time status = ContactControl.simulate!(sim_flip)
 
 
-# plot_surface!(vis, model_sim.env, n=400)
+# plot_surface!(vis, s.env, xlims = [-1, 3], ylims = [-1, 1])
 anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)
 anim = visualize_robot!(vis, model, ref_traj, anim=anim, name=:Ref, α=0.3)
 
@@ -173,14 +173,18 @@ ref_traj_full = get_trajectory(s.model, s.env,
     joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/hopper_stairs_flip_ref.jld2"),
     load_type=:split_traj_alt)
 
-N_sample = 3
+N_sample = 10
 sim_traj_full = [sim_stair.traj.q[1:end-2]; sim_flip.traj.q]
-anim = visualize_robot!(vis, model, [sim_traj_full[1:N_sample:end]..., [sim_traj_full[end] for i = 1:50]...], name=:Sim, α=1.0)
-anim = visualize_robot!(vis, model, [ref_traj_full.q..., [ref_traj_full.q[end] for i = 1:50]...], anim=anim, name=:Ref, α=0.15)
+anim = visualize_robot!(vis, model,
+    [sim_traj_full[1:N_sample:end]..., [sim_traj_full[end] for i = 1:50]...],
+    name = :Sim, α = 1.0, h = h_sim*N_sample)
+anim = visualize_robot!(vis, model,
+    [ref_traj_full.q..., [ref_traj_full.q[end] for i = 1:50]...],
+    anim = anim, name = :Ref, α = 0.15, h = h_sim*N_sample)
 stairs!(vis)
-settransform!(vis["/Cameras/default"],
-        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
+# settransform!(vis["/Cameras/default"],
+#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
 
 plot_lines!(vis, model, ref_traj_full.q, offset = -0.3)
 plot_lines!(vis, model, sim_traj_full, offset = -0.5, size = 6)
@@ -188,11 +192,11 @@ plot_lines!(vis, model, sim_traj_full, offset = -0.5, size = 6)
 
 
 
-# filename = "hopper_full_traj"
-# MeshCat.convert_frames_to_video(
-#     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/$filename.mp4", overwrite=true)
-#
-# convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)
+filename = "hopper_parkour_ref"
+MeshCat.convert_frames_to_video(
+    "/home/simon/Downloads/$filename.tar",
+    "/home/simon/Documents/video/$filename.mp4", overwrite=true)
+
+convert_video_to_gif(
+    "/home/simon/Documents/video/$filename.mp4",
+    "/home/simon/Documents/video/$filename.gif", overwrite=true)
