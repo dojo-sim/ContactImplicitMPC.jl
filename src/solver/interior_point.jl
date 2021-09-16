@@ -271,16 +271,30 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
     if (r_vio < r_tol) && (κ_vio < κ_tol)
         # differentiate solution
         ########################################################################
+        # @warn "changed"
         if false && R <: RLin
+        # if R <: RLin
             # regularize solution so that k_vio == k_tol for all bilinear constraints
+            ip.methods.r!(r, z, θ, 0.0)
             for i in eachindex(oss.ortz[1])
-                ip.methods.r!(r, z, θ, 0.0)
                 if z[oss.ortz[1][i]] <= z[oss.ortz[2][i]]
                     z[oss.ortz[1][i]] *= κ_tol / r.rbil[i]
                 else
                     z[oss.ortz[2][i]] *= κ_tol / r.rbil[i]
                 end
             end
+        else
+            # # regularize solution so that k_vio == k_tol for all bilinear constraints
+            # ip.methods.r!(r, z, θ, 0.0)
+            # for i in eachindex(oss.ortz[1])
+            #     if z[oss.ortz[1][i]] <= z[oss.ortz[2][i]]
+            #         z[oss.ortz[1][i]] *= κ_tol / r[oss.ortr][i]
+            #     else
+            #         z[oss.ortz[2][i]] *= κ_tol / r[oss.ortr][i]
+            #     end
+            # end
+            # ip.methods.r!(r, z, θ, 0.0)
+            # @show scn.(r[oss.ortr])
         end
         ########################################################################
         diff_sol && differentiate_solution!(ip, reg = max(ip.reg_val, κ_tol * γ_reg))

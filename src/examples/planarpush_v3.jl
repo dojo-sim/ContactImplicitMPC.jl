@@ -14,8 +14,6 @@ nw = model.dim.w
 nc = model.dim.c
 nf = friction_dim(s.env)
 nb = nc * nf
-nz = num_var(model, s.env)
-nθ = num_data(model)
 
 
 # time
@@ -109,7 +107,6 @@ using Random
 Random.seed!(100)
 # d = open_loop_disturbances([[0.05*rand(), 0.0, 0.4*rand()] for t=1:H_sim], N_sample)
 # d = open_loop_disturbances([[0.0, 0.0, 0.25*rand()+0.5] for t=1:H_sim], N_sample)
-# d = open_loop_disturbances([[0.0, 0.0, 0.35] for t=1:H_sim], N_sample)
 d = open_loop_disturbances([[0.0, 0.0, 0.15] for t=1:H_sim], N_sample)
 
 
@@ -129,7 +126,7 @@ sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 sim.traj.H
 sim.traj.u
 
-@time status = ContactControl.simulate!(sim)
+@time status = ContactControl.simulate!(sim, verbose = true)
 anim = visualize_robot!(vis, model, sim.traj, name=:sim, sample = N_sample, α=1.0)
 anim = visualize_robot!(vis, model, ref_traj, name=:ref, anim=anim, sample = 1, α=0.5)
 
