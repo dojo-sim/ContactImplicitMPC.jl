@@ -159,9 +159,11 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	 s2 - μ[1] * γ1;
 	 γ1 .* s1 .- κ;
 	 vcat([
-	 	second_order_cone_product( # [ψ1; b1] ∘ [s2; η1] - [κ; 0...0]
-			[ψ1[i]; b1[(i-1) * nf .+ (1:nf)]],
-			[s2[i]; η1[(i-1) * nf .+ (1:nf)]]
+	 	second_order_cone_product( # [ψ1; η1] ∘ [s2; b1] - [κ; 0...0]
+			# [ψ1[i]; b1[(i-1) * nf .+ (1:nf)]],
+			[ψ1[i]; η1[(i-1) * nf .+ (1:nf)]],
+			# [s2[i]; η1[(i-1) * nf .+ (1:nf)]]
+			[s2[i]; b1[(i-1) * nf .+ (1:nf)]]
 			) - [κ; zeros(nf)]
 		for i = 1:nc]...)
 	 ]

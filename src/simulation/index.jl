@@ -365,8 +365,8 @@ function index_soc(model::ContactModel, env::Environment{<:World,NonlinearCone};
 	iη1 = index_η1(model, env, quat = quat) # dual cones: vector part
 	is2 = index_s2(model, env, quat = quat) # dual cones: scalar part
 
-	pr_idx = [[iψ1[i]; ib1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
-	du_idx = [[is2[i]; iη1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
+	pr_idx = [[iψ1[i]; iη1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
+	du_idx = [[is2[i]; ib1[(i - 1) * nf .+ (1:nf)]] for i = 1:nc]
 	[pr_idx, du_idx]
 end
 
