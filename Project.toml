@@ -1,4 +1,4 @@
 name = "ContactImplicitMPC"
 uuid = "842347fd-0767-4ff8-b652-76aad5eb0a37"
-authors = ["simon-lc" <simonlc@stanford.edu>, "thowell <thowell@stanford.edu>"]
+authors = ["simon-lc <simonlc@stanford.edu>", "thowell <thowell@stanford.edu>"]
 version = "0.1.0"
