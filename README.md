@@ -15,5 +15,3 @@
 <img src="examples/animations/hopper_monte_carlo.gif" alt="drawing" width="200"/>
 
 <img src="examples/animations/quadruped_monte_carlo.gif" alt="drawing" width="200"/>
-
-
