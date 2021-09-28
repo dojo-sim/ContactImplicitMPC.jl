@@ -1,4 +1,12 @@
-include(joinpath(@__DIR__, "..", "src/dynamics", "flamingo", "visuals.jl"))
+using ContactImplicitMPC
+using ContactImplicitMPC: Flamingo, plot_surface!, get_line_material, Point, kinematics_1, kinematics_3
+import ContactImplicitMPC: visualize_meshrobot!
+using MeshCat
+using LinearAlgebra
+using StaticArrays
+using Plots
+
+include(joinpath(@__DIR__, "..", "src", "dynamics", "flamingo", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)
@@ -6,7 +14,7 @@ open(vis)
 s = get_simulation("flamingo", "flat_2D_lc", "flat")
 model = s.model
 env = s.env
-const ContactImplicitMPC = Main
+
 ref_traj_ = deepcopy(ContactImplicitMPC.get_trajectory(s.model, s.env,
     joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
     load_type = :split_traj_alt))
@@ -80,8 +88,8 @@ plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))
 plot!(plt[1,1], hcat(Vector.([q[l:l] for q in sim.traj.q])...)', color=:blue, linewidth=1.0)
 plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][lu:lu], N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
-plot!(plt[3,1], hcat(Vector.(vcat([fill(ref_traj.γ[i][1:nc], N_sample) for i=1:H]...))...)',
-    color=:red, linewidth=3.0)
+# plot!(plt[3,1], hcat(Vector.(vcat([fill(ref_traj.γ[i][1:nc], N_sample) for i=1:H]...))...)',
+#     color=:red, linewidth=3.0)
 plot!(plt[2,1], hcat(Vector.([u[lu:lu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
 # plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
 # plot!(plt[3,1], hcat(Vector.([b[1:nb] for b in sim.traj.b]*N_sample)...)', color=:red, linewidth=1.0)
