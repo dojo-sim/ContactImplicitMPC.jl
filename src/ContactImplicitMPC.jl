@@ -10,12 +10,10 @@ using ForwardDiff
 using GeometryBasics
 using IfElse
 using InteractiveUtils
-using Ipopt
 using JLD2
 using LinearAlgebra
 using Logging
 using QDLDL
-using MathOptInterface
 using MeshCat
 using MeshCatMechanisms
 using Meshing
