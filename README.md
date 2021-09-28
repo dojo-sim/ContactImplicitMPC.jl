@@ -11,7 +11,7 @@ This repository contains the algorithms and examples from our paper: [Fast Conta
 <img src="examples/animations/flamingo.gif" alt="drawing" width="400"/>
 
 ## Hopper Parkour
-<img src="examples/animations/hopper_parkour.gif" alt="drawing" width="400"/>
+<img src="examples/animations/hopper_parkour.gif" alt="drawing" width="250"/>
 
 ## Quadruped with Payload
 <img src="examples/animations/quadruped_payload.gif" alt="drawing" width="400"/>
