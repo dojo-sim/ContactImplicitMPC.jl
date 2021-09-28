@@ -76,6 +76,12 @@ function set_alpha!(visuals::Vector, α)
     end
 end
 
+"""
+	convert_config(model::ContactModel, q) 
+Should be implemented for each specific model
+"""
+function convert_config end
+
 function set_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, model::ContactModel,
 		q::AbstractVector; name::Symbol=model_name(model))
 
@@ -147,6 +153,14 @@ function contact_force(model::ContactModel, env::Environment, pc::AbstractVector
 	λc = [r[i] * [E*b[(i-1) * nf .+ (1:nf)]; γ[i]] for i = 1:nc] # TODO: make efficient
 	return bc, λc
 end
+
+
+"""
+	contact_point(model::ContactModel, q)
+
+Should be implemented for each specific model
+"""
+function contact_point end
 
 function set_force!(vis::Visualizer, model::ContactModel, env::Environment, q::AbstractVector,
 		γ::AbstractVector, b::AbstractVector; name::Symbol=model_name(model), shift=-0.14,

@@ -134,7 +134,7 @@ function set_robot!(vis::Visualizer, model::Flamingo, q::AbstractVector;
 	return nothing
 end
 
-function contact_point(model::Flamingo, q::AbstractVector)
+function ContactImplicitMPC.contact_point(model::Flamingo, q::AbstractVector)
 	k_toe_1 = kinematics_3(model, q, body = :foot_1, mode = :toe)
 	p_toe_1 = [k_toe_1[1], 0.0, k_toe_1[2]]
 
@@ -151,7 +151,7 @@ function contact_point(model::Flamingo, q::AbstractVector)
 	return pc
 end
 
-function build_meshrobot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamingo, α=1.0)
+function ContactImplicitMPC.build_meshrobot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamingo, α=1.0)
 	default_background!(vis)
 
 	# urdf = joinpath(@__DIR__, "mesh", "flamingo.urdf")
@@ -159,10 +159,10 @@ function build_meshrobot!(vis::Visualizer, model::Flamingo; name::Symbol=:Flamin
 	# mvis = MechanismVisualizer(mechanism, URDFVisuals(urdf, package_path=[@__DIR__]), vis[name])
 	urdf = joinpath(@__DIR__, "mesh", "flamingo.urdf")
 	package_path = @__DIR__
-	build_meshrobot!(vis, model, urdf, package_path; name=name, α=α)
+	ContactImplicitMPC.build_meshrobot!(vis, model, urdf, package_path; name=name, α=α)
 end
 
-function convert_config(model::Flamingo, q::AbstractVector)
+function ContactImplicitMPC.convert_config(model::Flamingo, q::AbstractVector)
     _q = zeros(7)
     _q[1] = q[3]
     _q[2] = q[4] - _q[1]

@@ -1,6 +1,9 @@
 using ContactImplicitMPC
-using ContactImplicitMPC: Flamingo, plot_surface!, get_line_material, Point, kinematics_1, kinematics_3
-import ContactImplicitMPC: visualize_meshrobot!
+using ContactImplicitMPC: Flamingo, plot_surface!, get_line_material, Point, kinematics_1, kinematics_3, default_background!
+import ContactImplicitMPC
+import ContactImplicitMPC: visualize_meshrobot!, visualize_force!
+using Rotations
+using CoordinateTransformations
 using MeshCat
 using LinearAlgebra
 using StaticArrays
