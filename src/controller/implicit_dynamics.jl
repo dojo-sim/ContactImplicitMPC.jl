@@ -3,7 +3,7 @@
 This structure holds the trajectory of evaluations and Jacobians of the implicit dynamics.
 These evaluations and Jacobians are computed using a linearizedimation computed around `lin`.
 """
-mutable struct ImplicitTraj{T}
+mutable struct ImplicitTraj{T,R,RZ,Rθ}
 	H::Int
 	lin::Vector{LinearizedStep{T}}
 	d::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}} # dynamics violation
@@ -16,10 +16,9 @@ mutable struct ImplicitTraj{T}
 	δq0::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}} # q0 solution gradient length=H
 	δq1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # q1 solution gradient length=H
 	δu1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # u1 solution gradient length=H
-	ip
+	ip::Vector{InteriorPoint{T,R,RZ,Rθ}}
 	mode::Symbol
 end
-
 
 function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	κ = ref_traj.κ[1],
@@ -85,7 +84,7 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	δq1 = [view(ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
 	δu1 = [view(ip[t].δz, 1:nd, off .+ (1:nu)) for t = 1:H]; off += nu
 
-	return ImplicitTraj(H, lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip, mode)
+	return ImplicitTraj{typeof.([ip[1].z[1], ip[1].r, ip[1].rz, ip[1].rθ])...}(H, lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip, mode)
 end
 
 
