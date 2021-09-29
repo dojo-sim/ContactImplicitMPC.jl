@@ -82,3 +82,5 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 # Visualize
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=10)
 anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample=10)
+
+typeof(sim.ip)

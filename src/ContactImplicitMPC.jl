@@ -242,6 +242,7 @@ export
     contact_trajectory,
     pack_z, 
     pack_θ,
-    generate_pusher_traj
+    generate_pusher_traj,
+    update_friction_coefficient
 
 end # module

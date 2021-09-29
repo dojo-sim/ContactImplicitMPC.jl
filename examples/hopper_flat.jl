@@ -58,6 +58,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         )
     )
 
+
 # Initial conditions
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])
