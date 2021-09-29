@@ -1,4 +1,4 @@
-include(joinpath(@__DIR__, "..", "src/dynamics", "flamingo", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "flamingo", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 # render(vis)
@@ -32,11 +32,9 @@ p = linearized_mpc_policy(ref_traj, s, obj_mpc,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
-	ip_type = :interior_point,
 	# mode = :configurationforce,
 	mode = :configuration,
 	newton_mode = :structure,
-	# ip_type = :mehrotra,
     n_opts = NewtonOptions(
 		# solver = :ldl_solver,
         r_tol = 3e-4,
@@ -63,7 +61,6 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
         κ_init = 1.0e-8,
         κ_tol = 2.0e-8),
     sim_opts = SimulatorOptions(warmstart = true),
-	ip_type = :interior_point,
     )
 
 @time status = simulate!(sim)

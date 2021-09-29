@@ -467,7 +467,7 @@ rzz = zeros(6,6)
 rz!(rzz, rand(7), rand(18))
 
 # options
-opts = ContactControl.InteriorPointOptions(
+opts = ContactImplicitMPC.InteriorPointOptions(
 	r_tol = 1.0e-6, κ_tol = 1.0e-6,
 	diff_sol = false,
 	solver = :lu_solver)
@@ -485,7 +485,7 @@ z = copy(x[end])
 θ = [x[end-1]; x[end]; u1; h]
 
 # solver
-ip = ContactControl.interior_point(z, θ,
+ip = ContactImplicitMPC.interior_point(z, θ,
 	s = rquat_space,
 	r! = r!, rz! = rz!,
 	rz = zeros(6, 6),
@@ -496,7 +496,7 @@ for t = 1:T
 	ip.z .= copy(x[end])
 	ip.θ .= [x[end-1]; x[end]; u1; h]
 
-	status = ContactControl.interior_point_solve!(ip)
+	status = ContactImplicitMPC.interior_point_solve!(ip)
 
 	push!(x, copy(ip.z))
 end

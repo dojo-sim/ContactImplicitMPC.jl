@@ -1,4 +1,4 @@
-include(joinpath(@__DIR__, "..", "src/dynamics", "quadruped", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
 vis = Visualizer()
 open(vis)
 const ContactImplicitMPC = Main
@@ -39,7 +39,6 @@ function run_policy(s::Simulation; H_sim::Int = 2000, verbose = false,
 	    N_sample = N_sample,
 	    κ_mpc = κ_mpc,
 		mode = :configuration,
-		ip_type = :mehrotra,
 	    n_opts = NewtonOptions(
 			r_tol = 3e-4,
 			max_iter = 5,

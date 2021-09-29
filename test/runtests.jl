@@ -1,30 +1,25 @@
-using ContactImplicitMPC
-
 using Test
 using ForwardDiff
 using JLD2
-using QDLDL
 using Symbolics
 using StaticArrays
 using LinearAlgebra
 using Random
 using SparseArrays
 using BenchmarkTools
-using Quaternions
+using ContactImplicitMPC
 
 # Solver
 include("solver/qr.jl")
-include("solver/ldl.jl")
 include("solver/lu.jl")
 include("solver/schur.jl")
 include("solver/ip_solver.jl")
 
 # Dynamics
-include("dynamics/lagrangian.jl") # need to fix d_fast
+include("dynamics/lagrangian.jl") 
 include("dynamics/model.jl")
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
-include("dynamics/quaternion.jl")
 
 # Simulator
 include("simulator/rotations.jl")
@@ -44,7 +39,7 @@ include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
-include("controller/newton_structure_solver.jl") # fails on github actions
+include("controller/newton_structure_solver.jl")
 
 # MPC examples
 include("controller/mpc_quadruped.jl")

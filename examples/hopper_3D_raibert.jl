@@ -1,6 +1,6 @@
 # run hopper_in_place_hop.jl
 
-include(joinpath(@__DIR__, "..", "src/dynamics", "hopper_3D", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "hopper_3D", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)

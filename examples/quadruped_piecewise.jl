@@ -1,5 +1,5 @@
 const ContactImplicitMPC = Main
-include(joinpath(@__DIR__, "..", "src/dynamics", "quadruped", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)
@@ -41,7 +41,6 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
 	# mode = :configuration,
-	ip_type = :mehrotra,
     n_opts = NewtonOptions(
 		solver = :lu_solver,
 		r_tol = 3e-4,

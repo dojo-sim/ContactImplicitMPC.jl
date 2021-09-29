@@ -1,7 +1,9 @@
-include(joinpath(@__DIR__, "..", "src/dynamics", "quadruped", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "quadruped", "visuals.jl"))
 vis = Visualizer()
 open(vis)
-# const ContactImplicitMPC = Main
+const ContactImplicitMPC = Main
+
+
 
 s = get_simulation("quadruped", "flat_2D_lc", "flat")
 model = s.model
@@ -19,7 +21,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 1000 #4000 #3000
+H_sim = 10000 #4000 #3000
 
 # barrier parameter
 κ_mpc = 2.0e-4

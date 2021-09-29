@@ -1,4 +1,4 @@
-include(joinpath(@__DIR__, "..", "src/dynamics", "flamingo", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "flamingo", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)

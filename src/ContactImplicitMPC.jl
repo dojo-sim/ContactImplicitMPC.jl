@@ -1,4 +1,3 @@
-
 module ContactImplicitMPC
 
 using BenchmarkTools
@@ -28,16 +27,15 @@ using Symbolics
 using Test
 
 # Utilities
-include("utils.jl") #
+include("utils.jl")
 
 # Solver
-include("solver/gn.jl")
+include("solver/linear_solver.jl")
 include("solver/lu.jl")
-include("solver/ldl.jl")
 include("solver/qr.jl")
 include("solver/schur.jl")
-include("solver/cones.jl") #
-
+include("solver/cones.jl") 
+include("solver/indices.jl") 
 
 # Environment
 include("simulator/environment.jl")
@@ -73,7 +71,6 @@ include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/rigidbody/model.jl")
 
-
 # Simulator
 include("simulator/policy.jl")
 include("simulator/disturbances.jl")
@@ -106,6 +103,16 @@ include("controller/newton_structure_solver/methods.jl")
 # Visuals
 include("dynamics/visuals.jl")
 include("dynamics/visual_utils.jl")
+
+include("dynamics/particle_2D/visuals.jl")
+include("dynamics/particle/visuals.jl")
+include("dynamics/hopper_2D/visuals.jl")
+include("dynamics/hopper_3D/visuals.jl")
+include("dynamics/quadruped/visuals.jl")
+include("dynamics/flamingo/visuals.jl")
+include("dynamics/pushbot/visuals.jl")
+include("dynamics/rigidbody/visuals.jl")
+
 
 export
     World,
@@ -169,6 +176,11 @@ export
     module_dir,
     open_loop_disturbances,
     disturbances,
+    Disturbances, 
+    NoDisturbances,
+    OpenLoopDisturbance,
+    ImpulseDisturbance,
+    RandomDisturbance,
     open_loop_policy,
     policy,
     linearized_mpc_policy,
@@ -190,8 +202,7 @@ export
     lu_solver,
     factorize!,
     linear_solve!,
-    OptimizationSpace,
-    OptimizationSpace13,
+    OptimizationIndices,
     index_q2,
     index_γ1,
     index_b1,

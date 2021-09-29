@@ -30,7 +30,7 @@ struct Simulator{T}
 
     d::Disturbances
 
-    ip::AbstractIPSolver
+    ip::InteriorPoint
 
     opts::SimulatorOptions{T}
     stats::SimulatorStatistics{T}
@@ -47,8 +47,7 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
     rz = s.rz,
     rθ = s.rθ,
     space = Euclidean(num_var(s.model, s.env)),
-    ip_type::Symbol = :interior_point,
-    ip_opts = eval(interior_point_options(ip_type))(
+    ip_opts = InteriorPointOptions(
 		undercut = Inf,
 		γ_reg = 0.0,
 		r_tol = 1e-8,
@@ -58,6 +57,7 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
 
     model = s.model
     env = s.env
+
 
     # initialize trajectories
     traj = contact_trajectory(model, env, H, h)
@@ -69,19 +69,18 @@ function simulator(s::Simulation, q0::SVector, q1::SVector, h::S, H::Int;
     θ = zeros(num_data(model))
     z_initialize!(z, model, env, traj.q[2])
     θ_initialize!(θ, model, traj.q[1], traj.q[2], traj.u[1], traj.w[1], model.μ_world, h)
-
-    ip = eval(ip_type)(
+    
+    ip = interior_point(
 			 z,
 			 θ,
 			 s = space,
-			 oss = OptimizationSpace13(model, env),
+			 idx = OptimizationIndices(model, env),
 			 r! = r!,
 			 rz! = rz!,
 			 rθ! = rθ!,
 			 rz = rz,
 			 rθ = rθ,
 			 opts = ip_opts)
-
 
     # pre-allocate for gradients
     traj_deriv = contact_derivative_trajectory(model, env, ip.δz, H)

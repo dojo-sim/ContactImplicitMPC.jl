@@ -31,7 +31,7 @@ function get_interior_point_solver(s::Simulation, space::Space, z, θ;
 	if linear
 		ip = interior_point(z, θ,
 			s = space,
-			oss = OptimizationSpace13(model, env),
+			idx = OptimizationIndices(model, env),
 			r!  = r!,
 			rz! = rz!,
 			rθ! = rθ!,
@@ -49,7 +49,7 @@ function get_interior_point_solver(s::Simulation, space::Space, z, θ;
 	else
 		ip = interior_point(z, θ,
 			s = space,
-			oss = OptimizationSpace13(model, env),
+			idx = OptimizationIndices(model, env),
 			r! = s.res.r!,
 			rz! = s.res.rz!,
 			rθ! = s.res.rθ!,

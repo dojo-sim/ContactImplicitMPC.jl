@@ -1,4 +1,4 @@
-@testset "MPC: Policy for Quadruped" begin
+@testset "Linearized MPC: Policy for Quadruped" begin
     T = Float64
 
     s = get_simulation("quadruped", "flat_2D_lc", "flat")
@@ -72,87 +72,87 @@
     berr > 0.0789 * 1.2 && @warn "mild regression on b tracking: current tracking error = $berr, nominal tracking error = 0.0789"
 end
 
-# @testset "MPC: Policy for Quadruped on Sinusoidal Terrain" begin
-#     T = Float64
+@testset "Linearized MPC: Policy for Quadruped on Sinusoidal Terrain" begin
+    T = Float64
 
-#     s_sim = get_simulation("quadruped", "sine1_2D_lc", "sinusoidal")
-#     s = get_simulation("quadruped", "flat_2D_lc", "flat")
-#     model = s.model
-#     env = s.env
+    s_sim = get_simulation("quadruped", "sine1_2D_lc", "sinusoidal")
+    s = get_simulation("quadruped", "flat_2D_lc", "flat")
+    model = s.model
+    env = s.env
 
-#     nq = model.dim.q
+    nq = model.dim.q
 
-#     ref_traj_ = deepcopy(ContactImplicitMPC.get_trajectory(s.model, s.env,
-#         joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
-#         load_type = :split_traj_alt))
-#     ref_traj = deepcopy(ref_traj_)
+    ref_traj_ = deepcopy(ContactImplicitMPC.get_trajectory(s.model, s.env,
+        joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
+        load_type = :split_traj_alt))
+    ref_traj = deepcopy(ref_traj_)
 
-#     # time
-#     H = ref_traj.H
-#     h = ref_traj.h
-#     N_sample = 5
-#     H_mpc = 10
-#     h_sim = h / N_sample
-#     H_sim = 1500
+    # time
+    H = ref_traj.H
+    h = ref_traj.h
+    N_sample = 5
+    H_mpc = 10
+    h_sim = h / N_sample
+    H_sim = 1500
 
-#     # barrier parameter
-#     κ_mpc = 2.0e-4
+    # barrier parameter
+    κ_mpc = 2.0e-4
 
-#     obj = TrackingObjective(model, env, H_mpc,
-#         q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
-#         u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-#         γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-#         b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+    obj = TrackingObjective(model, env, H_mpc,
+        q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
+        u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
+        γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
+        b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-#     p = linearized_mpc_policy(ref_traj, s, obj,
-#         H_mpc = H_mpc,
-#         N_sample = N_sample,
-#         κ_mpc = κ_mpc,
-#         n_opts = NewtonOptions(
-#             r_tol = 3e-4,
-#             max_iter = 5,
-#             # verbose = true,
-#             ),
-#         mpc_opts = LinearizedMPCOptions(
-#             # live_plotting=true,
-#             altitude_update = true,
-#             altitude_impact_threshold = 0.05,
-#             altitude_verbose = false,
-#             )
-#         )
+    p = linearized_mpc_policy(ref_traj, s, obj,
+        H_mpc = H_mpc,
+        N_sample = N_sample,
+        κ_mpc = κ_mpc,
+        n_opts = NewtonOptions(
+            r_tol = 3e-4,
+            max_iter = 5,
+            # verbose = true,
+            ),
+        mpc_opts = LinearizedMPCOptions(
+            # live_plotting=true,
+            altitude_update = true,
+            altitude_impact_threshold = 0.05,
+            altitude_verbose = false,
+            )
+        )
 
 
-#     q1_ref = copy(ref_traj.q[2])
-#     q0_ref = copy(ref_traj.q[1])
-#     q1_sim = SVector{model.dim.q}(q1_ref)
-#     q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
-#     @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
+    q1_ref = copy(ref_traj.q[2])
+    q0_ref = copy(ref_traj.q[1])
+    q1_sim = SVector{model.dim.q}(q1_ref)
+    q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+    @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-#     sim = simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
-#         p = p,
-#         ip_opts = InteriorPointOptions(
-# 			γ_reg = 0.0,
-# 			undercut = Inf,
-#             r_tol = 1.0e-8,
-#             κ_tol = 1.0e-8),
-#         sim_opts = SimulatorOptions(warmstart = true)
-#         )
+    sim = simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
+        p = p,
+        ip_opts = InteriorPointOptions(
+			γ_reg = 0.0,
+			undercut = Inf,
+            r_tol = 1.0e-8,
+            κ_tol = 1.0e-8),
+        sim_opts = SimulatorOptions(warmstart = true)
+        )
 
-#     @time status = simulate!(sim)
-#     ref_traj = deepcopy(ref_traj_)
+    @time status = simulate!(sim)
+    ref_traj = deepcopy(ref_traj_)
 
-#     qerr, uerr, γerr, berr = ContactImplicitMPC.tracking_error(ref_traj, sim.traj, N_sample, idx_shift=[1])
-#     @test qerr < 0.0333 * 1.5 # 0.0333
-#     @test uerr < 0.0437 * 1.5 # 0.0437
-#     @test γerr < 0.3810 * 1.5 # 0.3810
-#     @test berr < 0.0795 * 1.5 # 0.0795
-#     qerr > 0.0333 * 1.2 && @warn "mild regression on q tracking: current tracking error = $qerr, nominal tracking error = 0.0333"
-#     uerr > 0.0437 * 1.2 && @warn "mild regression on u tracking: current tracking error = $uerr, nominal tracking error = 0.0437"
-#     γerr > 0.3810 * 1.2 && @warn "mild regression on γ tracking: current tracking error = $γerr, nominal tracking error = 0.381"
-#     berr > 0.0795 * 1.2 && @warn "mild regression on b tracking: current tracking error = $berr, nominal tracking error = 0.0795"
-# end
+    qerr, uerr, γerr, berr = ContactImplicitMPC.tracking_error(ref_traj, sim.traj, N_sample, idx_shift=[1])
+    @test qerr < 0.0333 * 1.5 # 0.0333
+    @test uerr < 0.0437 * 1.5 # 0.0437
+    @test γerr < 0.3810 * 1.5 # 0.3810
+    @test berr < 0.0795 * 1.5 # 0.0795
+    qerr > 0.0333 * 1.2 && @warn "mild regression on q tracking: current tracking error = $qerr, nominal tracking error = 0.0333"
+    uerr > 0.0437 * 1.2 && @warn "mild regression on u tracking: current tracking error = $uerr, nominal tracking error = 0.0437"
+    γerr > 0.3810 * 1.2 && @warn "mild regression on γ tracking: current tracking error = $γerr, nominal tracking error = 0.381"
+    berr > 0.0795 * 1.2 && @warn "mild regression on b tracking: current tracking error = $berr, nominal tracking error = 0.0795"
+end
 
-@testset "MPC Quadruped (long trajectory)" begin
+@testset "MPC quadruped: long trajectory" begin
 
 	s = get_simulation("quadruped", "flat_2D_lc", "flat")
 	model = s.model
@@ -258,7 +258,6 @@ end
 # 	    N_sample = N_sample,
 # 	    κ_mpc = κ_mpc,
 # 		mode = :configuration,
-# 		ip_type = :mehrotra,
 # 		newton_mode = :structure,
 # 	    n_opts = NewtonOptions(
 # 			solver = :lu_solver,

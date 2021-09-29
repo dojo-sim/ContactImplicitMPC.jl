@@ -47,14 +47,13 @@
 	    joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
 	    load_type = :split_traj_alt))
 
-	ip_opts = eval(ContactImplicitMPC.interior_point_options(:interior_point))(
+	ip_opts = InteriorPointOptions(
 				κ_tol = 2.0 * 1.0e-4,
 				r_tol = 1.0e-8,
 				diff_sol = true,
 				solver = :empty_solver)
 
 	im_traj = ContactImplicitMPC.ImplicitTraj(ref_traj, s,
-		ip_type = :interior_point,
 		κ = 1.0e-4,
 		mode = :configuration,
 		opts=ip_opts)

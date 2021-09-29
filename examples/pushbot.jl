@@ -1,5 +1,5 @@
 const ContactImplicitMPC = Main
-include(joinpath(@__DIR__, "..", "src/dynamics", "pushbot", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "pushbot", "visuals.jl"))
 vis = Visualizer()
 # render(vis)
 open(vis)

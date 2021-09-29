@@ -31,7 +31,6 @@ function linearized_mpc_policy(traj, s, obj;
 	H_mpc = traj.H,
 	N_sample = 1,
 	κ_mpc = traj.κ[1],
-	ip_type = :interior_point,
 	mode = :configurationforce,
 	newton_mode = :direct,
 	n_opts = NewtonOptions(
@@ -40,7 +39,7 @@ function linearized_mpc_policy(traj, s, obj;
 		verbose = false,
 		live_plotting = false),
 	mpc_opts = LinearizedMPCOptions(),
-	ip_opts = eval(interior_point_options(ip_type))(
+	ip_opts = InteriorPointOptions(
 				γ_reg = 0.1,
 				undercut = 5.0,
 				κ_tol = κ_mpc,
@@ -54,7 +53,6 @@ function linearized_mpc_policy(traj, s, obj;
 	ref_traj = deepcopy(traj)
 
 	im_traj = ImplicitTraj(traj, s,
-		ip_type = ip_type,
 		κ = κ_mpc,
 		max_time = mpc_opts.ip_max_time,
 		opts=ip_opts,

@@ -1,4 +1,4 @@
-include(joinpath(@__DIR__, "..", "src/dynamics", "flamingo", "visuals.jl"))
+include(joinpath(@__DIR__, "..", "dynamics", "flamingo", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)
@@ -17,7 +17,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1000#50*H*N_sample #35000
+H_sim = 50*H*N_sample #35000
 
 # barrier parameter
 κ_mpc = 2.0e-4
@@ -33,7 +33,6 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
-	ip_type = :interior_point,
 	mode = :configuration,
 	ip_opts = InteriorPointOptions(
 					undercut = 5.0,
