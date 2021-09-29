@@ -33,13 +33,14 @@ using Test
 include("utils.jl") #
 
 # Solver
+include("solver/linear_solver.jl")
 include("solver/gn.jl")
 include("solver/lu.jl")
 include("solver/ldl.jl")
 include("solver/qr.jl")
 include("solver/schur.jl")
-include("solver/cones.jl") #
-
+include("solver/cones.jl")
+include("solver/indices.jl")
 
 # Environment
 include("simulator/environment.jl")
@@ -104,13 +105,11 @@ include("simulation/code_gen_simulation.jl")
 include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/objective.jl")
-# include("controller/objective_configuration.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 include("controller/newton_indices.jl")
 include("controller/newton_residual.jl")
 include("controller/newton_jacobian.jl")
-# include("controller/newton_configuration.jl")
 include("controller/mpc_utils.jl")
 include("controller/policy.jl")
 include("controller/newton_structure_solver/methods.jl")
@@ -118,6 +117,8 @@ include("controller/newton_structure_solver/methods.jl")
 # Visuals
 include("dynamics/visuals.jl")
 include("dynamics/visual_utils.jl")
+
+
 
 export
     World,
@@ -181,6 +182,11 @@ export
     module_dir,
     open_loop_disturbances,
     disturbances,
+    Disturbances, 
+    NoDisturbances,
+    OpenLoopDisturbance,
+    ImpulseDisturbance,
+    RandomDisturbance,
     open_loop_policy,
     policy,
     linearized_mpc_policy,
@@ -202,8 +208,8 @@ export
     lu_solver,
     factorize!,
     linear_solve!,
-    OptimizationSpace,
-    OptimizationSpace13,
+    Indices,
+    OptimizationIndices,
     index_q2,
     index_γ1,
     index_b1,

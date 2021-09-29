@@ -1,15 +1,4 @@
-abstract type AbstractIPSolver end
-abstract type AbstractIPOptions end
 
-function interior_point_options(ip_type::Symbol)
-    if ip_type == :interior_point
-        return Symbol("InteriorPointOptions")
-    elseif ip_type == :mehrotra
-        return Symbol("InteriorPointOptions")
-    else
-        error("Unknown ip_type.")
-    end
-end
 
 mutable struct ResidualMethods
     r!
@@ -20,7 +9,6 @@ end
 # residual
 function r!(r, z, θ, κ)
     @warn "residual not defined"
-    error()
     nothing
 end
 
@@ -57,7 +45,7 @@ function mapping!(δz, s::Euclidean, δzs, z) # TODO: make allocation free
 end
 
 # interior-point solver options
-@with_kw mutable struct InteriorPointOptions{T} <: AbstractIPOptions
+@with_kw mutable struct InteriorPointOptions{T} #<: AbstractIPOptions
     r_tol::T = 1.0e-5
     κ_tol::T = 1.0e-5
     ls_scale::T = 0.5
@@ -77,15 +65,15 @@ end
         # MPC choose γ_reg = 0.0
     solver::Symbol = :lu_solver
     undercut::T = 5.0 # the solver will aim at reaching κ_vio = κ_tol / undercut
-        # simulation choose undercut = Inf
-        # MPC choose undercut = 5.0
+        # simulation: Inf
+        # MPC: 5.0
     verbose::Bool = false
     warn::Bool = false
 end
 
-mutable struct InteriorPoint{T,R,RZ,Rθ} <: AbstractIPSolver
+mutable struct InteriorPoint{T,R,RZ,Rθ}
     s::Space
-    oss::OptimizationSpace
+    idx::OptimizationIndices
     methods::ResidualMethods
     z::Vector{T}               # current point
     r::R                       # residual
@@ -99,33 +87,32 @@ mutable struct InteriorPoint{T,R,RZ,Rθ} <: AbstractIPSolver
     reg_val::T
     iterations::Int
     opts::InteriorPointOptions{T}
-    κ
+    κ::Vector{T}
 end
 
 function interior_point(z, θ;
         s = Euclidean(length(z)),
-        oss = OptimizationSpace12(),
+        idx = OptimizationIndices(),
         r! = r!, rz! = rz!, rθ! = rθ!,
-        r  = zeros(oss.nΔ),
-        rz = spzeros(oss.nΔ, oss.nΔ),
-        rθ = spzeros(oss.nΔ, length(θ)),
+        r  = zeros(idx.nΔ),
+        rz = spzeros(idx.nΔ, idx.nΔ),
+        rθ = spzeros(idx.nΔ, length(θ)),
         opts::InteriorPointOptions = InteriorPointOptions()) where T
 
     rz!(rz, z, θ) # compute Jacobian for pre-factorization
     num_data = length(θ)
 
-    TYPE = typeof.([z[1], r, rz, rθ])
-    InteriorPoint{TYPE...}(
+    InteriorPoint{typeof.([z[1], r, rz, rθ])...}(
         s,
-        oss,
+        idx,
         ResidualMethods(r!, rz!, rθ!),
         z,
         r,
         rz,
         rθ,
-        zeros(oss.nΔ),
-        zeros(oss.nz, num_data),
-        zeros(oss.nΔ, num_data),
+        zeros(idx.nΔ),
+        zeros(idx.nz, num_data),
+        zeros(idx.nΔ, num_data),
         θ,
         eval(opts.solver)(rz),
         0.0,
@@ -140,7 +127,6 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
 
     # space
     s = ip.s
-    oss = ip.oss
 
     # options
     opts = ip.opts
@@ -166,22 +152,22 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
     θ = ip.θ
 
     # indices
-    ortz = oss.ortz
-    ortΔ = oss.ortΔ
-    socz = oss.socz
-    socΔ = oss.socΔ
-    bil = oss.bil
-    ortr = oss.ortr
-    socr = oss.socr
+    idx = ip.idx
+    ortz = idx.ortz
+    ortΔ = idx.ortΔ
+    socz = idx.socz
+    socΔ = idx.socΔ
+    bil = idx.bil
+    ortr = idx.ortr
+    socr = idx.socr
 
-    # Initialization
+    # initialization
     solver = ip.solver
     ip.iterations = 0
     no_progress = 0
 
     # compute residual, residual Jacobian
-    ip.methods.r!(r, z, θ, 0.0)
-    # TODO need least squares init /!|
+    # ip.methods.r!(r, z, θ, 0.0)
     # least_squares!(ip, z, θ, r, rz) # seems to be harmful for performance (failure and iteration count)
     z .= initial_state!(z, ortz, socz) # decrease failure rate for linearized case
 
@@ -201,7 +187,7 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
             ip.iterations += 1
 
             # Compute regularization level
-            κ_vio = bilinear_violation(ip, r)
+            # κ_vio = bilinear_violation(ip, r)
             ip.reg_val = κ_vio < κ_reg ? κ_vio * γ_reg : 0.0
 
             # compute residual Jacobian
@@ -246,15 +232,15 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
 
             κ_vio = κ_vio_cand
             r_vio = r_vio_cand
-            # nc = Int(oss.ny/4)
-            # nb = Int(oss.ny/2)
+            # nc = Int(idx.ny/4)
+            # nb = Int(idx.ny/2)
             verbose && println("iter:", j,
                 "  r: ", scn(norm(r, Inf)),
                 "  r_vio: ", scn(r_vio),
                 "  κ_vio: ", scn(κ_vio),
-                # "  κ: ", scn(norm(r[oss.bil[1:nc]], Inf)),
-                # "  κ: ", scn(norm(r[oss.bil[nc .+ (1:nb)]], Inf)),
-                # "  κ: ", scn(norm(r[oss.bil[nc + nb .+ (1:nc)]], Inf)),
+                # "  κ: ", scn(norm(r[idx.bil[1:nc]], Inf)),
+                # "  κ: ", scn(norm(r[idx.bil[nc .+ (1:nb)]], Inf)),
+                # "  κ: ", scn(norm(r[idx.bil[nc + nb .+ (1:nc)]], Inf)),
                 "  Δ: ", scn(norm(Δ)),
                 "  α: ", scn(norm(α)))
 
@@ -271,30 +257,29 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
     if (r_vio < r_tol) && (κ_vio < κ_tol)
         # differentiate solution
         ########################################################################
-        # @warn "changed"
         if false && R <: RLin
         # if R <: RLin
             # regularize solution so that k_vio == k_tol for all bilinear constraints
             ip.methods.r!(r, z, θ, 0.0)
-            for i in eachindex(oss.ortz[1])
-                if z[oss.ortz[1][i]] <= z[oss.ortz[2][i]]
-                    z[oss.ortz[1][i]] *= κ_tol / r.rbil[i]
+            for i in eachindex(idx.ortz[1])
+                if z[idx.ortz[1][i]] <= z[idx.ortz[2][i]]
+                    z[idx.ortz[1][i]] *= κ_tol / r.rbil[i]
                 else
-                    z[oss.ortz[2][i]] *= κ_tol / r.rbil[i]
+                    z[idx.ortz[2][i]] *= κ_tol / r.rbil[i]
                 end
             end
         else
             # # regularize solution so that k_vio == k_tol for all bilinear constraints
             # ip.methods.r!(r, z, θ, 0.0)
-            # for i in eachindex(oss.ortz[1])
-            #     if z[oss.ortz[1][i]] <= z[oss.ortz[2][i]]
-            #         z[oss.ortz[1][i]] *= κ_tol / r[oss.ortr][i]
+            # for i in eachindex(idx.ortz[1])
+            #     if z[idx.ortz[1][i]] <= z[idx.ortz[2][i]]
+            #         z[idx.ortz[1][i]] *= κ_tol / r[idx.ortr][i]
             #     else
-            #         z[oss.ortz[2][i]] *= κ_tol / r[oss.ortr][i]
+            #         z[idx.ortz[2][i]] *= κ_tol / r[idx.ortr][i]
             #     end
             # end
             # ip.methods.r!(r, z, θ, 0.0)
-            # @show scn.(r[oss.ortr])
+            # @show scn.(r[idx.ortr])
         end
         ########################################################################
         diff_sol && differentiate_solution!(ip, reg = max(ip.reg_val, κ_tol * γ_reg))
@@ -304,11 +289,11 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
     end
 end
 
-function rz!(ip::AbstractIPSolver, rz::AbstractMatrix{T}, z::AbstractVector{T},
+function rz!(ip::InteriorPoint, rz::AbstractMatrix{T}, z::AbstractVector{T},
         θ::AbstractVector{T}; reg = 0.0) where {T}
     z_reg = deepcopy(z)
-    ortz = ip.oss.ortz
-    socz = ip.oss.socz
+    ortz = ip.idx.ortz
+    socz = ip.idx.socz
     for i in eachindex(ortz) # primal-dual
         z_reg[ortz[i]] = max.(z[ortz[i]], reg)
     end
@@ -316,7 +301,7 @@ function rz!(ip::AbstractIPSolver, rz::AbstractMatrix{T}, z::AbstractVector{T},
     return nothing
 end
 
-function rθ!(ip::AbstractIPSolver, rθ::AbstractMatrix{T}, z::AbstractVector{T},
+function rθ!(ip::InteriorPoint, rθ::AbstractMatrix{T}, z::AbstractVector{T},
         θ::AbstractVector{T}) where {T}
     ip.methods.rθ!(rθ, z, θ)
     return nothing
@@ -335,11 +320,11 @@ function general_correction_term!(r::AbstractVector{T}, Δ::AbstractVector{T},
     return nothing
 end
 
-function least_squares!(ip::AbstractIPSolver, z::AbstractVector{T}, θ::AbstractVector{T},
+function least_squares!(ip::InteriorPoint, z::AbstractVector{T}, θ::AbstractVector{T},
         r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
     # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
-        dyn = ip.oss.dyn
-        rst = ip.oss.rst
+        dyn = ip.idx.dyn
+        rst = ip.idx.rst
         A = rz[[dyn; rst], :]
         z .+= A' * ((A * A') \ r[[dyn; rst]])
     return nothing
@@ -391,13 +376,13 @@ function initial_state!(z::AbstractVector{T}, ortz::Vector{Vector{Int}},
     return z
 end
 
-function interior_point_solve!(ip::AbstractIPSolver, z::AbstractVector{T}, θ::AbstractVector{T}) where T
+function interior_point_solve!(ip::InteriorPoint, z::AbstractVector{T}, θ::AbstractVector{T}) where T
     ip.z .= z
     ip.θ .= θ
     interior_point_solve!(ip)
 end
 
-function differentiate_solution!(ip::AbstractIPSolver; reg = 0.0)
+function differentiate_solution!(ip::InteriorPoint; reg = 0.0)
     s = ip.s
     z = ip.z
     θ = ip.θ
@@ -416,13 +401,9 @@ function differentiate_solution!(ip::AbstractIPSolver; reg = 0.0)
 end
 
 
-################################################################################
-# New methods
-################################################################################
-
-function residual_violation(ip::AbstractIPSolver, r::AbstractVector{T}) where {T}
-    dyn = ip.oss.dyn
-    rst = ip.oss.rst
+function residual_violation(ip::InteriorPoint, r::AbstractVector{T}) where {T}
+    dyn = ip.idx.dyn
+    rst = ip.idx.rst
     max(norm(r[dyn], Inf), norm(r[rst], Inf))
 end
 
@@ -448,8 +429,8 @@ function general_centering(z::AbstractVector{T}, Δaff::AbstractVector{T},
 	return μ, σ
 end
 
-function bilinear_violation(ip::AbstractIPSolver, r::AbstractVector{T}) where {T}
-    bil = ip.oss.bil
+function bilinear_violation(ip::InteriorPoint, r::AbstractVector{T}) where {T}
+    bil = ip.idx.bil
     return norm(r[bil], Inf)
 end
 
@@ -530,5 +511,3 @@ function ort_step_length(z::AbstractVector{T}, Δ::AbstractVector{T},
     end
     return α
 end
-
-#650 lines before cleanup

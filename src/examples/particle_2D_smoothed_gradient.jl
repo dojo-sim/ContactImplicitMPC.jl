@@ -60,7 +60,7 @@ plot(hcat(Vector.(sim.traj.θ)...)')
 plot(hcat(Vector.([q[1:1] for q in sim.traj.q])...)', color=:cyan, linewidth=4.0)
 plot(hcat(Vector.([q[2:2] for q in sim.traj.q])...)', color=:cyan, linewidth=4.0)
 
-oss = OptimizationSpace13(model, env)
+idx = OptimizationIndices(model, env)
 iq2 = index_q2(model, env)
 iu1 = index_u1(model)
 

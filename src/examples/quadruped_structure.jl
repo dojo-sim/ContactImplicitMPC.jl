@@ -57,7 +57,6 @@ p = linearized_mpc_policy(ref_traj, s, obj_mpc,
 	# mode = :configurationforce,
 	mode = :configuration,
 	newton_mode = :structure,
-	ip_type = :mehrotra,
     n_opts = NewtonOptions(
 		verbose = true,
 		solver = :lu_solver,

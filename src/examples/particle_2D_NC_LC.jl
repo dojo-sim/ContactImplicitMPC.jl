@@ -124,7 +124,6 @@ s.model.μ_world = 0.5
 
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
-	ip_type = :interior_point_latest,
 	ip_opts = ContactControl.InteriorPoint115Options(
 		r_tol = tol, κ_tol = tol,
 		diff_sol = false,
@@ -157,7 +156,6 @@ s.model.μ_world = 0.5
 
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
-	ip_type = :interior_point_latest,
 	ip_opts = ContactControl.InteriorPoint115Options(
 		r_tol = tol, κ_tol = tol,
 		diff_sol = false,
@@ -204,7 +202,7 @@ for t = 1:T
 	θ = deepcopy(traj.θ[t])
 
 	ip = interior_point_latest(z, θ,
-		oss = OptimizationSpace13(model, env),
+		idx = OptimizationIndices(model, env),
 		r! = s.res.r!,
 		rz! = s.res.rz!,
 		rθ! = s.res.rθ!,
@@ -254,7 +252,7 @@ for t = 1:T
 	θ = deepcopy(traj.θ[t])
 
 	ip = interior_point(z, θ,
-		oss = OptimizationSpace13(model, env),
+		idx = OptimizationIndices(model, env),
 		r! = s.res.r!,
 		rz! = s.res.rz!,
 		rθ! = s.res.rθ!,

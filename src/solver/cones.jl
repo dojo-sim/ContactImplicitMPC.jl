@@ -14,8 +14,8 @@ function second_order_cone_projection(z)
     else
         a = 0.5 * (1.0 + z0 / norm(z1))
         z_proj = zero(z)
-        z_proj[1:end-1] = a * z1
-        z_proj[end] = a * norm(z1)
+        z_proj[1] = a * norm(z1)
+        z_proj[2:end] = a * z1
         return z_proj, false
     end
 end

@@ -16,7 +16,7 @@ mutable struct ImplicitTraj{T}
 	δq0::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}} # q0 solution gradient length=H
 	δq1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # q1 solution gradient length=H
 	δu1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # u1 solution gradient length=H
-	ip::Vector{<:AbstractIPSolver}
+	ip
 	mode::Symbol
 end
 
@@ -25,8 +25,7 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 1e5,
 	mode = :configurationforce,
-	ip_type::Symbol = :interior_point,
-	opts = eval(interior_point_options(ip_type))(
+	opts = InteriorPointOptions(
 			undercut = 5.0,
 			γ_reg = 0.1,
 			κ_tol = κ[1],
@@ -56,10 +55,10 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 
 	lin = [LinearizedStep(s, ref_traj.z[t], ref_traj.θ[t], κ) for t = 1:H]
 
-	ip =  [eval(ip_type)(
+	ip =  [interior_point(
 			 deepcopy(ref_traj.z[t]),
 			 deepcopy(ref_traj.θ[t]),
-			 oss = OptimizationSpace13(model, env),
+			 idx = OptimizationIndices(model, env),
 			 r! = r!,
 			 rz! = rz!,
 			 rθ! = rθ!,

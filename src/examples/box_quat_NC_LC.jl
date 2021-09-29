@@ -1,4 +1,4 @@
-const ContactControl = Main
+ const ContactControl = Main
 include(joinpath(module_dir(), "src/dynamics/box/visuals.jl"))
 vis = Visualizer()
 open(vis)
@@ -150,7 +150,6 @@ q1 = SVector{s.model.dim.q}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
 	space = rq_space,
-	ip_type = :interior_point_latest,
 	ip_opts = ContactControl.InteriorPoint116Options(
 		r_tol = tol, κ_tol = tol,
 		diff_sol = false,
@@ -192,7 +191,6 @@ q1 = SVector{s.model.dim.q}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
 	space = rq_space,
-	ip_type = :interior_point_latest,
 	ip_opts = ContactControl.InteriorPoint116Options(
 		r_tol = tol, κ_tol = tol,
 		diff_sol = false,
@@ -248,7 +246,7 @@ for t = 1:T
 
 	ip = interior_point_latest(z, θ,
 		s = rq_space,
-		oss = OptimizationSpace13(model, env),
+		idx = OptimizationIndices(model, env),
 		r! = s.res.r!,
 		rz! = s.res.rz!,
 		rθ! = s.res.rθ!,
@@ -304,7 +302,7 @@ for t = 1:T
 
 	ip = interior_point(z, θ,
 		s = rq_space,
-		oss = OptimizationSpace13(model, env),
+		idx = OptimizationIndices(model, env),
 		r! = s.res.r!,
 		rz! = s.res.rz!,
 		rθ! = s.res.rθ!,
