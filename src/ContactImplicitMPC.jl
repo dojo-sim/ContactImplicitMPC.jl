@@ -232,6 +232,10 @@ export
     num_bilinear,
     index_equr,
     index_ortr,
-    index_socr
+    index_socr,
+    visualize_meshrobot!,
+    visualize_robot!,
+    visualize_force!,
+    visualize_disturbance!
 
 end # module

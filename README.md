@@ -3,16 +3,19 @@
 [![codecov](https://codecov.io/gh/thowell/ContactImplicitMPC.jl/branch/main/graph/badge.svg?token=3J4VOJ0VCH)](https://codecov.io/gh/thowell/ContactImplicitMPC.jl)
 
 This repository contains the algorithms and examples from our paper: [Fast Contact-Implicit Model-Predictive Control](https://arxiv.org/abs/2107.05616).
+
+We are currently cleaning up the examples for public consumption. At this stage, please try: [flamingo on flat ground](examples/flamingo_flat.jl).
+
 ## Installation
 ```
 Pkg.add("ContactImplicitMPC")
 ```
 
-## PushBot
-<img src="examples/animations/pushbot.gif" alt="drawing" width="400"/>
-
 ## Flamingo
 <img src="examples/animations/flamingo.gif" alt="drawing" width="400"/>
+
+## PushBot
+<img src="examples/animations/pushbot.gif" alt="drawing" width="400"/>
 
 ## Hopper Parkour
 <img src="examples/animations/hopper_parkour.gif" alt="drawing" width="250"/>
