@@ -4,7 +4,7 @@
 
 This repository contains the algorithms and examples from our paper: [Fast Contact-Implicit Model-Predictive Control](https://arxiv.org/abs/2107.05616).
 
-We are currently cleaning up the examples for public consumption. At this stage, please try: [flamingo on flat ground](examples/flamingo_flat.jl).
+We are currently cleaning up the examples for public consumption. At this stage, please try: [flamingo on flat ground](examples/flamingo_flat.jl), [pushbot](examples/pushbot.jl), and [hopper on flat ground](examples/hopper_flat.jl).
 
 ## Installation
 ```

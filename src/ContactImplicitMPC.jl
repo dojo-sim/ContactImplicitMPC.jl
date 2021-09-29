@@ -179,6 +179,7 @@ export
     Disturbances, 
     NoDisturbances,
     OpenLoopDisturbance,
+    impulse_disturbances,
     ImpulseDisturbance,
     RandomDisturbance,
     open_loop_policy,
@@ -236,6 +237,11 @@ export
     visualize_meshrobot!,
     visualize_robot!,
     visualize_force!,
-    visualize_disturbance!
+    visualize_disturbance!,
+    process!,
+    contact_trajectory,
+    pack_z, 
+    pack_θ,
+    generate_pusher_traj
 
 end # module

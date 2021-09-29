@@ -1,25 +1,29 @@
-const ContactImplicitMPC = Main
-include(joinpath(@__DIR__, "..", "dynamics", "hopper_2D", "visuals.jl"))
-T = Float64
-vis = Visualizer()
+using ContactImplicitMPC 
+using LinearAlgebra 
+using StaticArrays
+
+# Visualizer
+vis = ContactImplicitMPC.Visualizer()
 open(vis)
 
-# get hopper model
+# Simulation
 s = get_simulation("hopper_2D", "flat_2D_lc", "flat")
 model = s.model
 env = s.env
 
-# get trajectory
+# Reference Trajectory
 ref_traj = deepcopy(ContactImplicitMPC.get_trajectory(s.model, s.env,
     joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_forward.jld2"),
     load_type = :joint_traj))
-# time
+
 H = ref_traj.H
 h = ref_traj.h
+
+# MPC setup 
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 10*H*N_sample #500*H*N_sample
+H_sim = 1000# 10*H*N_sample #500*H*N_sample
 
 # barrier parameter
 κ_mpc = 2.0e-4
@@ -54,12 +58,13 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         )
     )
 
+# Initial conditions
 q1_ref = copy(ref_traj.q[2])
 q0_ref = copy(ref_traj.q[1])
 q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
-@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
+# Simulator
 sim = ContactImplicitMPC.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = ContactImplicitMPC.InteriorPointOptions(
@@ -70,7 +75,12 @@ sim = ContactImplicitMPC.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     sim_opts = ContactImplicitMPC.SimulatorOptions(warmstart = true))
 
 
+# Simulate
 status = ContactImplicitMPC.simulate!(sim, verbose = true)
+
+# Visualize 
+anim = visualize_robot!(vis, model, sim.traj, sample=5)
+anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample = 5)
 
 ################################################################################
 # Timing result
@@ -84,31 +94,3 @@ sim.stats.μ_dt
 H_sim * h_sim / sum(sim.stats.dt)
 
 
-
-plt = plot(layout=(3,1), legend=false)
-plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
-    color=:red, linewidth=3.0)
-plot!(plt[1,1], hcat(Vector.(sim.traj.q)...)', color=:blue, linewidth=1.0)
-plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
-    color=:red, linewidth=3.0)
-plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
-plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
-
-plot_lines!(vis, model, sim.traj.q[1:10:end])
-plot_surface!(vis, env, n=200)
-anim = visualize_robot!(vis, model, sim.traj, sample=5)
-anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample = 5)
-
-plot(hcat([u[[1,2]] for u in Vector.(sim.traj.u)[1:end]]...)')
-
-
-# filename = "hopper_ipopt"
-# MeshCat.convert_frames_to_video(
-#     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/$filename.mp4", overwrite=true)
-#
-# convert_video_to_gif(
-#     "/home/simon/Documents/$filename.mp4",
-#     "/home/simon/Documents/$filename.gif", overwrite=true)
-
-# const ContactImplicitMPC = Main

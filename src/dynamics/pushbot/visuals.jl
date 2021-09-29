@@ -99,7 +99,7 @@ function generate_pusher_traj(d::ImpulseDisturbance, traj::ContactTraj; side::Sy
 		error("Invalid side.")
 	end
 
-	pθ = [pusher_arc(center, radius, θ_rest; sense=sense) for t=1:H_sim]
+	pθ = [pusher_arc(center, radius, θ_rest; sense=sense) for t=1:H]
 
 	for (i,idx) in enumerate(d.idx)
 		w = d.w[i][1]
@@ -116,7 +116,9 @@ function generate_pusher_traj(d::ImpulseDisturbance, traj::ContactTraj; side::Sy
 	return pθ
 end
 
-function build_disturbance!(vis::Visualizer, model::PushBot; name::Symbol=:Pusher, r=0.025, α=1.0)
+function build_disturbance!(vis::Visualizer, model::PushBot; 
+	name::Symbol=:Pusher, r=0.025, α=1.0, 
+	anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))))
 	r1 = convert(Float32, r)
 	r2 = convert(Float32, 4r)
 	pusher_mat = MeshPhongMaterial(color = RGBA(1.0, 0.0, 0.0, α))
@@ -157,7 +159,7 @@ function visualize_disturbance!(vis::Visualizer, model::ContactModel, pθ::Abstr
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=:Pusher, offset::Real=0.0)
 
-	build_disturbance!(vis, model, name=name, α=α)
+	build_disturbance!(vis, model, name=name, α=α, anim=anim)
 	animate_disturbance!(vis, anim, model, pθ[1:sample:end], name=name, offset=offset)
 	return anim
 end
