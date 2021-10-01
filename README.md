@@ -4,7 +4,7 @@
 
 This repository contains the algorithms and examples from our paper: [Fast Contact-Implicit Model-Predictive Control](https://arxiv.org/abs/2107.05616).
 
-We are currently cleaning up the examples for public consumption. At this stage, please try: [flamingo](examples/flamingo_flat.jl), [pushbot](examples/pushbot.jl), [hopper](examples/hopper_flat.jl), and [quadruped](examples/quadruped.jl).
+We are currently cleaning up the examples for public consumption. At this stage, please try: [flamingo](examples/flamingo/flat.jl), [pushbot](examples/pushbot/push_recovery.jl), [hopper](examples/hopper/flat.jl), and [quadruped](examples/quadruped/flat.jl). Notebooks can be [generated](examples/README.md) for the examples.
 
 ## Installation
 ```
@@ -28,3 +28,6 @@ Pkg.add("ContactImplicitMPC")
 
 ## Quadruped Monte Carlo
 <img src="examples/animations/quadruped_monte_carlo.gif" alt="drawing" width="400"/>
+
+## Reference Trajectories
+The trajectories we track in the examples are generated using [contact-implicit trajectory optimization](https://journals.sagepub.com/doi/10.1177/0278364919849235) and can be run [here](https://github.com/thowell/motion_planning/tree/main/examples/contact_implicit).

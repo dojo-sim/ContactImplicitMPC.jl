@@ -1,0 +1,3 @@
+[deps]
+ContactImplicitMPC = "842347fd-0767-4ff8-b652-76aad5eb0a37"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
