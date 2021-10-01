@@ -243,6 +243,7 @@ export
     pack_z, 
     pack_θ,
     generate_pusher_traj,
-    update_friction_coefficient
+    update_friction_coefficient,
+    quadratic_objective
 
 end # module
