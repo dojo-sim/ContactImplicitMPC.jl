@@ -11,9 +11,8 @@ You can also generate Jupyter notebooks and run them locally by performing the f
 2. [install IJulia](https://github.com/JuliaLang/IJulia.jl) (`add` it to the default project)
 3. in the Julia REPL, run
    ```
-   using Pkg
-   Pkg.build("ContactImplicitMPC")
-   using IJulia, ContactImplicitMPC
+   using Pkg, IJulia, ContactImplicitMPC
+   include(joinpath(dirname(pathof(ContactImplicitMPC)), "..", "examples/build.jl"))
    notebook(dir=joinpath(dirname(pathof(ContactImplicitMPC)), "..", "examples"))
    ```
 
