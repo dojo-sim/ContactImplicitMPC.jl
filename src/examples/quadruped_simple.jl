@@ -163,6 +163,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     κ_mpc = κ_mpc,
 	# mode = :configurationforce,
 	mode = :configuration,
+	ip_type = :mehrotra,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         max_iter = 5,
@@ -174,8 +175,8 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         altitude_impact_threshold = 0.02,
         altitude_verbose = true,
         ),
-	ip_opts = InteriorPointOptions(
-		max_iter = 100,
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
 		# verbose = true,
 		r_tol = 1.0e-4,
 		κ_tol = 1.0e-4,
@@ -200,6 +201,7 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
         κ_init = 1.0e-8,
         κ_tol = 2.0e-8),
     sim_opts = SimulatorOptions(warmstart = true),
+	ip_type = :interior_point,
     )
 #
 # rz0 = sim.p.im_traj.ip[1].rz

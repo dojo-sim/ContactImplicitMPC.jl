@@ -208,7 +208,7 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
 
             # Compute corrector search direction
             linear_solve!(solver, Δ, rz, r, reg = ip.reg_val, fact = false)
-            τ = max(0.95, 1 - max(r_vio, κ_vio)^2)
+            τ = max(0.95, 1 - max(r_vio, κ_vio)^2) #TODO: confirm this is not too aggressive
 
             α_ort = ort_step_length(z, Δ, ortz, ortΔ; τ = τ)
             α_soc = soc_step_length(z, Δ, socz, socΔ; τ = min(τ, 0.99), verbose = false)

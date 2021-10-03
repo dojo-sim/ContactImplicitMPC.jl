@@ -124,6 +124,7 @@ s.model.μ_world = 0.5
 
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
+	ip_type = :interior_point_latest,
 	ip_opts = ContactControl.InteriorPoint115Options(
 		r_tol = tol, κ_tol = tol,
 		diff_sol = false,
@@ -156,6 +157,7 @@ s.model.μ_world = 0.5
 
 # simulator
 sim = ContactControl.simulator(s, deepcopy(q0), deepcopy(q1), h, T,
+	ip_type = :interior_point_latest,
 	ip_opts = ContactControl.InteriorPoint115Options(
 		r_tol = tol, κ_tol = tol,
 		diff_sol = false,
@@ -202,14 +204,22 @@ for t = 1:T
 	θ = deepcopy(traj.θ[t])
 
 	ip = interior_point_latest(z, θ,
-		idx = OptimizationIndices(model, env),
+		ix = linearization_var_index(model, env)[1],
+		iy1 = linearization_var_index(model, env)[2],
+		iy2 = linearization_var_index(model, env)[3],
+		idyn = linearization_term_index(model, env)[1],
+		irst = linearization_term_index(model, env)[2],
+		ibil = linearization_term_index(model, env)[3],
+		idx_ineq = inequality_indices(model, env),
+		idx_soc = soc_indices(model, env),
 		r! = s.res.r!,
+		rm! = s.res.rm!,
 		rz! = s.res.rz!,
 		rθ! = s.res.rθ!,
 		rz = s.rz,
 		rθ = s.rθ,
 		opts = InteriorPoint115Options(
-			max_iter = 20,
+			max_iter_inner = 20,
 			max_ls = 3,
 			r_tol = r_tol,
 			κ_tol = κ_tol,
@@ -252,14 +262,22 @@ for t = 1:T
 	θ = deepcopy(traj.θ[t])
 
 	ip = interior_point(z, θ,
-		idx = OptimizationIndices(model, env),
+		ix = linearization_var_index(model, env)[1],
+		iy1 = linearization_var_index(model, env)[2],
+		iy2 = linearization_var_index(model, env)[3],
+		idyn = linearization_term_index(model, env)[1],
+		irst = linearization_term_index(model, env)[2],
+		ibil = linearization_term_index(model, env)[3],
+		idx_ineq = inequality_indices(model, env),
+		idx_soc = soc_indices(model, env),
 		r! = s.res.r!,
+		rm! = s.res.rm!,
 		rz! = s.res.rz!,
 		rθ! = s.res.rθ!,
 		rz = s.rz,
 		rθ = s.rθ,
 		opts = InteriorPointOptions(
-			# max_iter = 20,
+			# max_iter_inner = 20,
 			max_ls = 3,
 			r_tol = r_tol,
 			κ_tol = κ_tol,
