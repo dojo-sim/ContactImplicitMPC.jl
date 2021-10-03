@@ -177,7 +177,6 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
     # Initialization
     solver = ip.solver
     ip.iterations = 0
-    no_progress = 0
 
     # compute residual, residual Jacobian
     ip.methods.r!(r, z, θ, 0.0)
@@ -201,7 +200,7 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
             ip.iterations += 1
 
             # Compute regularization level
-            κ_vio = bilinear_violation(ip, r)
+            κ_vio = bilinear_violation(ip, r) #maybe not useful
             ip.reg_val = κ_vio < κ_reg ? κ_vio * γ_reg : 0.0
 
             # compute residual Jacobian
@@ -217,6 +216,7 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
             αaff = α
 
             # Compute corrector residual
+            # this call to r! is not useful we should just add  max(σ * μ, κ_tol/opts.undercut) to the genreal correctio term
             ip.methods.r!(r, z, θ, max(σ * μ, κ_tol/opts.undercut)) # here we set κ = σ*μ, Δ = Δaff
             general_correction_term!(r, Δ, ortr, socr, ortΔ, socΔ)
 
@@ -246,8 +246,6 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
 
             κ_vio = κ_vio_cand
             r_vio = r_vio_cand
-            # nc = Int(oss.ny/4)
-            # nb = Int(oss.ny/2)
             verbose && println("iter:", j,
                 "  r: ", scn(norm(r, Inf)),
                 "  r_vio: ", scn(r_vio),

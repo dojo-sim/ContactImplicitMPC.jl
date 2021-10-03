@@ -5,14 +5,18 @@ open(vis)
 
 # qet hopper simulation
 s = get_simulation("racecar", "flat_3D_lc", "flat")
+s_load = get_simulation("racecar", "flat_3D_lc", "payload",
+    model_variable_name="racecar_payload",
+    dynamics_name="dynamics_payload")
+
 model = s.model
 env = s.env
 nq = s.model.dim.q
 nu = s.model.dim.u
 nc = s.model.dim.c
 
-H = 200
-h = 0.01
+H = 400
+h = 0.02
 κ = 1.0e-8
 
 # Design open-loop control trajectory
@@ -22,8 +26,14 @@ v0 = 3.0
 q0_ref = SVector{nq,T}([0.00, 0.00, 0.35, 0.02, 0.03, 0.02, 0.40, 0.15, 0.15, 0.15, 0.15, 0.00, 0.00, 0.00, 0.00])
 q1_ref = SVector{nq,T}([v0*h, 0.00, 0.35, 0.02, 0.03, 0.02, 0.40, 0.15, 0.15, 0.15, 0.15, ω0*h, ω0*h, ω0*h, ω0*h])
 
-u_ref = [[0.0, 0.00, 0.00, 2.50, 2.50] for k = 1:100]
-push!(u_ref,  [[0.0, 0.0, 0.0, 0.0, 0.0] for k = 1:H-100]...);
+u_ref = [[0.0, 0.00, 0.00, 2.50, 2.50] for k = 1:30]
+# push!(u_ref,  [[-0.015, -0.5, -0.0, 2.50, 2.50] for k = 1:20]...);
+# push!(u_ref,  [[+0.017, -0.5, -0.0, 2.50, 2.50] for k = 1:20]...);
+push!(u_ref,  [[-0.015, -0.30, -0.30, -0.30, -0.30] for k = 1:15]...);
+push!(u_ref,  [[+0.015, -0.30, -0.30, -0.30, -0.30] for k = 1:15]...);
+push!(u_ref,  [[ 0.000, -0.30, -0.30, -0.30, -0.30] for k = 1:H-60]...);
+# push!(u_ref,  [[0.1, -4.0,-4.0, 4.0, 4.0] for k = 1:H-100]...);
+# push!(u_ref,  [[0.0, 0.0, 0.0, 0.0, 0.0] for k = 1:H-100]...);
 
 # Simulate
 sim = simulator(s, q0_ref, q1_ref, h, H;
@@ -32,10 +42,19 @@ sim = simulator(s, q0_ref, q1_ref, h, H;
     ip_opts = InteriorPointOptions(r_tol=1e-9, κ_tol=2κ),
     sim_opts = SimulatorOptions())
 
+sim_load = simulator(s_load, q0_ref, q1_ref, h, H;
+    p = open_loop_policy(u_ref),
+    d = no_disturbances(s.model),
+    ip_opts = InteriorPointOptions(r_tol=1e-9, κ_tol=2κ),
+    sim_opts = SimulatorOptions())
+
 simulate!(sim)
+simulate!(sim_load)
 
 
 plot_surface!(vis, s.env, xlims=[-10,10.], ylims=[-10, 10.])
+plot_lines!(vis, s.model, sim.traj.q, col = false, name = :nominal)
+plot_lines!(vis, s.model, sim_load.traj.q, name = :load)
 anim = visualize_robot!(vis, s.model, sim.traj)
 anim = visualize_force!(vis, s.model, s.env, sim.traj, anim = anim)
 

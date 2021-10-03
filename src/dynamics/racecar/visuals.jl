@@ -41,7 +41,7 @@ function build_robot!(vis::Visualizer, model::Racecar12; name::Symbol=:Racecar12
 	rw = convert(Float32, model.rw)
 	rs = convert(Float32, rs)
 	d = convert(Float32, d)
-	orange_mat, blue_mat, black_mat = get_material(;α=1.0)
+	orange_mat, blue_mat, black_mat = get_material(; α = α)
 
 
 	default_background!(vis)
@@ -62,7 +62,6 @@ function build_robot!(vis::Visualizer, model::Racecar12; name::Symbol=:Racecar12
 
 		setobject!(vis[name][:robot]["suspension$i"], Cylinder(Point3f0(0),
 			Point3f0(0, 0, 1.0), rs), blue_mat)
-		@show i
 	end
 	return nothing
 end
