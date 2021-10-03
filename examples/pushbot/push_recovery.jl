@@ -9,7 +9,7 @@ using LinearAlgebra
 using StaticArrays
 
 # ## Simulation
-s = get_simulation("pushbot", "flat_2D_lc", "flat")
+s = get_simulation("pushbot", "flat_2D_lc", "flat");
 model = s.model
 env = s.env
 
@@ -46,7 +46,7 @@ q1 = @SVector [0.0 * π, 0.0]
 sim = simulator(s, q0, q1, h, H,
 	ip_opts = InteriorPointOptions(
 		r_tol = 1.0e-6, κ_tol = 1.0e-5),
-	sim_opts = SimulatorOptions(warmstart = false))
+	sim_opts = SimulatorOptions(warmstart = false));
 
 # ## Simulate
 status = simulate!(sim)

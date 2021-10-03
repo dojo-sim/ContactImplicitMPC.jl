@@ -14,7 +14,17 @@ You can also generate Jupyter notebooks and run them locally by performing the f
    using Pkg
    Pkg.build("ContactImplicitMPC")
    using IJulia, ContactImplicitMPC
+   ```
+4. generate dynamics (do once after installation)
+   ``` 
+   include(joinpath(dirname(pathof(ContactImplicitMPC)), "..", "src/dynamics/generate_dynamics.jl"))
+   ``` 
+5. generate simulations (do once after installation)
+   ```
+   include(joinpath(dirname(pathof(ContactImplicitMPC)), "..", "src/simulation/generate_simulation.jl"))
+   ```
+6. interact with notebooks
+   ```
    notebook(dir=joinpath(dirname(pathof(ContactImplicitMPC)), "..", "examples"))
    ```
-
 

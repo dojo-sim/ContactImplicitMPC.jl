@@ -1,6 +1,6 @@
 # Smooth ReLU
 t_ss = 25.0
-m_ss = tan(deg2rad(10.0)) # 20 degree slope
+m_ss = tan(deg2rad(10.0)) # 10 degree slope
 x_off_ss = 0.5
 slope_smooth(x) = m_ss * 1.0 / t_ss .* log.(1.0 .+ exp.(t_ss .* (x[1] .- x_off_ss)))
 

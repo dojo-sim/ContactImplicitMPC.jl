@@ -9,7 +9,7 @@ using LinearAlgebra
 using StaticArrays
 
 # ## Simulation
-s = get_simulation("quadruped", "flat_2D_lc", "flat")
+s = get_simulation("quadruped", "flat_2D_lc", "flat");
 model = s.model
 env = s.env
 
@@ -32,7 +32,7 @@ obj = TrackingObjective(model, env, H_mpc,
     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc]);
 
 p = linearized_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -43,7 +43,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 		solver = :lu_solver,
 		r_tol = 3e-4,
 		max_iter = 5,
-		max_time = ref_traj.h, # HARD REAL TIME
+		# max_time = ref_traj.h, # HARD REAL TIME
 		),
     mpc_opts = LinearizedMPCOptions(),
 	ip_opts = InteriorPointOptions(
@@ -73,7 +73,7 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     );
 
 # ## Simulate
-@time status = ContactImplicitMPC.simulate!(sim, verbose = true)
+@time status = simulate!(sim, verbose = true);
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
@@ -81,7 +81,6 @@ open(vis)
 
 # ## Visualize
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=5);
-anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample = 5);
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.

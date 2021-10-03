@@ -4,3 +4,5 @@ exampledir = joinpath(@__DIR__, "..", "examples")
 Pkg.activate(exampledir)
 Pkg.add("Literate")
 include(joinpath(exampledir, "generate_notebooks.jl"))
+
+
