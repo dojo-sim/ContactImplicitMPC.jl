@@ -10,7 +10,7 @@ ref_traj = deepcopy(ContactControl.get_trajectory(model, flat_2D_lc,
 
 copy_traj = deepcopy(ref_traj)
 
-ip_opts = eval(interior_point_options(:interior_point))(
+ip_opts = InteriorPointOptions(
 			κ_init = 1.0e-4,
 			κ_tol = 2.0 * 1.0e-4,
 			r_tol = 1.0e-8,
@@ -18,7 +18,6 @@ ip_opts = eval(interior_point_options(:interior_point))(
 			solver = :empty_solver)
 
 im_traj = ImplicitTraj(ref_traj, sim,
-	ip_type = :interior_point,
 	κ = 1.0e-4,
 	mode = :configuration,
 	opts=ip_opts)

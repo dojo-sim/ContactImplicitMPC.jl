@@ -2,6 +2,7 @@ include(joinpath(@__DIR__, "..", "dynamics", "hopper_3D", "visuals.jl"))
 T = Float64
 vis = Visualizer()
 open(vis)
+render(vis)
 
 # qet hopper model
 s = get_simulation("hopper_3D", "flat_3D_lc", "flat")
@@ -56,8 +57,8 @@ sim = simulator(s, q0_ref, q1_ref, h, H,
     d = no_disturbances(model),
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-12,
-        # κ_init = 1.0e-8,
-        κ_tol = 1.0e-8),
+        κ_init = 1.0e-8,
+        κ_tol = 2.0e-8),
     sim_opts = SimulatorOptions(warmstart = true)
     )
 

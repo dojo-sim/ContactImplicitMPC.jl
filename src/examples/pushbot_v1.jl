@@ -1,4 +1,3 @@
-const ContactControl = Main
 include(joinpath(@__DIR__, "..", "dynamics", "pushbot", "visuals.jl"))
 vis = Visualizer()
 # render(vis)
@@ -79,12 +78,34 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
     n_opts = NewtonOptions(
+        r_tol = 3e-4,
+        solver = :ldl_solver,
+        max_iter = 10),
+    mpc_opts = LinearizedMPCOptions())
+
+p = linearized_mpc_policy(ref_traj, s, obj,
+    H_mpc = H_mpc,
+    N_sample = N_sample,
+    κ_mpc = κ_mpc,
+	# mode = :configurationforce,
+	# mode = :configuration,
+	ip_type = :mehrotra,
+    n_opts = NewtonOptions(
 		r_tol = 3e-4,
 		max_iter = 10,
-		max_time = ref_traj.h/2, # HARD REAL TIME
 		# verbose = true,
 		),
     mpc_opts = LinearizedMPCOptions(),
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
+		# verbose = true,
+		r_tol = 1.0e-4,
+		κ_tol = 1.0e-4,
+		diff_sol = true,
+		# κ_reg = 1e-3,
+		# γ_reg = 1e-1,
+		solver = :empty_solver,
+		),
     )
 
 idx_d1 = 20
@@ -93,7 +114,7 @@ idx_d3 = idx_d2 + 80
 idx_d4 = idx_d3 + 200
 idx_d5 = idx_d4 + 30
 idx = [idx_d1, idx_d2, idx_d3, idx_d4, idx_d5]
-impulses = [[-5.5; 0.0], [+5.5; 0.0], [+5.5; 0.0], [-1.5; 0.0], [-6.5; 0.0]]
+impulses = [[-5.5; 0.0], [+5.5; 0.0], [+5.5; 0.0], [-1.5; 0.0], [-4.5; 0.0]]
 d = impulse_disturbances(impulses, idx)
 
 
@@ -103,28 +124,19 @@ q0_sim = SVector{model.dim.q}([0.0, 0.0])
 sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
 	d = d,
+    ip_opts = ContactControl.InteriorPointOptions(
+        r_tol = 1.0e-8,
+        κ_init = 1.0e-6,
+        κ_tol = 2.0e-6),
     sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
-status = ContactControl.simulate!(sim, verbose = true)
+telap = @elapsed status = ContactControl.simulate!(sim, verbose = true)
 # @profiler status = ContactControl.simulate!(sim, verbose = true)
-
-################################################################################
-# Timing result
-################################################################################
-process!(sim)
-# Time budget
-ref_traj.h # 0.04
-# Time used on average
-sim.stats.μ_dt # 0.0138
-sim.stats.σ_dt # 0.0138
-# Speed ratio
-H_sim * h_sim / sum(sim.stats.dt) # 2.90
-
-
+H_sim * h / (telap * 0.97)
+#7.77
 
 l = 1
 lu = 1
-nc = model.dim.c
 plt = plot(layout=(3,1), legend=false)
 plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
     color=:red, linewidth=3.0)
@@ -207,11 +219,15 @@ build_disturbance!(vis, model, name=pusher_name, α=α_pusher[i])
 set_robot!(vis, model, sim.traj.q[t+2], name=name)
 set_disturbance!(vis, model, pθ_left[t], name=pusher_name, offset=0.05)
 
-# filename = "pushbot_multiple_pushes2"
+(t_highlights .- 19)*h_sim
+
+# filename = "pushbot_multiple_pushes"
 # MeshCat.convert_frames_to_video(
 #     "/home/simon/Downloads/$filename.tar",
-#     "/home/simon/Documents/video/$filename.mp4", overwrite=true)
+#     "/home/simon/Documents/$filename.mp4", overwrite=true)
 #
 # convert_video_to_gif(
-#     "/home/simon/Documents/video/$filename.mp4",
-#     "/home/simon/Documents/video/$filename.gif", overwrite=true)
+#     "/home/simon/Documents/$filename.mp4",
+#     "/home/simon/Documents/$filename.gif", overwrite=true)
+
+const ContactControl = Main

@@ -65,7 +65,7 @@ nθ = num_data(model)
 
 z1, θ1 = get_initialization(ref_traj, t)
 ip1 = interior_point(z1, θ1,
-	oss = OptimizationSpace13(model, env),
+	idx = OptimizationIndices(model, env),
 	r! = s.res.r!,
     rz! = s.res.rz!,
     rθ! = s.res.rθ!,
@@ -91,10 +91,8 @@ end
 ################################################################################
 # Test Interior Point on the linearized problem
 ################################################################################
-
 im_traj1 = ImplicitTraj(ref_traj, s;
 	κ = 1e-8,
-	ip_type = :interior_point,
 	opts = InteriorPointOptions(
 			κ_tol = 1.0e-8,
 			r_tol = 1.0e-8,

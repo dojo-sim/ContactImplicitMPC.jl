@@ -258,7 +258,6 @@ end
 # 	    N_sample = N_sample,
 # 	    κ_mpc = κ_mpc,
 # 		mode = :configuration,
-# 		ip_type = :mehrotra,
 # 		newton_mode = :structure,
 # 	    n_opts = NewtonOptions(
 # 			solver = :lu_solver,

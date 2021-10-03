@@ -19,7 +19,7 @@
 
     p = open_loop_policy(ref_traj.u; N_sample = 1)
 
-    sim_b = simulator(s, q0_sim, q1_sim, h, H, p=p, ip_type=:interior_point,
+    sim_b = simulator(s, q0_sim, q1_sim, h, H, p=p,
         sim_opts = SimulatorOptions(warmstart=true))
 
     @time simulate!(sim_b)

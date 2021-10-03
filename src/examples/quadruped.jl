@@ -12,8 +12,8 @@ env = s.env
 ref_traj_ = deepcopy(ContactControl.get_trajectory(s.model, s.env,
     joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
     load_type = :split_traj_alt))
+
 ref_traj = deepcopy(ref_traj_)
-update_friction_coefficient!(ref_traj, model, env)
 
 # time
 H = ref_traj.H
@@ -24,7 +24,7 @@ h_sim = h / N_sample
 H_sim = 10000 #4000 #3000
 
 # barrier parameter
-κ_mpc = 2.0e-4
+κ_mpc = 1.0e-4
 
 obj = TrackingObjective(model, env, H_mpc,
     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
@@ -38,6 +38,21 @@ p = linearized_mpc_policy(ref_traj, s, obj,
     κ_mpc = κ_mpc,
 	mode = :configuration,
     n_opts = NewtonOptions(
+        r_tol = 3e-4,
+		# β_init = 1.0e-5,
+        # solver = :ldl_solver,
+        # verbose=true,
+        max_iter = 5),
+    mpc_opts = LinearizedMPCOptions())
+
+p = linearized_mpc_policy(ref_traj, s, obj,
+    H_mpc = H_mpc,
+    N_sample = N_sample,
+    κ_mpc = κ_mpc,
+	# mode = :configurationforce,
+	mode = :configuration,
+	ip_type = :mehrotra,
+    n_opts = NewtonOptions(
 		solver = :lu_solver,
 		r_tol = 3e-4,
 		max_iter = 5,
@@ -49,15 +64,16 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         # altitude_impact_threshold = 0.05,
         # altitude_verbose = true,
         ),
-	ip_opts = InteriorPointOptions(
-					undercut = 5.0,
-					γ_reg = 0.1,
-					κ_tol = κ_mpc,
-					r_tol = 1.0e-8,
-					diff_sol = true,
-					solver = :empty_solver,
-					max_time = 1000.0,
-					),
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
+		verbose = false,
+		r_tol = 1.0e-4,
+		κ_tol = 1.0e-4,
+		diff_sol = true,
+		# κ_reg = 1e-3,
+		# γ_reg = 1e-1,
+		solver = :empty_solver,
+		),
     )
 
 
@@ -67,16 +83,14 @@ q1_sim = SVector{model.dim.q}(q1_ref)
 q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
+sim = ContactControl.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-	ip_opts = InteriorPointOptions(
-		undercut = Inf,
-		γ_reg = 0.0,
-		# verbose = true,
+    ip_opts = ContactControl.InteriorPointOptions(
         r_tol = 1.0e-8,
-        κ_tol = 1.0e-8),
-    sim_opts = SimulatorOptions(warmstart = true),
-    )
+        κ_init = 1.0e-6,
+        κ_tol = 2.0e-6,
+        diff_sol = true),
+    sim_opts = ContactControl.SimulatorOptions(warmstart = true))
 
 @time status = ContactControl.simulate!(sim, verbose = true)
 
@@ -115,48 +129,3 @@ for (i,t) in enumerate(t_ghosts)
     name = Symbol("ghost$i")
     set_meshrobot!(vis, mvis_ghosts[i], model, sim.traj.q[t], name=name)
 end
-
-
-
-
-
-# R = Dict{Symbol,Vector}(
-# 	:dyn => [],
-# 	:imp => [],
-# 	:mdp => [],
-# 	:fri => [],
-# 	:bimp => [],
-# 	:bmdp => [],
-# 	:bfri => [],
-# 	)
-# nz = num_var(model, env)
-# dyn = index_dyn(model, env, quat = true)
-# imp = index_imp(model, env, quat = true)
-# mdp = index_mdp(model, env, quat = true)
-# fri = index_fri(model, env, quat = true)
-# bimp = index_bimp(model, env, quat = true)
-# bmdp = index_bmdp(model, env, quat = true)
-# bfri = index_bfri(model, env, quat = true)
-# for t = 1:ref_traj.H
-#
-# 	z = deepcopy(ref_traj.z[t])
-# 	θ = deepcopy(ref_traj.θ[t])
-# 	r = zeros(nz)
-# 	r = residual(model, env, z, θ, 0.0)
-# 	s.res.r!(r, z, θ, 1e-6)
-# 	push!(R[:dyn], norm(r[dyn]))
-# 	push!(R[:imp], norm(r[imp]))
-# 	push!(R[:mdp], norm(r[mdp]))
-# 	push!(R[:fri], norm(r[fri]))
-# 	push!(R[:bimp], norm(r[bimp]))
-# 	push!(R[:bmdp], norm(r[bmdp]))
-# 	push!(R[:bfri], norm(r[bfri]))
-# end
-# plt = plot()
-# plot!(plt, R[:dyn], label = "dyn")
-# plot!(plt, R[:imp], label = "imp")
-# plot!(plt, R[:mdp], label = "mdp")
-# plot!(plt, R[:fri], label = "fri")
-# plot!(plt, R[:bimp], label = "bimp")
-# plot!(plt, R[:bmdp], label = "bmdp")
-# plot!(plt, R[:bfri], label = "bfri")

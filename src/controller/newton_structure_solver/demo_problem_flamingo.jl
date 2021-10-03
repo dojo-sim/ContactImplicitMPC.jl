@@ -21,7 +21,7 @@ obj_mpc = quadratic_objective(model, H_mpc,
 
 s = NewtonStructure(sim, H_mpc, ref_traj, obj_mpc, 1.0e-4)
 ref_traj.θ
-ip_opts = eval(interior_point_options(:interior_point))(
+ip_opts = InteriorPointOptions(
 			κ_init = 1.0e-4,
 			κ_tol = 2.0 * 1.0e-4,
 			r_tol = 1.0e-8,
@@ -29,7 +29,6 @@ ip_opts = eval(interior_point_options(:interior_point))(
 			solver = :empty_solver)
 
 im_traj = ImplicitTraj(ref_traj, sim,
-	ip_type = :interior_point,
 	κ = 1.0e-4,
 	mode = :configuration,
 	opts=ip_opts)

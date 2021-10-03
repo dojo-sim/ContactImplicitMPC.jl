@@ -24,7 +24,7 @@ h = ref_traj.h
 N_sample = 10
 H_mpc = 20
 h_sim = h / N_sample
-H_sim = 1000 # 10000 # 12000
+H_sim = 10000 # 12000
 
 # barrier parameter
 κ_mpc = 1.0e-4
@@ -69,8 +69,8 @@ p = linearized_mpc_policy(ref_traj, s, obj,
         # altitude_impact_threshold = 0.05,
         # altitude_verbose = true,
         ),
-	ip_opts = InteriorPointOptions(
-		max_iter = 100,
+	ip_opts = MehrotraOptions(
+		max_iter_inner = 100,
 		verbose = false,
 		r_tol = 1.0e-4,
 		κ_tol = 1.0e-4,
@@ -91,7 +91,8 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
     ip_opts = InteriorPointOptions(
         r_tol = 1.0e-8,
-        κ_tol = 1.0e-6),
+        κ_init = 1.0e-8,
+        κ_tol = 2.0e-8),
     sim_opts = SimulatorOptions(warmstart = true))
 
 status = ContactControl.simulate!(sim, verbose = true)

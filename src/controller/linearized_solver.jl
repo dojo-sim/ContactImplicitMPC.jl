@@ -536,7 +536,7 @@ function update!(rθ::RθLin{T}, rθ0::AbstractMatrix{T}) where {T}
 	return nothing
 end
 
-function least_squares!(ip::AbstractIPSolver, z::Vector{T}, θ::AbstractVector{T},
+function least_squares!(ip::InteriorPoint, z::Vector{T}, θ::AbstractVector{T},
 		r::RLin{T}, rz::RZLin{T}) where {T}
 	δθ = θ - r.θ0
 	δrdyn = r.rdyn0 - r.rθdyn * δθ
@@ -552,11 +552,11 @@ function least_squares!(ip::AbstractIPSolver, z::Vector{T}, θ::AbstractVector{T
 	return nothing
 end
 
-function residual_violation(ip::AbstractIPSolver, r::RLin{T}; nquat::Int = 0) where {T}
+function residual_violation(ip::InteriorPoint, r::RLin{T}; nquat::Int = 0) where {T}
     max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
 end
 
-function bilinear_violation(ip::AbstractIPSolver, r::RLin{T}; nquat::Int = 0) where {T}
+function bilinear_violation(ip::InteriorPoint, r::RLin{T}; nquat::Int = 0) where {T}
     norm(r.rbil, Inf)
 end
 
@@ -572,7 +572,7 @@ function general_correction_term!(r::RLin, Δ::AbstractVector{T}, ortr::Vector{I
     return nothing
 end
 
-function rz!(ip::AbstractIPSolver, rz::RZLin{T}, z::AbstractVector{T},
+function rz!(ip::InteriorPoint, rz::RZLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
 	rz!(rz, z, θ, reg = reg)
 	return nothing
@@ -584,7 +584,7 @@ function rz!(rz::RZLin{T}, z::AbstractVector{T},
 	return nothing
 end
 
-function rθ!(ip::AbstractIPSolver, rθ::RθLin{T}, z::AbstractVector{T},
+function rθ!(ip::InteriorPoint, rθ::RθLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}) where {T}
 	return nothing
 end
