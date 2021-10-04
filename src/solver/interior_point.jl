@@ -1,9 +1,3 @@
-mutable struct ResidualMethods
-    r!
-    rz!
-    rθ!
-end
-
 # residual
 function r!(r, z, θ, κ)
     @warn "residual not defined"
@@ -20,14 +14,6 @@ end
 function rθ!(rθ, z, θ)
     @warn "residual Jacobian wrt θ not defined"
     nothing
-end
-
-# optimization spaces
-abstract type Space end
-
-# Euclidean
-struct Euclidean <: Space
-    n::Int
 end
 
 function candidate_point!(z̄::Vector{T}, ::Euclidean, z::Vector{T}, Δ::Vector{T}, α::T) where T

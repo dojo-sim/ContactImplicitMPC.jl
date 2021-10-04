@@ -1,3 +1,12 @@
+
+# optimization spaces
+abstract type Space end
+
+# Euclidean
+struct Euclidean <: Space
+    n::Int
+end
+
 function conjugate(q)
 	s = q[1]
 	v = q[2:4]

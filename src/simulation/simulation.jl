@@ -1,3 +1,9 @@
+mutable struct ResidualMethods
+    r!
+    rz!
+    rθ!
+end
+
 mutable struct Simulation
 	model::ContactModel
 	env::Environment{<:World,<:FrictionCone}

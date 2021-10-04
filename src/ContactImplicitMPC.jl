@@ -34,8 +34,8 @@ include("solver/linear_solver.jl")
 include("solver/lu.jl")
 include("solver/qr.jl")
 include("solver/schur.jl")
-include("solver/cones.jl") 
-include("solver/indices.jl") 
+include("solver/cones.jl")
+include("solver/indices.jl")
 
 # Environment
 include("simulator/environment.jl")
@@ -45,9 +45,6 @@ include("dynamics/model.jl")
 
 # Simulator
 include("simulation/index.jl")
-
-# Solver
-include("solver/interior_point.jl")
 
 # Simulator
 include("simulation/contact_methods.jl")
@@ -61,6 +58,9 @@ include("dynamics/fast_methods_dynamics.jl")
 include("dynamics/quaternions.jl")
 include("dynamics/mrp.jl")
 include("dynamics/euler.jl")
+
+# Solver
+include("solver/interior_point.jl")
 
 include("dynamics/particle_2D/model.jl")
 include("dynamics/particle/model.jl")
@@ -176,7 +176,7 @@ export
     module_dir,
     open_loop_disturbances,
     disturbances,
-    Disturbances, 
+    Disturbances,
     NoDisturbances,
     OpenLoopDisturbance,
     impulse_disturbances,
@@ -241,12 +241,12 @@ export
     visualize_payload!,
     process!,
     contact_trajectory,
-    pack_z, 
+    pack_z,
     pack_θ,
     generate_pusher_traj,
     update_friction_coefficient,
     quadratic_objective,
-    particle, 
+    particle,
     particle_2D,
     hopper_2D,
     hopper_3D,
@@ -262,14 +262,14 @@ export
     flat_2D_nc,
     slope1_2D_lc,
     sine2_2D_lc,
-    piecewise_2D_lc, 
-    stairs3_2D_lc, 
-    flat_3D_lc, 
-    sine2_3D_lc, 
-    sine1_2D_lc, 
+    piecewise_2D_lc,
+    stairs3_2D_lc,
+    flat_3D_lc,
+    sine2_3D_lc,
+    sine1_2D_lc,
     piecewise1_2D_lc,
     sine3_2D_lc,
-    slope_smooth_2D_lc, 
+    slope_smooth_2D_lc,
     flat_2D_lc,
     flat_3D_lc,
     plot_surface!,
