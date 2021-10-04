@@ -14,7 +14,7 @@ model = s.model
 env = s.env
 
 # ## Reference Trajectory
-ref_traj = deepcopy(ContactImplicitMPC.get_trajectory(s.model, s.env,
+ref_traj = deepcopy(get_trajectory(s.model, s.env,
     joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
     load_type = :split_traj_alt));
 
@@ -74,9 +74,7 @@ vis = ContactImplicitMPC.Visualizer()
 open(vis)
 
 # ## Visualize
-anim = visualize_robot!(vis, model, sim.traj, sample=10)
-
-anim = visualize_meshrobot!(vis, model, sim.traj, sample=10)
+anim = visualize_meshrobot!(vis, model, sim.traj, sample=10);
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.

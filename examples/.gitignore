@@ -1,5 +1,2 @@
 **/*.ipynb
 **/*.md
-!README.md
-Project.toml 
-Manifest.toml

@@ -12,7 +12,6 @@ using JuMP
 using LinearAlgebra
 using MeshCat
 using Plots
-using Test
 
 include("/methods/structures.jl")
 include("/methods/visuals.jl")
@@ -45,7 +44,7 @@ C3 = domain(model, mode = :right)
 C = [C1, C2, C3]
 
 # ## Problem
-prob = WallProblem16(model, T, x0, Q, Qf, R, β, A, B, c, C)
+prob = WallProblem(model, T, x0, Q, Qf, R, β, A, B, c, C)
 
 # ## Disturbances
 i1 = 20

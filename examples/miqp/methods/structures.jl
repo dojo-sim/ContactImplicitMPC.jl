@@ -75,7 +75,7 @@ end
 	Domain C = {x_min <= x <= x_max} × {u_min <= u <= u_max}.
 	C = {S x + R u <= T}
 """
-mutable struct BoxDomain12{T}
+mutable struct BoxDomain{T}
 	n::Int # state dim
 	m::Int # control dim
 	x_min::Vector{T} # box boundary
@@ -87,16 +87,16 @@ mutable struct BoxDomain12{T}
 	T::Vector{T} # affine inequality representation
 end
 
-function BoxDomain12(x_min, x_max, u_min, u_max)
+function BoxDomain(x_min, x_max, u_min, u_max)
 	n = length(x_min)
 	m = length(u_min)
 	S = Matrix([-I(n); I(n); zeros(m, n); zeros(m, n)])
 	R = Matrix([zeros(n, m); zeros(n, m); -I(m); I(m)])
 	T = [-x_min; x_max; -u_min; u_max]
-	return BoxDomain12(n, m, x_min, x_max, u_min, u_max, S, R, T)
+	return BoxDomain(n, m, x_min, x_max, u_min, u_max, S, R, T)
 end
 
-function inclusion(C::BoxDomain12, x, u)
+function inclusion(C::BoxDomain, x, u)
 	all(C.S * x + C.R * u .<= C.T)
 end
 
@@ -124,7 +124,7 @@ function domain(model::WallPendulum{T}; mode::Symbol = :none) where{T}
 	else
 		error("Unknown contact mode.")
 	end
-	return BoxDomain12(x_min, x_max, u_min, u_max)
+	return BoxDomain(x_min, x_max, u_min, u_max)
 end
 
 # @testset "Domain" begin
@@ -141,9 +141,9 @@ end
 # 	u_min = [-4.0]
 # 	u_max = [ 4.0]
 #
-# 	C0 = BoxDomain12(x_min, x_max, u_min, u_max)
-# 	C1 = BoxDomain12(x_min_1, x_max_1, u_min, u_max)
-# 	C2 = BoxDomain12(x_min_2, x_max_2, u_min, u_max)
+# 	C0 = BoxDomain(x_min, x_max, u_min, u_max)
+# 	C1 = BoxDomain(x_min_1, x_max_1, u_min, u_max)
+# 	C2 = BoxDomain(x_min_2, x_max_2, u_min, u_max)
 #
 # 	xu1 = [[d/l/2,   -1.0], [-2.0]]
 # 	xu2 = [[1.5*d/l,  1.0], [ 2.0]]
@@ -164,7 +164,7 @@ end
 # Problem
 ################################################################################
 
-mutable struct WallProblem16{F}
+mutable struct WallProblem{F}
 	model::WallPendulum{F}
 	T::Int
 	x0::Vector{F}
@@ -175,10 +175,10 @@ mutable struct WallProblem16{F}
 	A::Vector{Matrix{F}}
 	B::Vector{Matrix{F}}
 	c::Vector{Vector{F}}
-	C::Vector{BoxDomain12{F}}
+	C::Vector{BoxDomain{F}}
 end
 
-function build_optimizer(prob::WallProblem16{F}) where {F}
+function build_optimizer(prob::WallProblem{F}) where {F}
 	n = prob.model.n
 	m = prob.model.m
 	nd = length(C)
@@ -226,13 +226,13 @@ function build_optimizer(prob::WallProblem16{F}) where {F}
 	return optimizer, x, u, δ, z
 end
 
-function get_control(prob::WallProblem16{T}) where {T}
+function get_control(prob::WallProblem{T}) where {T}
 	optimizer, x, u, δ, z = build_optimizer(prob)
 	optimize!(optimizer)
 	return value.(u)[1,:]
 end
 
-function simulate!(prob::WallProblem16{T}, x0::Vector{T}, H::Int;
+function simulate!(prob::WallProblem{T}, x0::Vector{T}, H::Int;
 		w::Vector{Vector{T}} = Vector{Vector{T}}(), iw::Vector{Int} = Vector{Int}()) where {T}
 	x = Vector{Vector{T}}([x0])
 	u = Vector{Vector{T}}()
