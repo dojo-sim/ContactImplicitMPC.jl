@@ -544,7 +544,6 @@ path_base = joinpath(dir_model, "dynamics/base.jld2")
 path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
 path_res = joinpath(dir_sim, "flat/residual.jld2")
 path_jac = joinpath(dir_sim, "flat/jacobians.jld2")
-
 instantiate_base!(sim.model, path_base)
 instantiate_dynamics!(sim.model, path_dyn)
 
