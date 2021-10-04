@@ -7,6 +7,7 @@
 using ContactImplicitMPC 
 using LinearAlgebra 
 using StaticArrays
+using Random
 
 # ## Simulation
 s = get_simulation("hopper_2D", "flat_2D_lc", "flat");
@@ -25,7 +26,7 @@ function run_policy(s::Simulation; H_sim::Int = 4000, verbose = verbose,
 	    joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_in_place.jld2"),
 	    load_type = :joint_traj))
 	
-		H = ref_traj.H
+	H = ref_traj.H
 	h = ref_traj.h
 	N_sample = 5
 	H_mpc = 10
@@ -52,13 +53,12 @@ function run_policy(s::Simulation; H_sim::Int = 4000, verbose = verbose,
 	    mpc_opts = LinearizedMPCOptions(
 	        ),
 		ip_opts = InteriorPointOptions(
-			max_iter = 100,
-			verbose = false,
-			r_tol = 1.0e-4,
-			κ_tol = 1.0e-4,
+			undercut = 5.0,
+			κ_tol = κ_mpc,
+			r_tol = 1.0e-8,
 			diff_sol = true,
 			solver = :empty_solver,
-			),
+			max_time = 1e5),
 	    )
 
 	q1_ref = copy(ref_traj.q[2]) + offset
@@ -67,16 +67,16 @@ function run_policy(s::Simulation; H_sim::Int = 4000, verbose = verbose,
 	q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 	@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-	sim = ContactImplicitMPC.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
+	sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	    p = p,
-	    ip_opts = ContactImplicitMPC.InteriorPointOptions(
-	        r_tol = 1.0e-8,
-	        κ_init = 1.0e-6,
-	        κ_tol = 2.0e-6,
-	        diff_sol = true),
-	    sim_opts = ContactImplicitMPC.SimulatorOptions(warmstart = true))
+	    ip_opts = InteriorPointOptions(
+			γ_reg = 0.0,
+			undercut = Inf,
+			r_tol = 1.0e-8,
+			κ_tol = 1.0e-8,),
+	    sim_opts = SimulatorOptions(warmstart = true))
 
-	status = ContactImplicitMPC.simulate!(sim, verbose = false)
+	status = simulate!(sim, verbose = false)
 	return deepcopy(sim.traj)
 end
 
@@ -97,10 +97,10 @@ function collect_runs(s::Simulation; n::Int = 1, H_sim::Int = 4000, verbose::Boo
 end
 
 # ## Visualize runs
-function visualize_runs!(vis::Visualizer, model::ContactModel, trajs::AbstractVector;
+function visualize_runs!(vis::ContactImplicitMPC.Visualizer, model::ContactModel, trajs::AbstractVector;
 		sample=max(1, Int(floor(trajs[1].H / 100))), h=trajs[1].h*sample,  α=1.0,
-		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
-		name::Symbol=model_name(model))
+		anim::ContactImplicitMPC.MeshCat.Animation=ContactImplicitMPC.MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=ContactImplicitMPC.model_name(model))
 
 	for (i, traj) in enumerate(trajs)
 		name_i = Symbol(string(name) * string(i))
@@ -110,16 +110,15 @@ function visualize_runs!(vis::Visualizer, model::ContactModel, trajs::AbstractVe
 end
 
 # ## Experiment
-H_sim = 5000
-trajs = collect_runs(s, n = 100, H_sim = H_sim, verbose = true)
-anim = visualize_runs!(vis, s.model, trajs, α=0.1, sample=5)
-rep_ref_traj = repeat_ref_traj(ref_traj, Int(ceil(H_sim/N_sample/H)));
+H_sim = 1000
+trajs = collect_runs(s, n = 100, H_sim = H_sim, verbose = true);
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
 open(vis)
 
 # ## Visualize
-anim = visualize_robot!(vis, model, rep_ref_traj, name=:ref, anim=anim, sample=1, α=1.0)
+anim = visualize_runs!(vis, s.model, trajs, α=0.1, sample=5)
+
 
 

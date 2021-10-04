@@ -7,6 +7,7 @@
 using ContactImplicitMPC 
 using LinearAlgebra 
 using StaticArrays
+using Random
 
 # ## Simulation
 s = get_simulation("quadruped", "flat_2D_lc", "flat")
@@ -67,11 +68,11 @@ function run_policy(s::Simulation; H_sim::Int = 2000, verbose = false,
 
 	sim = ContactImplicitMPC.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 	    p = p,
-	    ip_opts = ContactImplicitMPC.InteriorPointOptions(
-	        r_tol = 1.0e-8,
-	        κ_init = 1.0e-6,
-	        κ_tol = 2.0e-6,
-	        diff_sol = true),
+		ip_opts = InteriorPointOptions(
+			γ_reg = 0.0,
+			undercut = Inf,
+			r_tol = 1.0e-8,
+			κ_tol = 1.0e-8,),
 	    sim_opts = ContactImplicitMPC.SimulatorOptions(warmstart = true))
 
 	status = ContactImplicitMPC.simulate!(sim, verbose = false)
@@ -122,10 +123,10 @@ function initial_configuration(model::Quadruped, θ0, θ1, θ2, θ3, x, Δz)
 end
 
 # ## Visualize runs
-function visualize_runs!(vis::Visualizer, model::ContactModel, trajs::AbstractVector;
+function visualize_runs!(vis::ContactImplicitMPC.Visualizer, model::ContactModel, trajs::AbstractVector;
 		sample=max(1, Int(floor(trajs[1].H / 100))), h=trajs[1].h*sample,  α=1.0,
-		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
-		name::Symbol=model_name(model))
+		anim::ContactImplicitMPC.MeshCat.Animation=ContactImplicitMPC.MeshCat.Animation(Int(floor(1/h))),
+		name::Symbol=ContactImplicitMPC.model_name(model))
 
 	for (i, traj) in enumerate(trajs)
 		name_i = Symbol(string(name) * string(i))
@@ -138,12 +139,12 @@ end
 H_sim = 1000
 trajs = collect_runs(s, n = 100, H_sim = H_sim, verbose = true)
 
-## Visualize
-anim = visualize_runs!(vis, s.model, trajs, α=0.3, sample=5)
-rep_ref_traj = repeat_ref_traj(ref_traj, Int(ceil(H_sim/N_sample/H)), idx_shift=[1])
-anim = visualize_meshrobot!(vis, model, rep_ref_traj, name=:ref, anim=anim, sample=1, α=1.0)
-settransform!(vis[:ref], Translation(0.0, -0.4, 0.0))
-plot_surface!(vis, s.env, xlims=[-0.5,4], ylims=[-0.4,0.4])
+# ## Visualizer
+vis = ContactImplicitMPC.Visualizer()
+open(vis)
+
+# ## Visualize
+anim = visualize_runs!(vis, model, trajs, α=0.3, sample=5)
 
 # ## High drop
 conf = [-0.05, 0.6, 0.6, 0.6, 0.0, 0.30]
