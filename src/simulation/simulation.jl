@@ -91,7 +91,7 @@ function z_warmstart!(z, model::ContactModel, env::Environment{<:World,Linearize
 end
 
 function z_warmstart!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q, a)
-	@warn "warm start for second-order cone not implemented"
+	# @warn "warm start for second-order cone not implemented"
 	z_initialize!(z, model, env, q)
 	nothing
 end
