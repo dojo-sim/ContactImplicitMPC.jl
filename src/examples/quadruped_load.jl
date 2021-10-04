@@ -40,10 +40,10 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 2100
+H_sim = 1200
 
 # barrier parameter
-κ_mpc = 1.0e-4
+κ_mpc = 2.0e-4
 
 obj = TrackingObjective(model_no_load, env_no_load, H_mpc,
     # q = [Diagonal(1e-2 * [10.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
@@ -58,7 +58,7 @@ p = linearized_mpc_policy(ref_traj, s_no_load, obj,
     κ_mpc = κ_mpc,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
-        solver = :ldl_solver,
+        solver = :lu_solver,
         verbose = false,
         max_iter = 5),
     mpc_opts = LinearizedMPCOptions(
@@ -80,46 +80,37 @@ q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 
 sim_load = simulator(s_load, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-    ip_opts = InteriorPointOptions(
-        r_tol = 1.0e-8,
-        κ_init = 1.0e-6,
-        κ_tol = 2.0e-6,
-        diff_sol = false,
-        verbose = false),
     sim_opts = SimulatorOptions(warmstart = true))
 time = @elapsed status = ContactControl.simulate!(sim_load)
 
 
 sim_no_load = simulator(s_no_load, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-    ip_opts = InteriorPointOptions(
-        r_tol = 1.0e-8,
-        κ_init = 1.0e-6,
-        κ_tol = 2.0e-6,
-        diff_sol = false,
-        verbose = false),
     sim_opts = SimulatorOptions(warmstart = true))
 time = @elapsed status = ContactControl.simulate!(sim_no_load)
 
 
 
-# plt = plot(layout=(3,1), legend=false)
-# plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
-#     color=:red, linewidth=3.0)
-# plot!(plt[1,1], hcat(Vector.(sim.traj.q)...)', color=:blue, linewidth=1.0)
-# plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
-#     color=:red, linewidth=3.0)
-# plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
-# plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
-# render(vis)
+plt = plot(layout=(3,1), legend=false)
+plot!(plt[1,1], hcat(Vector.(vcat([fill(ref_traj.q[i], N_sample) for i=1:H]...))...)',
+    color=:red, linewidth=3.0)
+plot!(plt[1,1], hcat(Vector.(sim_load.traj.q)...)', color=:blue, linewidth=1.0)
+plot!(plt[2,1], hcat(Vector.(vcat([fill(ref_traj.u[i][1:nu], N_sample) for i=1:H]...))...)',
+    color=:red, linewidth=3.0)
+plot!(plt[2,1], hcat(Vector.([u[1:nu] for u in sim_load.traj.u]*N_sample)...)', color=:blue, linewidth=1.0)
+plot!(plt[3,1], hcat(Vector.([γ[1:nc] for γ in sim_load.traj.γ]*N_sample)...)', color=:blue, linewidth=1.0)
+
+
+
 plot_surface!(vis, s_load.env, ylims=[0.3, -0.05])
+ext_ref_traj = repeat_ref_traj(ref_traj, 4; idx_shift = (1:1))
+plot_lines!(vis, model, ext_ref_traj.q, offset=-0.17, name=:Ref, col=false,)
 plot_lines!(vis, model, sim_no_load.traj.q[1:1:end], name=:NoPayload, offset=-0.15)
 plot_lines!(vis, model, sim_load.traj.q[1:1:end], name=:Payload, offset=-0.15)
-ext_ref_traj = repeat_ref_traj(ref_traj, 7; idx_shift = (1:1))
-plot_lines!(vis, model, ext_ref_traj.q, offset=-0.17, name=:Ref, col=false,)
 
-anim = visualize_meshrobot!(vis, s_load.model, sim_load.traj, anim=anim, sample=1, name=:Payload)
+anim = visualize_meshrobot!(vis, s_load.model, ext_ref_traj, sample=1, name=:Ref)
 anim = visualize_meshrobot!(vis, s_no_load.model, sim_no_load.traj, sample=1, name=:NoPayload)
+anim = visualize_meshrobot!(vis, s_load.model, sim_load.traj, anim=anim, sample=1, name=:Payload)
 anim = visualize_payload!(vis, model, sim_load.traj, anim=anim, sample=1, name=:Payload, object=:mesh)
 # anim = visualize_force!(vis, model, sim_no_load.traj, anim=anim, sample=5, h=h_sim, name=:NoPayload)
 # anim = visualize_force!(vis, model, sim_load.traj, anim=anim, sample=5, h=h_sim, name=:Payload)
@@ -151,11 +142,11 @@ end
 anim = visualize_load!(vis, model, sim_load.traj, anim=anim, sample=5, name=:Payload)
 
 
-filename = "quadruped_payload_slow"
+filename = "quadruped_flat_tracking"
 MeshCat.convert_frames_to_video(
     "/home/simon/Downloads/$filename.tar",
-    "/home/simon/Documents/$filename.mp4", overwrite=true)
+    "/home/simon/Documents/video/$filename.mp4", overwrite=true)
 
 convert_video_to_gif(
-    "/home/simon/Documents/$filename.mp4",
-    "/home/simon/Documents/$filename.gif", overwrite=true)
+    "/home/simon/Documents/video/$filename.mp4",
+    "/home/simon/Documents/video/$filename.gif", overwrite=true)

@@ -100,7 +100,7 @@ im_traj1 = ImplicitTraj(ref_traj, s;
 			max_iter=100,
 			ϵ_min=0.05,
 			solver=:empty_solver,
-			# verbose=true
+			verbose=true
 			))
 
 z1, θ1 = get_initialization(ref_traj, t)
@@ -112,14 +112,27 @@ s.res.r!(r1, ip1.z, ip1.θ, 0.0)
 	@test norm(r1, Inf) < 1e-8
 end
 
-# e_ip = 1e6 * interior_point_timing(ref_traj, t, im_traj1.ip[t])
-
-# @profiler for k = 1:15000
-# 	z1, θ1 = get_initialization(ref_traj, t)
-# 	ip1 = deepcopy(im_traj1.ip[t])
-# 	interior_point_solve!(ip1, z1, θ1)
+# function convergence_plot()
+# 	vio = [5e1, 4.4e-2, 5.2e-3, 8.2e-5, 3.9e-9]
+# 	plt = plot(
+# 	legend = false,
+# 	xtickfontsize=18,
+# 	ytickfontsize=18,
+# 	xlabelfontsize=28,
+# 	ylabelfontsize=28,
+# 	xlabel = "iteration",
+# 	ylabel = "violation",
+# 	yaxis = :log,
+# 	xlims = [0.8, length(vio) + 0.2],
+# 	ylims = [6e-11, 1.5e2],
+# 	)
+# 	for i in eachindex(vio)
+# 		plot!(plt, vio[1:i], color = :black, linewidth = 4.0)
+# 		scatter!(plt, vio[1:i], color = :black, markersize = 7.0)
+# 		display(plt)
+# 		png(plt, joinpath(@__DIR__, "plot_$i.png"))
+# 	end
+# 	return
 # end
 
-# z1, θ1 = get_initialization(ref_traj, t)
-# ip1 = deepcopy(im_traj1.ip[t])
-# @code_warntype interior_point_solve!(ip1)
+# convergence_plot()
