@@ -118,8 +118,13 @@ end
 function save_expressions(expr::Dict{Symbol,Expr},
 	path::AbstractString="expr.jld2"; overwrite::Bool=false)
 	path = abspath(path)
-    if isfile(path) && !overwrite
-        error("The output path $path already exists. To overwrite that file, you can pass `overwrite=true` to this function")
+    if isfile(path) 
+        if overwrite
+            rm(path)
+        end 
+        if !overwrite 
+            @warn "file exists -- not overwriting" 
+        end
     end
 	@save path expr
 	@info("Saved output as $path")

@@ -19,7 +19,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -43,7 +44,8 @@ instantiate_dynamics!(s.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(s.model, s.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(s, path_res, path_jac)
 
 ################################################################################
@@ -67,7 +69,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -91,7 +94,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -115,7 +119,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -139,7 +144,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -163,7 +169,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -187,7 +194,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -213,7 +221,8 @@ instantiate_dynamics!(sim.model, path_dyn, derivs = true)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, jacobians = :approx)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac, jacobians = :approx)
 
 ################################################################################
@@ -237,7 +246,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -261,7 +271,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -285,7 +296,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -309,7 +321,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -333,7 +346,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -357,7 +371,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, jacobians = :full)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -383,7 +398,8 @@ instantiate_dynamics!(sim.model, path_dyn, derivs = true)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, jacobians = :approx)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac, jacobians = :approx)
 
 ################################################################################
@@ -407,7 +423,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -431,7 +448,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -455,7 +473,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -475,14 +494,17 @@ path_res = joinpath(dir_sim, "piecewise/residual.jld2")
 path_jac = joinpath(dir_sim, "piecewise/jacobians.jld2")
 
 instantiate_base!(sim.model, path_base)
+expr_dyn = generate_dynamics_expressions(sim.model, derivs = true)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(sim.model, path_dyn, derivs=true)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, jacobians = :approx)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac, jacobians = :approx)
 
-################################################################################
+# ################################################################################
 # PushBot
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/pushbot")
@@ -503,7 +525,8 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
@@ -527,5 +550,6 @@ instantiate_dynamics!(sim.model, path_dyn)
 
 expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, mapping = Gz_func)
 save_expressions(expr_res, path_res, overwrite=true)
-ContactImplicitMPC.JLD2.@save path_jac rz_sp rθ_sp
+isfile(path_jac) && rm(path_jac)
+save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)

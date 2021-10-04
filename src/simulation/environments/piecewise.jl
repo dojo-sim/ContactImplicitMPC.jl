@@ -119,15 +119,15 @@ end
 # plot(x, d_piecewise.(x), aspect_ratio = :equal)
 # plot!(x, d_piecewise_smoothed.(x), aspect_ratio = :equal)
 
-# m_ss = tan(deg2rad(10.0)) # 10 degree slope
-# p1, dp1 = generate_piecewise_terrain(m_ss, repeat = false)
-# piecewise1_2D_lc = Environment{R2, LinearizedCone}(p1, dp1)
+m_ss = tan(deg2rad(10.0)) # 10 degree slope
+p1, dp1 = generate_piecewise_terrain(m_ss, repeat = false)
+piecewise1_2D_lc = Environment{R2, LinearizedCone}(p1, dp1)
 # plot(-1:0.01:15, piecewise1_2D_lc.surf.(-1:0.01:15))
 # plot!(-1:0.01:15, piecewise1_2D_lc.surf_grad.(-1:0.01:15))
-#
-# m_ss = tan(deg2rad(-15.0)) # 10 degree slope
-# p2, dp2 = generate_piecewise_terrain(m_ss)
-# piecewise2_2D_lc = Environment{R2, LinearizedCone}(p2, dp2)
+
+m_ss = tan(deg2rad(-10.0)) # 10 degree slope
+p2, dp2 = generate_piecewise_terrain(m_ss)
+piecewise2_2D_lc = Environment{R2, LinearizedCone}(p2, dp2)
 # plot(-1:0.01:15, piecewise2_2D_lc.surf.(-1:0.01:15))
 # plot!(-1:0.01:15, piecewise2_2D_lc.surf_grad.(-1:0.01:15))
 
