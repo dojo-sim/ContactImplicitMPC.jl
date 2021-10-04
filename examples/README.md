@@ -8,20 +8,20 @@ The initial installation of the package includes a number of pre-generated examp
 
 1. [install ContactImplicitMPC.jl](https://github.com/thowell/ContactImplicitMPC.jl)
 2. [install IJulia](https://github.com/JuliaLang/IJulia.jl) (`add` it to the default project)
-3. in the Julia REPL, run
+3. in the Julia REPL, run (do once)
    ```
    using Pkg
    Pkg.build("ContactImplicitMPC")
-   using IJulia, ContactImplicitMPC
    ```
 4. interact with notebooks
    ```
+   using IJulia, ContactImplicitMPC
    notebook(dir=joinpath(dirname(pathof(ContactImplicitMPC)), "..", "examples"))
    ```
 
 Additional examples can be run by first generating the models and simulations. Note that this may take 30-60 minutes.
 
-5. in the Julia REPL, run 
+5. in the Julia REPL, run (do once)
    ```
    include(joinpath(dirname(pathof(ContactImplicitMPC)), "..", "examples/generate_examples.jl"))
    ```
