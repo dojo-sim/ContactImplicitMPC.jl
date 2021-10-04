@@ -40,7 +40,7 @@ function run_policy(s::Simulation; H_sim::Int = 4000, verbose = verbose,
 	    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
 	    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-	p = linearized_mpc_policy(ref_traj, s, obj,
+	p = ci_mpc_policy(ref_traj, s, obj,
 	    H_mpc = H_mpc,
 	    N_sample = N_sample,
 	    κ_mpc = κ_mpc,
@@ -50,7 +50,7 @@ function run_policy(s::Simulation; H_sim::Int = 4000, verbose = verbose,
 			max_iter = 5,
 			max_time = ref_traj.h, # HARD REAL TIME
 			),
-	    mpc_opts = LinearizedMPCOptions(
+	    mpc_opts = CIMPCOptions(
 	        ),
 		ip_opts = InteriorPointOptions(
 			undercut = 5.0,
@@ -115,7 +115,7 @@ trajs = collect_runs(s, n = 100, H_sim = H_sim, verbose = true);
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-open(vis)
+ContactImplicitMPC.render(vis)
 
 # ## Visualize
 anim = visualize_runs!(vis, s.model, trajs, α=0.1, sample=5)

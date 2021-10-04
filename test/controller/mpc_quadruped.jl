@@ -31,14 +31,14 @@
         b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
     # linearized MPC policy
-    p = ContactImplicitMPC.linearized_mpc_policy(ref_traj, s, obj,
+    p = ContactImplicitMPC.ci_mpc_policy(ref_traj, s, obj,
         H_mpc = H_mpc,
         N_sample = N_sample,
         κ_mpc = κ_mpc,
         n_opts = ContactImplicitMPC.NewtonOptions(
             r_tol = 3e-4,
             max_iter = 5),
-        mpc_opts = ContactImplicitMPC.LinearizedMPCOptions())
+        mpc_opts = ContactImplicitMPC.CIMPCOptions())
 
     # initial configurations
     q1_ref = copy(ref_traj.q[2])
@@ -104,7 +104,7 @@ end
 #         γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
 #         b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-#     p = linearized_mpc_policy(ref_traj, s, obj,
+#     p = ci_mpc_policy(ref_traj, s, obj,
 #         H_mpc = H_mpc,
 #         N_sample = N_sample,
 #         κ_mpc = κ_mpc,
@@ -113,7 +113,7 @@ end
 #             max_iter = 5,
 #             # verbose = true,
 #             ),
-#         mpc_opts = LinearizedMPCOptions(
+#         mpc_opts = CIMPCOptions(
 #             # live_plotting=true,
 #             altitude_update = true,
 #             altitude_impact_threshold = 0.05,
@@ -179,7 +179,7 @@ end
 	    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
 	    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-	p = linearized_mpc_policy(ref_traj, s, obj_mpc,
+	p = ci_mpc_policy(ref_traj, s, obj_mpc,
 	    H_mpc = H_mpc,
 	    N_sample = N_sample,
 	    κ_mpc = κ_mpc,
@@ -190,7 +190,7 @@ end
 			max_iter = 5,
 			# max_time = ref_traj.h, # HARD REAL TIME
 			),
-	    mpc_opts = LinearizedMPCOptions(),
+	    mpc_opts = CIMPCOptions(),
 	    )
 
 	q1_ref = copy(ref_traj.q[2])
@@ -253,7 +253,7 @@ end
 # 	#     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
 # 	#     b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-# 	p = linearized_mpc_policy(ref_traj, s, obj_mpc,
+# 	p = ci_mpc_policy(ref_traj, s, obj_mpc,
 # 	    H_mpc = H_mpc,
 # 	    N_sample = N_sample,
 # 	    κ_mpc = κ_mpc,
@@ -266,7 +266,7 @@ end
 # 			max_iter = 5,
 # 			# max_time = ref_traj.h, # HARD REAL TIME
 # 			),
-# 	    mpc_opts = LinearizedMPCOptions(),
+# 	    mpc_opts = CIMPCOptions(),
 # 		ip_opts = InteriorPointOptions(
 # 			max_iter = 100,
 # 			verbose = false,

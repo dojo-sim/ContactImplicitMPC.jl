@@ -50,7 +50,7 @@ function default_background!(vis; grid::Bool=false, axes::Bool=false, zoom=1.0)
 	setvisible!(vis["/Axes"], axes)
     # setvisible!(vis["/Grid"], grid)
 	# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", zoom)
-end
+end  
 
 function get_line_material(size::Real; α=1.0)
     orange_col = [1,153/255,51/255]
@@ -71,3 +71,5 @@ function get_material(;α=1.0)
     black_mat = MeshPhongMaterial(color=RGBA(black_col...,α))
     return orange_mat, blue_mat, black_mat
 end
+
+

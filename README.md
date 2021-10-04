@@ -4,12 +4,10 @@
 
 This repository contains algorithms and examples from our paper: [Fast Contact-Implicit Model-Predictive Control](https://arxiv.org/abs/2107.05616).
 
-Notebooks can be generated for the [examples](examples/README.md), please try: [flamingo](examples/flamingo/flat.jl), [pushbot](examples/pushbot/push_recovery.jl), [hopper](examples/hopper/flat.jl), and [quadruped](examples/quadruped/flat.jl). 
-
 ## Installation
-```
-Pkg.add("ContactImplicitMPC")
-```
+- `ContactImplicitMPC` can be added via the Julia package manager (type `]`): `pkg> add ContactImplicitMPC`
+
+A collection of examples are pre-generated in notebooks with the package, please try: [flamingo](examples/flamingo/flat.jl), [pushbot](examples/pushbot/push_recovery.jl), [hopper](examples/hopper/flat.jl), and [quadruped](examples/quadruped/flat.jl). Additional notebooks can be [generated](examples/README.md).
 
 ## Flamingo
 <img src="animations/flamingo.gif" alt="drawing" width="400"/>

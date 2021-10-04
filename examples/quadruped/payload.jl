@@ -39,7 +39,7 @@ obj = TrackingObjective(model_no_load, env_no_load, H_mpc,
     γ = [Diagonal(1.0e-100 * ones(model_no_load.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model_no_load.dim.c * friction_dim(env_no_load))) for t = 1:H_mpc]);
 
-p = linearized_mpc_policy(ref_traj, s_no_load, obj,
+p = ci_mpc_policy(ref_traj, s_no_load, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
@@ -47,7 +47,7 @@ p = linearized_mpc_policy(ref_traj, s_no_load, obj,
         r_tol = 3e-4,
         verbose = false,
         max_iter = 5),
-    mpc_opts = LinearizedMPCOptions(
+    mpc_opts = CIMPCOptions(
         altitude_update = true,
         altitude_impact_threshold = 0.05,
         altitude_verbose = true,
@@ -73,7 +73,7 @@ sim_load = simulator(s_load, q0_sim, q1_sim, h_sim, H_sim,
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-open(vis)
+ContactImplicitMPC.render(vis)
 
 # ## Visualize
 anim = visualize_meshrobot!(vis, s_load.model, sim_load.traj, sample=1, name=:Payload);

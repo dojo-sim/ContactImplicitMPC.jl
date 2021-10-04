@@ -57,7 +57,7 @@ sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-open(vis)
+ContactImplicitMPC.render(vis)
 
 # ## Visualize
 anim = visualize_robot!(vis, model_sim, sim.traj, sample=20)

@@ -52,7 +52,7 @@ status = ContactImplicitMPC.simulate!(sim, verbose = true)
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-open(vis)
+ContactImplicitMPC.render(vis)
 
 # ## Visualize
 plot_surface!(vis, s.env, n=200, xlims = [-1, 40])

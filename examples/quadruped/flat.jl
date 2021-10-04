@@ -34,7 +34,7 @@ obj = TrackingObjective(model, env, H_mpc,
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc]);
 
-p = linearized_mpc_policy(ref_traj, s, obj,
+p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
@@ -43,9 +43,8 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 		solver = :lu_solver,
 		r_tol = 3e-4,
 		max_iter = 5,
-		# max_time = ref_traj.h, # HARD REAL TIME
 		),
-    mpc_opts = LinearizedMPCOptions(),
+    mpc_opts = CIMPCOptions(),
 	ip_opts = InteriorPointOptions(
 					undercut = 5.0,
 					γ_reg = 0.1,
@@ -59,7 +58,7 @@ p = linearized_mpc_policy(ref_traj, s, obj,
 
 # ## Initial conditions
 q1_sim = SVector{model.dim.q}(copy(ref_traj.q[2]))
-q0_sim = SVector{model.dim.q}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample))
+q0_sim = SVector{model.dim.q}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
 
 # ## Simulator
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
@@ -77,7 +76,7 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-open(vis)
+ContactImplicitMPC.render(vis)
 
 # ## Visualize
 anim = visualize_meshrobot!(vis, model, sim.traj, sample=5);

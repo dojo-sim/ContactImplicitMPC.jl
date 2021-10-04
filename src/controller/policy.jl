@@ -1,8 +1,8 @@
 """
-    linearized model-predictive control policy
+    contact-implicit model-predictive control policy
 """
 
-@with_kw mutable struct LinearizedMPCOptions{T}
+@with_kw mutable struct CIMPCOptions{T}
 	altitude_update::Bool = false
 	altitude_impact_threshold::T = 1.0
 	altitude_verbose::Bool = false
@@ -10,7 +10,7 @@
     live_plotting::Bool=false # Use the live plotting tool to debug
 end
 
-mutable struct LinearizedMPC <: Policy
+mutable struct CIMPC <: Policy
 	traj
 	ref_traj
 	im_traj
@@ -27,7 +27,7 @@ mutable struct LinearizedMPC <: Policy
 	opts
 end
 
-function linearized_mpc_policy(traj, s, obj;
+function ci_mpc_policy(traj, s, obj;
 	H_mpc = traj.H,
 	N_sample = 1,
 	κ_mpc = traj.κ[1],
@@ -38,7 +38,7 @@ function linearized_mpc_policy(traj, s, obj;
 		max_iter = 5,
 		verbose = false,
 		live_plotting = false),
-	mpc_opts = LinearizedMPCOptions(),
+	mpc_opts = CIMPCOptions(),
 	ip_opts = InteriorPointOptions(
 				γ_reg = 0.1,
 				undercut = 5.0,
@@ -68,12 +68,12 @@ function linearized_mpc_policy(traj, s, obj;
 		@error "invalid Newton solver specified"
 	end
 
-	LinearizedMPC(traj, ref_traj, im_traj, H_mpc, stride, altitude, κ_mpc, newton, newton_mode, s, copy(ref_traj.q[1]),
+	CIMPC(traj, ref_traj, im_traj, H_mpc, stride, altitude, κ_mpc, newton, newton_mode, s, copy(ref_traj.q[1]),
 		N_sample, N_sample, mpc_opts)
 end
 
 
-function policy(p::LinearizedMPC, x, traj, t)
+function policy(p::CIMPC, x, traj, t)
 	# reset
 	if t == 1
 		p.cnt = p.N_sample
