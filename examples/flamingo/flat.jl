@@ -74,7 +74,9 @@ vis = ContactImplicitMPC.Visualizer()
 open(vis)
 
 # ## Visualize
-anim = visualize_meshrobot!(vis, model, sim.traj, sample=10);
+anim = visualize_robot!(vis, model, sim.traj, sample=10)
+
+anim = visualize_meshrobot!(vis, model, sim.traj, sample=10)
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
