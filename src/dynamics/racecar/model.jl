@@ -377,7 +377,7 @@ g = 9.81 # gravity
 
 mb = 4.0 # body mass
 m_payload = 2.0 # payload mass
-Jb = 0.1 # body inertia
+Jb = 1.0 # body inertia
 lb = 1.0 # body length
 wb = 0.5 # body width
 
@@ -403,28 +403,6 @@ racecar = Racecar12(Dimensions(nq, nu, nw, nc, nquat),
 
 racecar_payload = Racecar12(Dimensions(nq, nu, nw, nc, nquat),
 			   mb + m_payload, Jb, lb, wb, mw, Jw, rw, l0, k,
-			   μ_world/2, μ_joint, g,
+			   μ_world - 0.07, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),
 			   SVector{nq}(μ_joint * [zeros(7); ones(4); zeros(4)]))
-
-
-# m = zeros(3)
-# rt = MRP(m...)
-#
-# @variables m_[1:3]
-# @variables v_[1:3]
-# rt_ = MRP(m_...)
-# expr = Symbolics.jacobian(rt_*v_, m_)
-# Symbolics.jacobian(rt_*[1,0,0], m_)
-# Symbolics.jacobian(rt_*[0,1,0], m_)
-# Symbolics.jacobian(rt_*[0,0,1], m_)
-#
-# cod = build_function(expr, m_, v_)[1]
-# fct = eval(cod)
-#
-# m = rand(3)
-# v = rand(3)
-#
-# ∇s = fct(m, v)
-# ∇f = ForwardDiff.jacobian(m -> MRP(m...)*v, m)
-# ∇a = Rotations.∇rotate(MRP(m...), v)
