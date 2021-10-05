@@ -4,8 +4,8 @@
 
 # ## Setup
  
-using LinearAlgebra 
-using StaticArrays
+using ContactImplicitMPC
+using LinearAlgebra
 using Random
 
 # ## Simulation
@@ -62,8 +62,8 @@ function run_policy(s::Simulation; H_sim::Int = 4000, verbose = verbose,
 
 	q1_ref = copy(ref_traj.q[2]) + offset
 	q0_ref = copy(ref_traj.q[1]) + offset
-	q1_sim = SVector{model.dim.q}(q1_ref)
-	q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+	q1_sim = ContactImplicitMPC.SVector{model.dim.q}(q1_ref)
+	q0_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 	@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
 	sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
@@ -82,13 +82,13 @@ end
 # ## Collect runs
 function collect_runs(s::Simulation; n::Int = 1, H_sim::Int = 4000, verbose::Bool = false)
 	trajs = []
-	Random.seed!(100)
+	ContactImplicitMPC.Random.seed!(100)
 	offset_max = [+0.50, 0.30, +0.30, +0.00]
 	offset_min = [-0.50, 0.00, -0.30, -0.30]
 	offset_Δ = offset_max .- offset_min
 	for i = 1:n
 		verbose && println("sample = $i/$n")
-		offset = offset_min .+ offset_Δ .* rand(s.model.dim.q)
+		offset = offset_min .+ offset_Δ .* ContactImplicitMPC.rand(s.model.dim.q)
 		traj = run_policy(s, H_sim = H_sim, offset = offset, verbose = verbose)
 		push!(trajs, traj)
 	end

@@ -4,9 +4,8 @@
 
 # ## Setup
  
-using LinearAlgebra 
-using StaticArrays
-using Random
+using ContactImplicitMPC
+using LinearAlgebra
 
 # ## Simulation
 s = get_simulation("quadruped", "flat_2D_lc", "flat")
@@ -61,8 +60,8 @@ function run_policy(s::Simulation; H_sim::Int = 2000, verbose = false,
 
 	q1_ref = copy(qinit)
 	q0_ref = copy(qinit)
-	q1_sim = SVector{model.dim.q}(q1_ref)
-	q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+	q1_sim = ContactImplicitMPC.SVector{model.dim.q}(q1_ref)
+	q0_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 	@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
 	sim = ContactImplicitMPC.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
@@ -82,13 +81,13 @@ end
 function collect_runs(s::Simulation; n::Int = 1, H_sim::Int = 2000, verbose::Bool = false)
 	nq = s.model.dim.q
 	trajs = []
-	Random.seed!(100)
+	ContactImplicitMPC.Random.seed!(100)
 	conf_max = [0.05, 0.8, 0.8, 0.8, +0.2,  0.10]
 	conf_min = [0.00, 0.6, 0.6, 0.6, -0.2, -0.30]
 	conf_Δ = conf_max .- conf_min
 	for i = 1:n
 		verbose && println("sample = $i/$n")
-		conf = conf_min .+ conf_Δ .* rand(length(conf_min))
+		conf = conf_min .+ conf_Δ .* ContactImplicitMPC.rand(length(conf_min))
 		conf[end] = max(conf[end], 0.0)
 		qinit = initial_configuration(s.model, conf...)
 		traj = run_policy(s, H_sim = H_sim, qinit = qinit, verbose = verbose)

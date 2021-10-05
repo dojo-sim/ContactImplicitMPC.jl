@@ -4,8 +4,8 @@
 
 # ## Setup
  
-using LinearAlgebra 
-using StaticArrays
+using ContactImplicitMPC
+using LinearAlgebra
 
 # ## Simulation
 s_sim = get_simulation("hopper_2D", "sine2_2D_lc", "sinusoidal");
@@ -55,8 +55,8 @@ p = ci_mpc_policy(ref_traj, s, obj,
     );
 
 # ## Initial conditions
-q1_sim = SVector{model.dim.q}(copy(ref_traj.q[2]))
-q0_sim = SVector{model.dim.q}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
+q1_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(ref_traj.q[2]))
+q0_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
 
 # ## Simulator
 sim = ContactImplicitMPC.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,

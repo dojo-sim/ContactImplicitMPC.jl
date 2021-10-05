@@ -3,7 +3,8 @@
 # PKG_SETUP
 
 # ## Setup
-# set environment variables to location of Gurobi software and license
+ 
+using ContactImplicitMPC# set environment variables to location of Gurobi software and license
 ENV["GUROBI_HOME"] = "/gurobi912/linux64/"
 ENV["GRB_LICENSE_FILE"] = "/gurobi912/gurobi.lic"
 

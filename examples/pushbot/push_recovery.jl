@@ -4,8 +4,8 @@
 
 # ## Setup
  
-using LinearAlgebra 
-using StaticArrays
+using ContactImplicitMPC
+using LinearAlgebra
 
 # ## Simulation
 s = get_simulation("pushbot", "flat_2D_lc", "flat");
@@ -32,8 +32,8 @@ for t = 1:H
 end
 
 # ## Initial conditions
-q0 = @SVector [0.0 * π, 0.0]
-q1 = @SVector [0.0 * π, 0.0]
+q0 = @ContactImplicitMPC.SVector [0.0 * π, 0.0]
+q1 = @ContactImplicitMPC.SVector [0.0 * π, 0.0]
 
 # ## Simulator
 sim = simulator(s, q0, q1, h, H,
@@ -90,8 +90,8 @@ impulses = [[-5.5; 0.0], [+5.5; 0.0], [+5.5; 0.0], [-1.5; 0.0], [-6.5; 0.0]]
 d = impulse_disturbances(impulses, idx);
 
 # ## Initial Conditions
-q1_sim = SVector{model.dim.q}([0.0, 0.0])
-q0_sim = SVector{model.dim.q}([0.0, 0.0])
+q1_sim = ContactImplicitMPC.SVector{model.dim.q}([0.0, 0.0])
+q0_sim = ContactImplicitMPC.SVector{model.dim.q}([0.0, 0.0])
 
 # ## Simulator
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,

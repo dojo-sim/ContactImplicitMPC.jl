@@ -4,8 +4,8 @@
 
 # ## Setup
  
-using LinearAlgebra 
-using StaticArrays
+using ContactImplicitMPC
+using LinearAlgebra
 
 # ## Raibert Policy 
 include("policy/2D.jl")
@@ -33,9 +33,9 @@ Tflight = 0.62 # measure using hop-in-place gait
 p = raibert_policy(s_sim.model, v0=v0, Tstance=Tstance, Tflight=Tflight, h=h)
 
 # ## Initial conditions
-off0 = SVector{model.dim.q}([0.0, 0.5, 0.0, 0.0])
-off1 = SVector{model.dim.q}([0*v0*h_sim, 0.5, 0.0, 0.0])
-q_ref = SVector{model.dim.q}([0.0, 0.5, 0.0, 0.5])
+off0 = ContactImplicitMPC.SVector{model.dim.q}([0.0, 0.5, 0.0, 0.0])
+off1 = ContactImplicitMPC.SVector{model.dim.q}([0*v0*h_sim, 0.5, 0.0, 0.0])
+q_ref = ContactImplicitMPC.SVector{model.dim.q}([0.0, 0.5, 0.0, 0.5])
 q0_sim = copy(q_ref) + off0
 q1_sim = copy(q_ref) + off1
 

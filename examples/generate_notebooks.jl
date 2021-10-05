@@ -2,11 +2,7 @@ using Literate
 
 function preprocess(str)
     str = replace(str, "# PREAMBLE" => "")
-    str = replace(str, "# PKG_SETUP" =>
-    """
-    using Pkg, ContactImplicitMPC
-    Pkg.activate(joinpath(dirname(pathof(ContactImplicitMPC)), ".."))
-    """)
+    str = replace(str, "# PKG_SETUP" => "")
     return str
 end
 
