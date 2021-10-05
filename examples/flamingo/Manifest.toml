@@ -160,9 +160,9 @@ version = "1.3.0"
 
 [[ContactImplicitMPC]]
 deps = ["BenchmarkTools", "Colors", "CoordinateTransformations", "FFMPEG", "FileIO", "ForwardDiff", "GeometryBasics", "IfElse", "InteractiveUtils", "JLD2", "LinearAlgebra", "Logging", "MeshCat", "MeshCatMechanisms", "MeshIO", "Meshing", "Parameters", "Plots", "QDLDL", "Quaternions", "Random", "RigidBodyDynamics", "Rotations", "SparseArrays", "StaticArrays", "Symbolics", "Test"]
-git-tree-sha1 = "47550cbc5f62579c6874487f275512c79fb0b7b8"
+git-tree-sha1 = "26b1fe30cfcabe0d29197d70cb0769fbf48d0fa2"
 uuid = "842347fd-0767-4ff8-b652-76aad5eb0a37"
-version = "0.1.3"
+version = "0.1.4"
 
 [[Contour]]
 deps = ["StaticArrays"]
@@ -218,9 +218,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[Distributions]]
 deps = ["ChainRulesCore", "FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns"]
-git-tree-sha1 = "a9b99024b57d12fb19892d3f2230856f6d9671a4"
+git-tree-sha1 = "ff7890c74e2eaffbc0b3741811e3816e64b6343d"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.17"
+version = "0.25.18"
 
 [[DocStringExtensions]]
 deps = ["LibGit2"]

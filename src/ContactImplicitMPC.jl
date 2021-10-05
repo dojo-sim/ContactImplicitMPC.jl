@@ -272,6 +272,7 @@ export
     flat_2D_lc,
     flat_3D_lc,
     plot_surface!,
-    stairs!
+    stairs!,
+    raibert_policy
 
 end # module

@@ -2,11 +2,11 @@
     Raibert hopper policy for Hopper2D
 """
 
-@with_kw mutable struct RaibertOptions
+ContactImplicitMPC.@with_kw mutable struct RaibertOptions
     live_plotting::Bool=false # Use the live plotting tool to debug
 end
 
-mutable struct Raibert3D <: Policy
+mutable struct Raibert3D <: ContactImplicitMPC.Policy
 	kr_c::Real
 	kr_p::Real
 	kr_v_stance::Real
@@ -24,7 +24,7 @@ mutable struct Raibert3D <: Policy
 	opts::RaibertOptions
 end
 
-function raibert_policy(model::Hopper3D;
+function raibert_policy(model::ContactImplicitMPC.Hopper3D;
 		v0=[0.0; 0.0], Tstance=0.13, Tflight=0.62, h = 0.1,
 		kr_c =  8e1,
 		kr_p = -1e3,
@@ -47,7 +47,7 @@ function raibert_policy(model::Hopper3D;
 		u, contact, v0, Tstance, Tflight, copy(q0), copy(q1), mpc_opts)
 end
 
-function policy(p::Raibert3D, x, traj, t)
+function ContactImplicitMPC.policy(p::Raibert3D, x, traj, t)
 	# Initialization
 	h = traj.h
 	p.q0 = copy(traj.q[t])

@@ -32,12 +32,6 @@ for t = 1:H
 	ref_traj.θ[t] = pack_θ(model, qref, qref, ur, wr, model.μ_world, ref_traj.h)
 end
 
-# ## Test Reference
-for t = 1:H
-	r = residual(model, env, ref_traj.z[t], ref_traj.θ[t], 0.0)
-	@assert norm(r) < 1.0e-4
-end
-
 # ## Initial conditions
 q0 = @SVector [0.0 * π, 0.0]
 q1 = @SVector [0.0 * π, 0.0]
