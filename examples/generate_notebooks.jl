@@ -4,9 +4,8 @@ function preprocess(str)
     str = replace(str, "# PREAMBLE" => "")
     str = replace(str, "# PKG_SETUP" =>
     """
-    using Pkg
-    Pkg.activate(@__DIR__)
-    Pkg.instantiate()
+    using Pkg, ContactImplicitMPC
+    Pkg.activate(joinpath(dirname(pathof(ContactImplicitMPC)), ".."))
     """)
     return str
 end

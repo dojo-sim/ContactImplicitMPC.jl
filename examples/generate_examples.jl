@@ -2,9 +2,9 @@
 # Dynamics and simulation generation
 ################################################################################
 using Pkg
-dir = joinpath(dirname(pathof(ContactImplicitMPC)), "..")
-Pkg.activate(dir)
-include(joinpath(dir, "src/code_gen_loader.jl"))
+pkg_dir = joinpath(dirname(pathof(ContactImplicitMPC)), "..")
+Pkg.activate(pkg_dir)
+include(joinpath(pkg_dir, "src/code_gen_loader.jl"))
 
 # Generate dynamics
 dynamicsdir = joinpath(dirname(pathof(ContactImplicitMPC)), "..", "src", "dynamics")

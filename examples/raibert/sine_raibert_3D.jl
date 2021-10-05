@@ -3,21 +3,22 @@
 # PKG_SETUP
 
 # ## Setup
-
-using ContactImplicitMPC 
+ 
 using LinearAlgebra 
 using StaticArrays
-
 # ## Raibert Policy 
 include("policy/3D.jl") 
 
 # ## Simulation
-model_sim = get_model("hopper_3D", surf="flat");
+s = get_simulation("hopper_3D", "sine2_3D_lc", "sinusoidal")
+model_sim = s.model 
+env_sim = s.env
 nq = model_sim.dim.q
 nu = model_sim.dim.u
 nc = model_sim.dim.c
-nb = model_sim.dim.b
 nw = model_sim.dim.w
+
+s_model = get_simulation("hopper_3D", "flat_3D_lc", "flat")
 
 # ## Setup
 H = 92
@@ -30,7 +31,7 @@ H_sim = 5000
 v0 = [0.0; 0.2]
 Tstance = 0.13 # measure using hop-in-place gait
 Tflight = 0.62 # measure using hop-in-place gait
-p = raibert_policy(model_sim, v0=v0, Tstance=Tstance, Tflight=Tflight, h=h);
+p = raibert_policy(s_model.model, v0=v0, Tstance=Tstance, Tflight=Tflight, h=h);
 
 # ## Initial conditions
 off0 = SVector{nq}([0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5])
@@ -39,18 +40,14 @@ q_ref = SVector{nq}([0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0])
 q0_sim = copy(q_ref) + off0
 q1_sim = copy(q_ref) + off1
 
-# ## Disturbances
-w = [zeros(nw) for t=1:Int(ceil(H_sim / N_sample))]
-d = open_loop_disturbances(w);
-
 # ## Simulator
 sim = simulator(model_sim, q0_sim, q1_sim, h_sim, H_sim,
     p = p,
-    d = d,
     ip_opts = InteriorPointOptions(
-        r_tol = 1.0e-8,
-        κ_init = 1.0e-8,
-        κ_tol = 2.0e-8),
+      γ_reg = 0.0,
+      undercut = Inf,
+      r_tol = 1.0e-8,
+      κ_tol = 1.0e-8,),
     sim_opts = SimulatorOptions(warmstart = true)
     );
 
@@ -62,4 +59,5 @@ vis = ContactImplicitMPC.Visualizer()
 ContactImplicitMPC.render(vis)
 
 # ## Visualize
+ContactImplicitMPC.plot_surface!(vis, s.env, n=200, xlims = [-1, 40]);
 visualize_robot!(vis, model_sim, sim.traj, sample=20);

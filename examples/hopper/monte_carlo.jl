@@ -3,8 +3,7 @@
 # PKG_SETUP
 
 # ## Setup
-
-using ContactImplicitMPC 
+ 
 using LinearAlgebra 
 using StaticArrays
 using Random
