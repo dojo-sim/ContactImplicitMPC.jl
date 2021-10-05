@@ -32,8 +32,8 @@ for t = 1:H
 end
 
 # ## Initial conditions
-q0 = @ContactImplicitMPC.SVector [0.0 * π, 0.0]
-q1 = @ContactImplicitMPC.SVector [0.0 * π, 0.0]
+q0 = ContactImplicitMPC.SVector{2}([0.0 * π, 0.0])
+q1 = ContactImplicitMPC.SVector{2}([0.0 * π, 0.0])
 
 # ## Simulator
 sim = simulator(s, q0, q1, h, H,

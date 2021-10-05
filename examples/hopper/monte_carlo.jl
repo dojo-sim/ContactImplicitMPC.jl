@@ -6,7 +6,6 @@
  
 using ContactImplicitMPC
 using LinearAlgebra
-using Random
 
 # ## Simulation
 s = get_simulation("hopper_2D", "flat_2D_lc", "flat");
