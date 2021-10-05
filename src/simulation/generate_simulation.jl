@@ -637,7 +637,7 @@ path_jac = joinpath(dir_sim, "flat/jacobians.jld2")
 instantiate_base!(sim.model, path_base)
 instantiate_dynamics!(sim.model, path_dyn)
 
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, mapping = Gz_func)
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, mapping = Gz_func, nv = model.dim.q - 1)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(sim, path_res, path_jac)
@@ -661,7 +661,7 @@ path_jac = joinpath(dir_sim, "flat_nc/jacobians.jld2")
 instantiate_base!(sim.model, path_base)
 instantiate_dynamics!(sim.model, path_dyn)
 
-expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, mapping = Gz_func)
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env, mapping = Gz_func, nv = model.dim.q - 1)
 save_expressions(expr_res, path_res, overwrite=true)
 @save path_jac rz_sp rθ_sp
 instantiate_residual!(sim, path_res, path_jac)
