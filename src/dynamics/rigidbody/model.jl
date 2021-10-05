@@ -184,20 +184,3 @@ rigidbody = RigidBody(Dimensions(7, 6, 3, 1, 1),
 	10.0, [0.01, 0.01, 0.01], 9.81, 1.0, 0.25,
 	BaseMethods(), DynamicsMethods(),
 	SVector{6}(zeros(6)))
-
-#
-# @variables x
-# @variables y
-# @variables z
-# @variables λ
-#
-# @variables px
-# @variables py
-# @variables pz
-#
-# L = (px - x)^2.0 + (py - y)^2.0 + (pz - z)^2.0 + λ * (z - x^2.0 - y^2.0)
-#
-# dL = Symbolics.gradient(L, [x; y; z; λ])
-# dL = simplify.(dL)
-#
-# ddL = Symbolics.hessian(L, [x; y; z; λ])

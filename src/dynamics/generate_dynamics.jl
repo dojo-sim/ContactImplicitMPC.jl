@@ -131,12 +131,11 @@ expr_dyn = generate_dynamics_expressions(model)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 
-################################################################################
+###############################################################################
 # Rigid body
-################################################################################
+###############################################################################
 dir = joinpath(@__DIR__, "rigidbody")
 model = deepcopy(rigidbody)
-# include(joinpath(module_dir(), "src/dynamics/rigidbody/model.jl"))
 
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
