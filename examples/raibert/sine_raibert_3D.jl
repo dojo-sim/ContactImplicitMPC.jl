@@ -62,4 +62,4 @@ vis = ContactImplicitMPC.Visualizer()
 ContactImplicitMPC.render(vis)
 
 # ## Visualize
-visualize_robot!(vis, model_sim, sim.traj, sample=20)
+visualize_robot!(vis, model_sim, sim.traj, sample=20);

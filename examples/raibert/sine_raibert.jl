@@ -58,5 +58,5 @@ vis = ContactImplicitMPC.Visualizer()
 ContactImplicitMPC.render(vis)
 
 # ## Visualize
-ContactImplicitMPC.plot_surface!(vis, s.env, n=200, xlims = [-1, 40])
-anim = visualize_robot!(vis, model, sim.traj, sample=5)
+ContactImplicitMPC.plot_surface!(vis, s.env, n=200, xlims = [-1, 40]);
+anim = visualize_robot!(vis, model, sim.traj, sample=5);

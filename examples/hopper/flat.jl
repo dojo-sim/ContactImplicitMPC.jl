@@ -74,7 +74,6 @@ ContactImplicitMPC.render(vis)
 
 # ## Visualize
 anim = visualize_robot!(vis, model, sim.traj, sample=5);
-anim = visualize_force!(vis, model, env, sim.traj, anim=anim, h=h_sim, sample = 5);
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
