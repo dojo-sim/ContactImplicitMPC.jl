@@ -69,6 +69,7 @@ include("dynamics/hopper_3D/model.jl")
 include("dynamics/quadruped/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
+include("dynamics/walledcartpole/model.jl")
 include("dynamics/rigidbody/model.jl")
 
 # Simulator
@@ -111,6 +112,7 @@ include("dynamics/hopper_3D/visuals.jl")
 include("dynamics/quadruped/visuals.jl")
 include("dynamics/flamingo/visuals.jl")
 include("dynamics/pushbot/visuals.jl")
+include("dynamics/walledcartpole/visuals.jl")
 include("dynamics/rigidbody/visuals.jl")
 
 
@@ -254,6 +256,7 @@ export
     quadruped_payload,
     flamingo,
     pushbot,
+    walledcartpole,
     rigidbody,
     flat_3D_lc,
     flat_3D_nc,
