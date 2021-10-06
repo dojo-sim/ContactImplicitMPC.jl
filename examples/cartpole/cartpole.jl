@@ -49,15 +49,14 @@ obj = TrackingVelocityObjective(model, env, H_mpc,
 		 [Diagonal([1e+1;1e+1;1e-8;1e-8]) for t = 1:1]],
 	u = [Diagonal([3e-2]) for t = 1:H_mpc])
 
-p = linearized_mpc_policy(ref_traj, s, obj,
+p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
-    mpc_opts = LinearizedMPCOptions(),
+    mpc_opts =CIMPCOptions(),
 	n_opts = NewtonOptions(
 		r_tol = 3e-4,
 		max_iter = 5,
-		max_time = h/5, # we could potentially run the MPC loop 5x faster (5 * 25 = 125 Hz)
 		));
 
 # ## Disturbances
@@ -87,7 +86,7 @@ vis = ContactImplicitMPC.Visualizer()
 ContactImplicitMPC.render(vis)
 
 # ## Visualize
-visualize_robot!(vis, model, sim.traj, sample = 1)
+anim = visualize_robot!(vis, model, sim.traj, sample = 1)
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
