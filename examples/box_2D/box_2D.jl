@@ -39,9 +39,12 @@ ContactImplicitMPC.render(vis)
 
 # ### Visualize
 ContactImplicitMPC.plot_surface!(vis, env, ylims = (-1,1.), xlims = (-1,13.))
-ContactImplicitMPC.plot_lines!(vis, model, sim_hard.traj.q)
+ContactImplicitMPC.plot_lines!(vis, model, sim_hard.traj.q, size = 1)
 anim = visualize_robot!(vis, model, sim_hard.traj);
-
+ContactImplicitMPC.settransform!(vis["/Cameras/default"],
+        ContactImplicitMPC.compose(ContactImplicitMPC.Translation(5.0, -70.0, -1.0),
+        ContactImplicitMPC.LinearMap(ContactImplicitMPC.RotZ(-pi / 2.0))))
+        ContactImplicitMPC.setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20)
 
 # ## Soft contact: relaxation = 2e-2
 κ_relax = 4.0e-2
@@ -62,9 +65,12 @@ ContactImplicitMPC.render(vis)
 
 # ### Visualize
 ContactImplicitMPC.plot_surface!(vis, env, ylims = (-1,1.), xlims = (-1,13.))
-ContactImplicitMPC.plot_lines!(vis, model, sim_soft.traj.q)
+ContactImplicitMPC.plot_lines!(vis, model, sim_soft.traj.q, size = 1)
 anim = visualize_robot!(vis, model, sim_soft.traj);
-
+ContactImplicitMPC.settransform!(vis["/Cameras/default"],
+        ContactImplicitMPC.compose(ContactImplicitMPC.Translation(5.0, -70.0, -1.0),
+        ContactImplicitMPC.LinearMap(ContactImplicitMPC.RotZ(-pi / 2.0))))
+        ContactImplicitMPC.setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 15);
 
 # ## Slightly soft contact: relaxation = 1e-4
 κ_relax = 1.0e-4
@@ -85,5 +91,9 @@ ContactImplicitMPC.render(vis)
 
 # ### Visualize
 ContactImplicitMPC.plot_surface!(vis, env, ylims = (-1,1.), xlims = (-1,13.))
-ContactImplicitMPC.plot_lines!(vis, model, sim_mpc.traj.q)
+ContactImplicitMPC.plot_lines!(vis, model, sim_mpc.traj.q, size = 1)
 anim = visualize_robot!(vis, model, sim_mpc.traj);
+ContactImplicitMPC.settransform!(vis["/Cameras/default"],
+        ContactImplicitMPC.compose(ContactImplicitMPC.Translation(5.0, -70.0, -1.0),
+        ContactImplicitMPC.LinearMap(ContactImplicitMPC.RotZ(-pi / 2.0))))
+        ContactImplicitMPC.setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 20);
