@@ -71,6 +71,7 @@ include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/walledcartpole/model.jl")
 include("dynamics/rigidbody/model.jl")
+include("dynamics/box_2D/model.jl")
 
 # Simulator
 include("simulator/policy.jl")
@@ -114,6 +115,7 @@ include("dynamics/flamingo/visuals.jl")
 include("dynamics/pushbot/visuals.jl")
 include("dynamics/walledcartpole/visuals.jl")
 include("dynamics/rigidbody/visuals.jl")
+include("dynamics/box_2D/visuals.jl")
 
 
 export

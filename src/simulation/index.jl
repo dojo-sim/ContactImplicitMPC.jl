@@ -502,10 +502,10 @@ function OptimizationIndices(model::ContactModel, env::Environment)
 	# Variables
 	dynz = index_q2(model, env, quat = false)
 	dynΔ = index_q2(model, env, quat = true)
-	ortz = index_ort(model, env, quat = true)
-	ortΔ = index_ort(model, env, quat = false)
-	socz = index_soc(model, env, quat = true)
-	socΔ = index_soc(model, env, quat = false)
+	ortz = index_ort(model, env, quat = false)
+	ortΔ = index_ort(model, env, quat = true)
+	socz = index_soc(model, env, quat = false)
+	socΔ = index_soc(model, env, quat = true)
 
 	# Residual
 	# dyn = [dyn]
