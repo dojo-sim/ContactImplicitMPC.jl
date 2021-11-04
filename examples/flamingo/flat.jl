@@ -7,6 +7,9 @@
 using ContactImplicitMPC
 using LinearAlgebra
 
+# ## Policy Mode 
+mode = :ci_mpc # :open_loop
+
 # ## Simulation
 s = get_simulation("flamingo", "flat_2D_lc", "flat")
 model = s.model
@@ -24,7 +27,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1000 
+H_sim = mode == :ci_mpc ? 1000 : 170
 κ_mpc = 2.0e-4
 
 obj = TrackingVelocityObjective(model, env, H_mpc,
@@ -34,7 +37,8 @@ obj = TrackingVelocityObjective(model, env, H_mpc,
     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
 
-p = ci_mpc_policy(ref_traj, s, obj,
+# ## Contact-Implicit MPC policy
+p_cimpc = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
@@ -49,7 +53,10 @@ p = ci_mpc_policy(ref_traj, s, obj,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         max_iter = 5),
-    mpc_opts = CIMPCOptions());
+    mpc_opts = CIMPCOptions())
+
+# ## Open-Loop Policy 
+p_openloop = open_loop_policy(ref_traj.u, N_sample=5)
 
 # ## Initial conditions
 q1_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(ref_traj.q[2]))
@@ -57,13 +64,13 @@ q0_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(q1_sim - (copy(ref_traj.q[
 
 # ## Simulator
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
-    p = p,
+    p = mode == :ci_mpc ? p_cimpc : p_openloop,
 	ip_opts = InteriorPointOptions(
 		undercut = Inf,
 		γ_reg = 0.0,
         r_tol = 1.0e-8,
         κ_tol = 1.0e-8),
-    sim_opts = SimulatorOptions(warmstart = true));
+    sim_opts = SimulatorOptions(warmstart = true))
 
 # ## Simulate
 @time status = simulate!(sim, verbose = true)
@@ -73,7 +80,10 @@ vis = ContactImplicitMPC.Visualizer()
 ContactImplicitMPC.render(vis)
 
 # ## Visualize
-anim = visualize_meshrobot!(vis, model, sim.traj, sample=10);
+anim = visualize_meshrobot!(vis, model, 
+    sim.traj, 
+    # ref_traj,
+    sample=10);
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
