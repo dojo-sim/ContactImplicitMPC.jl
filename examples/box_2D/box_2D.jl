@@ -17,8 +17,8 @@ h_sim = 0.05
 H_sim = 200
 
 # ## Initial conditions
-q1_sim = ContactImplicitMPC.SVector{model.dim.q}(8*h_sim, 1.5, 2*h_sim);
-q0_sim = ContactImplicitMPC.SVector{model.dim.q}(0, 1.5, 0);
+q1_sim = ContactImplicitMPC.SVector{model.dim.q}(-5.0+8*h_sim, 1.5, 2*h_sim);
+q0_sim = ContactImplicitMPC.SVector{model.dim.q}(-5.0, 1.5, 0);
 
 # ## Hard contact: relaxation = 1e-8
 κ_relax = 1.0e-8
