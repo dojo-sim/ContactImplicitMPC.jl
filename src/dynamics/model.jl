@@ -1,4 +1,4 @@
-abstract type ContactModel end
+# abstract type Model end
 
 struct Dimensions
     q::Int         # configuration
@@ -9,13 +9,13 @@ struct Dimensions
 end
 
 # https://github.com/HarvardAgileRoboticsLab/drake/blob/75b260c9eb250d08ffbbf3daa80758e4fe558d7f/drake/matlab/solvers/trajectoryOptimization/VariationalTrajectoryOptimization.m
-function lagrangian_derivatives(model::ContactModel, q, v)
+function lagrangian_derivatives(model::Model, q, v)
 	D1L = -1.0 * C_fast(model, q, v)
     D2L = M_fast(model, q) * v
 	return D1L, D2L
 end
 
-function dynamics(model::ContactModel, h, q0, q1, u1, w1, Λ1, q2)
+function dynamics(model::Model, h, q0, q1, u1, w1, Λ1, q2)
 	# evalutate at midpoint
 	qm1 = 0.5 * (q0 + q1)
     vm1 = (q1 - q0) / h[1]
@@ -35,7 +35,7 @@ function dynamics(model::ContactModel, h, q0, q1, u1, w1, Λ1, q2)
 
 end
 
-function dynamics(model::ContactModel, env::Environment, h, q0, q1, u1, w1, λ1, q2)
+function dynamics(model::Model, env::Environment, h, q0, q1, u1, w1, λ1, q2)
 	Λ1 = transpose(J_func(model, env, q2)) * λ1 #@@@@ maybe need to use J_fast
 	dynamics(model, h, q0, q1, u1, w1, Λ1, q2)
 end
@@ -107,7 +107,7 @@ function get_gait(name::String, gait::String)
 	return res["q"], res["u"], res["γ"], res["b"], mean(res["h̄"])
 end
 
-function model_name(model::ContactModel)
+function model_name(model::Model)
     name = Symbol(string(typeof(model).name)[10:end-1])
     return name
 end

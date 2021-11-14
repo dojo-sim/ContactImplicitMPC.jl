@@ -23,13 +23,12 @@ struct NewtonJacobianConfigurationForce{T,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,
     reg_du::Vdu                             # dual regularization views
 end
 
-function NewtonJacobianConfigurationForce(model::ContactModel, env::Environment, H::Int)
-    dim = model.dim
+function NewtonJacobianConfigurationForce(model::Model, env::Environment, H::Int)
 
-    nq = dim.q # configuration
-    nu = dim.u # control
-    nw = dim.w # disturbance
-    nc = dim.c # contact
+    nq = model.nq # configuration
+    nu = model.nu # control
+    nw = model.nw # disturbance
+    nc = model.nc # contact
     nb = nc * friction_dim(env) # linear friction
     nd = nq + nc + nb # implicit dynamics constraint
     nr = nq + nu + nc + nb# + nd # size of a one-time-step block
@@ -94,13 +93,12 @@ struct NewtonJacobianConfiguration{T,Vq,Vu,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vpr
     reg_du::Vdu                             # dual regularization views
 end
 
-function NewtonJacobianConfiguration(model::ContactModel, env::Environment, H::Int)
-    dim = model.dim
+function NewtonJacobianConfiguration(model::Model, env::Environment, H::Int)
 
-    nq = dim.q # configuration
-    nu = dim.u # control
-    nw = dim.w # disturbance
-    nc = dim.c # contact
+    nq = model.nq # configuration
+    nu = model.nu # control
+    nw = model.nw # disturbance
+    nc = model.nc # contact
     nd = nq # implicit dynamics constraint
     nr = nq + nu # size of a one-time-step block
 
@@ -137,7 +135,7 @@ function NewtonJacobianConfiguration(model::ContactModel, env::Environment, H::I
         IV, ITV, q0, q0T, q1, q1T, u1, u1T, reg_pr, reg_du)
 end
 
-function NewtonJacobian(model::ContactModel, env::Environment, H::Int;
+function NewtonJacobian(model::Model, env::Environment, H::Int;
     mode = :configurationforce)
 
     if mode == :configurationforce

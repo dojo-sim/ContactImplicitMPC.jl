@@ -16,8 +16,8 @@
 	end
 
 	# initial conditions
-	q0 = SVector{model.dim.q}(ref_traj.q[1])
-	q1 = SVector{model.dim.q}(ref_traj.q[2])
+	q0 = SVector{model.nq}(ref_traj.q[1])
+	q1 = SVector{model.nq}(ref_traj.q[2])
 
 	h = ref_traj.h
 	H = ref_traj.H
@@ -27,7 +27,7 @@
 	    PD tracking policy
 	"""
 	mutable struct PDPolicy <: ContactImplicitMPC.Policy
-		model::ContactModel
+		model::Model
 	    traj::ContactTraj
 		q0::AbstractVector
 	    idx::Int
@@ -56,7 +56,7 @@
 
 		u = p.traj.u[p.idx]
 		# PD
-		kp = 1.0 * ones(p.model.dim.u)
+		kp = 1.0 * ones(p.model.nu)
 		kp[1] *= 100.0
 		# kd = 10.0
 

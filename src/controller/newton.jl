@@ -43,13 +43,12 @@ function Newton(s::Simulation, H::Int, h::T,
 
     mode = im_traj.mode
 
-    dim = model.dim
     ind = NewtonIndices(model, env, H, mode = mode)
 
-    nq = dim.q
-    nu = dim.u
-    nw = dim.w
-    nc = dim.c
+    nq = model.nq
+    nu = model.nu
+    nw = model.nw
+    nc = model.nc
     nb = nc * friction_dim(env)
     nz = num_var(model, env)
     nθ = num_data(model)
@@ -59,6 +58,7 @@ function Newton(s::Simulation, H::Int, h::T,
 
     # precompute Jacobian for pre-factorization
     implicit_dynamics!(im_traj, s, traj, κ = [κ]) #@@@
+
     jacobian!(jac, im_traj, obj, H, opts.β_init)
 
     res = NewtonResidual(model, env, H, mode = mode)
@@ -143,7 +143,7 @@ function reset!(core::Newton, ref_traj::ContactTraj;
         copy_traj!(core.traj, ref_traj, core.traj.H)
 
         if initial_offset
-		    rd = -0.03 * [[1, 1]; ones(model.dim.q - 2)]
+		    rd = -0.03 * [[1, 1]; ones(model.nq - 2)]
 		    core.traj.q[1] .+= rd
 		    core.traj.q[2] .+= rd
 			update_θ!(core.traj, 1)

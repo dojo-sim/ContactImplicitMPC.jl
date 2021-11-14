@@ -3,7 +3,7 @@
 # Model
 ################################################################################
 
-mutable struct WallPendulum{T} <: ContactModel
+mutable struct WallPendulum{T} <: Model
 	n::Int # state dim
 	m::Int # control dim
 	mp::T # mass

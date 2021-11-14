@@ -28,10 +28,10 @@ H_sim = 1000
 κ_mpc = 2.0e-4
 
 obj = TrackingObjective(model, env, H_mpc,
-    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc]);
+    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.nq-3)]) for t = 1:H_mpc],
+    u = [Diagonal(3e-2 * ones(model.nu)) for t = 1:H_mpc],
+    γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
+    b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc]);
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -51,34 +51,38 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					r_tol = 1.0e-8,
 					diff_sol = true,
 					solver = :empty_solver,
-					max_time = 1000.0,
+					# max_time = 1000.0,
 					),
-    );
+    )
 
 # ## Initial conditions
-q1_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(ref_traj.q[2]))
-q0_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
+q1_sim = ContactImplicitMPC.SVector{model.nq}(copy(ref_traj.q[2]))
+q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
+v1_sim = (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / ref_traj.h
 
-# ## Simulator
-sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
-    p = p,
-	ip_opts = InteriorPointOptions(
-		undercut = Inf,
-		γ_reg = 0.0,
-        r_tol = 1.0e-8,
-        κ_tol = 1.0e-8),
-    sim_opts = SimulatorOptions(warmstart = true),
-    );
+# # ## Simulator
+# sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
+#     p = p,
+# 	ip_opts = InteriorPointOptions(
+# 		undercut = Inf,
+# 		γ_reg = 0.0,
+#         r_tol = 1.0e-8,
+#         κ_tol = 1.0e-8),
+#     sim_opts = SimulatorOptions(warmstart = true),
+#     );
 
-# ## Simulate
-@time status = simulate!(sim, verbose = true);
+# # ## Simulate
+# @time status = simulate!(sim, verbose = true);
+
+sim = Simulator(s, H_sim, h=h_sim, policy=p)
+simulate!(sim, Array(q1_sim), Array(v1_sim)) 
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-ContactImplicitMPC.render(vis)
+ContactImplicitMPC.open(vis)
 
 # ## Visualize
-anim = visualize_meshrobot!(vis, model, sim.traj, sample=5);
+anim = visualize_meshrobot!(vis, model, sim.traj, h=h_sim * 5, sample=5)
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.

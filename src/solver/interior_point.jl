@@ -57,7 +57,7 @@ end
 
 mutable struct InteriorPoint{T,R,RZ,Rθ}
     s::Space
-    idx::OptimizationIndices
+    idx::IndicesOptimization
     methods::ResidualMethods
     z::Vector{T}               # current point
     r::R                       # residual
@@ -76,7 +76,7 @@ end
 
 function interior_point(z, θ;
         s = Euclidean(length(z)),
-        idx = OptimizationIndices(),
+        idx = IndicesOptimization(),
         r! = r!, rz! = rz!, rθ! = rθ!,
         r  = zeros(idx.nΔ),
         rz = spzeros(idx.nΔ, idx.nΔ),

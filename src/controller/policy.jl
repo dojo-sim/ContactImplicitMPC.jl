@@ -10,7 +10,7 @@
     live_plotting::Bool=false # Use the live plotting tool to debug
 end
 
-mutable struct CIMPC <: Policy
+mutable struct CIMPC{T} <: Policy{T}
 	traj
 	ref_traj
 	im_traj
@@ -21,7 +21,7 @@ mutable struct CIMPC <: Policy
 	newton
 	newton_mode
 	s
-	q0
+	q0::Vector{T}
 	N_sample
 	cnt
 	opts
@@ -57,9 +57,10 @@ function ci_mpc_policy(traj, s, obj;
 		max_time = mpc_opts.ip_max_time,
 		opts=ip_opts,
 		mode = mode)
-
+		
 	stride = get_stride(s.model, traj)
-	altitude = zeros(s.model.dim.c)
+	altitude = zeros(s.model.nc)
+	
 	if newton_mode == :direct
 		newton = Newton(s, H_mpc, traj.h, traj, im_traj, obj = obj, opts = n_opts)
 	elseif newton_mode == :structure
@@ -73,7 +74,7 @@ function ci_mpc_policy(traj, s, obj;
 end
 
 
-function policy(p::CIMPC, x, traj, t)
+function policy(p::CIMPC, traj::Trajectory, t::T) where T
 	# reset
 	if t == 1
 		p.cnt = p.N_sample
@@ -88,12 +89,12 @@ function policy(p::CIMPC, x, traj, t)
 		# update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ) #@@@ keep the altitude update here
 		set_altitude!(p.im_traj, p.altitude) #@@@ keep the altitude update here
 		newton_solve!(p.newton, p.s, p.im_traj, p.traj,
-			warm_start = t > 1, q0 = copy(p.q0), q1 = copy(x))
+			warm_start = t > 1, q0 = copy(p.q0), q1 = copy(traj.q[t+1]))
 		update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ) #@@@ only keep the rotation stuff not the altitude update.
-		p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, copy(x), t)
+		p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, copy(traj.q[t+1]), t)
 
 		rot_n_stride!(p.traj, p.stride)
-		p.q0 .= copy(x)
+		p.q0 .= copy(traj.q[t+1])
 		p.cnt = 0
     end
 

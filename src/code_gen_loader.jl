@@ -13,7 +13,7 @@ using Symbolics
 include("utils.jl")
 
 # Solver
-include("solver/cones.jl")
+# include("solver/cones.jl")
 
 # Environment
 include("simulator/environment.jl")
@@ -27,7 +27,7 @@ include("simulation/index.jl")
 # Simulator
 include("simulation/contact_methods.jl")
 include("simulation/simulation.jl")
-include("simulator/trajectory.jl")
+# include("simulator/trajectory.jl")
 
 include("dynamics/code_gen_dynamics.jl")
 include("dynamics/fast_methods_dynamics.jl")
@@ -43,7 +43,6 @@ include("dynamics/quadruped/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/walledcartpole/model.jl")
-include("dynamics/rigidbody/model.jl")
 
 # Simulation
 include("simulation/environments/flat.jl")

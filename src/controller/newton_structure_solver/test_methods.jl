@@ -173,7 +173,7 @@ info = @benchmark ContactImplicitMPC.solve!($s)
 #     load_type = :split_traj_alt))
 #
 # H_mpc = 10
-# s = ContactImplicitMPC.newton_structure_solver(model.dim.q, model.dim.u, H_mpc, ρ = 1.0e-5)
+# s = ContactImplicitMPC.newton_structure_solver(model.nq, model.nu, H_mpc, ρ = 1.0e-5)
 # obj_mpc = ContactImplicitMPC.quadratic_objective(model, H_mpc)
 # ContactImplicitMPC.update_objective!(s, obj_mpc)
 #

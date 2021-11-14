@@ -22,7 +22,7 @@ function plot_surface!(vis::Visualizer, f::Any; xlims = [-1.0, 5.0],
     return nothing
 end
 
-function animate_robot!(vis::Visualizer, anim::MeshCat.Animation, model::ContactModel,
+function animate_robot!(vis::Visualizer, anim::MeshCat.Animation, model::Model,
 		q::AbstractVector; name::Symbol=model_name(model))
 	for t in 1:length(q)
 		MeshCat.atframe(anim, t) do
@@ -33,7 +33,7 @@ function animate_robot!(vis::Visualizer, anim::MeshCat.Animation, model::Contact
 	return nothing
 end
 
-function visualize_robot!(vis::Visualizer, model::ContactModel, q::AbstractVector;
+function visualize_robot!(vis::Visualizer, model::Model, q::AbstractVector;
 		h=0.01, α=1.0,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
@@ -43,7 +43,7 @@ function visualize_robot!(vis::Visualizer, model::ContactModel, q::AbstractVecto
 	return anim
 end
 
-function visualize_robot!(vis::Visualizer, model::ContactModel, traj::ContactTraj;
+function visualize_robot!(vis::Visualizer, model::Model, traj;
 		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,  α=1.0,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
@@ -52,7 +52,7 @@ function visualize_robot!(vis::Visualizer, model::ContactModel, traj::ContactTra
 	return anim
 end
 
-function build_meshrobot!(vis::Visualizer, model::ContactModel, urdf::String,
+function build_meshrobot!(vis::Visualizer, model::Model, urdf::String,
 		package_path::String; name::Symbol=model_name(model), α=1.0)
 	default_background!(vis)
 
@@ -76,7 +76,7 @@ function set_alpha!(visuals::Vector, α)
     end
 end
 
-function set_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, model::ContactModel,
+function set_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, model::Model,
 		q::AbstractVector; name::Symbol=model_name(model))
 
 	q_mesh, tform = convert_config(model, q)
@@ -87,7 +87,7 @@ function set_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, model::Conta
 end
 
 function animate_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, anim::MeshCat.Animation,
-		model::ContactModel, q::AbstractVector; name::Symbol=model_name(model))
+		model::Model, q::AbstractVector; name::Symbol=model_name(model))
 	for t in 1:length(q)
 		MeshCat.atframe(anim, t) do
 			set_meshrobot!(vis, mvis, model, q[t], name=name)
@@ -97,7 +97,7 @@ function animate_meshrobot!(vis::Visualizer, mvis::MechanismVisualizer, anim::Me
 	return nothing
 end
 
-function visualize_meshrobot!(vis::Visualizer, model::ContactModel, q::AbstractVector;
+function visualize_meshrobot!(vis::Visualizer, model::Model, q::AbstractVector;
 		h=0.01,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model),
@@ -109,8 +109,8 @@ function visualize_meshrobot!(vis::Visualizer, model::ContactModel, q::AbstractV
 	return anim
 end
 
-function visualize_meshrobot!(vis::Visualizer, model::ContactModel, traj::ContactTraj;
-		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,
+function visualize_meshrobot!(vis::Visualizer, model::Model, traj;
+		sample=max(1, Int(floor(traj.H / 100))), h=0.01 * sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model),
 		α=1.0)
@@ -119,10 +119,10 @@ function visualize_meshrobot!(vis::Visualizer, model::ContactModel, traj::Contac
 	return anim
 end
 
-function build_force!(vis::Visualizer, model::ContactModel; name::Symbol=model_name(model))
+function build_force!(vis::Visualizer, model::Model; name::Symbol=model_name(model))
 	default_background!(vis)
 	orange_mat, blue_mat, black_mat = get_material()
-	nc = model.dim.c
+	nc = model.nc
 
 	for i = 1:nc
 		fri_vis = ArrowVisualizer(vis[name][:force][:friction]["$i"])
@@ -135,10 +135,10 @@ function build_force!(vis::Visualizer, model::ContactModel; name::Symbol=model_n
 	return nothing
 end
 
-function contact_force(model::ContactModel, env::Environment, pc::AbstractVector,
+function contact_force(model::Model, env::Environment, pc::AbstractVector,
 		γ::AbstractVector, b::AbstractVector;
 		E::AbstractMatrix=Matrix(friction_mapping(env)))
-	nc = model.dim.c
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	nf = Int(nb/nc)
 
@@ -148,11 +148,11 @@ function contact_force(model::ContactModel, env::Environment, pc::AbstractVector
 	return bc, λc
 end
 
-function set_force!(vis::Visualizer, model::ContactModel, env::Environment, q::AbstractVector,
+function set_force!(vis::Visualizer, model::Model, env::Environment, q::AbstractVector,
 		γ::AbstractVector, b::AbstractVector; name::Symbol=model_name(model), shift=-0.14,
 		E::AbstractMatrix=Matrix(friction_mapping(env)))
 
-	nc = model.dim.c
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	nf = Int(nb/nc)
 	p_shift = [0, shift, 0]
@@ -200,7 +200,7 @@ function set_force!(vis::Visualizer, model::ContactModel, env::Environment, q::A
 	return nothing
 end
 
-function animate_force!(vis::Visualizer, anim::MeshCat.Animation, model::ContactModel, env::Environment,
+function animate_force!(vis::Visualizer, anim::MeshCat.Animation, model::Model, env::Environment,
 	q::AbstractVector, γ::AbstractVector, b::AbstractVector;
 	name::Symbol=model_name(model), shift=-0.14)
 	E = Matrix(friction_mapping(env))
@@ -213,7 +213,7 @@ function animate_force!(vis::Visualizer, anim::MeshCat.Animation, model::Contact
 	return nothing
 end
 
-function visualize_force!(vis::Visualizer, model::ContactModel, env::Environment,
+function visualize_force!(vis::Visualizer, model::Model, env::Environment,
 		q::AbstractVector, γ::AbstractVector, b::AbstractVector; h=0.01,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model), shift=-0.14)
@@ -223,7 +223,7 @@ function visualize_force!(vis::Visualizer, model::ContactModel, env::Environment
 	return anim
 end
 
-function visualize_force!(vis::Visualizer, model::ContactModel, env::Environment,
+function visualize_force!(vis::Visualizer, model::Model, env::Environment,
 		traj::ContactTraj; sample=max(1,Int(floor(traj.H/100))), h=traj.h*sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model), shift=-0.14)

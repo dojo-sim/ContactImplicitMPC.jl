@@ -14,7 +14,7 @@ env = s.env
 
 # ## Run policy
 function run_policy(s::Simulation; H_sim::Int = 2000, verbose = false,
-		qinit::AbstractVector = zeros(s.model.dim.q))
+		qinit::AbstractVector = zeros(s.model.nq))
 	model = s.model
 	env = s.env
 
@@ -31,10 +31,10 @@ function run_policy(s::Simulation; H_sim::Int = 2000, verbose = false,
 	κ_mpc = 1.0e-4
 
 	obj = TrackingObjective(model, env, H_mpc,
-	    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.75 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-	    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-		γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-	    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+	    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.75 * ones(model.nq-3)]) for t = 1:H_mpc],
+	    u = [Diagonal(3e-2 * ones(model.nu)) for t = 1:H_mpc],
+		γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
+	    b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc])
 
 	p = ci_mpc_policy(ref_traj, s, obj,
 	    H_mpc = H_mpc,
@@ -60,8 +60,8 @@ function run_policy(s::Simulation; H_sim::Int = 2000, verbose = false,
 
 	q1_ref = copy(qinit)
 	q0_ref = copy(qinit)
-	q1_sim = ContactImplicitMPC.SVector{model.dim.q}(q1_ref)
-	q0_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+	q1_sim = ContactImplicitMPC.SVector{model.nq}(q1_ref)
+	q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 	@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
 	sim = ContactImplicitMPC.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
@@ -79,7 +79,7 @@ end
 
 # ## Collect runs
 function collect_runs(s::Simulation; n::Int = 1, H_sim::Int = 2000, verbose::Bool = false)
-	nq = s.model.dim.q
+	nq = s.model.nq
 	trajs = []
 	ContactImplicitMPC.Random.seed!(100)
 	conf_max = [0.05, 0.8, 0.8, 0.8, +0.2,  0.10]
@@ -98,7 +98,7 @@ end
 
 # ## Initial configurations
 function initial_configuration(model::Quadruped, θ0, θ1, θ2, θ3, x, Δz)
-    q = zeros(model.dim.q)
+    q = zeros(model.nq)
 	q[1] = x
     q[3] = pi / 2.0
     q[4] = -θ1
@@ -121,7 +121,7 @@ function initial_configuration(model::Quadruped, θ0, θ1, θ2, θ3, x, Δz)
 end
 
 # ## Visualize runs
-function visualize_runs!(vis::ContactImplicitMPC.Visualizer, model::ContactModel, trajs::AbstractVector;
+function visualize_runs!(vis::ContactImplicitMPC.Visualizer, model::Model, trajs::AbstractVector;
 		sample=max(1, Int(floor(trajs[1].H / 100))), h=trajs[1].h*sample,  α=1.0,
 		anim::ContactImplicitMPC.MeshCat.Animation=ContactImplicitMPC.MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=ContactImplicitMPC.model_name(model))

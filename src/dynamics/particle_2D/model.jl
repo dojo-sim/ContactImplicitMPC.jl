@@ -10,8 +10,11 @@
     Discrete Mechanics and Variational Integrators
         pg. 363
 """
-mutable struct Particle2D{T} <: ContactModel
-    dim::Dimensions
+mutable struct Particle2D{T} <: Model{T}
+    nq::Int 
+	nu::Int
+	nw::Int
+	nc::Int
     m::T # mass
     g::T # gravity
     μ_world::T # friction coefficient
@@ -101,6 +104,10 @@ function velocity_stack(model::Particle2D, env::Environment{<:World, NonlinearCo
 end
 
 # Model (flat surface)
-particle_2D = Particle2D(Dimensions(2, 2, 2, 1, 0), 1.0, 9.81, 1.0, 0.0,
+particle_2D = Particle2D(2, 2, 2, 1, 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(),
 	SVector{2}(zeros(2)))
+
+function friction_coefficients(model::Particle2D) 
+	return [model.μ_world]
+end

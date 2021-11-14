@@ -12,7 +12,7 @@ s_sim = get_simulation("quadruped", "sine1_2D_lc", "sinusoidal");
 s = get_simulation("quadruped", "flat_2D_lc", "flat");
 model = s.model
 env = s.env
-nq = model.dim.q
+nq = model.nq
 s_sim.model.μ_world
 s.model.μ_world
 
@@ -33,9 +33,9 @@ H_sim = 1000 #4000 #5000
 
 obj = TrackingObjective(model, env, H_mpc,
     q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
-    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc]);
+    u = [Diagonal(3e-2 * ones(model.nu)) for t = 1:H_mpc],
+    γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
+    b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc]);
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -53,8 +53,8 @@ p = ci_mpc_policy(ref_traj, s, obj,
     );
 
 # ## Initial conditions
-q1_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(ref_traj.q[2]))
-q0_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
+q1_sim = ContactImplicitMPC.SVector{model.nq}(copy(ref_traj.q[2]))
+q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
 
 # ## Simulator
 sim = simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,

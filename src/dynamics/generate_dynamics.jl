@@ -161,12 +161,12 @@ expr_base = generate_base_expressions(model,
 	M_analytical = true,
 	C_analytical = true,
 	mapping = G_func,
-	nv = model.dim.q - 1)
+	nv = model.nq - 1)
 
 save_expressions(expr_base, path_base, overwrite=true)
 instantiate_base!(model, path_base)
 
-expr_dyn = generate_dynamics_expressions(model, nv = model.dim.q - 1)
+expr_dyn = generate_dynamics_expressions(model, nv = model.nq - 1)
 save_expressions(expr_dyn, path_dyn, overwrite=true)
 instantiate_dynamics!(model, path_dyn)
 

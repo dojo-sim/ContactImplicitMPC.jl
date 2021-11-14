@@ -1,5 +1,8 @@
-mutable struct Flamingo{T} <: ContactModel
-    dim::Dimensions
+mutable struct Flamingo{T} <: Model{T}
+    nq::Int 
+	nu::Int 
+	nw::Int 
+	nc::Int
 
     g::T
     μ_world::T
@@ -91,7 +94,7 @@ function kinematics_1(model::Flamingo, q; body = :torso, mode = :ee)
 end
 
 function jacobian_1(model::Flamingo, q; body = :torso, mode = :ee)
-	jac = zeros(eltype(q), 2, model.dim.q)
+	jac = zeros(eltype(q), 2, model.nq)
 	jac[1, 1] = 1.0
 	jac[2, 2] = 1.0
 	if body == :torso
@@ -479,7 +482,7 @@ J_thigh = 0.01256
 J_calf = 0.00952
 J_foot = 0.0015
 
-flamingo = Flamingo(Dimensions(nq, nu, nw, nc, nquat),
+flamingo = Flamingo(nq, nu, nw, nc,
 			  gravity, μ_world, μ_joint,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
@@ -490,3 +493,7 @@ flamingo = Flamingo(Dimensions(nq, nu, nw, nc, nquat),
 			  l_foot, d_foot, m_foot, J_foot,
 			  BaseMethods(), DynamicsMethods(),
 			  SVector{nq}([zeros(3); 0.0 * μ_joint * ones(nq - 3)]))
+
+function friction_coefficients(model::Flamingo) 
+	return [model.μ_world]
+end			  

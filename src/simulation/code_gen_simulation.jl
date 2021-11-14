@@ -1,12 +1,12 @@
 
-function generate_contact_expressions(model::ContactModel, env::Environment;
-		T = Float64, jacobians = false, nv = model.dim.q)
+function generate_contact_expressions(model::Model, env::Environment;
+		T = Float64, jacobians = false, nv = model.nq)
 
 	# model dimensions
-	nq = model.dim.q
-	nu = model.dim.u
-	nw = model.dim.w
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nw = model.nw
+	nc = model.nc
 
 	# friction dimensions
 	nb = nc * friction_dim(env)
@@ -33,7 +33,7 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 
 	@variables z[1:nz]
 	@variables θ[1:nθ]
-	@variables κ
+	@variables κ[1:1]
 
 	# Expressions
 	expr = Dict{Symbol, Expr}()
@@ -108,16 +108,16 @@ function generate_contact_expressions(model::ContactModel, env::Environment;
 end
 
 """
-	generate_residual_expressions(model::ContactModel)
+	generate_residual_expressions(model::Model)
 Generate fast residual methods using Symbolics symbolic computing tools.
 """
-function generate_residual_expressions(model::ContactModel, env::Environment;
+function generate_residual_expressions(model::Model, env::Environment;
 		mapping = (a,b,c) -> Diagonal(ones(num_var(model, env))), jacobians = :full,
-		T = Float64, nv = model.dim.q)
+		T = Float64, nv = model.nq)
 
-	nq = model.dim.q
-	nu = model.dim.u
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	nz = num_var(model, env)
 	nθ = num_data(model)
@@ -125,7 +125,7 @@ function generate_residual_expressions(model::ContactModel, env::Environment;
 	# Declare variables
 	@variables z[1:nz]
 	@variables θ[1:nθ]
-	@variables κ
+	@variables κ[1:1]
 
 	# Residual
 	r = residual(model, env, z, θ, κ)

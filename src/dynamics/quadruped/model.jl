@@ -1,5 +1,8 @@
-mutable struct Quadruped{T} <: ContactModel
-	dim::Dimensions
+mutable struct Quadruped{T} <: Model{T}
+	nq::Int 
+	nu::Int
+	nw::Int
+	nc::Int
 
 	g::T
 	μ_world::T
@@ -104,7 +107,7 @@ function kinematics_1(model::Quadruped, q; body = :torso, mode = :ee)
 end
 
 function jacobian_1(model::Quadruped, q; body = :torso, mode = :ee)
-	jac = zeros(eltype(q), 2, model.dim.q)
+	jac = zeros(eltype(q), 2, model.nq)
 	jac[1, 1] = 1.0
 	jac[2, 2] = 1.0
 	if body == :torso
@@ -548,7 +551,7 @@ J_payload = 0.03
 # m_payload = 5.0
 # J_payload = 0.05
 
-quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nquat),
+quadruped = Quadruped(nq,nu,nw,nc,
 				g, μ_world, μ_joint,
 				l_torso, d_torso, m_torso, J_torso,
 				l_thigh, d_thigh, m_thigh, J_thigh,
@@ -562,7 +565,7 @@ quadruped = Quadruped(Dimensions(nq, nu, nw, nc, nquat),
 				BaseMethods(), DynamicsMethods(),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
-quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc, nquat),
+quadruped_payload = Quadruped(nq,nu,nw,nc,
 				g, μ_world, μ_joint,
 				l_torso, d_torso,
 				m_torso + m_payload,
@@ -578,18 +581,6 @@ quadruped_payload = Quadruped(Dimensions(nq, nu, nw, nc, nquat),
 				BaseMethods(), DynamicsMethods(),
 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
 
-quadruped_downhill = Quadruped(Dimensions(nq, nu, nw, nc, nquat),
-				g, μ_world_downhill, μ_joint,
-				l_torso, d_torso,
-				m_torso,
-				J_torso,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				l_thigh, d_thigh, m_thigh, J_thigh,
-				l_leg, d_leg, m_leg, J_leg,
-				BaseMethods(), DynamicsMethods(),
-				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
+function friction_coefficients(model::Quadruped) 
+	return [model.μ_world]
+end

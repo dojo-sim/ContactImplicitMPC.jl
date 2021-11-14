@@ -5,12 +5,12 @@
 	model = s.model
 	env = s.env
 
-	nq = model.dim.q
-	nu = model.dim.u
+	nq = model.nq
+	nu = model.nu
 	H = 10
 	h = 0.0001
 	κ = 1e-6
-	nq = model.dim.q
+	nq = model.nq
 
 	q0 = SVector{nq,T}([0.0, 0.0, 1.0])
 	q1 = SVector{nq,T}([0.0, 0.0, 1.0])

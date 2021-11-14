@@ -18,12 +18,11 @@ struct ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}
 	ib1::SizedArray{Tuple{nb},Int,1,1,Vector{Int}}
 end
 
-function contact_trajectory(model::ContactModel, env::Environment, H::Int, h::T; κ::T=0.0) where {T}
-	dim = model.dim
-	nq = dim.q
-    nu = dim.u
-    nw = dim.w
-    nc = dim.c
+function contact_trajectory(model::Model, env::Environment, H::Int, h::T; κ::T=0.0) where {T}
+	nq = model.nq
+    nu = model.nu
+    nw = model.nw
+    nc = model.nc
     nb = nc * friction_dim(env)
 	nz = num_var(model, env)
 	nθ = num_data(model)
@@ -47,76 +46,6 @@ function contact_trajectory(model::ContactModel, env::Environment, H::Int, h::T;
     ib1 = SizedVector{nb}(off .+ (1:nb)); off += nb # index of the linear friction b1
 
 	return ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}(H,h,κ,q,u,w,γ,b,z,θ,iq0,iq1,iu1,iw1,iq2,iγ1,ib1)
-end
-
-struct ContactDerivTraj{S,nq,nu,nc,nb}
-	dq2dq0::Vector{SizedArray{Tuple{nq,nq},S,2,2,Array{S,2}}}
-    dq2dq1::Vector{SizedArray{Tuple{nq,nq},S,2,2,Array{S,2}}}
-    dq2du::Vector{SizedArray{Tuple{nq,nu},S,2,2,Array{S,2}}}
-    dγdq0::Vector{SizedArray{Tuple{nc,nq},S,2,2,Array{S,2}}}
-    dγdq1::Vector{SizedArray{Tuple{nc,nq},S,2,2,Array{S,2}}}
-    dγdu::Vector{SizedArray{Tuple{nc,nu},S,2,2,Array{S,2}}}
-    dbdq0::Vector{SizedArray{Tuple{nb,nq},S,2,2,Array{S,2}}}
-    dbdq1::Vector{SizedArray{Tuple{nb,nq},S,2,2,Array{S,2}}}
-    dbdu::Vector{SizedArray{Tuple{nb,nu},S,2,2,Array{S,2}}}
-	#TODO: specify type
-	vqq
-	vqqq
-	vqu
-	vγq
-	vγqq
-	vγu
-	vbq
-	vbqq
-	vbu
-end
-
-function contact_derivative_trajectory(model::ContactModel, env::Environment, δz::AbstractArray, H::Int)
-	nq = model.dim.q
-    nu = model.dim.u
-    nw = model.dim.w
-    nc = model.dim.c
-    nb = nc * friction_dim(env)
-
-	dq2dq0 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:H]
-	dq2dq1 = [SizedMatrix{nq,nq}(zeros(nq, nq)) for t = 1:H]
-	dq2du = [SizedMatrix{nq,nu}(zeros(nq, nu)) for t = 1:H]
-	dγdq0 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:H]
-	dγdq1 = [SizedMatrix{nc,nq}(zeros(nc, nq)) for t = 1:H]
-	dγdu = [SizedMatrix{nc,nu}(zeros(nc, nu)) for t = 1:H]
-	dbdq0 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:H]
-	dbdq1 = [SizedMatrix{nb,nq}(zeros(nb, nq)) for t = 1:H]
-	dbdu = [SizedMatrix{nb,nu}(zeros(nb, nu)) for t = 1:H]
-
-	vqq = view(δz, 1:nq, 1:nq)
-	vqqq = view(δz, 1:nq, nq .+ (1:nq))
-	vqu = view(δz, 1:nq, 2 * nq .+ (1:nu))
-	vγq = view(δz, nq .+ (1:nc), 1:nq)
-	vγqq = view(δz, nq .+ (1:nc), nq .+ (1:nq))
-	vγu = view(δz, nq .+ (1:nc), 2 * nq .+ (1:nu))
-	vbq = view(δz, nq + nc .+ (1:nb), 1:nq)
-	vbqq = view(δz, nq + nc .+ (1:nb), nq .+ (1:nq))
-	vbu = view(δz, nq + nc .+ (1:nb), 2 * nq .+ (1:nu))
-
-	ContactDerivTraj(
-		dq2dq0,
-		dq2dq1,
-		dq2du,
-		dγdq0,
-		dγdq1,
-		dγdu,
-		dbdq0,
-		dbdq1,
-		dbdu,
-		vqq,
-		vqqq,
-		vqu,
-		vγq,
-		vγqq,
-		vγu,
-		vbq,
-		vbqq,
-		vbu)
 end
 
 function update_z!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) where {T,nq,nu,nw,nc,nb,nz,nθ}
@@ -201,7 +130,7 @@ function sub_traj(traj::ContactTraj, idx::AbstractVector{Int})
 		traj.iq0, traj.iq1, traj.iu1, traj.iw1, traj.iq2, traj.iγ1, traj.ib1)
 end
 
-function update_friction_coefficient!(traj::ContactTraj, model::ContactModel, env::Environment)
+function update_friction_coefficient!(traj::ContactTraj, model::Model, env::Environment)
 	for t = 1:traj.H
 		q2, γ1, b1, ψ1, s1, η1, __ = unpack_z(model, env, traj.z[t])
 		q0, q1, u1, w1, _, h = unpack_θ(model, traj.θ[t])
@@ -211,14 +140,14 @@ function update_friction_coefficient!(traj::ContactTraj, model::ContactModel, en
 	nothing
 end
 
-function get_trajectory(model::ContactModel, env::Environment, gait_path::String;
+function get_trajectory(model::Model, env::Environment, gait_path::String;
 		load_type::Symbol = :split_traj, update_friction::Bool = false)
 	#TODO: assert model exists
 
-	nq = model.dim.q
-	nu = model.dim.u
-	nw = model.dim.w
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nw = model.nw
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	res = JLD2.jldopen(gait_path)
 

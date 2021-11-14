@@ -13,10 +13,10 @@ include("policy/3D.jl")
 s = get_simulation("hopper_3D", "sine2_3D_lc", "sinusoidal")
 model_sim = s.model 
 env_sim = s.env
-nq = model_sim.dim.q
-nu = model_sim.dim.u
-nc = model_sim.dim.c
-nw = model_sim.dim.w
+nq = model_sim.nq
+nu = model_sim.nu
+nc = model_sim.nc
+nw = model_sim.nw
 
 s_model = get_simulation("hopper_3D", "flat_3D_lc", "flat")
 

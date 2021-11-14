@@ -15,12 +15,12 @@ env = s.env
 # ## Reference Trajectory
 ref_traj = contact_trajectory(model, env, H, h);
 qref = [0.0; 0.0; 0.0; 0.0]
-ur = zeros(model.dim.u)
-γr = zeros(model.dim.c)
-br = zeros(model.dim.c * friction_dim(env))
-ψr = zeros(model.dim.c)
-ηr = zeros(model.dim.c * friction_dim(env))
-wr = zeros(model.dim.w)
+ur = zeros(model.nu)
+γr = zeros(model.nc)
+br = zeros(model.nc * friction_dim(env))
+ψr = zeros(model.nc)
+ηr = zeros(model.nc * friction_dim(env))
+wr = zeros(model.nw)
 h = 0.04
 H = 50
 
@@ -70,8 +70,8 @@ impulses = [[+0.2; 0; 0; 0], [+0.2; 0; 0; 0], [-0.2; 0; 0; 0], [+0.2; 0; 0; 0], 
 d = impulse_disturbances(impulses, idx);
 
 # ## Initial Conditions
-q1_sim = ContactImplicitMPC.SVector{model.dim.q}([0.0, 0.0, 0.0, 0.0])
-q0_sim = ContactImplicitMPC.SVector{model.dim.q}([0.0, 0.0, 0.0, 0.0]);
+q1_sim = ContactImplicitMPC.SVector{model.nq}([0.0, 0.0, 0.0, 0.0])
+q0_sim = ContactImplicitMPC.SVector{model.nq}([0.0, 0.0, 0.0, 0.0]);
 
 # ## Simulator
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,

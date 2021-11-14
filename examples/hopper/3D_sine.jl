@@ -16,9 +16,9 @@ s = get_simulation("hopper_3D", "flat_3D_lc", "flat");
 model = s.model
 env = s.env
 
-nq = model.dim.q
-nu = model.dim.u
-nc = model.dim.c
+nq = model.nq
+nu = model.nu
+nc = model.nc
 
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
@@ -38,8 +38,8 @@ H_sim = 1200 # 12000
 obj = TrackingObjective(model, env, H_mpc,
     q = [Diagonal(1.0e-1 * [3,3,0.1,5e+1,5e+1,5e+1,10])   for t = 1:H_mpc],
     u = [Diagonal(1.0e-0 * [1e-1, 1e-1, 1e1]) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+    γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
+    b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc])
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -81,8 +81,8 @@ p = ci_mpc_policy(ref_traj, s, obj,
     );
 
 # ## Initial conditions
-q1_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(ref_traj.q[2]))
-q0_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
+q1_sim = ContactImplicitMPC.SVector{model.nq}(copy(ref_traj.q[2]))
+q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
 
 # ## Simulator
 sim = simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,

@@ -1,17 +1,17 @@
 """
-	generate_base_expressions(model::ContactModel)
+	generate_base_expressions(model::Model)
 Generate fast base methods using Symbolics symbolic computing tools.
 """
-function generate_base_expressions(model::ContactModel;
+function generate_base_expressions(model::Model;
 	M_analytical = true,
 	C_analytical = true,
 	mapping = (a, x) -> I,
-	nv = model.dim.q)
+	nv = model.nq)
 
-	nq = model.dim.q
-	nu = model.dim.u
-	nw = model.dim.w
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nw = model.nw
+	nc = model.nc
 
 	# Declare variables
 	@variables q[1:nq]
@@ -82,7 +82,7 @@ end
 Loads the base expressions from the `path`, evaluates them to generate functions,
 stores them into the model.
 """
-function instantiate_base!(model::ContactModel, path::AbstractString="model/base.jld2")
+function instantiate_base!(model::Model, path::AbstractString="model/base.jld2")
 	instantiate_base!(model.base, load_expressions(path))
 	return nothing
 end
@@ -104,14 +104,14 @@ end
 
 
 """
-	generate_dynamics_expressions(model::ContactModel)
+	generate_dynamics_expressions(model::Model)
 Generate fast dynamics methods using Symbolics symbolic computing tools.
 """
-function generate_dynamics_expressions(model::ContactModel; derivs = false, nv = model.dim.q)
-	nq = model.dim.q
-	nu = model.dim.u
-	nw = model.dim.w
-	nc = model.dim.c
+function generate_dynamics_expressions(model::Model; derivs = false, nv = model.nq)
+	nq = model.nq
+	nu = model.nu
+	nw = model.nw
+	nc = model.nc
 	# ncf = nc * dim(env)
 
 	# Declare variables
@@ -152,7 +152,7 @@ end
 Loads the dynamics expressoins from the `path`, evaluates them to generate functions,
 stores them into the model.
 """
-function instantiate_dynamics!(model::ContactModel, path::AbstractString="model/dynamics.jld2";
+function instantiate_dynamics!(model::Model, path::AbstractString="model/dynamics.jld2";
 	derivs = false)
 	expr = load_expressions(path)
 	instantiate_dynamics!(model.dyn, expr, derivs = derivs)

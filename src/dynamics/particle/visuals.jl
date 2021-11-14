@@ -86,7 +86,7 @@ function plot_lines!(vis::Visualizer, model::Particle, q::AbstractVector;
 end
 
 function build_robot!(vis::Visualizer, model::Particle; name::Symbol = :Particle, r=0.25, α=1.0)
-	nc = model.dim.c
+	nc = model.nc
 	r = convert(Float32, r)
 	body_mat = MeshPhongMaterial(color = RGBA(13/255, 152/255, 186/255, α))
 
@@ -100,7 +100,7 @@ function build_robot!(vis::Visualizer, model::Particle; name::Symbol = :Particle
 end
 
 function set_robot!(vis::Visualizer, model::Particle, q::AbstractVector; name::Symbol=:Particle, r=0.25)
-	nc = model.dim.c
+	nc = model.nc
 	settransform!(vis[name][:robot]["particle"], Translation(q[1], q[2], q[3]+r))
 	return nothing
 end

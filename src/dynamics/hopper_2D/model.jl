@@ -7,8 +7,11 @@
 			t - body orientation
 			r - leg length
 """
-mutable struct Hopper2D{T} <: ContactModel
-    dim::Dimensions
+mutable struct Hopper2D{T} <: Model{T}
+    nq::Int 
+	nu::Int
+	nw::Int
+	nc::Int
 
     mb::T # mass of body
     ml::T # mass of leg
@@ -100,8 +103,12 @@ nw = 2
 nc = 1
 nquat = 0
 
-hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc, nquat),
+hopper_2D = Hopper2D(nq,nu,nw,nc,
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, gravity,
 			   BaseMethods(), DynamicsMethods(),
 			   SVector{4}(zeros(4)))
+
+function friction_coefficients(model::Hopper2D) 
+	return [model.μ_world]
+end

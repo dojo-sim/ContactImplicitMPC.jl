@@ -1,8 +1,11 @@
 """
     PushBot
 """
-mutable struct PushBot{T} <: ContactModel
-    dim::Dimensions
+mutable struct PushBot{T} <: Model{T}
+    nq::Int 
+	nu::Int
+	nw::Int
+	nc::Int
 
     mb::T # mass
 	ma::T
@@ -126,8 +129,12 @@ nw = nq
 nc = 2
 nquat = 0
 
-pushbot = PushBot(Dimensions(nq, nu, nw, nc, nquat),
+pushbot = PushBot(nq,nu,nw,nc,
 			   mb, ma, l,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),
 			   SVector{2}(μ_joint * [1.0; 1.0]))
+
+function friction_coefficients(model::PushBot) 
+	return [model.μ_world]
+end
