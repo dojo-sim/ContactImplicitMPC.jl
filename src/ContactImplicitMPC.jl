@@ -25,6 +25,8 @@ using SparseArrays
 using StaticArrays
 using Symbolics
 using Test
+using RoboDojo
+import RoboDojo: LinearSolver, LUSolver, Model, ResidualMethods, Space, Disturbances, IndicesZ, InteriorPoint, EmptySolver, Policy, Trajectory, GradientTrajectory, InteriorPointOptions, IndicesOptimization, interior_point, interior_point_solve!, bilinear_violation, residual_violation, general_correction_term!, r!, rz!, rθ!, linear_solve!, lu_solver, empty_policy, empty_disturbances, friction_coefficients, SimulatorStatistics, SimulatorOptions, indices_θ, num_data, initialize_z!, initialize_θ!, indices_z, indices_θ, Simulator, simulate!, policy
 
 # Utilities
 include("utils.jl")
@@ -32,26 +34,26 @@ include("utils.jl")
 # Solver
 # include("solver/linear_solver.jl")
 
-include("/home/taylor/Research/RoboDojo.jl/src/solver/lu.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/solver/lu.jl")
 include("solver/lu.jl") # sparse arrays
 
 include("solver/qr.jl")
 include("solver/schur.jl")
 # include("solver/cones.jl")
-include("/home/taylor/Research/RoboDojo.jl/src/solver/cones.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/solver/cones.jl")
 
 # include("solver/indices.jl")
-include("/home/taylor/Research/RoboDojo.jl/src/solver/indices.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/solver/indices.jl")
 
 # Solver
 # include("solver/interior_point.jl")
-include("/home/taylor/Research/RoboDojo.jl/src/solver/interior_point.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/solver/interior_point.jl")
 
 # Environment
 include("simulator/environment.jl")
 
 # Dynamics
-include("/home/taylor/Research/RoboDojo.jl/src/simulator/model.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/simulator/model.jl")
 include("dynamics/model.jl")
 
 # Simulator
@@ -79,14 +81,14 @@ include("dynamics/pushbot/model.jl")
 include("dynamics/walledcartpole/model.jl")
 
 # Simulator
-include("/home/taylor/Research/RoboDojo.jl/src/simulator/trajectory.jl")
-include("/home/taylor/Research/RoboDojo.jl/src/simulator/policy.jl")
-include("simulator/policy.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/simulator/trajectory.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/simulator/policy.jl")
+##include("simulator/policy.jl")
 
-include("/home/taylor/Research/RoboDojo.jl/src/simulator/dimensions.jl")
-include("/home/taylor/Research/RoboDojo.jl/src/simulator/indices.jl")
-include("/home/taylor/Research/RoboDojo.jl/src/simulator/disturbances.jl")
-include("/home/taylor/Research/RoboDojo.jl/src/simulator/simulator.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/simulator/dimensions.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/simulator/indices.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/simulator/disturbances.jl")
+##include("/home/taylor/Research/RoboDojo.jl/src/simulator/simulator.jl")
 
 include("simulator/disturbances.jl")
 include("simulator/simulator.jl")
