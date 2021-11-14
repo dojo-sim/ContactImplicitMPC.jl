@@ -24,11 +24,11 @@
 
     # obj
     obj = TrackingVelocityObjective(model, env, H_mpc,
-        q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-        v = [Diagonal(0e-2 * [10; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-        u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-        γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-        b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+        q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(model.nq-3)]) for t = 1:H_mpc],
+        v = [Diagonal(0e-2 * [10; 0.02; 0.25; 0.25 * ones(model.nq-3)]) for t = 1:H_mpc],
+        u = [Diagonal(3e-2 * ones(model.nu)) for t = 1:H_mpc],
+        γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
+        b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc])
 
     # linearized MPC policy
     p = ContactImplicitMPC.ci_mpc_policy(ref_traj, s, obj,
@@ -43,8 +43,8 @@
     # initial configurations
     q1_ref = copy(ref_traj.q[2])
     q0_ref = copy(copy(ref_traj.q[1]))
-    q1_sim = SVector{model.dim.q}(q1_ref)
-    q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+    q1_sim = SVector{model.nq}(q1_ref)
+    q0_sim = SVector{model.nq}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
     @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
     # simulator
@@ -80,7 +80,7 @@ end
 #     model = s.model
 #     env = s.env
 
-#     nq = model.dim.q
+#     nq = model.nq
 
 #     ref_traj_ = deepcopy(ContactImplicitMPC.get_trajectory(s.model, s.env,
 #         joinpath(module_dir(), "src/dynamics/quadruped/gaits/gait2.jld2"),
@@ -100,9 +100,9 @@ end
 
 #     obj = TrackingObjective(model, env, H_mpc,
 #         q = [Diagonal(1e-2 * [10; 0.02; 0.25; 0.25 * ones(nq-3)]) for t = 1:H_mpc],
-#         u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-#         γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-#         b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+#         u = [Diagonal(3e-2 * ones(model.nu)) for t = 1:H_mpc],
+#         γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
+#         b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc])
 
 #     p = ci_mpc_policy(ref_traj, s, obj,
 #         H_mpc = H_mpc,
@@ -124,8 +124,8 @@ end
 
 #     q1_ref = copy(ref_traj.q[2])
 #     q0_ref = copy(ref_traj.q[1])
-#     q1_sim = SVector{model.dim.q}(q1_ref)
-#     q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+#     q1_sim = SVector{model.nq}(q1_ref)
+#     q0_sim = SVector{model.nq}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 #     @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
 #     sim = simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
@@ -174,10 +174,10 @@ end
 	κ_mpc = 2.0e-4
 
 	obj_mpc = TrackingObjective(model, env, H_mpc,
-	    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-	    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-	    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-	    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+	    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.nq-3)]) for t = 1:H_mpc],
+	    u = [Diagonal(3e-2 * ones(model.nu)) for t = 1:H_mpc],
+	    γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
+	    b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc])
 
 	p = ci_mpc_policy(ref_traj, s, obj_mpc,
 	    H_mpc = H_mpc,
@@ -195,8 +195,8 @@ end
 
 	q1_ref = copy(ref_traj.q[2])
 	q0_ref = copy(ref_traj.q[1])
-	q1_sim = SVector{model.dim.q}(q1_ref)
-	q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+	q1_sim = SVector{model.nq}(q1_ref)
+	q0_sim = SVector{model.nq}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 	@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
 	sim = ContactImplicitMPC.simulator(s, q0_sim, q1_sim, h_sim, H_sim,
@@ -244,14 +244,14 @@ end
 # 	κ_mpc = 1.0e-4
 
 # 	obj_mpc = quadratic_objective(model, H_mpc,
-# 	    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc+2],
-# 	    v = [Diagonal(0.0 * ones(model.dim.q)) for t = 1:H_mpc],
-# 	    u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc-1])
+# 	    q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.nq-3)]) for t = 1:H_mpc+2],
+# 	    v = [Diagonal(0.0 * ones(model.nq)) for t = 1:H_mpc],
+# 	    u = [Diagonal(3e-2 * ones(model.nu)) for t = 1:H_mpc-1])
 # 	# obj_mpc = TrackingObjective(model, env, H_mpc,
-# 	#     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.dim.q-3)]) for t = 1:H_mpc],
-# 	#     u = [Diagonal(3e-2 * ones(model.dim.u)) for t = 1:H_mpc],
-# 	#     γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc],
-# 	#     b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc])
+# 	#     q = [Diagonal(1e-2 * [1.0; 0.02; 0.25; 0.25 * ones(model.nq-3)]) for t = 1:H_mpc],
+# 	#     u = [Diagonal(3e-2 * ones(model.nu)) for t = 1:H_mpc],
+# 	#     γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
+# 	#     b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc])
 
 # 	p = ci_mpc_policy(ref_traj, s, obj_mpc,
 # 	    H_mpc = H_mpc,
@@ -281,8 +281,8 @@ end
 
 # 	q1_ref = copy(ref_traj.q[2])
 # 	q0_ref = copy(ref_traj.q[1])
-# 	q1_sim = SVector{model.dim.q}(q1_ref)
-# 	q0_sim = SVector{model.dim.q}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
+# 	q1_sim = SVector{model.nq}(q1_ref)
+# 	q0_sim = SVector{model.nq}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 # 	@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
 # 	sim = ContactImplicitMPC.simulator(s, q0_sim, q1_sim, h_sim, H_sim,

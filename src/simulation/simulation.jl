@@ -1,11 +1,5 @@
-mutable struct ResidualMethods
-    r!
-    rz!
-    rθ!
-end
-
 mutable struct Simulation
-	model::ContactModel
+	model::Model
 	env::Environment{<:World,<:FrictionCone}
 	con::ContactMethods
 	res::ResidualMethods
@@ -13,7 +7,7 @@ mutable struct Simulation
 	rθ::Any
 end
 
-function Simulation(model::ContactModel, env::Environment)
+function Simulation(model::Model, env::Environment)
 	Simulation(model, env, ContactMethods(), ResidualMethods(), zeros(0, 0), zeros(0, 0))
 end
 
@@ -50,13 +44,13 @@ function get_simulation(model::String, env::String, sim_name::String;
 	return sim
 end
 
-function z_initialize!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q1)
+function z_initialize!(z, model::Model, env::Environment{<:World,LinearizedCone}, q1)
 	z .= 1.0
 	iq2 = index_q2(model, env, quat = false)
 	z[iq2] = q1
 end
 
-function z_initialize!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q1)
+function z_initialize!(z, model::Model, env::Environment{<:World,NonlinearCone}, q1)
 	iq2 = index_q2(model, env, quat = false)
 	ib1 = index_b1(model, env, quat = false)
 	iψ1 = index_ψ1(model, env, quat = false)
@@ -74,7 +68,7 @@ function z_initialize!(z, model::ContactModel, env::Environment{<:World,Nonlinea
 	return z
 end
 
-function z_warmstart!(z, model::ContactModel, env::Environment{<:World,LinearizedCone}, q, a)
+function z_warmstart!(z, model::Model, env::Environment{<:World,LinearizedCone}, q, a)
 	iq2 = index_q2(model, env, quat = false)
 	iort = index_ort(model, env, quat = false)
 	isoc = index_soc(model, env, quat = false)
@@ -90,16 +84,16 @@ function z_warmstart!(z, model::ContactModel, env::Environment{<:World,Linearize
 	nothing
 end
 
-function z_warmstart!(z, model::ContactModel, env::Environment{<:World,NonlinearCone}, q, a)
+function z_warmstart!(z, model::Model, env::Environment{<:World,NonlinearCone}, q, a)
 	# @warn "warm start for second-order cone not implemented"
 	z_initialize!(z, model, env, q)
 	nothing
 end
 
-function θ_initialize!(θ, model::ContactModel, q0, q1, u, w, μ, h)
-	nq = model.dim.q
-	nu = model.dim.u
-	nw = model.dim.w
+function θ_initialize!(θ, model::Model, q0, q1, u, w, μ, h)
+	nq = model.nq
+	nu = model.nu
+	nw = model.nw
 	off = 0
     θ[1:nq] = q0
 	off += nq
@@ -114,14 +108,14 @@ function θ_initialize!(θ, model::ContactModel, q0, q1, u, w, μ, h)
     θ[off .+ (1:1)] .= h
 end
 
-function E_func(model::ContactModel, env::Environment{<:World,LinearizedCone})
-	nc = model.dim.c
+function E_func(model::Model, env::Environment{<:World,LinearizedCone})
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	SMatrix{nc, nb}(kron(Diagonal(ones(nc)), ones(1, Int(nb / nc))))
 end
 
-function residual(model::ContactModel, env::Environment{<:World,LinearizedCone}, z, θ, κ)
-	nc = model.dim.c
+function residual(model::Model, env::Environment{<:World,LinearizedCone}, z, θ, κ)
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	nf = Int(nb / nc)
 	np = dim(env)
@@ -142,19 +136,19 @@ function residual(model::ContactModel, env::Environment{<:World,LinearizedCone},
 	 s1 - ϕ;
 	 η1 - vT_stack - ψ_stack;
 	 s2 .- (μ[1] * γ1 .- E_func(model, env) * b1);
-	 γ1 .* s1 .- κ;
-	 b1 .* η1 .- κ;
-	 ψ1 .* s2 .- κ]
+	 γ1 .* s1 .- κ[1];
+	 b1 .* η1 .- κ[1];
+	 ψ1 .* s2 .- κ[1]]
 end
 
-function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, z, θ, κ)
+function residual(model::Model, env::Environment{<:World,NonlinearCone}, z, θ, κ)
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 	q2, γ1, b1, ψ1, s1, η1, s2 = unpack_z(model, env, z)
 	ϕ = ϕ_func(model, env, q2)
 	k = kinematics(model, q2)
 	λ1 = contact_forces(model, env, γ1, b1, q2, k)
 	vT = velocity_stack(model, env, q1, q2, k, h)
-	nc = model.dim.c
+	nc = model.nc
 	nf = friction_dim(env)
 	ne = dim(env)
 
@@ -163,14 +157,14 @@ function residual(model::ContactModel, env::Environment{<:World,NonlinearCone}, 
 	 s1 - ϕ;
 	 vcat([η1[(i - 1) * nf .+ (1:nf)] - vT[(i - 1) * nf .+ (1:nf)] for i = 1:nc]...);
 	 s2 - μ[1] * γ1;
-	 γ1 .* s1 .- κ;
+	 γ1 .* s1 .- κ[1];
 	 vcat([
 	 	second_order_cone_product( # [ψ1; η1] ∘ [s2; b1] - [κ; 0...0]
 			# [ψ1[i]; b1[(i-1) * nf .+ (1:nf)]],
 			[ψ1[i]; η1[(i-1) * nf .+ (1:nf)]],
 			# [s2[i]; η1[(i-1) * nf .+ (1:nf)]]
 			[s2[i]; b1[(i-1) * nf .+ (1:nf)]]
-			) - [κ; zeros(nf)]
+			) - [κ[1]; zeros(nf)]
 		for i = 1:nc]...)
 	 ]
 end

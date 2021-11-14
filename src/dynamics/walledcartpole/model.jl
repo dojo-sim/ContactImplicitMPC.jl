@@ -13,8 +13,11 @@
 	    <----------------------------------------------->
 	                          2w
 """
-mutable struct WalledCartpole{T} <: ContactModel
-    dim::Dimensions
+mutable struct WalledCartpole{T} <: Model{T}
+    nq::Int 
+	nu::Int
+	nw::Int
+	nc::Int
 
 	mb::T # mass of the base of the cartpole
 	mt::T # mass of the tip of the cartpole
@@ -144,8 +147,12 @@ nw = nq
 nc = 2
 nquat = 0
 
-walledcartpole = WalledCartpole(Dimensions(nq, nu, nw, nc, nquat),
+walledcartpole = WalledCartpole(nq,nu,nw,nc,
 			   mb, mt, mw, l, lc, w, k,
 			   μ_world, μ_joint, g,
 			   BaseMethods(), DynamicsMethods(),
 			   SVector{nq}(μ_joint * [0.0; 1.0; 3.0; 3.0]))
+
+function friction_coefficients(model::WalledCartpole) 
+	return [model.μ_world]
+end

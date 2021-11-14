@@ -38,9 +38,9 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 
 	H = ref_traj.H
 
-	nq = model.dim.q
-	nu = model.dim.u
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	if mode == :configurationforce
 		nd = nq + nc + nb
@@ -57,9 +57,9 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	ip =  [interior_point(
 			 deepcopy(ref_traj.z[t]),
 			 deepcopy(ref_traj.θ[t]),
-			 idx = OptimizationIndices(model, env),
-			 r! = r!,
-			 rz! = rz!,
+			 idx = IndicesOptimization(model, env),
+			 r! = rlin!,
+			 rz! = rzlin!,
 			 rθ! = rθ!,
 			 r  = RLin(s, lin[t].z, lin[t].θ, lin[t].r, lin[t].rz, lin[t].rθ),
 			 rz = RZLin(s, lin[t].rz),
@@ -140,7 +140,7 @@ function set_altitude!(ip::InteriorPoint, alt::Vector)
 end
 
 """
-	implicit_dynamics!(im_traj::ImplicitTraj, model::ContactModel,
+	implicit_dynamics!(im_traj::ImplicitTraj, model::Model,
 		traj::ContactTraj; κ = traj.κ)
 Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
 linearized since it relies on a linearization about a reference trajectory.

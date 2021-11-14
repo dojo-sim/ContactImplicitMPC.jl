@@ -18,12 +18,11 @@ mutable struct NewtonIndicesConfigurationForce{nq,nu,nc,nb,n1,n2,n3} <: NewtonIn
     Iθ::Vector{SizedArray{Tuple{n3},Int,1,1}} # IP solver data [q0, q1, u1]
 end
 
-function NewtonIndicesConfigurationForce(model::ContactModel, env::Environment, H::Int)
-    dim = model.dim
-    nq = dim.q # configuration
-    nu = dim.u # control
-    nw = dim.w # disturbance
-    nc = dim.c # contact
+function NewtonIndicesConfigurationForce(model::Model, env::Environment, H::Int)
+    nq = model.nq # configuration
+    nu = model.nu # control
+    nw = model.nw # disturbance
+    nc = model.nc # contact
     nb = nc * friction_dim(env) # linear friction
     nd = nq + nc + nb # implicit dynamics constraint
     nr = nq + nu + nc + nb + nd # size of a one-time-step block
@@ -66,12 +65,11 @@ mutable struct NewtonIndicesConfiguration{nq,nu,n1,n2,n3} <: NewtonIndices
     Iθ::Vector{SizedArray{Tuple{n3},Int,1,1}} # IP solver data [q0, q1, u1]
 end
 
-function NewtonIndicesConfiguration(model::ContactModel, env::Environment, H::Int)
-    dim = model.dim
-    nq = dim.q # configuration
-    nu = dim.u # control
-    nw = dim.w # disturbance
-    nc = dim.c # contact
+function NewtonIndicesConfiguration(model::Model, env::Environment, H::Int)
+    nq = model.nq # configuration
+    nu = model.nu # control
+    nw = model.nw # disturbance
+    nc = model.nc # contact
     nd = nq # implicit dynamics constraint
     nr = nq + nu + nd # size of a one-time-step block
 
@@ -94,7 +92,7 @@ function NewtonIndicesConfiguration(model::ContactModel, env::Environment, H::In
         Iq, Iu, Iν, Iz, Iθ)
 end
 
-function NewtonIndices(model::ContactModel, env::Environment, H::Int;
+function NewtonIndices(model::Model, env::Environment, H::Int;
     mode = :configurationforce)
 
     if mode == :configurationforce

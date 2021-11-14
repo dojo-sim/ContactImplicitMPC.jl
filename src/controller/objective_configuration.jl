@@ -6,8 +6,8 @@ mutable struct TrackingObjective{Q,U} <: Objective
 end
 
 function TrackingObjective(model, env, H::Int;
-    q = [Diagonal(zeros(SizedVector{model.dim.q})) for t = 1:H],
-    u = [Diagonal(zeros(SizedVector{model.dim.u})) for t = 1:H])
+    q = [Diagonal(zeros(SizedVector{model.nq})) for t = 1:H],
+    u = [Diagonal(zeros(SizedVector{model.nu})) for t = 1:H])
     return TrackingObjective(q, u)
 end
 
@@ -37,9 +37,9 @@ mutable struct TrackingVelocityObjective{Q,V,U} <: Objective
 end
 
 function TrackingVelocityObjective(model, env, H::Int;
-    q = [Diagonal(zeros(SizedVector{model.dim.q})) for t = 1:H],
-    v = [Diagonal(zeros(SizedVector{model.dim.q})) for t = 1:H],
-    u = [Diagonal(zeros(SizedVector{model.dim.u})) for t = 1:H])
+    q = [Diagonal(zeros(SizedVector{model.nq})) for t = 1:H],
+    v = [Diagonal(zeros(SizedVector{model.nq})) for t = 1:H],
+    u = [Diagonal(zeros(SizedVector{model.nu})) for t = 1:H])
     return TrackingVelocityObjective(q, v, u)
 end
 

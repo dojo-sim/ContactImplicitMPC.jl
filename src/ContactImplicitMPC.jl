@@ -30,17 +30,28 @@ using Test
 include("utils.jl")
 
 # Solver
-include("solver/linear_solver.jl")
-include("solver/lu.jl")
+# include("solver/linear_solver.jl")
+
+include("/home/taylor/Research/RoboDojo.jl/src/solver/lu.jl")
+include("solver/lu.jl") # sparse arrays
+
 include("solver/qr.jl")
 include("solver/schur.jl")
-include("solver/cones.jl")
-include("solver/indices.jl")
+# include("solver/cones.jl")
+include("/home/taylor/Research/RoboDojo.jl/src/solver/cones.jl")
+
+# include("solver/indices.jl")
+include("/home/taylor/Research/RoboDojo.jl/src/solver/indices.jl")
+
+# Solver
+# include("solver/interior_point.jl")
+include("/home/taylor/Research/RoboDojo.jl/src/solver/interior_point.jl")
 
 # Environment
 include("simulator/environment.jl")
 
 # Dynamics
+include("/home/taylor/Research/RoboDojo.jl/src/simulator/model.jl")
 include("dynamics/model.jl")
 
 # Simulator
@@ -49,7 +60,6 @@ include("simulation/index.jl")
 # Simulator
 include("simulation/contact_methods.jl")
 include("simulation/simulation.jl")
-include("simulator/trajectory.jl")
 
 include("dynamics/code_gen_dynamics.jl")
 include("dynamics/fast_methods_dynamics.jl")
@@ -59,9 +69,6 @@ include("dynamics/quaternions.jl")
 include("dynamics/mrp.jl")
 include("dynamics/euler.jl")
 
-# Solver
-include("solver/interior_point.jl")
-
 include("dynamics/particle_2D/model.jl")
 include("dynamics/particle/model.jl")
 include("dynamics/hopper_2D/model.jl")
@@ -70,10 +77,17 @@ include("dynamics/quadruped/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/walledcartpole/model.jl")
-include("dynamics/rigidbody/model.jl")
 
 # Simulator
+include("/home/taylor/Research/RoboDojo.jl/src/simulator/trajectory.jl")
+include("/home/taylor/Research/RoboDojo.jl/src/simulator/policy.jl")
 include("simulator/policy.jl")
+
+include("/home/taylor/Research/RoboDojo.jl/src/simulator/dimensions.jl")
+include("/home/taylor/Research/RoboDojo.jl/src/simulator/indices.jl")
+include("/home/taylor/Research/RoboDojo.jl/src/simulator/disturbances.jl")
+include("/home/taylor/Research/RoboDojo.jl/src/simulator/simulator.jl")
+
 include("simulator/disturbances.jl")
 include("simulator/simulator.jl")
 
@@ -89,6 +103,7 @@ include("simulation/residual_approx.jl")
 include("simulation/code_gen_simulation.jl")
 
 # Controller
+include("controller/trajectory.jl")
 include("controller/linearized_step.jl")
 include("controller/implicit_dynamics.jl")
 include("controller/objective.jl")
@@ -113,14 +128,12 @@ include("dynamics/quadruped/visuals.jl")
 include("dynamics/flamingo/visuals.jl")
 include("dynamics/pushbot/visuals.jl")
 include("dynamics/walledcartpole/visuals.jl")
-include("dynamics/rigidbody/visuals.jl")
-
 
 export
     World,
     LinearizedCone,
     NonlinearCone,
-    ContactModel,
+    Model,
     Dimensions,
     BaseMethods,
     DynamicsMethods,
@@ -205,7 +218,7 @@ export
     lu_solver,
     factorize!,
     linear_solve!,
-    OptimizationIndices,
+    IndicesOptimization,
     index_q2,
     index_γ1,
     index_b1,
@@ -257,7 +270,6 @@ export
     flamingo,
     pushbot,
     walledcartpole,
-    rigidbody,
     flat_3D_lc,
     flat_3D_nc,
     quadratic_bowl_3D_lc,

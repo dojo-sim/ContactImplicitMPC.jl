@@ -4,8 +4,11 @@
 		similar to Raibert hopper, all mass is located at the body
 		s = (px, py, pz, tx, ty, tz, r) = (3d_position, MRP(m1, m2, 0.0), leg_length)
 """
-struct Hopper3D{T} <: ContactModel where T
-    dim::Dimensions
+struct Hopper3D{T} <: Model{T}
+    nq::Int 
+	nu::Int
+	nw::Int
+	nc::Int
 
 	mb::T # mass of body
     ml::T # mass of leg
@@ -83,8 +86,8 @@ function velocity_stack(model::Hopper3D, env::Environment{<:World, LinearizedCon
 	SVector{4}(friction_mapping(env)' * v1_surf[1:2])
 end
 
-function get_stride(model::Hopper3D, traj::ContactTraj)
-    stride = zeros(SizedVector{model.dim.q})
+function get_stride(model::Hopper3D, traj)
+    stride = zeros(SizedVector{model.nq})
     stride[1:2] = traj.q[end-1][1:2] - traj.q[1][1:2]
     return stride
 end
@@ -107,9 +110,13 @@ ml = 0.3  # leg mass
 Jb = 0.75 # body inertia
 Jl = 0.075 # leg inertia
 
-hopper_3D = Hopper3D(Dimensions(nq, nu, nw, nc, nquat),
+hopper_3D = Hopper3D(nq,nu,nw,nc,
 			mb, ml, Jb, Jl,
 			μ_world, μ_joint, g,
 			:MRP,
 			BaseMethods(), DynamicsMethods(),
 			SVector{7}(zeros(7)))
+
+function friction_coefficients(model::Hopper3D) 
+	return [model.μ_world]
+end

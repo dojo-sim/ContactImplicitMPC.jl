@@ -1,11 +1,11 @@
 
-# optimization spaces
-abstract type Space end
+# # optimization spaces
+# abstract type Space end
 
-# Euclidean
-struct Euclidean <: Space
-    n::Int
-end
+# # Euclidean
+# struct Euclidean <: Space
+#     n::Int
+# end
 
 function conjugate(q)
 	s = q[1]

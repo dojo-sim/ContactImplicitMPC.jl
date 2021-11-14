@@ -14,8 +14,8 @@
     H = 10
     H = ref_traj.H
     h = ref_traj.h
-    q0_sim = SVector{s.model.dim.q}(deepcopy(ref_traj.q[1]))
-    q1_sim = SVector{s.model.dim.q}(deepcopy(ref_traj.q[2]))
+    q0_sim = SVector{s.model.nq}(deepcopy(ref_traj.q[1]))
+    q1_sim = SVector{s.model.nq}(deepcopy(ref_traj.q[2]))
 
     p = open_loop_policy(ref_traj.u; N_sample = 1)
 

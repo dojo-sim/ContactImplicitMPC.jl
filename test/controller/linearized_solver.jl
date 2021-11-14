@@ -4,8 +4,8 @@
 	env = s.env
 
 	# Sizes
-	nq = model.dim.q
-	nc = model.dim.c
+	nq = model.nq
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	nx = nq
 	ny = nb + 2nc

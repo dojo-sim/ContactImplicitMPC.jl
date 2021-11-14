@@ -90,7 +90,7 @@ function set_payload!(vis::Visualizer, model::Quadruped, q::AbstractVector;
 	return nothing
 end
 
-function animate_payload!(vis::Visualizer, anim::MeshCat.Animation, model::ContactModel,
+function animate_payload!(vis::Visualizer, anim::MeshCat.Animation, model::Model,
 		q::AbstractVector; name::Symbol=model_name(model))
 	for t in 1:length(q)
 		MeshCat.atframe(anim, t) do
@@ -101,7 +101,7 @@ function animate_payload!(vis::Visualizer, anim::MeshCat.Animation, model::Conta
 	return nothing
 end
 
-function visualize_payload!(vis::Visualizer, model::ContactModel, q::AbstractVector;
+function visualize_payload!(vis::Visualizer, model::Model, q::AbstractVector;
 		h=0.01, α=1.0, object::Symbol=:mesh,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
@@ -111,7 +111,7 @@ function visualize_payload!(vis::Visualizer, model::ContactModel, q::AbstractVec
 	return anim
 end
 
-function visualize_payload!(vis::Visualizer, model::ContactModel, traj::ContactTraj;
+function visualize_payload!(vis::Visualizer, model::Model, traj::ContactTraj;
 		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,  α=1.0, object::Symbol=:mesh,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))

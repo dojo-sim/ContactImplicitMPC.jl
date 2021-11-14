@@ -18,12 +18,12 @@ H = 100
 ref_traj = contact_trajectory(model, env, H, h)
 ref_traj.h
 qref = [0.0; 0.0]
-ur = zeros(model.dim.u)
-γr = zeros(model.dim.c)
-br = zeros(model.dim.c * friction_dim(env))
-ψr = zeros(model.dim.c)
-ηr = zeros(model.dim.c * friction_dim(env))
-wr = zeros(model.dim.w)
+ur = zeros(model.nu)
+γr = zeros(model.nc)
+br = zeros(model.nc * friction_dim(env))
+ψr = zeros(model.nc)
+ηr = zeros(model.nc * friction_dim(env))
+wr = zeros(model.nw)
 
 # ## Set Reference
 for t = 1:H
@@ -56,16 +56,16 @@ obj = TrackingVelocityObjective(model, env, H_mpc,
 	q = [Diagonal([12*(t/H_mpc)^2; 2.0*(t/H_mpc)^4]) for t = 1:H_mpc-0],
 	v = [Diagonal([1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
 	u = [Diagonal([100; 1]) for t = 1:H_mpc-0],
-	γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc-0],
-	b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc]);
+	γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc-0],
+	b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc]);
 
 # ## Fast Recovery
 obj = TrackingVelocityObjective(model, env, H_mpc,
     q = [Diagonal([12*(t/H_mpc)^2; 12*(t/H_mpc)^2]) for t = 1:H_mpc-0],
 	v = [Diagonal([1; 0.01] ./ (h^2.0)) for t = 1:H_mpc-0],
     u = [Diagonal([100; 1]) for t = 1:H_mpc-0],
-    γ = [Diagonal(1.0e-100 * ones(model.dim.c)) for t = 1:H_mpc-0],
-    b = [Diagonal(1.0e-100 * ones(model.dim.c * friction_dim(env))) for t = 1:H_mpc]);
+    γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc-0],
+    b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc]);
 
 # ## Policy
 p = ci_mpc_policy(ref_traj, s, obj,
@@ -90,8 +90,8 @@ impulses = [[-5.5; 0.0], [+5.5; 0.0], [+5.5; 0.0], [-1.5; 0.0], [-6.5; 0.0]]
 d = impulse_disturbances(impulses, idx);
 
 # ## Initial Conditions
-q1_sim = ContactImplicitMPC.SVector{model.dim.q}([0.0, 0.0])
-q0_sim = ContactImplicitMPC.SVector{model.dim.q}([0.0, 0.0])
+q1_sim = ContactImplicitMPC.SVector{model.nq}([0.0, 0.0])
+q0_sim = ContactImplicitMPC.SVector{model.nq}([0.0, 0.0])
 
 # ## Simulator
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,

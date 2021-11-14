@@ -5,7 +5,7 @@
 
 	# Setup variables
 	T = Float64
-	nq = model.dim.q
+	nq = model.nq
 	q0s = rand(nq)
 	q̇0s = rand(nq)
 
@@ -15,10 +15,10 @@
 	@test norm(ContactImplicitMPC.A_fast(model, q0s) - ContactImplicitMPC.A_func(model, q0s), Inf) < 1.0e-8
 	@test norm(ContactImplicitMPC.C_fast(model, q0s, q̇0s) - ContactImplicitMPC.C_func(model, q0s, q̇0s), Inf) < 1.0e-8
 
-	nq = model.dim.q
-	nu = model.dim.u
-	nw = model.dim.w
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nw = model.nw
+	nc = model.nc
 	nb = nc * friction_dim(env)
 
 	hs = 0.1 * ones(1)

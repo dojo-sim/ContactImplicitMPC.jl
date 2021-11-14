@@ -33,9 +33,9 @@ function raibert_policy(model::ContactImplicitMPC.Hopper2D;
     mpc_opts = RaibertOptions(),
     )
 
-    u  = zeros(model.dim.u)
-    q0 = zeros(model.dim.q)
-    q1 = zeros(model.dim.q)
+    u  = zeros(model.nu)
+    q0 = zeros(model.nq)
+    q1 = zeros(model.nq)
     contact = false
 
     Raibert(kr_c, kr_p, kr_v_stance, kr_v_flight, kθ_c, kθ_p, kθ_v,

@@ -13,7 +13,6 @@ using ContactImplicitMPC
 include("solver/qr.jl")
 include("solver/lu.jl")
 include("solver/schur.jl")
-include("solver/ip_solver.jl")
 
 # Dynamics
 include("dynamics/lagrangian.jl") 
@@ -24,7 +23,6 @@ include("dynamics/quadruped.jl")
 # Simulator
 include("simulator/rotations.jl")
 include("simulator/environment.jl")
-include("simulator/trajectory.jl")
 include("simulator/simulator.jl")
 include("simulator/particle.jl")
 # include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
@@ -40,6 +38,7 @@ include("controller/implicit_dynamics.jl")
 include("controller/linearized_solver.jl")
 include("controller/newton.jl")
 include("controller/newton_structure_solver.jl")
+include("controller/trajectory.jl")
 
 # MPC examples
 include("controller/mpc_quadruped.jl")

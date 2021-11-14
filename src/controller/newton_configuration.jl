@@ -20,12 +20,11 @@ struct NewtonResidual{T,vq2,vu1,vd,vI,vq0,vq1}
     q1::Vector{vq1}                        # rsd dynamics q1 views
 end
 
-function NewtonResidual(model::ContactModel, env::Environment, H::Int)
-    dim = model.dim
+function NewtonResidual(model::Model, env::Environment, H::Int)
 
-    nq = dim.q # configuration
-    nu = dim.u # control
-    nc = dim.c # contact
+    nq = model.nq # configuration
+    nu = model.nu # control
+    nc = model.nc # contact
     nd = nq    # implicit dynamics constraint
     nr = nq + nu + nd # size of a one-time-step block
 
@@ -71,13 +70,12 @@ struct NewtonJacobian{T,Vq,Vu,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vreg}
     reg::Vector{Vreg}                       # dual regularization views
 end
 
-function NewtonJacobian(model::ContactModel, env::Environment, H::Int)
-    dim = model.dim
+function NewtonJacobian(model::Model, env::Environment, H::Int)
 
-    nq = dim.q # configuration
-    nu = dim.u # control
-    nw = dim.w # disturbance
-    nc = dim.c # contact
+    nq = model.nq # configuration
+    nu = model.nu # control
+    nw = model.nw # disturbance
+    nc = model.nc # contact
     nd = nq # implicit dynamics constraint
     nr = nq + nu + nd # size of a one-time-step block
 
@@ -129,12 +127,11 @@ mutable struct NewtonIndices{nq,nu,n1,n2,n3}
     Iθ::Vector{SizedArray{Tuple{n3},Int,1,1}} # IP solver data [q0, q1, u1]
 end
 
-function NewtonIndices(model::ContactModel, env::Environment, H::Int)
-    dim = model.dim
-    nq = dim.q # configuration
-    nu = dim.u # control
-    nw = dim.w # disturbance
-    nc = dim.c # contact
+function NewtonIndices(model::Model, env::Environment, H::Int)
+    nq = model.nq # configuration
+    nu = model.nu # control
+    nw = model.nw # disturbance
+    nc = model.nc # contact
     nd = nq # implicit dynamics constraint
     nr = nq + nu + nd # size of a one-time-step block
 
@@ -183,12 +180,11 @@ function Newton(s::Simulation, H::Int, h::T,
     model = s.model
     env = s.env
 
-    dim = model.dim
     ind = NewtonIndices(model, env, H)
 
-    nq = dim.q
-    nu = dim.u
-    nw = dim.w
+    nq = model.nq
+    nu = model.nu
+    nw = model.nw
     nz = num_var(model, env)
     nθ = num_data(model)
     nd = ind.nd
@@ -395,7 +391,7 @@ function reset!(core::Newton, ref_traj::ContactTraj;
         copy_traj!(core.traj, ref_traj, core.traj.H)
 
         if initial_offset
-		    rd = -0.03 * [[1, 1]; ones(model.dim.q - 2)]
+		    rd = -0.03 * [[1, 1]; ones(model.nq - 2)]
 		    core.traj.q[1] .+= rd
 		    core.traj.q[2] .+= rd
 			update_θ!(core.traj, 1)

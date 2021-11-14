@@ -1,30 +1,8 @@
-abstract type Policy end
-
-function policy(p::Policy, traj::ContactTraj, t::T) where T
-    @warn "policy not defined"
-    return nothing
-end
-
-"""
-    no policy
-"""
-struct NoPolicy{T} <: Policy
-    u::Vector{T}
-end
-
-function no_policy(model::ContactModel)
-    NoPolicy(zeros(model.dim.u))
-end
-
-function policy(p::NoPolicy, x, traj::ContactTraj, t)
-    return p.u
-end
-
 """
     open-loop policy
 """
-mutable struct OpenLoop{U} <: Policy
-    u::Vector{U} # nominal controls
+mutable struct OpenLoop{T} <: Policy{T}
+    u::Vector{Vector{T}} # nominal controls
     idx::Int
     cnt::Int
     N_sample::Int
@@ -50,9 +28,3 @@ function policy(p::OpenLoop, x, traj, t)
 
     return p.u[p.idx] ./ p.N_sample
 end
-
-"""
-    control saturation
-"""
-
-control_saturation(u, uL, uU) = min.(max.(uL, u), uU)

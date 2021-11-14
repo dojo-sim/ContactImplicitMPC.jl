@@ -15,12 +15,11 @@ struct NewtonResidualConfigurationForce{T,vq2,vu1,vγ1,vb1,vd,vI,vq0,vq1} <: New
     q1::Vector{vq1}                        # rsd dynamics q1 views
 end
 
-function NewtonResidualConfigurationForce(model::ContactModel, env::Environment, H::Int)
-    dim = model.dim
+function NewtonResidualConfigurationForce(model::Model, env::Environment, H::Int)
 
-    nq = dim.q # configuration
-    nu = dim.u # control
-    nc = dim.c # contact
+    nq = model.nq # configuration
+    nu = model.nu # control
+    nc = model.nc # contact
     nb = nc * friction_dim(env) # linear friction
     nd = nq + nc + nb # implicit dynamics constraint
     nr = nq + nu + nc + nb# + nd # size of a one-time-step block
@@ -68,12 +67,10 @@ struct NewtonResidualConfiguration{T,vq2,vu1,vd,vI,vq0,vq1} <: NewtonResidual
     q1::Vector{vq1}                        # rsd dynamics q1 views
 end
 
-function NewtonResidualConfiguration(model::ContactModel, env::Environment, H::Int)
-    dim = model.dim
-
-    nq = dim.q # configuration
-    nu = dim.u # control
-    nc = dim.c # contact
+function NewtonResidualConfiguration(model::Model, env::Environment, H::Int)
+    nq = model.nq # configuration
+    nu = model.nu # control
+    nc = model.nc # contact
     nd = nq    # implicit dynamics constraint
     nr = nq + nu # size of a one-time-step block
 
@@ -102,7 +99,7 @@ function NewtonResidualConfiguration(model::ContactModel, env::Environment, H::I
         r, q2, u1, rd, rI, q0, q1)
 end
 
-function NewtonResidual(model::ContactModel, env::Environment, H::Int;
+function NewtonResidual(model::Model, env::Environment, H::Int;
     mode = :configurationforce)
 
     if mode == :configurationforce

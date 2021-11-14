@@ -10,8 +10,11 @@
     Discrete Mechanics and Variational Integrators
         pg. 363
 """
-mutable struct Particle{T} <: ContactModel
-    dim::Dimensions
+mutable struct Particle{T} <: Model{T}
+    nq::Int 
+    nu::Int
+    nw::Int
+    nc::Int
     m::T # mass
     g::T # gravity
     μ_world::T # friction coefficient
@@ -113,6 +116,10 @@ nu = 3              # control dimension
 nw = 3              # disturbance dimension
 nc = 1              # number of contact points
 
-particle = Particle(Dimensions(3, 3, 3, 1, 0), 1.0, 9.81, 1.0, 0.0,
+particle = Particle(3, 3, 3, 1, 1.0, 9.81, 1.0, 0.0,
 	BaseMethods(), DynamicsMethods(),
 	SVector{3}(zeros(3)))
+
+function friction_coefficients(model::Particle) 
+    return [model.μ_world]
+end

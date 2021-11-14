@@ -9,7 +9,7 @@ using LinearAlgebra
 
 # Define a special stride where x and z are updated.
 function get_stride(model, traj)
-    stride = zeros(SizedVector{model.dim.q})
+    stride = zeros(SizedVector{model.nq})
     stride[1:2] = traj.q[end-1][1:2] - traj.q[1][1:2]
     return stride
 end
@@ -44,8 +44,8 @@ obj = TrackingVelocityObjective(s.model, s.env, H_mpc,
     v = [Diagonal(1e-3 * [1e-2,1,1,10]) for t = 1:H_mpc],
     q = [[Diagonal(1e-0 * [1e1,1e-1,1,1])   for t = 1:H_mpc-5]; [Diagonal(1e-1 * [1,1e-1,1e1,0.1])   for t = 1:5]],
     u = [Diagonal(1e-0 * [1e0, 1e0]) for t = 1:H_mpc],
-    γ = [Diagonal(1e-100 * ones(s.model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1e-100 * ones(s.model.dim.c * friction_dim(s.env))) for t = 1:H_mpc])
+    γ = [Diagonal(1e-100 * ones(s.model.nc)) for t = 1:H_mpc],
+    b = [Diagonal(1e-100 * ones(s.model.nc * friction_dim(s.env))) for t = 1:H_mpc])
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -55,8 +55,8 @@ p = ci_mpc_policy(ref_traj, s, obj,
     mpc_opts = mpc_opts);
 
 # ## Initial conditions (stairs)
-q1_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(ref_traj.q[2]))
-q0_sim = ContactImplicitMPC.SVector{model.dim.q}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
+q1_sim = ContactImplicitMPC.SVector{model.nq}(copy(ref_traj.q[2]))
+q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
 
 # ## Simulator (stairs)
 sim_stair = ContactImplicitMPC.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
@@ -98,8 +98,8 @@ obj = TrackingVelocityObjective(s.model, s.env, H_mpc,
     v = [Diagonal(1e-13 * [1e-2,1,1,10]) for t = 1:H_mpc],
     q = [[Diagonal(1e-10 * [1e1,1e1,1,1])   for t = 1:H_mpc-5]; [Diagonal(1e-11 * [1,1e1,1e1,0.1])   for t = 1:5]],
     u = [Diagonal(1e-0 * [1e0, 1e0]) for t = 1:H_mpc],
-    γ = [Diagonal(1e-100 * ones(s.model.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1e-100 * ones(s.model.dim.c * friction_dim(s.env))) for t = 1:H_mpc])
+    γ = [Diagonal(1e-100 * ones(s.model.nc)) for t = 1:H_mpc],
+    b = [Diagonal(1e-100 * ones(s.model.nc * friction_dim(s.env))) for t = 1:H_mpc])
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -110,8 +110,8 @@ p = ci_mpc_policy(ref_traj, s, obj,
     );
  
 # ## Set initial configurations to simulation result
-q0_sim = deepcopy(ContactImplicitMPC.SVector{model.dim.q}(sim_stair.traj.q[end-1]))
-q1_sim = deepcopy(ContactImplicitMPC.SVector{model.dim.q}(sim_stair.traj.q[end]))
+q0_sim = deepcopy(ContactImplicitMPC.SVector{model.nq}(sim_stair.traj.q[end-1]))
+q1_sim = deepcopy(ContactImplicitMPC.SVector{model.nq}(sim_stair.traj.q[end]))
 
 # ## Simulator (flip)
 sim_flip = ContactImplicitMPC.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,

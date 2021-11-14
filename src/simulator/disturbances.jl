@@ -1,30 +1,8 @@
-abstract type Disturbances end
-
-function disturbances(d::Disturbances, x, t)
-    @warn "disturbances not defined"
-    return nothing
-end
-
-"""
-    no disturbances
-"""
-struct NoDisturbances{T} <: Disturbances
-    w::Vector{T}
-end
-
-function no_disturbances(model::ContactModel)
-    NoDisturbances(zeros(model.dim.w))
-end
-
-function disturbances(d::NoDisturbances, x, t)
-    return d.w
-end
-
 """
     open-loop disturbances
 """
-mutable struct OpenLoopDisturbance{W} <: Disturbances
-    w::Vector{W} # nominal disturbances
+mutable struct OpenLoopDisturbance{T} <: Disturbances{T}
+    w::Vector{Vector{T}} # nominal disturbances
     idx::Int
     cnt::Int
     N_sample::Int
@@ -59,8 +37,8 @@ end
 """
     impulse disturbances
 """
-mutable struct ImpulseDisturbance{W} <: Disturbances
-    w::Vector{W} # nominal disturbances
+mutable struct ImpulseDisturbance{T} <: Disturbances{T}
+    w::Vector{Vector{T}} # nominal disturbances
     idx::Vector{Int}
 end
 
@@ -82,22 +60,22 @@ end
     Sample random disturbance forces uniformly between 0 and -w_amplitude (one-sided).
     Apply these forces along the x (and y) axes depending on the model considered.
 """
-struct RandomDisturbance{W, T} <: Disturbances
+struct RandomDisturbance{W, T} <: Disturbances{T}
     w_amp::Vector{T} # disturbance amplitude
     w::Vector{W}     # disturbances
     t::Vector{T}     # time trajectory
 end
 
 
-function random_disturbances(model::ContactModel, w_amp::Vector{T}, H::Int, h::T) where {T}
-    if length(w_amp) == model.dim.w
-        w = [rand(model.dim.w) .* w_amp for i=1:H]
+function random_disturbances(model::Model, w_amp::Vector{T}, H::Int, h::T) where {T}
+    if length(w_amp) == model.nw
+        w = [rand(model.nw) .* w_amp for i=1:H]
     elseif length(w_amp) == 1
-        w = [rand(model.dim.w) .* w_amp[1] for i=1:H]
+        w = [rand(model.nw) .* w_amp[1] for i=1:H]
     else
         @warn "w_amp is not of the correct size."
     end
-    RandomDisturbance(w_amp, [rand(model.dim.w) .* w_amp[1] for i=1:H], [(t - 1) * h for t = 1:H])
+    RandomDisturbance(w_amp, [rand(model.nw) .* w_amp[1] for i=1:H], [(t - 1) * h for t = 1:H])
 end
 
 function disturbances(d::RandomDisturbance, x, t)

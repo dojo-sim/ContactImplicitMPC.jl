@@ -55,8 +55,8 @@ function mpc_stride!(traj::ContactTraj, stride::SizedArray)
     return nothing
 end
 
-function get_stride(model::ContactModel, traj::ContactTraj) #TODO: dispatch over environment / model
-    stride = zeros(SizedVector{model.dim.q})
+function get_stride(model::Model, traj::ContactTraj) #TODO: dispatch over environment / model
+    stride = zeros(SizedVector{model.nq})
     stride[1] = traj.q[end-1][1] - traj.q[1][1]
     return stride
 end
@@ -68,7 +68,7 @@ function update_altitude!(alt, s::Simulation,  traj, t, N_sample;
 	# idx1 = max(0, t - N_sample) + 1
 	idx1 = max(0, t-1 - N_sample) + 1 #@@@ simplify
 
-	for i = 1:s.model.dim.c
+	for i = 1:s.model.nc
 		γ_max = 0.0
 		idx_max = 0
 
@@ -92,11 +92,11 @@ function update_altitude!(alt, s::Simulation,  traj, t, N_sample;
 	end
 end
 
-function live_plotting(model::ContactModel, ref_traj::ContactTraj,
+function live_plotting(model::Model, ref_traj::ContactTraj,
 		sim_traj::ContactTraj, newton::Newton, q0::AbstractVector{T},
 		q1::AbstractVector{T}, t::Int) where {T}
-	nq = model.dim.q
-	nu = model.dim.u
+	nq = model.nq
+	nu = model.nu
 
 	ql = 1
 	qu = nq

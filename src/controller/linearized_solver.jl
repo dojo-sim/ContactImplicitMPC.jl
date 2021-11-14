@@ -67,8 +67,8 @@ function RLin(s::Simulation, z0::AbstractVector{T}, θ0::AbstractVector{T},
     model = s.model
     env = s.env
 
-    nq = model.dim.q
-    nc = model.dim.c
+    nq = model.nq
+    nc = model.nc
     nb = nc * friction_dim(env)
     nz = num_var(model, env)
     nθ = num_data(model)
@@ -215,8 +215,8 @@ function RZLin(s::Simulation, rz0::AbstractMatrix{T}) where {T}
     model = s.model
     env = s.env
 
-    nq = model.dim.q
-    nc = model.dim.c
+    nq = model.nq
+    nc = model.nc
     nb = nc * friction_dim(env)
 
     nz = num_var(model, env)
@@ -304,8 +304,8 @@ function RθLin(s::Simulation, rθ0::AbstractMatrix{T}) where {T}
     model = s.model
     env = s.env
 
-    nq = model.dim.q
-    nc = model.dim.c
+    nq = model.nq
+    nc = model.nc
     nb = nc * friction_dim(env)
 
 	nz = num_var(model, env)
@@ -337,22 +337,21 @@ end
 """
 	Update the residual r.
 """
-function r!(r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, z::Vector{T}, θ::Vector{T}, κ::T,
-        ) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+function rlin!(r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, z::Vector{T}, θ::Vector{T}, κ) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
     r.x  = z[r.ix]
     r.y1 = z[r.iy1]
     r.y2 = z[r.iy2]
     r.θ  = θ[r.iθ]
     r.rdyn = r.rdyn0 + r.Dx*(r.x - r.x0) + r.Dy1*(r.y1 - r.y10)                         + r.rθdyn*(r.θ - r.θ0)
     r.rrst = r.rrst0 + r.Rx*(r.x - r.x0) + r.Ry1*(r.y1 - r.y10) + r.Ry2.*(r.y2 - r.y20) + r.rθrst*(r.θ - r.θ0) + SVector{ny}([r.alt; r.alt_zeros])
-    r.rbil = r.y1 .* r.y2 .- κ
+    r.rbil = r.y1 .* r.y2 .- κ[1]
     return nothing
 end
 
 """
 	Update the Jacobian rz, and update its Schur complement factorization.
 """
-function rz!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}; reg::T = 0.0) where {T,nx,ny,nxx,nxy,nyy}
+function rzlin!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}, θ::Vector{T}; reg = 0.0) where {T,nx,ny,nxx,nxy,nyy}
     # Unpack
     iy1 = rz.iy1
     iy2 = rz.iy2
@@ -561,28 +560,29 @@ function bilinear_violation(ip::InteriorPoint, r::RLin{T}; nquat::Int = 0) where
 end
 
 function general_correction_term!(r::RLin, Δ::AbstractVector{T}, ortr::Vector{Int},
-		socr::Vector{Int}, ortΔ::Vector{Vector{Int}}, socΔ::Vector{Vector{Vector{Int}}}) where {T}
+		socr::Vector{Int}, socri::Vector{Vector{Int}}, ortΔ::Vector{Vector{Int}}, socΔ::Vector{Vector{Vector{Int}}}) where {T}
 	# @warn "define residual order"
+    num_cone = length(socΔ)
     r.rbil += vcat(
 		Δ[ortΔ[1]] .* Δ[ortΔ[2]], # ORT
 		[second_order_cone_product( # SOC
-			Δ[socΔ[2][i]],
-			Δ[socΔ[1][i]],
-		) for i in eachindex(socΔ[1])]...)
+			Δ[socΔ[i][1]],
+			Δ[socΔ[i][2]],
+		) for i = 1:num_cone]...)
     return nothing
 end
 
 function rz!(ip::InteriorPoint, rz::RZLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
-	rz!(rz, z, θ, reg = reg)
+	rzlin!(rz, z, θ, reg = reg)
 	return nothing
 end
 
-function rz!(rz::RZLin{T}, z::AbstractVector{T},
-		θ::AbstractVector{T}; reg::T = 0.0) where {T}
-	rz!(rz, z, reg = reg)
-	return nothing
-end
+# function rz!(rz::RZLin{T}, z::AbstractVector{T},
+# 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
+# 	rz!(rz, z, reg = reg)
+# 	return nothing
+# end
 
 function rθ!(ip::InteriorPoint, rθ::RθLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}) where {T}

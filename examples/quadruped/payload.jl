@@ -33,10 +33,10 @@ H_sim = 2100
 κ_mpc = 1.0e-4
 
 obj = TrackingObjective(model_no_load, env_no_load, H_mpc,
-    q = [Diagonal(1e-2 * [10.0; 0.02; 0.25; 0.5 * ones(model_no_load.dim.q-3)]) for t = 1:H_mpc],
-    u = [Diagonal(3e-2 * ones(model_no_load.dim.u)) for t = 1:H_mpc],
-    γ = [Diagonal(1.0e-100 * ones(model_no_load.dim.c)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model_no_load.dim.c * friction_dim(env_no_load))) for t = 1:H_mpc]);
+    q = [Diagonal(1e-2 * [10.0; 0.02; 0.25; 0.5 * ones(model_no_load.nq-3)]) for t = 1:H_mpc],
+    u = [Diagonal(3e-2 * ones(model_no_load.nu)) for t = 1:H_mpc],
+    γ = [Diagonal(1.0e-100 * ones(model_no_load.nc)) for t = 1:H_mpc],
+    b = [Diagonal(1.0e-100 * ones(model_no_load.nc * friction_dim(env_no_load))) for t = 1:H_mpc]);
 
 p = ci_mpc_policy(ref_traj, s_no_load, obj,
     H_mpc = H_mpc,
@@ -54,8 +54,8 @@ p = ci_mpc_policy(ref_traj, s_no_load, obj,
     );
 
 # ## Initial conditions
-q1_sim = ContactImplicitMPC.SVector{model_load.dim.q}(copy(ref_traj.q[2]))
-q0_sim = ContactImplicitMPC.SVector{model_load.dim.q}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample))
+q1_sim = ContactImplicitMPC.SVector{model_load.nq}(copy(ref_traj.q[2]))
+q0_sim = ContactImplicitMPC.SVector{model_load.nq}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample))
 
 # ## Simulator
 sim_load = simulator(s_load, q0_sim, q1_sim, h_sim, H_sim,

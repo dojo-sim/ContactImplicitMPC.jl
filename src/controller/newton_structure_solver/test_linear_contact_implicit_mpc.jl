@@ -22,9 +22,9 @@ im_traj = ImplicitTraj(ref_traj, sim,
 	mode = :configuration,
 	opts=ip_opts)
 
-nq = model.dim.q
+nq = model.nq
 n = 2 * nq
-m = model.dim.u
+m = model.nu
 T = 15
 
 nz = n * (T - 1) + m * (T - 1)

@@ -4,7 +4,7 @@
 
     # Setup variables
     T = Float64
-    nq = model.dim.q
+    nq = model.nq
     q0s = rand(nq)
     q̇0s = rand(nq) # TODO: Symbolics not happy with SizedArray
 
@@ -22,10 +22,10 @@ end
 
 	# Setup variables
     T = Float64
-    nq = model.dim.q
-    nu = model.dim.u
-    nw = model.dim.w
-    nc = model.dim.c
+    nq = model.nq
+    nu = model.nu
+    nw = model.nw
+    nc = model.nc
 	nb = nc * friction_dim(s.env)
 
 	hs = 0.1 * ones(1)

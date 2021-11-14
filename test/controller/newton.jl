@@ -6,7 +6,7 @@
 
 	H = 59
 	h = 0.1
-	nq = model.dim.q
+	nq = model.nq
 
 	traj0 = ContactImplicitMPC.contact_trajectory(model, env, H, h)
 	traj1 = ContactImplicitMPC.contact_trajectory(model, env, H, h)
@@ -27,9 +27,9 @@ end
 
 	H = 2
 	h = 0.1
-	nq = model.dim.q
-	nu = model.dim.u
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
 	nr = nq + nu + nc + nb #+ nd
@@ -87,9 +87,9 @@ end
 	H = ref_traj.H
 	h = 0.1
 
-	nq = model.dim.q
-	nu = model.dim.u
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
 	nr = nq + nu + nc + nb #+ nd
@@ -152,9 +152,9 @@ end
 	H = ref_traj.H
 	h = 0.1
 
-	nq = model.dim.q
-	nu = model.dim.u
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	nd = nq + nc + nb
 	nr = nq + nu + nc + nb
@@ -213,8 +213,8 @@ end
 
 	H = 2
 	h = 0.1
-	nq = model.dim.q
-	nu = model.dim.u
+	nq = model.nq
+	nu = model.nu
 	nd = nq
 	nr = nq + nu
 
@@ -267,8 +267,8 @@ end
 	H = ref_traj.H
 	h = 0.1
 
-	nq = model.dim.q
-	nu = model.dim.u
+	nq = model.nq
+	nu = model.nu
 	nd = nq
 	nr = nq + nu
 
@@ -326,9 +326,9 @@ end
 	H = ref_traj.H
 	h = 0.1
 
-	nq = model.dim.q
-	nu = model.dim.u
-	nc = model.dim.c
+	nq = model.nq
+	nu = model.nu
+	nc = model.nc
 	nb = nc * friction_dim(env)
 	nd = nq
 	nr = nq + nu

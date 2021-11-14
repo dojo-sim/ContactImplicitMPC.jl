@@ -376,7 +376,7 @@ end
 
 function NewtonStructure(sim::Simulation, H::Int, traj::ContactTraj, obj, κ; opts = NewtonOptions())
 
-	s = newton_structure_solver(sim.model.dim.q, sim.model.dim.u, H, opts = opts)
+	s = newton_structure_solver(sim.model.nq, sim.model.nu, H, opts = opts)
 	update_objective!(s, obj)
 	initialize_trajectories!(s, traj, traj.q[1], traj.q[2], warm_start_duals = false)
 
@@ -587,10 +587,10 @@ mutable struct QuadraticObjective{Q,V,U} <: Objective
     u::Vector{U}
 end
 
-function quadratic_objective(model::ContactModel, H::Int;
-    q = [Diagonal(SVector{model.dim.q}(ones(model.dim.q))) for t = 1:H+1],
-	v = [Diagonal(SVector{model.dim.q}(0.1 * ones(model.dim.q))) for t = 1:H],
-    u = [Diagonal(SVector{model.dim.u}(ones(model.dim.u))) for t = 1:H-1])
+function quadratic_objective(model::Model, H::Int;
+    q = [Diagonal(SVector{model.nq}(ones(model.nq))) for t = 1:H+1],
+	v = [Diagonal(SVector{model.nq}(0.1 * ones(model.nq))) for t = 1:H],
+    u = [Diagonal(SVector{model.nu}(ones(model.nu))) for t = 1:H-1])
     return QuadraticObjective(q, v, u)
 end
 
@@ -681,8 +681,8 @@ end
 
 function implicit_dynamics!(im_traj::ImplicitTraj, model, env, u, qa, qb, H, θ; κ = traj.κ) where {T, D}
 
-	nq = model.dim.q
-	m = model.dim.u
+	nq = model.nq
+	m = model.nu
 
 	for t = 1:H-1
 		θ[t][1:nq] = copy(qa[t])

@@ -19,12 +19,12 @@
     end
 
     # initial conditions
-    q0 = SVector{model.dim.q}(ref_traj.q[1])
-    q1 = SVector{model.dim.q}(ref_traj.q[2])
+    q0 = SVector{model.nq}(ref_traj.q[1])
+    q1 = SVector{model.nq}(ref_traj.q[2])
 
     # simulator
     sim = ContactImplicitMPC.simulator(s, q0, q1, h, T,
-        p = ContactImplicitMPC.open_loop_policy([SVector{model.dim.u}(ut) for ut in ref_traj.u]),
+        p = ContactImplicitMPC.open_loop_policy([SVector{model.nu}(ut) for ut in ref_traj.u]),
         ip_opts = ContactImplicitMPC.InteriorPointOptions(
     		r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :lu_solver),
         sim_opts = ContactImplicitMPC.SimulatorOptions(warmstart = true))

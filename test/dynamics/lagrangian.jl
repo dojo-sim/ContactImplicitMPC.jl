@@ -12,12 +12,12 @@
 	expr_base = generate_base_expressions(model,
 		M_analytical = true,
 		mapping = ContactImplicitMPC.G_func,
-		nv = model.dim.q - 1)
+		nv = model.nq - 1)
 
 	save_expressions(expr_base, path_base, overwrite=true)
 	instantiate_base!(model, path_base)
 
-	expr_dyn = generate_dynamics_expressions(model, nv = model.dim.q - 1)
+	expr_dyn = generate_dynamics_expressions(model, nv = model.nq - 1)
 	save_expressions(expr_dyn, path_dyn, overwrite=true)
 	instantiate_dynamics!(model, path_dyn)
 
@@ -29,22 +29,22 @@
 	expr_base_lag = generate_base_expressions(model_lag,
 		M_analytical = false,
 		mapping = ContactImplicitMPC.G_func,
-		nv = model.dim.q - 1)
+		nv = model.nq - 1)
 
 	save_expressions(expr_base, path_base_lag, overwrite=true)
 	instantiate_base!(model_lag, path_base_lag)
 
-	expr_dyn_lag = generate_dynamics_expressions(model_lag, nv = model.dim.q - 1)
+	expr_dyn_lag = generate_dynamics_expressions(model_lag, nv = model.nq - 1)
 	save_expressions(expr_dyn_lag, path_dyn_lag, overwrite=true)
 	instantiate_dynamics!(model_lag, path_dyn_lag)
 
 	# Data
 	env = environment_3D_flat()
-	nq = model.dim.q
-	nv = model.dim.q - 1
-	nu = model.dim.u
-	nw = model.dim.w
-	nc = model.dim.c
+	nq = model.nq
+	nv = model.nq - 1
+	nu = model.nu
+	nw = model.nw
+	nc = model.nc
 	h = 0.01
 
 	# initial conditions
@@ -54,9 +54,9 @@
 	quat0 = [1.0; 0.0; 0.0; 0.0]
 	ω0 = [0.0; 0.0; 0.0]
 
-	q0 = SVector{model.dim.q}([r0; quat0])
-	q1 = SVector{model.dim.q}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2.0 / h)^2.0 - ω0' * ω0); ω0]])
-	q2 = SVector{model.dim.q}([r0 + v0 * 2h; 0.5 * 2h * L_multiply(quat0) * [sqrt((2.0 / (2h))^2.0 - ω0' * ω0); ω0]])
+	q0 = SVector{model.nq}([r0; quat0])
+	q1 = SVector{model.nq}([r0 + v0 * h; 0.5 * h * L_multiply(quat0) * [sqrt((2.0 / h)^2.0 - ω0' * ω0); ω0]])
+	q2 = SVector{model.nq}([r0 + v0 * 2h; 0.5 * 2h * L_multiply(quat0) * [sqrt((2.0 / (2h))^2.0 - ω0' * ω0); ω0]])
 	q̇0 = zeros(SVector{nv})
 	u1 = zeros(SVector{nu})
 	w1 = zeros(SVector{nw})

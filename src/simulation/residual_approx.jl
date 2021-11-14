@@ -1,5 +1,5 @@
 
-function res_con(model::ContactModel, env::Environment{<:World,LinearizedCone}, z, θ, κ)
+function res_con(model::Model, env::Environment{<:World,LinearizedCone}, z, θ, κ)
 	q0, q1, u1, w1, μ, h = unpack_θ(model, θ)
 	q2, γ1, b1, ψ1, s1, η1, s2 = unpack_z(model, env, z)
 
@@ -14,9 +14,9 @@ end
 function rz_approx!(s, rz, z, θ)
 	model = s.model
 	env = s.env
-	nq = model.dim.q
-	nc = model.dim.c
-	nb = model.dim.c * friction_dim(env)
+	nq = model.nq
+	nc = model.nc
+	nb = model.nc * friction_dim(env)
 
 	rz .= 0.0
 
@@ -58,9 +58,9 @@ end
 function rθ_approx!(s, rθ, z, θ)
 	model = s.model
 	env = s.env
-	nq = model.dim.q
-	nc = model.dim.c
-	nb = model.dim.c * friction_dim(env)
+	nq = model.nq
+	nc = model.nc
+	nb = model.nc * friction_dim(env)
 
 	rθ .= 0.0
 
