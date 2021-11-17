@@ -2,13 +2,13 @@ struct ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}
 	H::Int
 	h::T
 	κ::Vector{T}
-	q::Vector#{SizedArray{Tuple{nq},T,1,1}}         # trajectory of q's   length=H+2
-	u::Vector#{SizedArray{Tuple{nu},T,1,1}}         # trajectory of u's   length=H
-	w::Vector#{SizedArray{Tuple{nw},T,1,1}}         # trajectory of w's   length=H
-	γ::Vector#{SizedArray{Tuple{nc},T,1,1}}         # trajectory of γ's   length=H
-	b::Vector#{SizedArray{Tuple{nb},T,1,1}}         # trajectory of b's   length=H
-	z::Vector#{SizedArray{Tuple{nz},T,1,1}}         # trajectory of z's   length=H
-	θ::Vector#{SizedArray{Tuple{nθ},T,1,1}}         # trajectory of θ's   length=H
+	q::Vector{Vector{T}}   # trajectory of q's   length=H+2
+	u::Vector{Vector{T}}   # trajectory of u's   length=H
+	w::Vector{Vector{T}}   # trajectory of w's   length=H
+	γ::Vector{Vector{T}}   # trajectory of γ's   length=H
+	b::Vector{Vector{T}}   # trajectory of b's   length=H
+	z::Vector{Vector{T}}   # trajectory of z's   length=H
+	θ::Vector{Vector{T}}   # trajectory of θ's   length=H
 	iq0::SizedArray{Tuple{nq},Int,1,1,Vector{Int}}
 	iq1::SizedArray{Tuple{nq},Int,1,1,Vector{Int}}
 	iu1::SizedArray{Tuple{nu},Int,1,1,Vector{Int}}

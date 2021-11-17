@@ -151,8 +151,6 @@ function interior_point_solve!(ip::InteriorPoint{T,R,RZ,Rθ}) where {T,R,RZ,Rθ}
     no_progress = 0
 
     # compute residual, residual Jacobian
-    # ip.methods.r!(r, z, θ, 0.0)
-    # least_squares!(ip, z, θ, r, rz) # seems to be harmful for performance (failure and iteration count)
     z .= initial_state!(z, ortz, socz) # decrease failure rate for linearized case
 
     ip.methods.r!(r, z, θ, 0.0)
@@ -301,16 +299,6 @@ function general_correction_term!(r::AbstractVector{T}, Δ::AbstractVector{T},
             Δ[socΔ[2][i]],
             Δ[socΔ[1][i]],
         ) for i in eachindex(socΔ[1])]...)
-    return nothing
-end
-
-function least_squares!(ip::InteriorPoint, z::AbstractVector{T}, θ::AbstractVector{T},
-        r::AbstractVector{T}, rz::AbstractMatrix{T}) where {T}
-    # doing nothing gives the best result if z_t is correctly initialized with z_t-1 in th simulator
-        dyn = ip.idx.dyn
-        rst = ip.idx.rst
-        A = rz[[dyn; rst], :]
-        z .+= A' * ((A * A') \ r[[dyn; rst]])
     return nothing
 end
 

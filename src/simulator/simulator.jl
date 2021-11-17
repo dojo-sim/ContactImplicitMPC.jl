@@ -40,15 +40,15 @@ function Simulator(s::Simulation, T;
     )
 
     idx_z = indices_z(s)
-    idx_θ = indices_θ(model, nf=length(f))
-    idx_opt = IndicesOptimization(model, env)
+    idx_θ = indices_θ(s.model, nf=length(f))
+    idx_opt = IndicesOptimization(s.model, s.env)
     nz = num_var(s.model, s.env) 
     nθ = num_data(s.model)
     z0 = zeros(nz) 
     θ0 = zeros(nθ) 
-    q0 = zeros(model.nq)
-    initialize_z!(z0, model, idx_z, q0)
-    initialize_θ!(θ0, model, idx_θ, q0, q0, zeros(model.nu), zeros(model.nw), f, h)
+    q0 = zeros(s.model.nq)
+    initialize_z!(z0, s.model, idx_z, q0)
+    initialize_θ!(θ0, s.model, idx_θ, q0, q0, zeros(s.model.nu), zeros(s.model.nw), f, h)
     ip = interior_point(
          z0,
          θ0,
@@ -60,8 +60,8 @@ function Simulator(s::Simulation, T;
          rθ=zeros(nz, nθ),
          opts=solver_opts)
 
-    traj = Trajectory(s.model, T, nb=model.nc * friction_dim(s.env))
-    grad = GradientTrajectory(s.model, T, nb=model.nc * friction_dim(s.env))
+    traj = Trajectory(s.model, T, nb=s.model.nc * friction_dim(s.env))
+    grad = GradientTrajectory(s.model, T, nb=s.model.nc * friction_dim(s.env))
     
     return Simulator(s.model, policy, dist, traj, grad, ip, idx_z, idx_θ, f, h, stats, sim_opts)
 end

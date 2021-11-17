@@ -12,6 +12,8 @@ s = get_simulation("hopper_2D", "flat_2D_lc", "flat")
 model = s.model 
 env = s.env
 
+using InteractiveUtils
+
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
     joinpath(module_dir(), "src/dynamics/hopper_2D/gaits/gait_forward.jld2"),
@@ -56,15 +58,62 @@ q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (copy(ref_traj.q[2])
 v1_sim = (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / ref_traj.h
 
 # ## Simulator
-sim = Simulator(s, H_sim, h=h_sim, policy=p)
+sim = Simulator(s, 10, h=h_sim)#, policy=p)
+
+## BENCHMARK 
+using InteractiveUtils
+
+
+t = 1
+update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ[1]) 
+@benchmark update!($p.im_traj, $p.traj, $p.s, $p.altitude, κ = $p.κ[1]) 
+@code_warntype update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ[1]) 
+
+A = @SMatrix ones(10, 10) 
+
+Aa = rand(10, 10)
+
+@benchmark $A = $Aa
+B = @SMatrix ones(10, 10) 
+C = @SMatrix ones(10, 10) 
+D = @SMatrix ones(10, 10)
+
+M = [A B; C D]
+M1 = view(M, collect(1:5), collect(1:5))
+typeof(M1)
+# cache = deepcopy(p.traj)
+# @benchmark rotate!($p.traj, $p.traj_cache)
+# @benchmark mpc_stride!($p.traj, $p.stride)
+
+# @code_warntype rot_n_stride!(p.traj, p.traj_cache, p.stride)
+# @benchmark rot_n_stride!($p.traj, $p.traj_cache, $p.stride)
+
+# @code_warntype live_plotting(p.s.model, p.traj, sim.traj, p.newton, p.q0, sim.traj.q[t+1], t) 
+
+# policy(p, sim.traj, t)
+# @benchmark policy($p, $sim.traj, $t)
+# @code_warntype policy(p, sim.traj, t)
+
+# @benchmark $p.ϕ .= ϕ_func($s.model, $s.env, $sim.traj.q[1])
+# @benchmark s.ϕ($p.ϕ, $sim.traj.q[1])
+# @benchmark ContactImplicitMPC.update_altitude!($p.altitude, $p.ϕ, $p.s,
+#                  $sim.traj, $t, $p.s.model.nc, $p.N_sample,
+#                  threshold = $p.opts.altitude_impact_threshold,
+#                  verbose = $p.opts.altitude_verbose)
+
+# @code_warntype ContactImplicitMPC.update_altitude!(p.altitude, p.ϕ, p.s,
+#     sim.traj, t, p.s.model.nc, p.N_sample,
+#     threshold = p.opts.altitude_impact_threshold,
+#     verbose = p.opts.altitude_verbose)
 
 # ## Simulate
 simulate!(sim, Array(q1_sim), Array(v1_sim))
 
-# q1a = Array(q1_sim) 
-# v1a = Array(v1_sim)
+q1a = Array(q1_sim) 
+v1a = Array(v1_sim)
 
-# simulate!(sim, q1a, v1a)
+using BenchmarkTools
+@benchmark simulate!($sim, $q1a, $v1a)
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()

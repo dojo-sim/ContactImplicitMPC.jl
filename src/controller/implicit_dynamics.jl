@@ -10,9 +10,6 @@ mutable struct ImplicitTraj{T,R,RZ,Rθ}
 	dq2::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
 	dγ1::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
 	db1::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
-	# δq0::Vector{SubArray{T,2,SparseArrays.SparseMatrixCSC{T,Int},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # q0 solution gradient length=H
-	# δq1::Vector{SubArray{T,2,SparseArrays.SparseMatrixCSC{T,Int},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # q1 solution gradient length=H
-	# δu1::Vector{SubArray{T,2,SparseArrays.SparseMatrixCSC{T,Int},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # u1 solution gradient length=H
 	δq0::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}} # q0 solution gradient length=H
 	δq1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # q1 solution gradient length=H
 	δu1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # u1 solution gradient length=H
@@ -140,7 +137,7 @@ function set_altitude!(ip::InteriorPoint, alt::Vector)
 end
 
 """
-	implicit_dynamics!(im_traj::ImplicitTraj, model::Model,
+	implicit_dynamics!(im_traj::ImplicitTraj, model::ContactModel,
 		traj::ContactTraj; κ = traj.κ)
 Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
 linearized since it relies on a linearization about a reference trajectory.

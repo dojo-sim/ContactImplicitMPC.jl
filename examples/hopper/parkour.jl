@@ -9,7 +9,7 @@ using LinearAlgebra
 
 # Define a special stride where x and z are updated.
 function get_stride(model, traj)
-    stride = zeros(SizedVector{model.nq})
+    stride = zeros(model.nq)
     stride[1:2] = traj.q[end-1][1:2] - traj.q[1][1:2]
     return stride
 end

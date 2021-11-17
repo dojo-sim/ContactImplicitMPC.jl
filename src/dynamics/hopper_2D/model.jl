@@ -103,7 +103,7 @@ nw = 2
 nc = 1
 nquat = 0
 
-hopper_2D = Hopper2D(nq,nu,nw,nc,
+hopper_2D = Hopper2D(nq, nu, nw, nc,
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, gravity,
 			   BaseMethods(), DynamicsMethods(),

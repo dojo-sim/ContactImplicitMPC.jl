@@ -85,9 +85,8 @@ function velocity_stack(model::Hopper3D, env::Environment{<:World, LinearizedCon
 
 	SVector{4}(friction_mapping(env)' * v1_surf[1:2])
 end
-
 function get_stride(model::Hopper3D, traj)
-    stride = zeros(SizedVector{model.nq})
+    stride = zeros(model.nq)
     stride[1:2] = traj.q[end-1][1:2] - traj.q[1][1:2]
     return stride
 end
