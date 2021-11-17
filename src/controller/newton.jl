@@ -13,15 +13,15 @@ abstract type NewtonIndices end
 abstract type NewtonResidual end
 abstract type NewtonJacobian end
 
-mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,n1,n2,n3}
+mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,nν}
     jac::NewtonJacobian                          # NewtonJacobian
     res::NewtonResidual                          # residual
     res_cand::NewtonResidual                     # candidate residual
     Δ::NewtonResidual                            # step direction in the Newton solve, it contains: q2-qH+1, u1-uH, γ1-γH, b1-bH, λd1-λdH
-    ν::Vector{SizedArray{Tuple{n1},T,1,1}}          # implicit dynamics lagrange multiplier
-    ν_cand::Vector{SizedArray{Tuple{n1},T,1,1}}         # candidate implicit dynamics lagrange multiplier
-    traj::ContactTraj                            # optimized trajectory
-    traj_cand::ContactTraj                       # trial trajectory used in line search
+    ν::Vector{SizedArray{Tuple{nν},T,1,1}}          # implicit dynamics lagrange multiplier
+    ν_cand::Vector{SizedArray{Tuple{nν},T,1,1}}         # candidate implicit dynamics lagrange multiplier
+    traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}                           # optimized trajectory
+    traj_cand::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}      # trial trajectory used in line search
     Δq::Vector{SizedArray{Tuple{nq},T,1,1}}         # difference between the traj and ref_traj
     Δu::Vector{SizedArray{Tuple{nu},T,1,1}}         # difference between the traj and ref_traj
     Δγ::Vector{SizedArray{Tuple{nc},T,1,1}}         # difference between the traj and ref_traj
@@ -83,7 +83,7 @@ function Newton(s::Simulation, H::Int, h::T,
     # linear solver
     solver = eval(opts.solver)(jac.R)
 
-    return Newton{T,nq,nu,nw,nc,nb,nz,nθ,nd,nd,2nq+nu}(
+    return Newton{T,nq,nu,nw,nc,nb,nz,nθ,nd}(
         jac, res, res_cand, Δ, ν, ν_cand, traj, traj_cand,
         Δq, Δu, Δγ, Δb, ind, obj, solver, β, opts)
 end

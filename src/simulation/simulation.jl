@@ -1,14 +1,15 @@
-mutable struct Simulation
-	model::Model
-	env::Environment{<:World,<:FrictionCone}
+mutable struct Simulation{T,W,FC}
+	model::Model{T}
+	env::Environment{W,FC}
 	con::ContactMethods
 	res::ResidualMethods
 	rz::Any
-	rθ::Any
+	rθ::Any 
+	ϕ::Any
 end
 
-function Simulation(model::Model, env::Environment)
-	Simulation(model, env, ContactMethods(), ResidualMethods(), zeros(0, 0), zeros(0, 0))
+function Simulation(model::Model{T}, env::Environment) where T
+	Simulation(model, env, ContactMethods(), ResidualMethods(), zeros(0, 0), zeros(0, 0), q -> nothing)
 end
 
 function get_simulation(model::String, env::String, sim_name::String;
@@ -40,6 +41,11 @@ function get_simulation(model::String, env::String, sim_name::String;
 	instantiate_residual!(sim,
 		dir_res, dir_jac,
 		jacobians = (approx ? :approx : :full))
+
+	# signed-distance function 
+	@variables q[1:sim.model.nq] 
+	ϕ = ϕ_func(sim.model, sim.env, q) 
+	sim.ϕ = eval(Symbolics.build_function(ϕ, q)[2])
 
 	return sim
 end
