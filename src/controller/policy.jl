@@ -77,37 +77,40 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 end
 
 
-function policy(p::CIMPC, traj, t)
+function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,NQ,NU,NW,NC}
 	# reset
 	if t == 1
 		p.cnt[1] = p.N_sample
-		p.q0 .= copy(p.ref_traj.q[1])
+		p.q0 .= p.ref_traj.q[1]
 	end
 
-    if p.cnt[1] == p.N_sample
-		(p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.s,
-									traj, t, p.N_sample,
-									threshold = p.opts.altitude_impact_threshold,
-									verbose = p.opts.altitude_verbose))
-		# update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ) #@@@ keep the altitude update here
-		set_altitude!(p.im_traj, p.altitude) #@@@ keep the altitude update here
-		newton_solve!(p.newton, p.s, p.im_traj, p.traj,
-			warm_start = t > 1, q0 = copy(p.q0), q1 = copy(traj.q[t+1]))
-		update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ[1]) #@@@ only keep the rotation stuff not the altitude update.
-		p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, copy(traj.q[t+1]), t)
+    # if p.cnt[1] == p.N_sample
+		# (p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.ϕ, p.s,
+									# traj, t, NC, p.N_sample,
+									# threshold = p.opts.altitude_impact_threshold,
+									# verbose = p.opts.altitude_verbose))
+	set_altitude!(p.im_traj, p.altitude) 
+	# newton_solve!(p.newton, p.s, p.im_traj, p.traj,
+	# 	warm_start = t > 1, q0 = p.q0, q1 = traj.q[t+1])
+	update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ[1]) 
+	# p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, traj.q[t+1], t)
 
-		rot_n_stride!(p.traj, p.stride)
-		p.q0 .= copy(traj.q[t+1])
-		p.cnt[1] = 0
-    end
+	rot_n_stride!(p.traj, p.traj_cache, p.stride)
+	p.q0 .= traj.q[t+1]
+	p.cnt[1] = 0
+    # end
 
     p.cnt[1] += 1
 
 	if p.newton_mode == :direct
-    	return p.newton.traj.u[1] / p.N_sample # rescale output
+		p.u .= p.newton.traj.u[1] 
+		p.u ./= p.N_sample
 	elseif p.newton_mode == :structure
-		return p.newton.u[1] / p.N_sample
+		p.u .= p.newton.u[1] 
+		p.u ./= p.N_sample
 	else
-		@error "newton mode specified not available"
+		println("newton mode specified not available")
 	end
+
+	return p.u
 end

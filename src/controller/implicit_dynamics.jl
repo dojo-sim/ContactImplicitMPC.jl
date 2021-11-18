@@ -86,14 +86,14 @@ end
 
 
 function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
-	s::Simulation,
-	 alt::Vector
-	; κ = ref_traj.κ[1])
+	s::Simulation, alt::Vector; κ = ref_traj.κ[1])
 
 	H = ref_traj.H
+
 	for t = 1:H
 		fill!(im_traj.ip[t].κ, κ)
 	end
+
 	for t = 1:H-1
 		im_traj.lin[t]   = im_traj.lin[t+1]
 		im_traj.ip[t].r  = im_traj.ip[t+1].r
@@ -112,7 +112,7 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	rz0 = im_traj.lin[H].rz
 	rθ0 = im_traj.lin[H].rθ
 
-	update!(im_traj.ip[H].r,  z0, θ0, r0, rz0, rθ0)
+	update!(im_traj.ip[H].r, z0, θ0, r0, rz0, rθ0)
 	update!(im_traj.ip[H].rz, rz0)
 	update!(im_traj.ip[H].rθ, rθ0)
 

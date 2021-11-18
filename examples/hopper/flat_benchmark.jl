@@ -90,9 +90,9 @@ typeof(M1)
 
 # @code_warntype live_plotting(p.s.model, p.traj, sim.traj, p.newton, p.q0, sim.traj.q[t+1], t) 
 
-# policy(p, sim.traj, t)
-# @benchmark policy($p, $sim.traj, $t)
-# @code_warntype policy(p, sim.traj, t)
+policy(p, sim.traj, t)
+@benchmark policy($p, $sim.traj, $t)
+@code_warntype policy(p, sim.traj, t)
 
 # @benchmark $p.ϕ .= ϕ_func($s.model, $s.env, $sim.traj.q[1])
 # @benchmark s.ϕ($p.ϕ, $sim.traj.q[1])
