@@ -48,6 +48,31 @@ function Schur(M::AbstractMatrix{T}; n::Int=1, m::Int=size(M)[1]-n) where {T}
     return Schur{T,n,m,n^2,n*m,m^2}(A,B,C,D,Ai,CAi,CAiB,gs_data,u,v,x,y)
 end
 
+function update!(S::Schur{T,n,m,nn,nm,mm}, 
+    A::SMatrix{n,n,T,nn}, 
+    B::SMatrix{n,m,T,nm}, 
+    C::SMatrix{m,n,T,nm}, 
+    D::SMatrix{m,m,T,mm}) where {T,n,m,nn,nm,mm}
+
+    S.A = A
+    S.B = B
+    S.C = C
+    S.D = D
+
+    S.Ai = inv(S.A) #TODO: factorize instead of inverse
+    S.CAi = S.C * S.Ai
+    S.CAiB = S.C * S.Ai * S.B
+
+    factorize!(S.gs_data, S.D - S.CAiB)
+
+    S.u = zeros(SVector{n,T})
+    S.v = zeros(SVector{m,T})
+    S.x = zeros(SVector{n,T})
+    S.y = zeros(SVector{m,T})
+
+    return nothing
+end
+
 """
     Update the Schur complement structure to handle a change in the D matrix.
     It recomputes the Gram-Schmidt factorization of the Schur complement of the block A.
