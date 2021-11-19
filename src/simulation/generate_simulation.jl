@@ -172,8 +172,6 @@ save_expressions(expr_res, path_res, overwrite=true)
 isfile(path_jac) && rm(path_jac)
 ContactImplicitMPC.JLD2.save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
-s = sim 
-s.res.r!(zeros(num_var(s.model, s.env)), zeros(num_var(s.model, s.env)), zeros(num_data(s.model)), [1.0])
 
 ################################################################################
 # Hopper (2D) (sinusoidal)

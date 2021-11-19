@@ -374,7 +374,7 @@ function newton_structure_solver(nq::Int, m::Int, H::Int; opts = NewtonOptions()
 		opts)
 end
 
-function NewtonStructure(sim::Simulation, H::Int, traj::ContactTrajectory, obj, κ; opts = NewtonOptions())
+function NewtonStructure(sim::Simulation, H::Int, traj::ContactTraj, obj, κ; opts = NewtonOptions())
 
 	s = newton_structure_solver(sim.model.nq, sim.model.nu, H, opts = opts)
 	update_objective!(s, obj)
@@ -751,7 +751,7 @@ function residual_norm(s, mode = 1)
 	return e
 end
 
-function initialize_trajectories!(s::NewtonStructureSolver, ref_traj::ContactTrajectory, q0, q1;
+function initialize_trajectories!(s::NewtonStructureSolver, ref_traj::ContactTraj, q0, q1;
 	warm_start_duals = True)
 
 	tmp_nq = SVector{s.nq}(zeros(s.nq)) # TODO: preallocate
@@ -795,7 +795,7 @@ function initialize_trajectories!(s::NewtonStructureSolver, ref_traj::ContactTra
 end
 
 function newton_solve!(s::NewtonStructureSolver, sim::Simulation,
-    im_traj::ImplicitTrajectory, ref_traj::ContactTrajectory; q0 = ref_traj.q[1], q1 = ref_traj.q[2],
+    im_traj::ImplicitTrajectory, ref_traj::ContactTraj; q0 = ref_traj.q[1], q1 = ref_traj.q[2],
     warm_start::Bool = false,
 	κ = 1.0e-4)
 

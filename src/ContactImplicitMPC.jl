@@ -172,7 +172,7 @@ export
     RLin,
     RZLin,
     RθLin,
-    ContactTrajectory,
+    ContactTraj,
     Simulation,
     num_var,
     num_data,

@@ -1,10 +1,10 @@
-function rot_n_stride!(traj::ContactTrajectory, cache::ContactTrajectory, stride::Vector{T}) where T
+function rot_n_stride!(traj::ContactTraj, cache::ContactTraj, stride::Vector{T}) where T
     rotate!(traj, cache)
     mpc_stride!(traj, stride)
     return nothing
 end
 
-function rotate!(traj::ContactTrajectory, cache::ContactTrajectory)
+function rotate!(traj::ContactTraj, cache::ContactTraj)
     H = traj.H
 
 	cache.q[1] .= traj.q[1]
@@ -42,7 +42,7 @@ end
 """
     Update the last two cofiguaraton to be equal to the fisrt two up to an constant offset.
 """
-function mpc_stride!(traj::ContactTrajectory, stride::Vector{T}) where T
+function mpc_stride!(traj::ContactTraj, stride::Vector{T}) where T
     H = traj.H
 
     for t = H+1:H+2
@@ -57,7 +57,7 @@ function mpc_stride!(traj::ContactTrajectory, stride::Vector{T}) where T
     return nothing
 end
 
-function get_stride(model::Model, traj::ContactTrajectory) #TODO: dispatch over environment / model
+function get_stride(model::Model, traj::ContactTraj) #TODO: dispatch over environment / model
     stride = zeros(model.nq)
     stride[1] = traj.q[end-1][1] - traj.q[1][1]
     return stride
@@ -91,7 +91,7 @@ function update_altitude!(alt::Vector{T}, ϕ::Vector{T}, s::Simulation{T}, traj:
 	end
 end
 
-function live_plotting(model::Model{T}, ref_traj::ContactTrajectory,
+function live_plotting(model::Model{T}, ref_traj::ContactTraj,
 		sim_traj::Trajectory, newton::Newton, q0::AbstractVector{T},
 		q1::AbstractVector{T}, t::Int) where T
 	# nq = model.nq

@@ -89,7 +89,7 @@ typeof(p.im_traj.lin)
 update!(p.im_traj.lin[H], p.s, p.traj.z[H], p.traj.θ[H])
 @benchmark update!($p.im_traj.lin[H], $p.s, $p.traj.z[H], $p.traj.θ[H])
 
-function p_update!(im_traj::ImplicitTrajectory, s::Simulation, traj::ContactTrajectory, H::Int) 
+function p_update!(im_traj::ImplicitTrajectory, s::Simulation, traj::ContactTraj, H::Int) 
     # update!(im_traj.lin[H], s, traj.z[H], traj.θ[H])
     z0  = im_traj.lin[H].z
 	θ0  = im_traj.lin[H].θ
@@ -139,6 +139,12 @@ policy(p, sim.traj, t)
 @code_warntype policy(p, sim.traj, t)
 
 implicit_dynamics!(p.im_traj, p.s, p.newton.traj)
+
+
+
+
+
+
 
 @benchmark implicit_dynamics!($p.im_traj, $p.s, $p.newton.traj)
 @code_warntype implicit_dynamics!(p.im_traj, p.s, p.newton.traj)

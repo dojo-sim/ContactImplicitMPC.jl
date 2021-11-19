@@ -1,4 +1,4 @@
-struct ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}
+struct ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}
 	H::Int
 	h::T
 	κ::Vector{T}
@@ -45,10 +45,10 @@ function contact_trajectory(model::Model, env::Environment, H::Int, h::T; κ::T=
     iγ1 = SizedVector{nc}(off .+ (1:nc)); off += nc # index of the impact γ1
     ib1 = SizedVector{nb}(off .+ (1:nb)); off += nb # index of the linear friction b1
 
-	return ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}(H,h,κ,q,u,w,γ,b,z,θ,iq0,iq1,iu1,iw1,iq2,iγ1,ib1)
+	return ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}(H,h,κ,q,u,w,γ,b,z,θ,iq0,iq1,iu1,iw1,iq2,iγ1,ib1)
 end
 
-function update_z!(traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) where {T,nq,nu,nw,nc,nb,nz,nθ}
+function update_z!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) where {T,nq,nu,nw,nc,nb,nz,nθ}
 	if t in (1:traj.H)
 		traj.z[t][traj.iq2] = traj.q[t+2]
 		traj.z[t][traj.iγ1] = traj.γ[t]
@@ -57,14 +57,14 @@ function update_z!(traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) whe
 	return nothing
 end
 
-function update_z!(traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,nw,nc,nb,nz,nθ}
+function update_z!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,nw,nc,nb,nz,nθ}
 	for t in eachindex((1:traj.H))
 		update_z!(traj, t)
 	end
 	return nothing
 end
 
-function update_θ!(traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) where {T,nq,nu,nw,nc,nb,nz,nθ}
+function update_θ!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) where {T,nq,nu,nw,nc,nb,nz,nθ}
 	if t in (1:traj.H)
 		traj.θ[t][traj.iq0] = traj.q[t]
 		traj.θ[t][traj.iq1] = traj.q[t+1]
@@ -74,14 +74,14 @@ function update_θ!(traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}, t::Int) wh
 	return nothing
 end
 
-function update_θ!(traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,nw,nc,nb,nz,nθ}
+function update_θ!(traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,nq,nu,nw,nc,nb,nz,nθ}
 	for t in eachindex((1:traj.H))
 		update_θ!(traj, t)
 	end
 	return nothing
 end
 
-function repeat_ref_traj(traj::ContactTrajectory, N::Int;
+function repeat_ref_traj(traj::ContactTraj, N::Int;
        idx_shift = (1:0))
 
     shift = (traj.q[end] - traj.q[2])[idx_shift]
@@ -109,12 +109,12 @@ function repeat_ref_traj(traj::ContactTrajectory, N::Int;
 		end
     end
 
-    return ContactTrajectory{typeof(traj).parameters...}(traj.H * N, traj.h, traj.κ,
+    return ContactTraj{typeof(traj).parameters...}(traj.H * N, traj.h, traj.κ,
         q, u, w, γ, b, z, θ,
 		traj.iq0, traj.iq1, traj.iu1, traj.iw1, traj.iq2, traj.iγ1, traj.ib1)
 end
 
-function sub_traj(traj::ContactTrajectory, idx::AbstractVector{Int})
+function sub_traj(traj::ContactTraj, idx::AbstractVector{Int})
 
     q = deepcopy(traj.q[collect([[idx..., idx[end] + 1, idx[end] + 2]]...)])
     u = deepcopy(traj.u[idx])
@@ -125,12 +125,12 @@ function sub_traj(traj::ContactTrajectory, idx::AbstractVector{Int})
     θ = deepcopy(traj.θ[idx])
     κ = deepcopy(traj.κ)
 
-    return ContactTrajectory{typeof(traj).parameters...}(length(idx), traj.h, traj.κ,
+    return ContactTraj{typeof(traj).parameters...}(length(idx), traj.h, traj.κ,
         q, u, w, γ, b, z, θ,
 		traj.iq0, traj.iq1, traj.iu1, traj.iw1, traj.iq2, traj.iγ1, traj.ib1)
 end
 
-function update_friction_coefficient!(traj::ContactTrajectory, model::Model, env::Environment)
+function update_friction_coefficient!(traj::ContactTraj, model::Model, env::Environment)
 	for t = 1:traj.H
 		q2, γ1, b1, ψ1, s1, η1, __ = unpack_z(model, env, traj.z[t])
 		q0, q1, u1, w1, _, h = unpack_θ(model, traj.θ[t])
@@ -185,8 +185,8 @@ function get_trajectory(model::Model, env::Environment, gait_path::String;
 end
 
 # Check tracking performance
-function tracking_error(ref_traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ},
-		sim_traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}, N_sample::Int; idx_shift=(1:0)) where {T,nq,nu,nw,nc,nb,nz,nθ}
+function tracking_error(ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
+		sim_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, N_sample::Int; idx_shift=(1:0)) where {T,nq,nu,nw,nc,nb,nz,nθ}
 
 	# Horizons
 	H_ref = ref_traj.H
