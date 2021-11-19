@@ -75,11 +75,43 @@ swap!(p.im_traj, t)
 r1 = p.im_traj.ip[t].r 
 r2 = p.im_traj.ip[t+1].r
 @benchmark shift!($r1, $r2)
+@benchmark $p.im_traj.ip[end].r.alt = $p.altitude
 
 t = 1
-update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1]) 
-@benchmark update!($p.im_traj, $p.traj, $p.s, $p.altitude, $p.κ[1]) 
-@code_warntype update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1]) 
+update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H) 
+@benchmark update!($p.im_traj, $p.traj, $p.s, $p.altitude, $p.κ[1], $p.traj.H) 
+@code_warntype update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H) 
+
+H = p.traj.H
+length(p.traj.z)
+length(p.im_traj.lin)
+typeof(p.im_traj.lin)
+update!(p.im_traj.lin[H], p.s, p.traj.z[H], p.traj.θ[H])
+@benchmark update!($p.im_traj.lin[H], $p.s, $p.traj.z[H], $p.traj.θ[H])
+
+function p_update!(im_traj::ImplicitTrajectory, s::Simulation, traj::ContactTrajectory, H::Int) 
+    # update!(im_traj.lin[H], s, traj.z[H], traj.θ[H])
+    z0  = im_traj.lin[H].z
+	θ0  = im_traj.lin[H].θ
+	r0  = im_traj.lin[H].r
+	rz0 = im_traj.lin[H].rz
+	rθ0 = im_traj.lin[H].rθ
+
+	# update!(im_traj.ip[H].r, z0, θ0, r0, rz0, rθ0)
+    p1 = im_traj.ip[H].rθ 
+    p2 = rθ0
+    # update!(im_traj.ip[H].rz, rz0)
+    update!(p1, p2)
+end
+
+p_update!(p.im_traj, p.s, p.ref_traj, H)
+@benchmark p_update!($p.im_traj, $p.s, $p.ref_traj, $H)
+@code_warntype p_update!(p.im_traj, p.s, p.ref_traj, H)
+
+p1 = p.im_traj.ip[H].rθ
+p2 = p.im_traj.lin[H].rθ
+@benchmark update!($p1, $p2)
+
 
 A = @SMatrix ones(10, 10) 
 
@@ -101,14 +133,15 @@ typeof(M1)
 # @benchmark rot_n_stride!($p.traj, $p.traj_cache, $p.stride)
 
 # @code_warntype live_plotting(p.s.model, p.traj, sim.traj, p.newton, p.q0, sim.traj.q[t+1], t) 
-
+typeof(s.ϕ) <: Function
 policy(p, sim.traj, t)
 @benchmark policy($p, $sim.traj, $t)
 @code_warntype policy(p, sim.traj, t)
 
-function newton_function(n::Newton{T}) where T
+implicit_dynamics!(p.im_traj, p.s, p.newton.traj)
 
-end
+@benchmark implicit_dynamics!($p.im_traj, $p.s, $p.newton.traj)
+@code_warntype implicit_dynamics!(p.im_traj, p.s, p.newton.traj)
 
 @benchmark newton_function($p.newton)
 

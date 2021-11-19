@@ -3,7 +3,7 @@
 This structure holds the trajectory of evaluations and Jacobians of the implicit dynamics.
 These evaluations and Jacobians are computed using a linearizedimation computed around `lin`.
 """
-mutable struct ImplicitTrajectory{T,R,RZ,Rθ,nq}
+mutable struct ImplicitTrajectory{T,R,RZ,Rθ,NQ}
 	H::Int
 	lin::Vector{LinearizedStep{T}}
 	d::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}} # dynamics violation
@@ -15,7 +15,7 @@ mutable struct ImplicitTrajectory{T,R,RZ,Rθ,nq}
 	δu1::Vector{SubArray{T,2,Array{T,2},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # u1 solution gradient length=H
 	ip::Vector{InteriorPoint{T,R,RZ,Rθ}}
 	mode::Symbol
-	iq2::SVector{nq,Int}
+	iq2::SVector{NQ,Int}
 end
 
 function ImplicitTrajectory(ref_traj::ContactTrajectory, s::Simulation;
@@ -90,10 +90,9 @@ function ImplicitTrajectory(ref_traj::ContactTrajectory, s::Simulation;
 end
 
 
-function update!(im_traj::ImplicitTrajectory{T}, ref_traj::ContactTrajectory{T},
-	s::Simulation{T}, alt::Vector{T}, κ::T) where T
-	H = ref_traj.H
-
+function update!(im_traj::ImplicitTrajectory{T,R,RZ,Rθ,nq}, ref_traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ},
+	s::Simulation{T,W,FC}, alt::Vector{T}, κ::T, H::Int) where {T,R,RZ,Rθ,nq,nu,nw,nc,nb,nz,nθ,W,FC}
+	
 	for t = 1:H
 		# central-path parameter
 		im_traj.ip[t].κ[1] = κ
@@ -111,7 +110,7 @@ function update!(im_traj::ImplicitTrajectory{T}, ref_traj::ContactTrajectory{T},
 	end
 
 	update!(im_traj.lin[H], s, ref_traj.z[H], ref_traj.θ[H])
-
+	
 	z0  = im_traj.lin[H].z
 	θ0  = im_traj.lin[H].θ
 	r0  = im_traj.lin[H].r
@@ -148,7 +147,7 @@ end
 Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
 linearized since it relies on a linearization about a reference trajectory.
 """
-function implicit_dynamics!(im_traj::ImplicitTrajectory, s::Simulation, traj::ContactTrajectory; κ = 1.0)
+function implicit_dynamics!(im_traj::ImplicitTrajectory, s::Simulation, traj::ContactTrajectory; κ = [1.0])
 
 	model = s.model
 	env = s.env
