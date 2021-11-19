@@ -103,7 +103,7 @@ end
 	    γ = [Diagonal(1.0e-2 * ones(nc)) for t = 1:H],
 	    b = [Diagonal(1.0e-3 * ones(nb)) for t = 1:H])
 
-	im_traj0 = ContactImplicitMPC.ImplicitTraj(ref_traj, s, mode = mode)
+	im_traj0 = ContactImplicitMPC.ImplicitTrajectory(ref_traj, s, mode = mode)
 	core = ContactImplicitMPC.Newton(s, H, h, ref_traj, im_traj0, obj = obj)
 	ContactImplicitMPC.initialize_jacobian!(core.jac, obj, ref_traj.H)
 	ContactImplicitMPC.update_jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
@@ -168,7 +168,7 @@ end
 	    γ = [Diagonal(1.0e-6 * ones(nc)) for t = 1:H],
 	    b = [Diagonal(1.0e-6 * ones(nb)) for t = 1:H])
 
-	im_traj0 = ContactImplicitMPC.ImplicitTraj(ref_traj, s, mode = mode)
+	im_traj0 = ContactImplicitMPC.ImplicitTrajectory(ref_traj, s, mode = mode)
 	core = ContactImplicitMPC.Newton(s, H, h, ref_traj, im_traj0, obj = obj)
 	ContactImplicitMPC.implicit_dynamics!(im_traj0, s, ref_traj)
 
@@ -279,7 +279,7 @@ end
 		q = [Diagonal(1.0 * ones(nq)) for t = 1:H],
 		u = [Diagonal(1.0e-1 * ones(nu)) for t = 1:H])
 
-	im_traj0 = ContactImplicitMPC.ImplicitTraj(ref_traj, s, mode = mode)
+	im_traj0 = ContactImplicitMPC.ImplicitTrajectory(ref_traj, s, mode = mode)
 	core = ContactImplicitMPC.Newton(s, H, h, ref_traj, im_traj0, obj = obj)
 	ContactImplicitMPC.initialize_jacobian!(core.jac, obj, ref_traj.H)
 	ContactImplicitMPC.update_jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
@@ -340,7 +340,7 @@ end
 	    q = [Diagonal(1.0 * ones(nq)) for t = 1:H],
 	    u = [Diagonal(1.0 * ones(nu)) for t = 1:H])
 
-	im_traj0 = ContactImplicitMPC.ImplicitTraj(ref_traj, s, mode = mode)
+	im_traj0 = ContactImplicitMPC.ImplicitTrajectory(ref_traj, s, mode = mode)
 	core = ContactImplicitMPC.Newton(s, H, h, ref_traj, im_traj0, obj = obj)
 	ContactImplicitMPC.implicit_dynamics!(im_traj0, s, ref_traj)
 

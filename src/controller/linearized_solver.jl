@@ -17,6 +17,7 @@ mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
     rdyn0::SVector{nx,T}
     rrst0::SVector{ny,T}
     rbil0::SVector{ny,T}
+
     # Residual
     rdyn::SVector{nx,T}
     rrst::SVector{ny,T}
@@ -28,6 +29,7 @@ mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
     Rx::SMatrix{ny,nx,T,nxy}
     Ry1::SMatrix{ny,ny,T,nyy}
     Ry2::SVector{ny,T}
+
     # Reference residual jacobian rθ0
     rθdyn::SMatrix{nx,nθ,T,nxθ}
     rθrst::SMatrix{ny,nθ,T,nyθ}
@@ -59,6 +61,60 @@ mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
     # Altitude
     alt::SVector{nc,T}
     alt_zeros::SVector{nn,T}
+end
+
+function shift!(rlin1::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, rlin2::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
+    # Reference residual
+    rlin1.rdyn0 = rlin2.rdyn0
+    rlin1.rrst0 = rlin2.rrst0
+    rlin1.rbil0 = rlin2.rbil0
+
+    # Residual
+    rlin1.rdyn = rlin2.rdyn
+    rlin1.rrst = rlin2.rrst
+    rlin1.rbil = rlin2.rbil
+
+    # Reference residual jacobian rz0
+    rlin1.Dx = rlin2.Dx
+    rlin1.Dy1 = rlin2.Dy1
+    rlin1.Rx = rlin2.Rx
+    rlin1.Ry1 = rlin2.Ry1
+    rlin1.Ry2 = rlin2.Ry2
+
+    # Reference residual jacobian rθ0
+    rlin1.rθdyn = rlin2.rθdyn
+    rlin1.rθrst = rlin2.rθrst
+    rlin1.rθbil = rlin2.rθbil
+
+    # Reference z0 and θ0
+    rlin1.x0 = rlin2.x0
+    rlin1.y10 = rlin2.y10
+    rlin1.y20 = rlin2.y20
+    rlin1.θ0 = rlin2.θ0
+
+    # Values of z and θ
+    rlin1.x = rlin2.x
+    rlin1.y1 = rlin2.y1
+    rlin1.y2 = rlin2.y2
+    rlin1.θ = rlin2.θ
+
+    # Indices
+    rlin1.nz = rlin2.nz
+    rlin1.nθ = rlin2.nθ
+    rlin1.ix = rlin2.ix
+    rlin1.iy1 = rlin2.iy1
+    rlin1.iy2 = rlin2.iy2
+    rlin1.iθ = rlin2.iθ
+    rlin1.idyn = rlin2.idyn
+    rlin1.irst = rlin2.irst
+    rlin1.ibil = rlin2.ibil
+    rlin1.ialt = rlin2.ialt
+
+    # Altitude
+    rlin1.alt = rlin2.alt
+    rlin1.alt_zeros = rlin2.alt_zeros
+
+    return nothing
 end
 
 function RLin(s::Simulation, z0::AbstractVector{T}, θ0::AbstractVector{T},
@@ -393,182 +449,6 @@ function rzlin!(rz::RZLin{T,nx,ny,nxx,nxy,nyy}, z::Vector{T}, θ::Vector{T}; reg
     return nothing
 end
 
-# """
-# 	Computes the search direction via a linear solve. The factorization has been done when updating rz,
-# 	so this step should be very fast.
-# """
-# function linear_solve!(Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-#         r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
-#     # unpack
-#     rdyn = r.rdyn
-#     rrst = r.rrst
-#     rbil = r.rbil
-#     Ry2 = rz.Ry2
-#     y1 = rz.y1
-#     y2 = rz.y2
-
-# 	y1_reg = max.(reg, y1)
-# 	y2_reg = max.(reg, y2)
-
-#     u = rdyn
-#     v = rrst - Ry2 .*rbil ./ y1_reg
-#     schur_solve!(rz.S, u, v)
-#     Δ[rz.ix]  = rz.S.x
-#     Δ[rz.iy1] = rz.S.y
-#     Δ[rz.iy2] = (rbil .- y2_reg .* Δ[rz.iy1]) ./ y1_reg
-#     return nothing
-# end
-
-# """
-# 	Computes the Jacobian of the solution with respect to the parameters θ
-# 	via a linear solve. The factorization has been done when updating rz,
-# 	so this step should be ~ fast.
-# """
-# function linear_solve!(δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-# 	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
-#     # unpack
-# 	rθdyn = rθ.rθdyn0
-# 	rθrst = rθ.rθrst0
-# 	rθbil = rθ.rθbil0
-# 	Ry2 = rz.Ry2
-# 	y1  = rz.y1
-# 	y2  = rz.y2
-# 	ix  = rz.ix
-# 	iy1 = rz.iy1
-# 	iy2 = rz.iy2
-
-# 	y1_reg = max.(reg, y1)
-# 	y2_reg = max.(reg, y2)
-
-# 	for i in eachindex(1:nθ)
-# 		# We remark that rθbil is empty by construction of rθ.
-# 		u = rθdyn[:,i]
-# 		# v = rθrst[:,i] - Ry2 .* rθbil[:,i] ./ y1
-# 		v = rθrst[:,i]
-# 		schur_solve!(rz.S, u, v)
-# 		@. δz[ix,i]  .= rz.S.x
-# 		@. δz[iy1,i] .= rz.S.y
-# 		δz[iy2,i] .= (rθbil[:,i] .- y2_reg .* δz[iy1,i]) ./ y1_reg
-# 		# @. δz[iy2,i] .= .- y2 .* δz[iy1,i] ./ y1
-# 	end
-#     return nothing
-# end
-
-# # Methods for the Interior Point solver
-# import LinearAlgebra.norm
-# function norm(r::RLin, t::Real)
-# 	a = 0.0
-# 	if t == Inf
-# 		a = max(norm(r.rdyn, t),
-# 				norm(r.rrst, t),
-# 				norm(r.rbil, t))
-# 	else
-# 		a += norm(r.rdyn, t)
-# 		a += norm(r.rrst, t)
-# 		a += norm(r.rbil, t)
-# 	end
-# 	return a
-# end
-
-# function linear_solve!(solver::EmptySolver, δz::Matrix{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-# 	rθ::RθLin{T,nx,ny,nθ,nxθ,nyθ}; reg::T = 0.0, fact::Bool = true) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ}
-# 	# fact is useless here, since the factorization only happens once,
-# 	# but necessary to be consistent with lu_solver
-# 	linear_solve!(δz, rz, rθ, reg = reg)
-# 	return nothing
-# end
-
-# function linear_solve!(solver::EmptySolver, Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx,nxy,nyy},
-#         r::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}; reg::T = 0.0, fact::Bool = true) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
-# 	# fact is useless here, since the factorization only happens once,
-# 	# but necessary to be consistent with lu_solver
-# 	linear_solve!(Δ, rz, r, reg = reg)
-# 	return nothing
-# end
-
-# function update!(r::RLin{T}, z0::Vector{T}, θ0::Vector{T},
-#         r0::Vector{T}, rz0::Matrix{T}, rθ0::Matrix{T}) where {T}
-# 	idyn = r.idyn
-# 	irst = r.irst
-# 	ibil = r.ibil
-# 	ix = r.ix
-# 	iy1 = r.iy1
-# 	iy2 = r.iy2
-
-# 	# Reference residual
-#     r.rdyn0 = r0[idyn]
-#     r.rrst0 = r0[irst]
-#     r.rbil0 = r0[ibil]
-
-#     # Reference residual jacobian rz0
-# 	r.Dx  = rz0[idyn, ix]
-# 	r.Dy1 = rz0[idyn, iy1]
-# 	r.Rx  = rz0[irst, ix]
-# 	r.Ry1 = rz0[irst, iy1]
-# 	r.Ry2 = diag(rz0[irst, iy2])
-
-#     # Reference residual jacobian rθ0
-# 	r.rθdyn = rθ0[idyn,:]
-# 	r.rθrst = rθ0[irst,:]
-# 	r.rθbil = rθ0[ibil,:]
-
-#     # Reference z0 and θ0
-#     r.x0  = z0[ix]
-#     r.y10 = z0[iy1]
-#     r.y20 = z0[iy2]
-#     r.θ0  = θ0
-# 	return nothing
-# end
-
-# function update!(rz::RZLin{T}, rz0::Matrix{T}) where T
-# 	idyn = rz.idyn
-# 	irst = rz.irst
-# 	ibil = rz.ibil
-# 	ix = rz.ix
-# 	iy1 = rz.iy1
-# 	iy2 = rz.iy2
-
-#     # Fill the matrix blocks rz0s
-# 	rz.Dx  = rz0[idyn, ix]
-# 	rz.Dy1 = rz0[idyn, iy1]
-# 	rz.Rx  = rz0[irst, ix]
-# 	rz.Ry1 = rz0[irst, iy1]
-# 	rz.Ry2 = diag(rz0[irst, iy2])
-# 	rz.y1  = diag(rz0[ibil, iy2])
-# 	rz.y2  = diag(rz0[ibil, iy1])
-
-# 	# Schur complement
-# 	rz.D = rz.Ry1 - Diagonal(rz.Ry2 .* rz.y2 ./ rz.y1)
-#     rz.M1 .= rz.Dx
-#     rz.M2 .= rz.Dy1
-#     rz.M3 .= rz.Rx 
-#     rz.M4 .= rz.D
-# 	M = [rz.Dx rz.Dy1;
-# 	     rz.Rx rz.D  ]
-#  	nx = length(ix)
-# 	ny = length(iy1)
-# 	rz.S = Schur(M, n=nx, m=ny)
-# 	return nothing
-# end
-
-# function update!(rθ::RθLin{T}, rθ0::AbstractMatrix{T}) where {T}
-# 	# Fill the matrix blocks rθ0s
-# 	rθ.rθdyn0 = rθ0[rθ.idyn,:]
-# 	rθ.rθrst0 = rθ0[rθ.irst,:]
-# 	rθ.rθbil0 = rθ0[rθ.ibil,:]
-# 	return nothing
-# end
-
-# function update!(rθdyn0::SMatrix{nx,nθ,T,nxθ}, rθrst0::SMatrix{ny,nθ,T,nyθ}, rθbil0::SMatrix{ny,nθ,T,nyθ}, 
-#     rθ0::Matrix{T}, 
-#     idyn::SVector{nx,Int}, irst::SVector{ny,Int}, ibil::SVector{ny,Int}) where {nx,ny,nθ,T,nxθ,nyθ}  
-
-# 	rθdyn0 = rθ0[idyn,:]
-# 	rθrst0 = rθ0[irst,:]
-# 	rθbil0 = rθ0[ibil,:] 
-# 	return nothing
-# end
-
 function residual_violation(ip::InteriorPoint, r::RLin{T}; nquat::Int = 0) where {T}
     max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
 end
@@ -589,28 +469,6 @@ function general_correction_term!(r::RLin, Δ::AbstractVector{T}, ortr::Vector{I
 		) for i = 1:num_cone]...)
     return nothing
 end
-
-# function rz!(ip::InteriorPoint, rz::RZLin{T}, z::AbstractVector{T},
-# 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
-# 	rzlin!(rz, z, θ, reg = reg)
-# 	return nothing
-# end
-
-# # function rz!(rz::RZLin{T}, z::AbstractVector{T},
-# # 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
-# # 	rz!(rz, z, reg = reg)
-# # 	return nothing
-# # end
-
-# function rθ!(ip::InteriorPoint, rθ::RθLin{T}, z::AbstractVector{T},
-# 		θ::AbstractVector{T}) where {T}
-# 	return nothing
-# end
-
-# function rθ!(rθ::RθLin{T}, z::AbstractVector{T},
-# 		θ::AbstractVector{T}) where {T}
-# 	return nothing
-# end
 
 """
 	Update the residual r.

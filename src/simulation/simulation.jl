@@ -50,13 +50,19 @@ function get_simulation(model::String, env::String, sim_name::String;
 	return sim
 end
 
-function z_initialize!(z, model::Model, env::Environment{<:World,LinearizedCone}, q1)
+function z_initialize!(z, model::Model, env::Environment{<:World,LinearizedCone}, q)
 	z .= 1.0
 	iq2 = index_q2(model, env, quat = false)
-	z[iq2] = q1
+	z[iq2] = q
 end
 
-function z_initialize!(z, model::Model, env::Environment{<:World,NonlinearCone}, q1)
+function z_initialize!(z::Vector{T}, idx::SVector{nq2,Int}, model::Model, env::Environment{<:World,LinearizedCone}, q::Vector{T}) where {T,nq2} 
+	z .= 1.0
+	z[idx] = q
+	return nothing
+end
+
+function z_initialize!(z, model::Model, env::Environment{<:World,NonlinearCone}, q1) #TODO: make allocation free
 	iq2 = index_q2(model, env, quat = false)
 	ib1 = index_b1(model, env, quat = false)
 	iψ1 = index_ψ1(model, env, quat = false)
@@ -72,6 +78,10 @@ function z_initialize!(z, model::Model, env::Environment{<:World,NonlinearCone},
 	z[iη1] .= 0.1 # dual cones: vector part # TODO redundant
 	z[is2] .= 1.0 # dual cones: scalar part
 	return z
+end
+
+function z_initialize!(z, idx::SVector{nq2,Int}, model::Model, env::Environment{<:World,NonlinearCone}, q1) where {T,nq2}#TODO: make allocation free
+	@warn "soc z initialization not implemented"
 end
 
 function z_warmstart!(z, model::Model, env::Environment{<:World,LinearizedCone}, q, a)

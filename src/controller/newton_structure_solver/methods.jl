@@ -374,7 +374,7 @@ function newton_structure_solver(nq::Int, m::Int, H::Int; opts = NewtonOptions()
 		opts)
 end
 
-function NewtonStructure(sim::Simulation, H::Int, traj::ContactTraj, obj, κ; opts = NewtonOptions())
+function NewtonStructure(sim::Simulation, H::Int, traj::ContactTrajectory, obj, κ; opts = NewtonOptions())
 
 	s = newton_structure_solver(sim.model.nq, sim.model.nu, H, opts = opts)
 	update_objective!(s, obj)
@@ -626,7 +626,7 @@ function update_objective!(s::NewtonStructureSolver, obj::QuadraticObjective)
 	end
 end
 
-function update_dynamics_jacobian!(s::NewtonStructureSolver, im_traj::ImplicitTraj)
+function update_dynamics_jacobian!(s::NewtonStructureSolver, im_traj::ImplicitTrajectory)
 	for t = 1:s.H-1
 		s.Aa[t] = im_traj.δq0[t]
 		s.Ab[t] = im_traj.δq1[t]
@@ -679,7 +679,7 @@ function lagrangian_gradient!(s::NewtonStructureSolver, u, qa, qb, ν1, ν2)
 	return nothing
 end
 
-function implicit_dynamics!(im_traj::ImplicitTraj, model, env, u, qa, qb, H, θ; κ = traj.κ) where {T, D}
+function implicit_dynamics!(im_traj::ImplicitTrajectory, model, env, u, qa, qb, H, θ; κ = traj.κ) where {T, D}
 
 	nq = model.nq
 	m = model.nu
@@ -702,7 +702,7 @@ function implicit_dynamics!(im_traj::ImplicitTraj, model, env, u, qa, qb, H, θ;
 	return nothing
 end
 
-function compute_residual!(s::NewtonStructureSolver, u, qa, qb, ν1, ν2, H, im_traj::ImplicitTraj, model, env, κ)
+function compute_residual!(s::NewtonStructureSolver, u, qa, qb, ν1, ν2, H, im_traj::ImplicitTrajectory, model, env, κ)
 
 	# update
 	implicit_dynamics!(im_traj, model, env, u, qa, qb, H, s.θ, κ = κ)
@@ -751,7 +751,7 @@ function residual_norm(s, mode = 1)
 	return e
 end
 
-function initialize_trajectories!(s::NewtonStructureSolver, ref_traj::ContactTraj, q0, q1;
+function initialize_trajectories!(s::NewtonStructureSolver, ref_traj::ContactTrajectory, q0, q1;
 	warm_start_duals = True)
 
 	tmp_nq = SVector{s.nq}(zeros(s.nq)) # TODO: preallocate
@@ -795,7 +795,7 @@ function initialize_trajectories!(s::NewtonStructureSolver, ref_traj::ContactTra
 end
 
 function newton_solve!(s::NewtonStructureSolver, sim::Simulation,
-    im_traj::ImplicitTraj, ref_traj::ContactTraj; q0 = ref_traj.q[1], q1 = ref_traj.q[2],
+    im_traj::ImplicitTrajectory, ref_traj::ContactTrajectory; q0 = ref_traj.q[1], q1 = ref_traj.q[2],
     warm_start::Bool = false,
 	κ = 1.0e-4)
 

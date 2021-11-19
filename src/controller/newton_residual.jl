@@ -113,7 +113,7 @@ end
 
 
 function residual!(res::NewtonResidual, core::Newton,
-    ν::Vector, im_traj::ImplicitTraj, traj::ContactTraj, ref_traj::ContactTraj)
+    ν::Vector, im_traj::ImplicitTrajectory, traj::ContactTrajectory, ref_traj::ContactTrajectory)
 
     # unpack
     opts = core.opts
@@ -138,7 +138,7 @@ function residual!(res::NewtonResidual, core::Newton,
     return nothing
 end
 
-function update_traj!(traj_cand::ContactTraj, traj::ContactTraj,
+function update_traj!(traj_cand::ContactTrajectory, traj::ContactTrajectory,
         ν_cand::Vector, ν::Vector, Δ::NewtonResidualConfigurationForce, α::T) where T
 
     H = traj_cand.H
@@ -158,7 +158,7 @@ function update_traj!(traj_cand::ContactTraj, traj::ContactTraj,
     return nothing
 end
 
-function update_traj!(traj_cand::ContactTraj, traj::ContactTraj,
+function update_traj!(traj_cand::ContactTrajectory, traj::ContactTrajectory,
         ν_cand::Vector, ν::Vector, Δ::NewtonResidualConfiguration, α::T) where T
 
     H = traj_cand.H

@@ -224,7 +224,7 @@ function visualize_force!(vis::Visualizer, model::Model, env::Environment,
 end
 
 function visualize_force!(vis::Visualizer, model::Model, env::Environment,
-		traj::ContactTraj; sample=max(1,Int(floor(traj.H/100))), h=traj.h*sample,
+		traj::ContactTrajectory; sample=max(1,Int(floor(traj.H/100))), h=traj.h*sample,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model), shift=-0.14)
 
