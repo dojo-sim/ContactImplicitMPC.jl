@@ -53,3 +53,13 @@ function update!(lin::LinearizedStep, s::Simulation, z::Vector{T}, θ::Vector{T}
 	s.res.rθ!(lin.rθ, z, θ)
 	return nothing
 end
+
+function shift!(lin1::LinearizedStep{T}, lin2::LinearizedStep{T}) where T 
+	lin1.z .= lin2.z
+	lin1.θ .= lin2.θ
+	lin1.κ .= lin2.κ
+	lin1.r .= lin2.r
+	lin1.rz .= lin2.rz 
+	lin1.rθ .= lin2.rθ
+	return nothing
+end

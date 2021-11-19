@@ -28,7 +28,7 @@ ip_opts = InteriorPointOptions(
 			diff_sol = true,
 			solver = :empty_solver)
 
-im_traj = ImplicitTraj(ref_traj, sim,
+im_traj = ImplicitTrajectory(ref_traj, sim,
 	κ = 1.0e-4,
 	mode = :configuration,
 	opts=ip_opts)

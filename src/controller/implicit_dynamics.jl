@@ -1,23 +1,24 @@
 """
-	ImplicitTraj{T}
+	ImplicitTrajectory{T}
 This structure holds the trajectory of evaluations and Jacobians of the implicit dynamics.
 These evaluations and Jacobians are computed using a linearizedimation computed around `lin`.
 """
-mutable struct ImplicitTraj{T,R,RZ,Rθ}
+mutable struct ImplicitTrajectory{T,R,RZ,Rθ,nq}
 	H::Int
 	lin::Vector{LinearizedStep{T}}
 	d::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}} # dynamics violation
 	dq2::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
 	dγ1::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
 	db1::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
-	δq0::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}} # q0 solution gradient length=H
-	δq1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # q1 solution gradient length=H
-	δu1::Vector{SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},UnitRange{Int64}},false}}  # u1 solution gradient length=H
+	δq0::Vector{SubArray{T,2,Array{T,2},Tuple{UnitRange{Int},UnitRange{Int}},false}} # q0 solution gradient length=H
+	δq1::Vector{SubArray{T,2,Array{T,2},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # q1 solution gradient length=H
+	δu1::Vector{SubArray{T,2,Array{T,2},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # u1 solution gradient length=H
 	ip::Vector{InteriorPoint{T,R,RZ,Rθ}}
 	mode::Symbol
+	iq2::SVector{nq,Int}
 end
 
-function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
+function ImplicitTrajectory(ref_traj::ContactTrajectory, s::Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 1e5,
 	mode = :configurationforce,
@@ -32,6 +33,9 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 
 	model = s.model
 	env = s.env
+
+	iq2 = index_q2(model, env, quat = false)
+	nq2 = length(iq2)
 
 	H = ref_traj.H
 
@@ -81,22 +85,24 @@ function ImplicitTraj(ref_traj::ContactTraj, s::Simulation;
 	δq1 = [view(ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
 	δu1 = [view(ip[t].δz, 1:nd, off .+ (1:nu)) for t = 1:H]; off += nu
 
-	return ImplicitTraj{typeof.([ip[1].z[1], ip[1].r, ip[1].rz, ip[1].rθ])...}(H, lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip, mode)
+	return ImplicitTrajectory{typeof.([ip[1].z[1], ip[1].r, ip[1].rz, ip[1].rθ])...,nq2}(H, lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip, mode, 
+		SVector{nq2,Int}(iq2))
 end
 
 
-function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
-	s::Simulation, alt::Vector; κ = ref_traj.κ[1])
-
+function update!(im_traj::ImplicitTrajectory{T}, ref_traj::ContactTrajectory{T},
+	s::Simulation{T}, alt::Vector{T}, κ::T) where T
 	H = ref_traj.H
 
 	for t = 1:H
-		fill!(im_traj.ip[t].κ, κ)
-	end
+		# central-path parameter
+		im_traj.ip[t].κ[1] = κ
 
-	for t = 1:H-1
-		im_traj.lin[t]   = im_traj.lin[t+1]
-		im_traj.ip[t].r  = im_traj.ip[t+1].r
+		t > H-1 && continue
+
+		# residual
+		im_traj.lin[t] = im_traj.lin[t+1]
+		im_traj.ip[t].r = im_traj.ip[t+1].r
 		im_traj.ip[t].rz = im_traj.ip[t+1].rz
 		im_traj.ip[t].rθ = im_traj.ip[t+1].rθ
 
@@ -121,7 +127,7 @@ function update!(im_traj::ImplicitTraj, ref_traj::ContactTraj,
 	return nothing
 end
 
-function set_altitude!(im_traj::ImplicitTraj, alt::Vector)
+function set_altitude!(im_traj::ImplicitTrajectory, alt::Vector)
 	H = im_traj.H
 	for t = 1:H
 		# altitude
@@ -137,35 +143,29 @@ function set_altitude!(ip::InteriorPoint, alt::Vector)
 end
 
 """
-	implicit_dynamics!(im_traj::ImplicitTraj, model::ContactModel,
-		traj::ContactTraj; κ = traj.κ)
+	implicit_dynamics!(im_traj::ImplicitTrajectory, model::ContactModel,
+		traj::ContactTrajectory; κ = traj.κ)
 Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
 linearized since it relies on a linearization about a reference trajectory.
 """
-function implicit_dynamics!(im_traj::ImplicitTraj, s::Simulation,
-	traj; κ = traj.κ) where {T, D}
+function implicit_dynamics!(im_traj::ImplicitTrajectory, s::Simulation, traj::ContactTrajectory; κ = 1.0)
 
 	model = s.model
 	env = s.env
 
-	# Threads.@threads for t = 1:traj.H
 	for t = 1:traj.H
 		# initialized solver
-		z_initialize!(im_traj.ip[t].z, model, env, copy(traj.q[t+2])) #TODO: try alt. schemes
+		z_initialize!(im_traj.ip[t].z, im_traj.iq2, model, env, traj.q[t+2]) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
 
 		# solve
 		status = interior_point_solve!(im_traj.ip[t])
 
-		# !status && error("implicit dynamics failure (t = $t)")
 		!status && (@warn "implicit dynamics failure (t = $t)")
 
 		# compute dynamics violation
-		# println("before!: im_traj.dq2[t] = ", scn.(im_traj.dq2[t]))
 		im_traj.dq2[t] .-= traj.q[t+2]
-		# println("implicit_dynamics!:    traj.q[t+2] = ", scn.(traj.q[t+2]))
-		# println(" after!: im_traj.dq2[t] = ", scn.(im_traj.dq2[t]))
-
+		
 		if im_traj.mode == :configurationforce
 			im_traj.dγ1[t] .-= traj.γ[t]
 			im_traj.db1[t] .-= traj.b[t]

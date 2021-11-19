@@ -29,7 +29,7 @@
 	ref_traj.κ .= κ # sets κ_tol for the im_traj IP solvers
 	traj0 = deepcopy(ref_traj)
 
-	im_traj = ContactImplicitMPC.ImplicitTraj(ref_traj, s, mode = :configuration)
+	im_traj = ContactImplicitMPC.ImplicitTrajectory(ref_traj, s, mode = :configuration)
 	ContactImplicitMPC.implicit_dynamics!(im_traj, s, traj0)
 
 	# Implicit dynamics contraint violation is ≈ 0
@@ -53,7 +53,7 @@
 				diff_sol = true,
 				solver = :empty_solver)
 
-	im_traj = ContactImplicitMPC.ImplicitTraj(ref_traj, s,
+	im_traj = ContactImplicitMPC.ImplicitTrajectory(ref_traj, s,
 		κ = 1.0e-4,
 		mode = :configuration,
 		opts=ip_opts)

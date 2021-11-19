@@ -63,11 +63,23 @@ sim = Simulator(s, 10, h=h_sim)#, policy=p)
 ## BENCHMARK 
 using InteractiveUtils
 
+function swap!(im_traj::ImplicitTrajectory, t::Int) 
+    p.im_traj.lin[t] = p.im_traj.lin[t+1]
+    return nothing
+end
+
+swap!(p.im_traj, t)
+@benchmark swap!($p.im_traj, $t)
+
+@benchmark $p.im_traj.lin[t] = $(p.im_traj.lin[t+1])
+r1 = p.im_traj.ip[t].r 
+r2 = p.im_traj.ip[t+1].r
+@benchmark shift!($r1, $r2)
 
 t = 1
-update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ[1]) 
-@benchmark update!($p.im_traj, $p.traj, $p.s, $p.altitude, κ = $p.κ[1]) 
-@code_warntype update!(p.im_traj, p.traj, p.s, p.altitude, κ = p.κ[1]) 
+update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1]) 
+@benchmark update!($p.im_traj, $p.traj, $p.s, $p.altitude, $p.κ[1]) 
+@code_warntype update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1]) 
 
 A = @SMatrix ones(10, 10) 
 
@@ -93,6 +105,25 @@ typeof(M1)
 policy(p, sim.traj, t)
 @benchmark policy($p, $sim.traj, $t)
 @code_warntype policy(p, sim.traj, t)
+
+function newton_function(n::Newton{T}) where T
+
+end
+
+@benchmark newton_function($p.newton)
+
+function solve_p!(p::Policy, sim::Simulator, t::Int)
+    newton_solve!(
+        p.newton, 
+        p.s, 
+        p.q0, 
+        sim.traj.q[t+1],
+        p.im_traj, 
+        p.traj, 
+        warm_start=false)
+end
+
+@benchmark solve_p!($p, $sim, $t)
 
 # @benchmark $p.ϕ .= ϕ_func($s.model, $s.env, $sim.traj.q[1])
 # @benchmark s.ϕ($p.ϕ, $sim.traj.q[1])
