@@ -86,7 +86,7 @@ function pusher_arc_traj(center::AbstractVector, radius::Real, α_start::Real, �
 	return pθ
 end
 
-function generate_pusher_traj(d::ImpulseDisturbance, traj::ContactTrajectory; side::Symbol=:right,
+function generate_pusher_traj(d::ImpulseDisturbance, traj::ContactTraj; side::Symbol=:right,
 		center=zeros(3), radius::Real=0.8, N_arc::Int=17)
 	H = traj.H
 	if side == :right

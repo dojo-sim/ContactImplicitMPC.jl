@@ -56,7 +56,7 @@ function z_initialize!(z, model::Model, env::Environment{<:World,LinearizedCone}
 	z[iq2] = q
 end
 
-function z_initialize!(z::Vector{T}, idx::SVector{nq2,Int}, model::Model, env::Environment{<:World,LinearizedCone}, q::Vector{T}) where {T,nq2} 
+function z_initialize!(z::Vector{T}, idx::SVector{nq2,Int}, q::Vector{T}) where {T,nq2} 
 	z .= 1.0
 	z[idx] .= q
 	return nothing

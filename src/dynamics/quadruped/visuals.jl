@@ -111,7 +111,7 @@ function visualize_payload!(vis::Visualizer, model::Model, q::AbstractVector;
 	return anim
 end
 
-function visualize_payload!(vis::Visualizer, model::Model, traj::ContactTrajectory;
+function visualize_payload!(vis::Visualizer, model::Model, traj::ContactTraj;
 		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,  α=1.0, object::Symbol=:mesh,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))

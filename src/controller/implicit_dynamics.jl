@@ -18,7 +18,7 @@ mutable struct ImplicitTrajectory{T,R,RZ,Rθ,NQ}
 	iq2::SVector{NQ,Int}
 end
 
-function ImplicitTrajectory(ref_traj::ContactTrajectory, s::Simulation;
+function ImplicitTrajectory(ref_traj::ContactTraj, s::Simulation;
 	κ = ref_traj.κ[1],
 	max_time = 1e5,
 	mode = :configurationforce,
@@ -90,7 +90,7 @@ function ImplicitTrajectory(ref_traj::ContactTrajectory, s::Simulation;
 end
 
 
-function update!(im_traj::ImplicitTrajectory{T,R,RZ,Rθ,nq}, ref_traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ},
+function update!(im_traj::ImplicitTrajectory{T,R,RZ,Rθ,nq}, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
 	s::Simulation{T,W,FC}, alt::Vector{T}, κ::T, H::Int) where {T,R,RZ,Rθ,nq,nu,nw,nc,nb,nz,nθ,W,FC}
 	
 	for t = 1:H
@@ -141,20 +141,11 @@ function set_altitude!(ip::InteriorPoint, alt::Vector)
 	return nothing
 end
 
-"""
-	implicit_dynamics!(im_traj::ImplicitTrajectory, model::ContactModel,
-		traj::ContactTrajectory; κ = traj.κ)
-Compute the evaluations and Jacobians of the implicit dynamics on the trajectory 'traj'. The computation is
-linearized since it relies on a linearization about a reference trajectory.
-"""
-function implicit_dynamics!(im_traj::ImplicitTrajectory, s::Simulation, traj::ContactTrajectory; κ = [1.0])
-
-	model = s.model
-	env = s.env
+function implicit_dynamics!(im_traj::ImplicitTrajectory, traj::ContactTraj)
 
 	for t = 1:traj.H
 		# initialized solver
-		z_initialize!(im_traj.ip[t].z, im_traj.iq2, model, env, traj.q[t+2]) #TODO: try alt. schemes
+		z_initialize!(im_traj.ip[t].z, im_traj.iq2, traj.q[t+2]) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]
 
 		# solve

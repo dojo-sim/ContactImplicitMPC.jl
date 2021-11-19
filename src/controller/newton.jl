@@ -20,8 +20,8 @@ mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,nν,NJ,NR,NI,O,LS}
     Δ::NR                          # step direction in the Newton solve, it contains: q2-qH+1, u1-uH, γ1-γH, b1-bH, λd1-λdH
     ν::Vector{SizedArray{Tuple{nν},T,1,1}}          # implicit dynamics lagrange multiplier
     ν_cand::Vector{SizedArray{Tuple{nν},T,1,1}}         # candidate implicit dynamics lagrange multiplier
-    traj::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}                           # optimized trajectory
-    traj_cand::ContactTrajectory{T,nq,nu,nw,nc,nb,nz,nθ}      # trial trajectory used in line search
+    traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}                           # optimized trajectory
+    traj_cand::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}      # trial trajectory used in line search
     Δq::Vector{SizedArray{Tuple{nq},T,1,1}}         # difference between the traj and ref_traj
     Δu::Vector{SizedArray{Tuple{nu},T,1,1}}         # difference between the traj and ref_traj
     Δγ::Vector{SizedArray{Tuple{nc},T,1,1}}         # difference between the traj and ref_traj
@@ -34,7 +34,7 @@ mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,nν,NJ,NR,NI,O,LS}
 end
 
 function Newton(s::Simulation{T}, H::Int, h::T,
-    traj::ContactTrajectory{T}, im_traj::ImplicitTrajectory{T};
+    traj::ContactTraj{T}, im_traj::ImplicitTrajectory{T};
     obj::Objective = TrackingObjective(s.model, s.env, H),
     opts::NewtonOptions{T} = NewtonOptions(), κ::T=im_traj.ip[1].κ[1]) where T
 
@@ -57,7 +57,7 @@ function Newton(s::Simulation{T}, H::Int, h::T,
     jac = NewtonJacobian(model, env, H, mode = mode)
 
     # precompute Jacobian for pre-factorization
-    implicit_dynamics!(im_traj, s, traj, κ = κ) #@@@
+    implicit_dynamics!(im_traj, traj) #@@@
 
     jacobian!(jac, im_traj, obj, H, opts.β_init)
 
@@ -96,7 +96,7 @@ end
 
 #TODO: add minus function
 
-function copy_traj!(traj::ContactTrajectory, traj_cand::ContactTrajectory, H::Int)
+function copy_traj!(traj::ContactTraj, traj_cand::ContactTraj, H::Int)
     Ht = traj.H
     Hs = traj_cand.H # MAYBE BREAKING TEST
 
@@ -121,7 +121,7 @@ function copy_traj!(traj::ContactTrajectory, traj_cand::ContactTrajectory, H::In
     return nothing
 end
 
-function reset!(core::Newton, ref_traj::ContactTrajectory,
+function reset!(core::Newton, ref_traj::ContactTraj,
     q0::Vector{T}, q1::Vector{T};
     warm_start::Bool = false) where T
 
@@ -164,14 +164,14 @@ function newton_solve!(
     q0::Vector{T},
     q1::Vector{T},
     im_traj::ImplicitTrajectory{T},
-    ref_traj::ContactTrajectory{T};
+    ref_traj::ContactTraj{T};
     warm_start::Bool=false) where T
 
     # reset solver 
     reset!(core, ref_traj, q0, q1, warm_start=warm_start)
     
     # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ[1])
+	implicit_dynamics!(im_traj, core.traj)
     
     # return nothing
     # Compute residual
@@ -200,7 +200,7 @@ function newton_solve!(
 	        update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	        # Compute implicit dynamics for candidate
-			implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ[1])
+			implicit_dynamics!(im_traj, core.traj_cand)
 
 	        # Compute residual for candidate
 	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
@@ -217,7 +217,7 @@ function newton_solve!(
 	            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	            # Compute implicit dynamics about trial_traj
-				implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ[1])
+				implicit_dynamics!(im_traj, core.traj_cand)
 
 	            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
 	            r_cand_norm = norm(core.res_cand.r, 1)

@@ -12,9 +12,9 @@ end
 
 mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,LS} <: Policy{T}
 	u::Vector{T}
-	traj::ContactTrajectory{T,NQ,NU,NW,NC,NB,NZ,Nθ}
-	traj_cache::ContactTrajectory{T,NQ,NU,NW,NC,NB,NZ,Nθ}
-	ref_traj::ContactTrajectory{T,NQ,NU,NW,NC,NB,NZ,Nθ}
+	traj::ContactTraj{T,NQ,NU,NW,NC,NB,NZ,Nθ}
+	traj_cache::ContactTraj{T,NQ,NU,NW,NC,NB,NZ,Nθ}
+	ref_traj::ContactTraj{T,NQ,NU,NW,NC,NB,NZ,Nθ}
 	im_traj::ImplicitTrajectory{T,R,RZ,Rθ,NQQ}
 	H::Int
 	stride::Vector{T}
@@ -30,7 +30,7 @@ mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,L
 	opts::CIMPCOptions{T}
 end
 
-function ci_mpc_policy(traj::ContactTrajectory, s::Simulation{T}, obj::Objective;
+function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 	H_mpc = traj.H,
 	N_sample = 1,
 	κ_mpc = traj.κ[1],

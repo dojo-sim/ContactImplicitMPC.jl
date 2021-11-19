@@ -161,8 +161,8 @@ mutable struct Newton{T,nq,nu,nw,nz,nθ,n1,n2,n3}
     Δ::NewtonResidual{T}                            # step direction in the Newton solve, it contains: q2-qH+1, u1-uH, γ1-γH, b1-bH, λd1-λdH
     ν::Vector{SizedArray{Tuple{n1},T,1,1}}          # implicit dynamics lagrange multiplier
     ν_cand::Vector{SizedArray{Tuple{n1},T,1,1}}         # candidate implicit dynamics lagrange multiplier
-    traj::ContactTrajectory       # optimized trajectory
-    traj_cand::ContactTrajectory # trial trajectory used in line search
+    traj::ContactTraj       # optimized trajectory
+    traj_cand::ContactTraj # trial trajectory used in line search
     Δq::Vector{SizedArray{Tuple{nq},T,1,1}}         # difference between the traj and ref_traj
     Δu::Vector{SizedArray{Tuple{nu},T,1,1}}         # difference between the traj and ref_traj
     ind::NewtonIndices                                 # indices of a one-time-step block
@@ -173,7 +173,7 @@ mutable struct Newton{T,nq,nu,nw,nz,nθ,n1,n2,n3}
 end
 
 function Newton(s::Simulation, H::Int, h::T,
-    traj::ContactTrajectory, im_traj::ImplicitTrajectory;
+    traj::ContactTraj, im_traj::ImplicitTrajectory;
     obj::Objective = TrackingObjective(s.model, s.env, H),
     opts::NewtonOptions = NewtonOptions(), κ::T=im_traj.ip[1].κ[1]) where T
 
@@ -192,7 +192,7 @@ function Newton(s::Simulation, H::Int, h::T,
     jac = NewtonJacobian(model, env, H)
 
     # precompute Jacobian for pre-factorization
-    implicit_dynamics!(im_traj, s, traj, κ = [κ]) #@@@
+    implicit_dynamics!(im_traj, traj) #@@@
     jacobian!(jac, im_traj, obj, H, opts.β_init)
 
     res = NewtonResidual(model, env, H)
@@ -292,7 +292,7 @@ function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj::Object
 end
 
 function residual!(res::NewtonResidual, core::Newton,
-    ν::Vector, im_traj::ImplicitTrajectory, traj::ContactTrajectory, ref_traj::ContactTrajectory)
+    ν::Vector, im_traj::ImplicitTrajectory, traj::ContactTraj, ref_traj::ContactTraj)
 
     # unpack
     opts = core.opts
@@ -328,7 +328,7 @@ end
 
 #TODO: add minus function
 
-function update_traj!(traj_cand::ContactTrajectory, traj::ContactTrajectory,
+function update_traj!(traj_cand::ContactTraj, traj::ContactTraj,
         ν_cand::Vector, ν::Vector, Δ::NewtonResidual{T}, α::T) where T
 
     H = traj_cand.H
@@ -346,7 +346,7 @@ function update_traj!(traj_cand::ContactTrajectory, traj::ContactTrajectory,
     return nothing
 end
 
-function copy_traj!(traj::ContactTrajectory, traj_cand::ContactTrajectory, H::Int)
+function copy_traj!(traj::ContactTraj, traj_cand::ContactTraj, H::Int)
     Ht = traj.H
     Hs = traj_cand.H # MAYBE BREAKING TEST
 
@@ -369,7 +369,7 @@ function copy_traj!(traj::ContactTrajectory, traj_cand::ContactTrajectory, H::In
     return nothing
 end
 
-function reset!(core::Newton, ref_traj::ContactTrajectory;
+function reset!(core::Newton, ref_traj::ContactTraj;
     warm_start::Bool = false, initial_offset::Bool = false,
     q0 = ref_traj.q[1], q1 = ref_traj.q[2])
 
@@ -414,7 +414,7 @@ function reset!(core::Newton, ref_traj::ContactTrajectory;
 end
 
 function newton_solve!(core::Newton, s::Simulation,
-    im_traj::ImplicitTrajectory, ref_traj::ContactTrajectory;
+    im_traj::ImplicitTrajectory, ref_traj::ContactTraj;
     warm_start::Bool = false, initial_offset::Bool = false,
     q0 = ref_traj.q[1], q1 = ref_traj.q[2])
 
@@ -423,7 +423,7 @@ function newton_solve!(core::Newton, s::Simulation,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
 
     # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
+	implicit_dynamics!(im_traj, core.traj)
 
     # Compute residual
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
@@ -448,7 +448,7 @@ function newton_solve!(core::Newton, s::Simulation,
         update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
         # Compute implicit dynamics for candidate
-		implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
+		implicit_dynamics!(im_traj, core.traj_cand)
 
         # Compute residual for candidate
         residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
@@ -465,7 +465,7 @@ function newton_solve!(core::Newton, s::Simulation,
             update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
             # Compute implicit dynamics about trial_traj
-			implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
+			implicit_dynamics!(im_traj, core.traj_cand)
 
             residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
             r_cand_norm = norm(core.res_cand.r, 1)

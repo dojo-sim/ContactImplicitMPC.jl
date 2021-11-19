@@ -28,7 +28,7 @@
 	"""
 	mutable struct PDPolicy <: ContactImplicitMPC.Policy
 		model::Model
-	    traj::ContactTrajectory
+	    traj::ContactTraj
 		q0::AbstractVector
 	    idx::Int
 	    cnt::Int
