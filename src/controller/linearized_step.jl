@@ -45,21 +45,11 @@ function LinearizedStep(s::Simulation)
 	return LinearizedStep(s, z0, θ0, κ0)
 end
 
-function update!(lin::LinearizedStep, s::Simulation, z::Vector{T}, θ::Vector{T}) where T
+function update!(lin::LinearizedStep{T}, s::Simulation{T}, z::Vector{T}, θ::Vector{T}) where T
 	lin.z .= z
 	lin.θ .= θ
 	s.res.r!(lin.r, z, θ, lin.κ)
 	s.res.rz!(lin.rz, z, θ)
 	s.res.rθ!(lin.rθ, z, θ)
-	return nothing
-end
-
-function shift!(lin1::LinearizedStep{T}, lin2::LinearizedStep{T}) where T 
-	lin1.z .= lin2.z
-	lin1.θ .= lin2.θ
-	lin1.κ .= lin2.κ
-	lin1.r .= lin2.r
-	lin1.rz .= lin2.rz 
-	lin1.rθ .= lin2.rθ
 	return nothing
 end

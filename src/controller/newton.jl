@@ -57,7 +57,7 @@ function Newton(s::Simulation{T}, H::Int, h::T,
     jac = NewtonJacobian(model, env, H, mode = mode)
 
     # precompute Jacobian for pre-factorization
-    implicit_dynamics!(im_traj, s, traj, κ = [κ]) #@@@
+    implicit_dynamics!(im_traj, s, traj, κ = κ) #@@@
 
     jacobian!(jac, im_traj, obj, H, opts.β_init)
 
@@ -171,7 +171,7 @@ function newton_solve!(
     reset!(core, ref_traj, q0, q1, warm_start=warm_start)
     
     # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ)
+	implicit_dynamics!(im_traj, s, core.traj, κ = im_traj.ip[1].κ[1])
     
     # return nothing
     # Compute residual
@@ -200,7 +200,7 @@ function newton_solve!(
 	        update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	        # Compute implicit dynamics for candidate
-			implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
+			implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ[1])
 
 	        # Compute residual for candidate
 	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
@@ -217,7 +217,7 @@ function newton_solve!(
 	            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	            # Compute implicit dynamics about trial_traj
-				implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ)
+				implicit_dynamics!(im_traj, s, core.traj_cand, κ = im_traj.ip[1].κ[1])
 
 	            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
 	            r_cand_norm = norm(core.res_cand.r, 1)

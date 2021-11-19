@@ -10,18 +10,18 @@
     live_plotting::Bool=false # Use the live plotting tool to debug
 end
 
-mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC} <: Policy{T}
+mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,LS} <: Policy{T}
 	u::Vector{T}
 	traj::ContactTrajectory{T,NQ,NU,NW,NC,NB,NZ,Nθ}
 	traj_cache::ContactTrajectory{T,NQ,NU,NW,NC,NB,NZ,Nθ}
 	ref_traj::ContactTrajectory{T,NQ,NU,NW,NC,NB,NZ,Nθ}
-	im_traj::ImplicitTrajectory{T,R,RZ,Rθ}
+	im_traj::ImplicitTrajectory{T,R,RZ,Rθ,NQQ}
 	H::Int
 	stride::Vector{T}
 	altitude::Vector{T}
 	ϕ::Vector{T}
 	κ::Vector{T}
-	newton::Newton{T,NQ,NU,NW,NC,NB,NZ,Nθ,Nν}
+	newton::Newton{T,NQ,NU,NW,NC,NB,NZ,Nθ,Nν,NJ,NR,NI,OB,LS}
 	newton_mode::Symbol
 	s::Simulation{T,W,FC}
 	q0::Vector{T}
@@ -96,8 +96,8 @@ function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,N
 		q1 = traj.q[t+1]
 		newton_solve!(p.newton, p.s, p.q0, q1,
 			p.im_traj, p.traj, warm_start = t > 1)
-		update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1]) 
-	
+		update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H) 
+
 		# visualize
 		# p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, traj.q[t+1], t)
 

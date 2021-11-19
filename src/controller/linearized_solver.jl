@@ -63,60 +63,6 @@ mutable struct RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
     alt_zeros::SVector{nn,T}
 end
 
-function shift!(rlin1::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}, rlin2::RLin{T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}) where {T,nx,ny,nθ,nxx,nxy,nyy,nxθ,nyθ,nc,nn}
-    # Reference residual
-    rlin1.rdyn0 = rlin2.rdyn0
-    rlin1.rrst0 = rlin2.rrst0
-    rlin1.rbil0 = rlin2.rbil0
-
-    # Residual
-    rlin1.rdyn = rlin2.rdyn
-    rlin1.rrst = rlin2.rrst
-    rlin1.rbil = rlin2.rbil
-
-    # Reference residual jacobian rz0
-    rlin1.Dx = rlin2.Dx
-    rlin1.Dy1 = rlin2.Dy1
-    rlin1.Rx = rlin2.Rx
-    rlin1.Ry1 = rlin2.Ry1
-    rlin1.Ry2 = rlin2.Ry2
-
-    # Reference residual jacobian rθ0
-    rlin1.rθdyn = rlin2.rθdyn
-    rlin1.rθrst = rlin2.rθrst
-    rlin1.rθbil = rlin2.rθbil
-
-    # Reference z0 and θ0
-    rlin1.x0 = rlin2.x0
-    rlin1.y10 = rlin2.y10
-    rlin1.y20 = rlin2.y20
-    rlin1.θ0 = rlin2.θ0
-
-    # Values of z and θ
-    rlin1.x = rlin2.x
-    rlin1.y1 = rlin2.y1
-    rlin1.y2 = rlin2.y2
-    rlin1.θ = rlin2.θ
-
-    # Indices
-    rlin1.nz = rlin2.nz
-    rlin1.nθ = rlin2.nθ
-    rlin1.ix = rlin2.ix
-    rlin1.iy1 = rlin2.iy1
-    rlin1.iy2 = rlin2.iy2
-    rlin1.iθ = rlin2.iθ
-    rlin1.idyn = rlin2.idyn
-    rlin1.irst = rlin2.irst
-    rlin1.ibil = rlin2.ibil
-    rlin1.ialt = rlin2.ialt
-
-    # Altitude
-    rlin1.alt = rlin2.alt
-    rlin1.alt_zeros = rlin2.alt_zeros
-
-    return nothing
-end
-
 function RLin(s::Simulation, z0::AbstractVector{T}, θ0::AbstractVector{T},
         r0::AbstractVector{T}, rz0::AbstractMatrix{T}, rθ0::AbstractMatrix{T}) where {T}
 
@@ -604,41 +550,41 @@ function linear_solve!(solver::EmptySolver, Δ::Vector{T}, rz::RZLin{T,nx,ny,nxx
 end
 
 function update!(r::RLin{T}, z0::Vector{T}, θ0::Vector{T},
-        r0::Vector{T}, rz0::Matrix{T}, rθ0::Matrix{T}) where {T}
-	idyn = r.idyn
-	irst = r.irst
-	ibil = r.ibil
+    r0::Vector{T}, rz0::Matrix{T}, rθ0::Matrix{T}) where {T}
+    idyn = r.idyn
+    irst = r.irst
+    ibil = r.ibil
     iθ = r.iθ
-	ix = r.ix
-	iy1 = r.iy1
-	iy2 = r.iy2
+    ix = r.ix
+    iy1 = r.iy1
+    iy2 = r.iy2
 
-	# Reference residual
+    # Reference residual
     r.rdyn0 = r0[idyn]
     r.rrst0 = r0[irst]
     r.rbil0 = r0[ibil]
 
     # Reference residual jacobian rz0
-	r.Dx  = rz0[idyn, ix]
-	r.Dy1 = rz0[idyn, iy1]
-	r.Rx  = rz0[irst, ix]
-	r.Ry1 = rz0[irst, iy1]
-	r.Ry2 = diag(rz0[irst, iy2])
+    r.Dx  = rz0[idyn, ix]
+    r.Dy1 = rz0[idyn, iy1]
+    r.Rx  = rz0[irst, ix]
+    r.Ry1 = rz0[irst, iy1]
+    r.Ry2 = diag(rz0[irst, iy2])
 
     # Reference residual jacobian rθ0
-	r.rθdyn = rθ0[idyn, iθ]
-	r.rθrst = rθ0[irst, iθ]
-	r.rθbil = rθ0[ibil, iθ]
+    r.rθdyn = rθ0[idyn, iθ]
+    r.rθrst = rθ0[irst, iθ]
+    r.rθbil = rθ0[ibil, iθ]
 
     # # Reference z0 and θ0
     r.x0  = z0[ix]
     r.y10 = z0[iy1]
     r.y20 = z0[iy2]
     r.θ0 = θ0[iθ]
-	return nothing
+    return nothing
 end
 
-function update!(rz::RZLin{T}, rz0::AbstractMatrix{T}) where {T}
+function update!(rz::RZLin{T}, rz0::Matrix{T}) where T
 	idyn = rz.idyn
 	irst = rz.irst
 	ibil = rz.ibil
@@ -666,49 +612,12 @@ function update!(rz::RZLin{T}, rz0::AbstractMatrix{T}) where {T}
 	return nothing
 end
 
-function update!(rθ::RθLin{T}, rθ0::AbstractMatrix{T}) where {T}
-	# Fill the matrix blocks rθ0s
-	rθ.rθdyn0 = rθ0[rθ.idyn,rθ.iθ]
-	rθ.rθrst0 = rθ0[rθ.irst,rθ.iθ]
-	rθ.rθbil0 = rθ0[rθ.ibil,rθ.iθ]
+function update!(rθ::RθLin{T}, rθ0::Matrix{T}) where T
+	rθ.rθdyn0 = rθ0[rθ.idyn, rθ.iθ]
+	rθ.rθrst0 = rθ0[rθ.irst, rθ.iθ]
+	rθ.rθbil0 = rθ0[rθ.ibil, rθ.iθ]
 	return nothing
 end
-
-# function least_squares!(ip::InteriorPoint, z::Vector{T}, θ::AbstractVector{T},
-# 		r::RLin{T}, rz::RZLin{T}) where {T}
-# 	δθ = θ - r.θ0
-# 	δrdyn = r.rdyn0 - r.rθdyn * δθ
-# 	δrrst = r.rrst0 - r.rθrst * δθ
-
-# 	δw1 = rz.A1 * δrdyn + rz.A2 * δrrst
-# 	δw2 = rz.A3 * δrdyn + rz.A4 * δrrst
-# 	δw3 = rz.A5 * δrdyn + rz.A6 * δrrst
-
-# 	@. @inbounds z[r.ix]  .= r.x0  .+ δw1
-# 	@. @inbounds z[r.iy1] .= r.y10 .+ δw2
-# 	@. @inbounds z[r.iy2] .= r.y20 .+ δw3
-# 	return nothing
-# end
-
-# function residual_violation(ip::InteriorPoint, r::RLin{T}; nquat::Int = 0) where {T}
-#     max(norm(r.rdyn, Inf), norm(r.rrst, Inf))
-# end
-
-# function bilinear_violation(ip::InteriorPoint, r::RLin{T}; nquat::Int = 0) where {T}
-#     norm(r.rbil, Inf)
-# end
-
-# function general_correction_term!(r::RLin, Δ::AbstractVector{T}, ortr::Vector{Int},
-# 		socr::Vector{Int}, ortΔ::Vector{Vector{Int}}, socΔ::Vector{Vector{Vector{Int}}}) where {T}
-# 	# @warn "define residual order"
-#     r.rbil += vcat(
-# 		Δ[ortΔ[1]] .* Δ[ortΔ[2]], # ORT
-# 		[second_order_cone_product( # SOC
-# 			Δ[socΔ[2][i]],
-# 			Δ[socΔ[1][i]],
-# 		) for i in eachindex(socΔ[1])]...)
-#     return nothing
-# end
 
 function rz!(ip::InteriorPoint, rz::RZLin{T}, z::AbstractVector{T},
 		θ::AbstractVector{T}; reg::T = 0.0) where {T}
