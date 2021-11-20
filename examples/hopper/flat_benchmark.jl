@@ -138,16 +138,8 @@ policy(p, sim.traj, t)
 @benchmark policy($p, $sim.traj, $t)
 @code_warntype policy(p, sim.traj, t)
 
-implicit_dynamics!(p.im_traj, p.s, p.newton.traj)
-
-
-
-
-
-
-
-@benchmark implicit_dynamics!($p.im_traj, $p.s, $p.newton.traj)
-@code_warntype implicit_dynamics!(p.im_traj, p.s, p.newton.traj)
+@benchmark implicit_dynamics!($p.im_traj, $p.newton.traj)
+@code_warntype implicit_dynamics!(p.im_traj, p.newton.traj)
 
 @benchmark newton_function($p.newton)
 
@@ -175,6 +167,35 @@ end
 #     sim.traj, t, p.s.model.nc, p.N_sample,
 #     threshold = p.opts.altitude_impact_threshold,
 #     verbose = p.opts.altitude_verbose)
+newton = p.newton
+residual!(newton.res, newton, newton.ν, p.im_traj, newton.traj, p.traj)
+@code_warntype residual!(newton.res, newton, newton.ν, p.im_traj, newton.traj, p.traj)
+@benchmark residual!($newton.res, $newton, $newton.ν, $p.im_traj, $newton.traj, $p.traj)
+
+gradient!(newton.res, newton.obj, newton, newton.traj, p.traj)
+@code_warntype gradient!(newton.res, newton.obj, newton, newton.traj, p.traj)
+@benchmark gradient!($newton.res, $newton.obj, $newton, $newton.traj, $p.traj)
+
+t = 1
+nΔ =  newton.Δq[t]
+nq2 = newton.traj.q[t+2]
+pq2 = p.traj.q[t+2]
+delta!(nΔ, nq2, pq2)
+@code_warntype delta!(nΔ, nq2, pq2)
+@benchmark delta!($nΔ, $nq2, $pq2)
+
+sol1 = zeros(3) 
+sol2 = zeros(3)
+
+a = rand(3, 3) 
+b = rand(3) 
+c = rand(3) 
+sol1 .+= a * (b - c) 
+
+mul!(sol2, a, b, 1.0, 1.0)
+mul!(sol2, a, c, -1.0, 1.0)
+
+sol1 - sol2
 
 # ## Simulate
 simulate!(sim, Array(q1_sim), Array(v1_sim))

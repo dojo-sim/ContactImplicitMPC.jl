@@ -22,10 +22,10 @@ mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,nν,NJ,NR,NI,O,LS}
     ν_cand::Vector{SizedArray{Tuple{nν},T,1,1}}         # candidate implicit dynamics lagrange multiplier
     traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}                           # optimized trajectory
     traj_cand::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}      # trial trajectory used in line search
-    Δq::Vector{SizedArray{Tuple{nq},T,1,1}}         # difference between the traj and ref_traj
-    Δu::Vector{SizedArray{Tuple{nu},T,1,1}}         # difference between the traj and ref_traj
-    Δγ::Vector{SizedArray{Tuple{nc},T,1,1}}         # difference between the traj and ref_traj
-    Δb::Vector{SizedArray{Tuple{nb},T,1,1}}         # difference between the traj and ref_traj
+    Δq::Vector{Vector{T}}#::Vector{SizedArray{Tuple{nq},T,1,1}}         # difference between the traj and ref_traj
+    Δu::Vector{Vector{T}}         # difference between the traj and ref_traj
+    Δγ::Vector{Vector{T}}         # difference between the traj and ref_traj
+    Δb::Vector{Vector{T}}         # difference between the traj and ref_traj
     ind::NI                                 # indices of a one-time-step block
     obj::O                              # obj function
     solver::LS
@@ -72,7 +72,9 @@ function Newton(s::Simulation{T}, H::Int, h::T,
     traj = contact_trajectory(model, env, H, h, κ=κ)
     traj_cand = contact_trajectory(model, env, H, h, κ=κ)
 
-    Δq  = [zeros(SizedVector{nq,T}) for t = 1:H]
+    # Δq  = [zeros(SizedVector{nq,T}) for t = 1:H]
+    Δq  = [zeros(nq) for t = 1:H]
+
     Δu  = [zeros(SizedVector{nu,T}) for t = 1:H]
     Δγ  = [zeros(SizedVector{nc,T}) for t = 1:H]
     Δb  = [zeros(SizedVector{nb,T}) for t = 1:H]
@@ -89,6 +91,12 @@ function Newton(s::Simulation{T}, H::Int, h::T,
 end
 
 function delta!(Δx::SizedArray{Tuple{nx},T,1,1}, x, x_ref) where {nx,T}
+    Δx .= x
+    Δx .-= x_ref
+    return nothing
+end
+
+function delta!(Δx::Vector{T}, x, x_ref) where T
     Δx .= x
     Δx .-= x_ref
     return nothing
