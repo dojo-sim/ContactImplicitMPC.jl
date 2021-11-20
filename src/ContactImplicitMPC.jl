@@ -300,6 +300,7 @@ export
     flat_2D_lc,
     flat_3D_lc,
     plot_surface!,
-    stairs!
+    stairs!,
+    Simulator
 
 end # module

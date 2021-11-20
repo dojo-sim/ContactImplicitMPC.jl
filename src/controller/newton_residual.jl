@@ -1,7 +1,7 @@
 
 # Configurations and contact forces
 struct NewtonResidualConfigurationForce{T,vq2,vu1,vγ1,vb1,vd,vI,vq0,vq1} <: NewtonResidual
-    r#::Vector{T}                           # residual
+    r::Vector{T}                           # residual
 
     q2::Vector{vq2}                    # rsd objective views
     u1::Vector{vu1}                    # rsd objective views
@@ -56,7 +56,7 @@ end
 
 # Configurations
 struct NewtonResidualConfiguration{T,vq2,vu1,vd,vI,vq0,vq1} <: NewtonResidual
-    r#::Vector{T}                           # residual
+    r::Vector{T}                           # residual
 
     q2::Vector{vq2}                    # rsd objective views
     u1::Vector{vu1}                    # rsd objective views
@@ -223,18 +223,22 @@ function gradient!(res::NewtonResidualConfigurationForce, obj::TrackingVelocityO
     end
 end
 
-function gradient!(res::NewtonResidualConfiguration, obj::TrackingVelocityObjective, core, traj, ref_traj)
+function gradient!(res::NewtonResidualConfiguration{T,vq2,vu1,vd,vI,vq0,vq1}, obj::TrackingVelocityObjective{Q,U,C,B}, core::Newton{T,nq,nu,nw,nc,nb,nz,nθ,nν,NJ,NR,NI,O,LS}, traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}) where {T,vq2,vu1,vd,vI,vq0,vq1,Q,U,C,B,nq,nu,nw,nc,nb,nz,nθ,nν,NJ,NR,NI,O,LS}
     for t = 1:traj.H
         # Cost function
         delta!(core.Δq[t], traj.q[t+2], ref_traj.q[t+2])
         delta!(core.Δu[t], traj.u[t], ref_traj.u[t])
 
-        res.q2[t] .+= obj.q[t] * core.Δq[t]
-        res.u1[t] .+= obj.u[t] * core.Δu[t]
+        mul!(res.q2[t], obj.q[t], core.Δq[t], 1.0, 1.0)
+        mul!(res.u1[t], obj.u[t], core.Δu[t], 1.0, 1.0)
 
         # velocity
-        res.q2[t] .+= obj.v[t] * (traj.q[t+2] - traj.q[t+1])
+        mul!(res.q2[t], obj.v[t], traj.q[t+2], 1.0, 1.0) 
+        mul!(res.q2[t], obj.v[t], traj.q[t+1], -1.0, 1.0)
+
         t == 1 && continue
-        res.q2[t-1] .-= obj.v[t] * (traj.q[t+2] - traj.q[t+1])
+        # res.q2[t-1] .-= obj.v[t] * (traj.q[t+2] - traj.q[t+1])
+        mul!(res.q2[t-1], obj.v[t], traj.q[t+2], -1.0, 1.0) 
+        mul!(res.q2[t-1], obj.v[t], traj.q[t+1], 1.0, 1.0)
     end
 end
