@@ -32,7 +32,6 @@ function NewtonResidualConfigurationForce(model::Model, env::Environment, H::Int
 
     iz = vcat(iq, iγ, ib) # index of the IP solver solution [q2, γ1, b1]
 
-    # iν = SizedVector{nd}(off .+ (1:nd)); #off += nd # index of the dynamics lagrange multiplier ν1
     iν = SizedVector{nd}(1:nd); #off += nd # index of the dynamics lagrange multiplier ν1
 
     r = zeros(H * (nr + nd))
@@ -81,7 +80,6 @@ function NewtonResidualConfiguration(model::Model, env::Environment, H::Int)
 
     iν = SizedVector{nd}(1:nd) # index of the dynamics lagrange multiplier ν1
 
-
     r = zeros(H * (nr + nd))
 
     u1  = [view(r, (t - 1) * nr .+ iu) for t = 1:H]
@@ -125,9 +123,10 @@ function residual!(res::NewtonResidual, core::Newton,
 
     for t in eachindex(ν)
         # Lagrangian
-        t >= 3 ? res.q2[t-2] .+= im_traj.δq0[t]' * ν[t] : nothing
-        t >= 2 ? res.q2[t-1] .+= im_traj.δq1[t]' * ν[t] : nothing
-        res.u1[t] .+= im_traj.δu1[t]' * ν[t]
+        t >= 3 && mul!(res.q2[t-2], transpose(im_traj.δq0[t]), ν[t], 1.0, 1.0)
+        t >= 2 && mul!(res.q2[t-1], transpose(im_traj.δq1[t]), ν[t], 1.0, 1.0)
+        mul!(res.u1[t], transpose(im_traj.δu1[t]), ν[t], 1.0, 1.0)
+        
         # Implicit dynamics
         res.rd[t] .+= im_traj.d[t]
 
@@ -149,7 +148,7 @@ function update_traj!(traj_cand::ContactTraj, traj::ContactTraj,
         traj_cand.γ[t] .= traj.γ[t] .- α .* Δ.γ1[t]
         traj_cand.b[t] .= traj.b[t] .- α .* Δ.b1[t]
 
-        ν_cand[t]  .= ν[t] .- α .* Δ.rd[t]
+        ν_cand[t] .= ν[t] .- α .* Δ.rd[t]
     end
 
     update_z!(traj_cand)
@@ -167,7 +166,7 @@ function update_traj!(traj_cand::ContactTraj, traj::ContactTraj,
         traj_cand.q[t+2] .= traj.q[t+2] .- α .* Δ.q2[t]
         traj_cand.u[t] .= traj.u[t] .- α .* Δ.u1[t]
 
-        ν_cand[t]  .= ν[t] .- α .* Δ.rd[t]
+        ν_cand[t] .= ν[t] .- α .* Δ.rd[t]
     end
 
     update_z!(traj_cand)

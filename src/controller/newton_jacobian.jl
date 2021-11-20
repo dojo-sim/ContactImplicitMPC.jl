@@ -1,4 +1,3 @@
-
 # Configurations and forces
 struct NewtonJacobianConfigurationForce{T,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vpr,Vdu} <: NewtonJacobian
     R::SparseMatrixCSC{T,Int}                 # jacobian
@@ -60,8 +59,8 @@ function NewtonJacobianConfigurationForce(model::Model, env::Environment, H::Int
     q0T = [view(R, (t - 3) * nr .+ iq, H * nr + (t - 1) * nd .+ iν) for t = 3:H]
     q1  = [view(R, H * nr + (t - 1) * nd .+ iν, (t - 2) * nr .+ iq) for t = 2:H]
     q1T = [view(R, (t - 2) * nr .+ iq, H * nr + (t - 1) * nd .+ iν) for t = 2:H]
-    u1  = [view(R, H * nr + (t - 1) * nd .+ iν, (t - 1) * nr .+ iu) for t = 1:H]
-    u1T = [view(R, (t - 1) * nr .+ iu, H * nr + (t - 1) * nd .+ iν) for t = 1:H]
+    u1  = [view(R, collect(H * nr + (t - 1) * nd .+ iν), collect((t - 1) * nr .+ iu)) for t = 1:H]
+    u1T = [view(R, collect((t - 1) * nr .+ iu), collect(H * nr + (t - 1) * nd .+ iν)) for t = 1:H]
     reg_pr = view(R, CartesianIndex.(1:H*nr, 1:H*nr))
     reg_du = view(R, CartesianIndex.(H * nr .+ (1:H * nd), H * nr .+ (1:H * nd)))
 
@@ -124,8 +123,8 @@ function NewtonJacobianConfiguration(model::Model, env::Environment, H::Int)
     q0T = [view(R, (t - 3) * nr .+ iq, H * nr + (t - 1) * nd .+ iν) for t = 3:H]
     q1  = [view(R, H * nr + (t - 1) * nd .+ iν, (t - 2) * nr .+ iq) for t = 2:H]
     q1T = [view(R, (t - 2) * nr .+ iq, H * nr + (t - 1) * nd .+ iν) for t = 2:H]
-    u1  = [view(R, H * nr + (t - 1) * nd .+ iν, (t - 1) * nr .+ iu) for t = 1:H]
-    u1T = [view(R, (t - 1) * nr .+ iu, H * nr + (t - 1) * nd .+ iν) for t = 1:H]
+    u1  = [view(R, collect(H * nr + (t - 1) * nd .+ iν), collect((t - 1) * nr .+ iu)) for t = 1:H]
+    u1T = [view(R, collect((t - 1) * nr .+ iu), collect(H * nr + (t - 1) * nd .+ iν)) for t = 1:H]
     reg_pr = view(R, CartesianIndex.(1:H*nr, 1:H*nr))
     reg_du = view(R, CartesianIndex.(H * nr .+ (1:H * nd), H * nr .+ (1:H * nd)))
 
@@ -163,46 +162,105 @@ function initialize_jacobian!(jac::NewtonJacobian, obj::Objective, H::Int)
     return nothing
 end
 
-function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj::Objective,
+# function update_jacobian!(jac::NewtonJacobianConfiguration{T,Vq,Vu,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vpr,Vdu}, im_traj::ImplicitTrajectory{T,R,RZ,Rθ,nq}, obj::Objective,
+#     H::Int, β::T) where {T,Vq,Vu,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vpr,Vdu,R,RZ,Rθ,nq}
+
+#     # reset
+#     for t = 1:H
+#         if t >= 3
+#             fill!(jac.q0[t-2], 0.0)
+#             fill!(jac.q0T[t-2], 0.0)
+#         end
+
+#         if t >= 2
+#             fill!(jac.q1[t-1], 0.0)
+#             fill!(jac.q1T[t-1], 0.0)
+#         end
+#         fill!(jac.u1[t], 0.0)
+#         fill!(jac.u1T[t], 0.0)
+
+#         # regularization
+#         ###### fill!(jac.reg_pr, 0.0)
+#         fill!(jac.reg_du, 0.0)
+#     end
+
+
+#     for t = 1:H
+#         if t >= 3
+#             jac.q0[t-2] .+= im_traj.δq0[t]
+#             jac.q0T[t-2] .+= im_traj.δq0[t]'
+#         end
+
+#         if t >= 2
+#             jac.q1[t-1]  .+= im_traj.δq1[t]
+#             jac.q1T[t-1] .+= im_traj.δq1[t]'
+#         end
+
+#         jac.u1[t]  .+= im_traj.δu1[t]
+#         jac.u1T[t] .+= im_traj.δu1[t]'
+
+#         # Dual regularization
+#         #### jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+#         jac.reg_du .-= 1.0 * β * im_traj.ip[t].κ[1] # TODO sort the κ stuff, maybe make it a prameter of this function
+#     end
+
+#     return nothing
+# end
+
+# function set_zero!(a::M) where M 
+#     nz = length(a)
+#     for i = 1:nz 
+#         a[i] = 0.0
+#     end
+# end
+
+function _update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj::Objective,
     H::Int, β::T) where T
 
-    # reset
-    for t = 1:H
-        if t >= 3
-            fill!(jac.q0[t-2], 0.0)
-            fill!(jac.q0T[t-2], 0.0)
-        end
+    # # reset
+    # for t = 1:H
+    #     if t >= 3
+    #         # fill!(jac.q0[t-2], 0.0)
+    #         # fill!(jac.q0T[t-2], 0.0)
+    #         set_zero!(jac.q0[t-2])
+    #         set_zero!(jac.q0T[t-2])
+    #     end
 
-        if t >= 2
-            fill!(jac.q1[t-1], 0.0)
-            fill!(jac.q1T[t-1], 0.0)
-        end
+    #     if t >= 2
+    #         # fill!(jac.q1[t-1], 0.0)
+    #         # fill!(jac.q1T[t-1], 0.0)
+    #         set_zero!(jac.q1[t-1]) 
+    #         set_zero!(jac.q1T[t-1])
+    #     end
+    #     # fill!(jac.u1[t], 0.0)
+    #     # fill!(jac.u1T[t], 0.0)
+    #     set_zero!(jac.u1[t]) 
+    #     set_zero!(jac.u1T[t])
 
-        fill!(jac.u1[t], 0.0)
-        fill!(jac.u1T[t], 0.0)
+    #     # regularization
+    #     ## fill!(jac.reg_pr, 0.0)
+    #     # fill!(jac.reg_du, 0.0)
+    #     set_zero!(jac.reg_du)
+    # end
 
-        # regularization
-        # fill!(jac.reg_pr, 0.0)
-        fill!(jac.reg_du, 0.0)
-    end
 
     for t = 1:H
         if t >= 3
             jac.q0[t-2]  .+= im_traj.δq0[t]
-            jac.q0T[t-2] .+= im_traj.δq0[t]'
+            jac.q0T[t-2] .+= transpose(im_traj.δq0[t])
         end
 
         if t >= 2
             jac.q1[t-1]  .+= im_traj.δq1[t]
-            jac.q1T[t-1] .+= im_traj.δq1[t]'
+            jac.q1T[t-1] .+= transpose(im_traj.δq1[t])
         end
 
         jac.u1[t]  .+= im_traj.δu1[t]
-        jac.u1T[t] .+= im_traj.δu1[t]'
+        jac.u1T[t] .+= transpose(im_traj.δu1[t])
 
         # Dual regularization
         # jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
-        jac.reg_du .-= 1.0 * β * im_traj.ip[t].κ # TODO sort the κ stuff, maybe make it a prameter of this function
+        jac.reg_du .-= β * im_traj.ip[t].κ[1] # TODO sort the κ stuff, maybe make it a prameter of this function
     end
 
     return nothing
@@ -210,9 +268,8 @@ end
 
 function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj::Objective,
     H::Int, β::T) where T
-
     initialize_jacobian!(jac, obj, H)
-    update_jacobian!(jac, im_traj, obj, H, β)
+    _update_jacobian!(jac, im_traj, obj, H, β)
 
     return nothing
 end
