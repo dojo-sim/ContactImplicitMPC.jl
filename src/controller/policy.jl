@@ -10,7 +10,7 @@
     live_plotting::Bool=false # Use the live plotting tool to debug
 end
 
-mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,LS} <: Policy{T}
+mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,LS,NV} <: Policy{T}
 	u::Vector{T}
 	traj::ContactTraj{T,NQ,NU,NW,NC,NB,NZ,Nθ}
 	traj_cache::ContactTraj{T,NQ,NU,NW,NC,NB,NZ,Nθ}
@@ -21,7 +21,7 @@ mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,L
 	altitude::Vector{T}
 	ϕ::Vector{T}
 	κ::Vector{T}
-	newton::Newton{T,NQ,NU,NW,NC,NB,NZ,Nθ,Nν,NJ,NR,NI,OB,LS}
+	newton::Newton{T,NQ,NU,NW,NC,NB,NZ,Nθ,Nν,NJ,NR,NI,OB,LS,NV}
 	newton_mode::Symbol
 	s::Simulation{T,W,FC}
 	q0::Vector{T}

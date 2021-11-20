@@ -13,13 +13,13 @@ abstract type NewtonIndices end
 abstract type NewtonResidual end
 abstract type NewtonJacobian end
 
-mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,nν,NJ,NR,NI,O,LS}
+mutable struct Newton{T,nq,nu,nw,nc,nb,nz,nθ,nν,NJ,NR,NI,O,LS,NV}
     jac::NJ                         # NewtonJacobian
     res::NR                        # residual
     res_cand::NR                     # candidate residual
     Δ::NR                          # step direction in the Newton solve, it contains: q2-qH+1, u1-uH, γ1-γH, b1-bH, λd1-λdH
-    ν::Vector{SizedArray{Tuple{nν},T,1,1}}          # implicit dynamics lagrange multiplier
-    ν_cand::Vector{SizedArray{Tuple{nν},T,1,1}}         # candidate implicit dynamics lagrange multiplier
+    ν::Vector{NV}          # implicit dynamics lagrange multiplier
+    ν_cand::Vector{NV}         # candidate implicit dynamics lagrange multiplier
     traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}                           # optimized trajectory
     traj_cand::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}      # trial trajectory used in line search
     Δq::Vector{Vector{T}}#::Vector{SizedArray{Tuple{nq},T,1,1}}         # difference between the traj and ref_traj
@@ -72,12 +72,11 @@ function Newton(s::Simulation{T}, H::Int, h::T,
     traj = contact_trajectory(model, env, H, h, κ=κ)
     traj_cand = contact_trajectory(model, env, H, h, κ=κ)
 
-    # Δq  = [zeros(SizedVector{nq,T}) for t = 1:H]
     Δq  = [zeros(nq) for t = 1:H]
 
-    Δu  = [zeros(SizedVector{nu,T}) for t = 1:H]
-    Δγ  = [zeros(SizedVector{nc,T}) for t = 1:H]
-    Δb  = [zeros(SizedVector{nb,T}) for t = 1:H]
+    Δu  = [zeros(nu) for t = 1:H]
+    Δγ  = [zeros(nc) for t = 1:H]
+    Δb  = [zeros(nb) for t = 1:H]
 
     # regularization
     β = copy(opts.β_init)
@@ -85,7 +84,7 @@ function Newton(s::Simulation{T}, H::Int, h::T,
     # linear solver
     solver = eval(opts.solver)(jac.R)
 
-    return Newton{T,nq,nu,nw,nc,nb,nz,nθ,nd,typeof.([jac,res,ind,obj,solver])...}(
+    return Newton{T,nq,nu,nw,nc,nb,nz,nθ,nd,typeof.([jac,res,ind,obj,solver,ν[1]])...}(
         jac, res, res_cand, Δ, ν, ν_cand, traj, traj_cand,
         Δq, Δu, Δγ, Δb, ind, obj, solver, β, opts)
 end
@@ -181,7 +180,6 @@ function newton_solve!(
     # Compute implicit dynamics about traj
 	implicit_dynamics!(im_traj, core.traj)
     
-    # return nothing
     # Compute residual
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
 
@@ -190,17 +188,17 @@ function newton_solve!(
 
     for l = 1:core.opts.max_iter
 		elapsed_time >= core.opts.max_time && break
-		# println("iter:", l, "  elapsed_time:", elapsed_time)
 		elapsed_time += @elapsed begin
 	        # check convergence
 	        r_norm / length(core.res.r) < core.opts.r_tol && break
-	        # Compute NewtonJacobian
-	        update_jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
 
-	        # Compute Search Direction
+	        # Compute NewtonJacobian
+	        jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
+            
+            # Compute Search Direction
 	        linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)
 
-	        # line search the step direction
+            # line search the step direction
 	        α = 1.0
 	        iter = 0
 
@@ -214,7 +212,7 @@ function newton_solve!(
 	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
 	        r_cand_norm = norm(core.res_cand.r, 1)
 
-	        while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
+            while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
 	            α = 0.5 * α
 
 	            iter += 1
@@ -235,25 +233,25 @@ function newton_solve!(
 	        update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
 	        core.res.r .= core.res_cand.r
 	        r_norm = r_cand_norm
-	        # println("lafter = ", l, "  norm = ", r_norm / length(core.res.r)) #@@@
 
 	        # regularization update
-	        if iter > 6
-	            core.β = min(core.β * 1.3, 1.0e2)
-	        else
-	            core.β = max(1.0e1, core.β / 1.3)
-	        end
+	        iter > 6 ? (core.β = min(core.β * 1.3, 1.0e2)) : (core.β = max(1.0e1, core.β / 1.3))
 
-	        # print status
-	        core.opts.verbose && println(" l: ", l ,
-					"     t: ", scn(elapsed_time, digits = 0),
-	                "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits = 0),
-	                "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits = 0),
-	                "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits = 0),
-	                "     α: ", -Int(round(log(α))),
-	                "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0))
+            # print 
+            core.opts.verbose && print_status(core, elapsed_time, α)
 		end
     end
 
     return nothing
+end
+
+function print_status(core::Newton, elapsed_time, α)
+     # print status
+     println(" l: ", l ,
+     "     t: ", scn(elapsed_time, digits=0),
+     "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits=0),
+     "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits=0),
+     "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits=0),
+     "     α: ", -Int(round(log(α))),
+     "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0))
 end

@@ -168,6 +168,7 @@ end
 #     threshold = p.opts.altitude_impact_threshold,
 #     verbose = p.opts.altitude_verbose)
 newton = p.newton
+
 residual!(newton.res, newton, newton.ν, p.im_traj, newton.traj, p.traj)
 @code_warntype residual!(newton.res, newton, newton.ν, p.im_traj, newton.traj, p.traj)
 @benchmark residual!($newton.res, $newton, $newton.ν, $p.im_traj, $newton.traj, $p.traj)
@@ -175,6 +176,61 @@ residual!(newton.res, newton, newton.ν, p.im_traj, newton.traj, p.traj)
 gradient!(newton.res, newton.obj, newton, newton.traj, p.traj)
 @code_warntype gradient!(newton.res, newton.obj, newton, newton.traj, p.traj)
 @benchmark gradient!($newton.res, $newton.obj, $newton, $newton.traj, $p.traj)
+
+@benchmark fill!($newton.jac.R, 0.0)
+@benchmark fill!($newton.jac.R.nzval, 0.0)
+
+update_traj!(newton.traj_cand, newton.traj, newton.ν_cand, newton.ν, newton.Δ, 1.0)
+@code_warntype update_traj!(newton.traj_cand, newton.traj, newton.ν_cand, newton.ν, newton.Δ, 1.0)
+@benchmark update_traj!($newton.traj_cand, $newton.traj, $newton.ν_cand, $newton.ν, $newton.Δ, 1.0)
+jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
+
+_update_jacobian!(newton.jac, p.im_traj, newton.obj, newton.traj.H, newton.β)
+@code_warntype _update_jacobian!(newton.jac, p.im_traj, newton.obj, newton.traj.H, newton.β)
+@benchmark _update_jacobian!($newton.jac, $p.im_traj, $newton.obj, $newton.traj.H, $newton.β)
+
+jacobian!(newton.jac, p.im_traj, newton.obj, newton.traj.H, newton.β)
+@code_warntype jacobian!(newton.jac, p.im_traj, newton.obj, newton.traj.H, newton.β)
+@benchmark jacobian!($newton.jac, $p.im_traj, $newton.obj, $newton.traj.H, $newton.β)
+
+initialize_jacobian!(newton.jac, newton.obj, newton.traj.H)
+@code_warntype initialize_jacobian!(newton.jac, newton.obj, newton.traj.H)
+@benchmark initialize_jacobian!($newton.jac, $newton.obj, $newton.traj.H)
+
+_update_jacobian!(newton.jac, p.im_traj, newton.obj, newton.traj.H, newton.β)
+@code_warntype _update_jacobian!(newton.jac, p.im_traj, newton.obj, newton.traj.H, newton.β)
+@benchmark _update_jacobian!($newton.jac, $p.im_traj, $newton.obj, $newton.traj.H, $newton.β)
+
+a1 = 0.0
+typeof(newton.jac.u1[1])
+function set_zero!(a::M) where M 
+    nz = length(a)
+    for i = 1:nz 
+        a[i] = 0.0
+    end
+end
+
+@code_warntype set_zero!(newton.jac.u1[1])
+@benchmark set_zero!($newton.jac.u1[1])
+
+a = copy(newton.jac.u1[1])
+@benchmark $newton.jac.u1[1] .= $a
+@benchmark $newton.jac.u1[1] .= $a1 
+@benchmark fill!($newton.jac.q0[1], 0.0)
+@benchmark set_zero!($newton.jac.u1[1])
+@benchmark fill!($newton.jac.u1[1], 0.0)
+newton.jac.u1[1].nzval
+t = 1
+q1 = p.traj.q[t+1]
+warm_start = true
+newton_solve!(p.newton, p.s, p.q0, q1, p.im_traj, p.traj, warm_start = warm_start)
+@code_warntype newton_solve!(p.newton, p.s, p.q0, q1, p.im_traj, p.traj, warm_start = warm_start)
+@benchmark newton_solve!($p.newton, $p.s, $p.q0, $q1, $p.im_traj, $p.traj, warm_start = $warm_start)
+
+newton.solver
+linear_solve!(newton.solver, newton.Δ.r, newton.jac.R, newton.res.r)
+@code_warntype linear_solve!(newton.solver, newton.Δ.r, newton.jac.R, newton.res.r)
+@benchmark linear_solve!($newton.solver, $newton.Δ.r, $newton.jac.R, $newton.res.r)
 
 t = 1
 nΔ =  newton.Δq[t]
