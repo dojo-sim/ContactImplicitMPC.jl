@@ -222,7 +222,7 @@ a = copy(newton.jac.u1[1])
 newton.jac.u1[1].nzval
 t = 1
 q1 = p.traj.q[t+1]
-warm_start = true
+warm_start = false
 newton_solve!(p.newton, p.s, p.q0, q1, p.im_traj, p.traj, warm_start = warm_start)
 @code_warntype newton_solve!(p.newton, p.s, p.q0, q1, p.im_traj, p.traj, warm_start = warm_start)
 @benchmark newton_solve!($p.newton, $p.s, $p.q0, $q1, $p.im_traj, $p.traj, warm_start = $warm_start)
@@ -231,6 +231,34 @@ newton.solver
 linear_solve!(newton.solver, newton.Δ.r, newton.jac.R, newton.res.r)
 @code_warntype linear_solve!(newton.solver, newton.Δ.r, newton.jac.R, newton.res.r)
 @benchmark linear_solve!($newton.solver, $newton.Δ.r, $newton.jac.R, $newton.res.r)
+
+newton.solver
+newton.Δ.r
+rank(newton.jac.R)
+@benchmark Array($newton.jac.R) 
+newton.res.r
+
+
+newton.Δ.r
+A = copy(newton.jac.R)
+b = copy(newton.res.r)
+x = copy(newton.Δ.r)
+x1 = A \ b
+fact = lu(A)
+x2 = fact \ b
+norm(x1 - x2, Inf)
+
+Ad = Array(A)
+fact = lu(Ad)
+fact.ipiv
+x .= b 
+LinearAlgebra.LAPACK.getrs!('N', fact, fact.ipiv, x)
+
+@benchmark $x .= $A \ $b
+
+
+@benchmark $x .= $fact \ $b
+@benchmark ldiv!($x, $fact, $b)
 
 t = 1
 nΔ =  newton.Δq[t]

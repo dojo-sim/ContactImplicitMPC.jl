@@ -95,7 +95,7 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 sim = Simulator(s, H_sim, h=h_sim, policy=p)
 
 # ## Simulate
-simulate!(sim, Array(q1_sim), Array(v1_sim))
+@time simulate!(sim, Array(q1_sim), Array(v1_sim))
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()

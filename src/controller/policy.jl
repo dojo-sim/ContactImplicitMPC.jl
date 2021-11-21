@@ -76,7 +76,6 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 		N_sample, [N_sample], mpc_opts)
 end
 
-
 function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,NQ,NU,NW,NC}
 	# reset
 	if t == 1
