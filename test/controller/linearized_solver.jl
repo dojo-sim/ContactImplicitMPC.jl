@@ -27,24 +27,13 @@
 	κ = 1e-4
 	rz0 = zeros(nz,nz)
 	rθ0 = zeros(nz,nθ)
-	s.res.r!(r0, z0, θ0, κ)
+	s.res.r!(r0, z0, θ0, [κ])
 	s.res.rz!(rz0, z0, θ0)
 	s.res.rθ!(rθ0, z0, θ0)
-	# vix = Vector(rz_.ix)
-	# viy1 = Vector(rz_.iy1)
-	# viy2 = Vector(rz_.iy2)
-	# vidyn = Vector(rz_.idyn)
-	# virst = Vector(rz_.irst)
-	# vibil = Vector(rz_.ibil)
-	# plot(Gray.(1e10*abs.(rz0[[vidyn; virst; vibil;], [vix; viy1; viy2]])))
-	# plot(Gray.(1e10*abs.(rz0[[vidyn;], [vix; viy1; viy2]])))
-	# plot(Gray.(1e10*abs.(rz0[[virst;], [vix; viy1; viy2]])))
-	# plot(Gray.(1e10*abs.(rz0[[vibil;], [vix; viy1; viy2]])))
-
 
 	# Test rz!
 	rz1 = ContactImplicitMPC.RZLin(s, rz0)
-	ContactImplicitMPC.rz!(rz1, z0)
+	ContactImplicitMPC.rz!(rz1, z0, θ0)
 
 	@test norm(rz1.Dx  - rz0[idyn, ix],  Inf) < 1e-10
 	@test norm(rz1.Dy1 - rz0[idyn, iy1], Inf) < 1e-10
@@ -56,7 +45,7 @@
 
 	# Test r!
 	r1 = ContactImplicitMPC.RLin(s, z0, θ0, r0, rz0, rθ0)
-	ContactImplicitMPC.r!(r1, z0, θ0, κ)
+	ContactImplicitMPC.rlin!(r1, z0, θ0, [κ])
 
 	@test norm(r0[r1.idyn] - r1.rdyn, Inf) < 1e-10
 	@test norm(r0[r1.irst] - r1.rrst, Inf) < 1e-10
@@ -67,24 +56,15 @@
 	ContactImplicitMPC.linear_solve!(Δ, rz1, r1)
 	@test norm(Δ - rz0 \ r0, Inf) < 1e-10
 
-	# @benchmark ContactImplicitMPC.rz!(rz1, z)
-	# @benchmark ContactImplicitMPC.r!(r1, z, θ, κ)
-	# @benchmark ContactImplicitMPC.linear_solve!(Δ, rz1, r1)
-
 	# Test linear_solve! for matrices
 	s.res.rθ!(rθ0, z0, θ0)
 	@test norm(rθ0[ibil, :], Inf) < 1e-10
-	# plot(Gray.(1e10*abs.(rθ_[idyn,:])))
-	# plot(Gray.(1e10*abs.(rθ_[irst,:])))
-	# plot(Gray.(1e10*abs.(rθ_[ibil,:])))
 
 	rz1 = ContactImplicitMPC.RZLin(s, rz0)
 	rθ1 = ContactImplicitMPC.RθLin(s, rθ0)
 	δz1 = rand(nz,nθ)
 	ContactImplicitMPC.linear_solve!(δz1, rz1, rθ1)
 	@test norm(δz1 - (rz0 \ rθ0), Inf) < 1e-10
-	# @benchmark ContactImplicitMPC.linear_solve!(δz1, rz1, rθ1)
-
 end
 
 @testset "Controller: Update Linearized Residuals" begin

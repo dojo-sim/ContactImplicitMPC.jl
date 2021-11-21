@@ -186,11 +186,11 @@ end
 
 # Check tracking performance
 function tracking_error(ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
-		sim_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ}, N_sample::Int; idx_shift=(1:0)) where {T,nq,nu,nw,nc,nb,nz,nθ}
+		sim_traj, N_sample::Int; idx_shift=(1:0)) where {T,nq,nu,nw,nc,nb,nz,nθ}
 
 	# Horizons
 	H_ref = ref_traj.H
-	H_sim = sim_traj.H
+	H_sim = length(sim_traj.u)
 	H̄_sim = H_sim / N_sample
 	dupl_traj = repeat_ref_traj(ref_traj, Int(ceil(H̄_sim / H_ref)), idx_shift=idx_shift)
 	H_dupl = dupl_traj.H
@@ -214,4 +214,11 @@ function tracking_error(ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
 	γ_error /= cnt
 	b_error /= cnt
     return q_error, u_error, γ_error, b_error
+end
+
+function initial_conditions(traj::ContactTraj) 
+	q1 = traj.q[2] 
+	v1 = (traj.q[2] - traj.q[1]) ./ traj.h
+	
+	return q1, v1 
 end

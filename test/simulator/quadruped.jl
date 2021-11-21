@@ -1,8 +1,8 @@
 @testset "Simulator: Quadruped" begin
     # Reference trajectory
-	s = get_simulation("quadruped", "flat_2D_lc", "flat")
-	model = s.model
-	env = s.env
+    s = get_simulation("quadruped", "flat_2D_lc", "flat")
+    model = s.model
+    env = s.env
     model.μ_world = 0.5
 
     ref_traj = deepcopy(ContactImplicitMPC.get_trajectory(s.model, s.env,
@@ -14,23 +14,21 @@
     h = ref_traj.h
 
     for t = 1:T
-    	r = ContactImplicitMPC.residual(model, env, ref_traj.z[t], ref_traj.θ[t], 0.0)
-    	@test norm(r) < 1.0e-4
+      r = ContactImplicitMPC.residual(model, env, ref_traj.z[t], ref_traj.θ[t], 0.0)
+      @test norm(r) < 1.0e-4
     end
 
     # initial conditions
-    q0 = SVector{model.nq}(ref_traj.q[1])
-    q1 = SVector{model.nq}(ref_traj.q[2])
+    v1 = (ref_traj.q[2] - ref_traj.q[1]) ./ h
+    q1 = ref_traj.q[2]
+
+    # policy 
+    p = ContactImplicitMPC.open_loop_policy([ut for ut in ref_traj.u]) 
 
     # simulator
-    sim = ContactImplicitMPC.simulator(s, q0, q1, h, T,
-        p = ContactImplicitMPC.open_loop_policy([SVector{model.nu}(ut) for ut in ref_traj.u]),
-        ip_opts = ContactImplicitMPC.InteriorPointOptions(
-    		r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :lu_solver),
-        sim_opts = ContactImplicitMPC.SimulatorOptions(warmstart = true))
+    sim = ContactImplicitMPC.simulator(s, T, h=h, policy=p)
 
     # simulate
-    @test status = ContactImplicitMPC.simulate!(sim, verbose = false)
-    # @show sim.traj.q[end][1:3]
+    @test status = ContactImplicitMPC.simulate!(sim, q1, v1)
     @test norm(ref_traj.q[end][1:3] - sim.traj.q[end][1:3], Inf) < 0.025
 end

@@ -22,12 +22,10 @@ include("dynamics/quadruped.jl")
 # Simulator
 include("simulator/rotations.jl")
 include("simulator/environment.jl")
-include("simulator/simulator.jl")
 include("simulator/particle.jl")
 include("simulator/hopper_3D.jl")
 include("simulator/quadruped.jl")
 include("simulator/open_loop.jl")
-include("simulator/flamingo.jl")
 
 # Controller
 include("controller/objective.jl")
@@ -40,4 +38,4 @@ include("controller/trajectory.jl")
 
 # MPC examples
 include("controller/mpc_quadruped.jl")
-include("controller/mpc_flamingo.jl")
+include("controller/mpc_flamingo.jl") #TODO fix newton structure solver test

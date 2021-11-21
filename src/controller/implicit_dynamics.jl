@@ -89,7 +89,6 @@ function ImplicitTrajectory(ref_traj::ContactTraj, s::Simulation;
 		SVector{nq2,Int}(iq2))
 end
 
-
 function update!(im_traj::ImplicitTrajectory{T,R,RZ,Rθ,nq}, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
 	s::Simulation{T,W,FC}, alt::Vector{T}, κ::T, H::Int) where {T,R,RZ,Rθ,nq,nu,nw,nc,nb,nz,nθ,W,FC}
 	
@@ -123,6 +122,19 @@ function update!(im_traj::ImplicitTrajectory{T,R,RZ,Rθ,nq}, ref_traj::ContactTr
 
 	# altitude
 	im_traj.ip[H].r.alt = alt
+	return nothing
+end
+
+function set_implicit_trajectory!(im_traj::ImplicitTrajectory, im_traj_cache::ImplicitTrajectory)
+	H = im_traj.H 
+
+	for t = 1:H
+		im_traj.lin[t] = im_traj_cache.lin[t]
+		im_traj.ip[t].r = im_traj_cache.ip[t].r
+		im_traj.ip[t].rz = im_traj_cache.ip[t].rz
+		im_traj.ip[t].rθ = im_traj_cache.ip[t].rθ
+	end
+
 	return nothing
 end
 

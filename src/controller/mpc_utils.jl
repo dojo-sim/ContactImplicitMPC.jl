@@ -39,6 +39,22 @@ function rotate!(traj::ContactTraj, cache::ContactTraj)
     return nothing
 end
 
+function set_trajectory!(traj::ContactTraj, ref_traj::ContactTraj) 
+	H = ref_traj.H 
+	for t = 1:H 
+		traj.q[t] .= ref_traj.q[t]
+		traj.u[t] .= ref_traj.u[t]
+		traj.w[t] .= ref_traj.w[t]
+		traj.γ[t] .= ref_traj.γ[t]
+		traj.b[t] .= ref_traj.b[t]
+		traj.z[t] .= ref_traj.z[t]
+		traj.θ[t] .= ref_traj.θ[t]
+	end
+	traj.q[H+1] .= ref_traj.q[H+1]
+	traj.q[H+2] .= ref_traj.q[H+2]
+	return nothing
+end
+
 """
     Update the last two cofiguaraton to be equal to the fisrt two up to an constant offset.
 """
