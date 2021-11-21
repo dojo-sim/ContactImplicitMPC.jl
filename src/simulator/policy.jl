@@ -12,7 +12,7 @@ function open_loop_policy(u; N_sample = 1)
     OpenLoop(u, 0, N_sample, N_sample)
 end
 
-function policy(p::OpenLoop, x, traj, t)
+function policy(p::OpenLoop, traj, t)
     # reset
     if t == 1
         p.idx = 0

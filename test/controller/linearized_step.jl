@@ -18,10 +18,10 @@
 
 		@test norm(lin.z - z) < 1.0e-8
 		@test norm(lin.θ - θ) < 1.0e-8
-		@test norm(lin.κ - κ) < 1.0e-8
+		@test norm(lin.κ[1] - κ) < 1.0e-8
 
 		# Test r!: the linear linearization is exact at the linearization point
-		s.res.r!(r0, z, θ, κ)
+		s.res.r!(r0, z, θ, [κ])
 		@test norm(r0 - lin.r, Inf) < 1.0e-8
 
 		s.res.rz!(rz0, z, θ)

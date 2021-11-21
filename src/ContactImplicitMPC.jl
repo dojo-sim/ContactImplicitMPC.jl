@@ -27,7 +27,7 @@ using SuiteSparse
 using Symbolics
 using Test
 using RoboDojo
-import RoboDojo: LinearSolver, LUSolver, Model, ResidualMethods, Space, Disturbances, IndicesZ, InteriorPoint, EmptySolver, Policy, Trajectory, GradientTrajectory, InteriorPointOptions, IndicesOptimization, interior_point, interior_point_solve!, bilinear_violation, residual_violation, general_correction_term!, r!, rz!, rθ!, linear_solve!, lu_solver, empty_policy, empty_disturbances, friction_coefficients, SimulatorStatistics, SimulatorOptions, indices_θ, num_data, initialize_z!, initialize_θ!, indices_z, indices_θ, simulate!, policy, process!
+import RoboDojo: LinearSolver, LUSolver, Model, ResidualMethods, Space, Disturbances, IndicesZ, InteriorPoint, EmptySolver, Policy, Trajectory, GradientTrajectory, InteriorPointOptions, IndicesOptimization, interior_point, interior_point_solve!, bilinear_violation, residual_violation, general_correction_term!, r!, rz!, rθ!, linear_solve!, lu_solver, empty_policy, empty_disturbances, friction_coefficients, SimulatorStatistics, SimulatorOptions, indices_θ, num_data, initialize_z!, initialize_θ!, indices_z, indices_θ, simulate!, policy, process!, Simulator
 
 # Utilities
 include("utils.jl")
@@ -84,7 +84,7 @@ include("dynamics/walledcartpole/model.jl")
 # Simulator
 ##include("/home/taylor/Research/RoboDojo.jl/src/simulator/trajectory.jl")
 ##include("/home/taylor/Research/RoboDojo.jl/src/simulator/policy.jl")
-##include("simulator/policy.jl")
+include("simulator/policy.jl")
 
 ##include("/home/taylor/Research/RoboDojo.jl/src/simulator/dimensions.jl")
 ##include("/home/taylor/Research/RoboDojo.jl/src/simulator/indices.jl")
@@ -291,6 +291,8 @@ export
     flat_3D_lc,
     plot_surface!,
     stairs!,
-    Simulator
+    Simulator,
+    initial_conditions,
+    set_trajectory!
 
 end # module

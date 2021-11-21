@@ -3,19 +3,18 @@
     model = s.model
     env = s.env
 
-    ref_traj_ = deepcopy(ContactImplicitMPC.get_trajectory(s.model, s.env,
+    ref_traj = deepcopy(ContactImplicitMPC.get_trajectory(s.model, s.env,
         joinpath(module_dir(), "src/dynamics/flamingo/gaits/gait_forward_36_4.jld2"),
         load_type = :split_traj_alt, update_friction = false))
-    ref_traj = deepcopy(ref_traj_)
 
     H = ref_traj.H
     h = ref_traj.h
+
+    # ## MPC setup
     N_sample = 5
     H_mpc = 15
     h_sim = h / N_sample
-    H_sim = 2100
-
-    # barrier parameter
+    H_sim = 1000 
     κ_mpc = 2.0e-4
 
     obj = TrackingVelocityObjective(model, env, H_mpc,
@@ -29,35 +28,25 @@
         H_mpc = H_mpc,
         N_sample = N_sample,
         κ_mpc = κ_mpc,
+        mode = :configuration,
+        ip_opts = InteriorPointOptions(
+                        undercut = 5.0,
+                        κ_tol = κ_mpc,
+                        r_tol = 1.0e-8,
+                        diff_sol = true,
+                        solver = :empty_solver,
+                        max_time = 1e5),
         n_opts = NewtonOptions(
             r_tol = 3e-4,
             max_iter = 5),
-        mpc_opts = CIMPCOptions(
-            live_plotting = false,
-            altitude_update = false,
-            altitude_impact_threshold = 0.02,
-            altitude_verbose = false,
-            )
-        )
+        mpc_opts = CIMPCOptions())
 
-    q1_ref = copy(ref_traj.q[2])
-    q0_ref = copy(ref_traj.q[1])
-    q1_sim = SVector{model.nq}(q1_ref)
-    q0_sim = SVector{model.nq}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
-    @assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
+    q1_sim = ref_traj.q[2]
+    v1_sim = (ref_traj.q[2] - ref_traj.q[1]) ./ h
 
-    sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
-        p = p,
-        ip_opts = InteriorPointOptions(
-            undercut = Inf,
-            γ_reg = 0.0,
-            r_tol = 1.0e-8,
-            κ_tol = 1.0e-8),
-        sim_opts = SimulatorOptions(warmstart = true)
-        )
+    sim = ContactImplicitMPC.simulator(s, H_sim, h=h_sim, policy=p)
 
-    @time status = simulate!(sim)
-    ref_traj = deepcopy(ref_traj_)
+    @time status = ContactImplicitMPC.simulate!(sim, q1_sim, v1_sim)
 
     @test norm(sim.traj.q[1] - ref_traj.q[2]*(1-1/N_sample) - ref_traj.q[1]/N_sample) < 1e-8
     @test norm(sim.traj.q[2] - ref_traj.q[2]) < 1e-8

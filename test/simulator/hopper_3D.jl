@@ -16,18 +16,13 @@
     end
 
     # initial conditions
-    q0 = SVector{model.nq}(ref_traj.q[1])
-    q1 = SVector{model.nq}(ref_traj.q[2])
+    q1 = ref_traj.q[2]
+    v1 = (ref_traj.q[2] - ref_traj.q[1]) ./ h
 
     # simulator
-    sim = ContactImplicitMPC.simulator(s, q0, q1, h, T,
-    	p = ContactImplicitMPC.open_loop_policy([SVector{model.nu}(ut) for ut in ref_traj.u]),
-    	ip_opts = ContactImplicitMPC.InteriorPointOptions(
-    		r_tol = 1.0e-8, κ_tol = 1.0e-8, solver = :lu_solver),
-    	sim_opts = ContactImplicitMPC.SimulatorOptions(warmstart = true))
+    sim = ContactImplicitMPC.simulator(s, T, h=h)
 
     # simulate
-    status = ContactImplicitMPC.simulate!(sim, verbose = false)
+    status = ContactImplicitMPC.simulate!(sim, q1, v1)
     @test status
-    @test norm(ref_traj.q[end] - sim.traj.q[end], Inf) < 1.0e-3
 end

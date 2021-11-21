@@ -52,15 +52,13 @@ p = ci_mpc_policy(ref_traj, s, obj,
     mpc_opts = CIMPCOptions())
 
 # ## Initial conditions
-q1_sim = ContactImplicitMPC.SVector{model.nq}(copy(ref_traj.q[2]))
-q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample))
-v1_sim = (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / ref_traj.h
+q1_sim, v1_sim = initial_conditions(ref_traj) 
 
 # ## Simulator
-sim = ContactImplicitMPC.Simulator(s, H_sim, h=h_sim, policy=p)
+sim = simulator(s, H_sim, h=h_sim, policy=p)
 
 # ## Simulate
-@time simulate!(sim, Array(q1_sim), Array(v1_sim))
+@time simulate!(sim, q1_sim, v1_sim)
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
@@ -71,5 +69,5 @@ anim = visualize_meshrobot!(vis, model, sim.traj, h=h_sim * 10, sample=10);
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
-process!(sim) # Time budget
-H_sim * h_sim / sum(sim.stats.dt) # Speed ratio
+process!(sim.stats, N_sample) # Time budget
+H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio

@@ -17,7 +17,7 @@ function initialize_z!(z, model, idx::IndicesZ, q)
     z[idx.q] .= q
 end
 
-function Simulator(s::Simulation, T; 
+function simulator(s, T; 
     h=0.01,
     policy=empty_policy(s.model), 
     dist=empty_disturbances(s.model), 
@@ -38,7 +38,7 @@ function Simulator(s::Simulation, T;
     stats=SimulatorStatistics(T),
     sim_opts=SimulatorOptions()
     )
-
+     
     idx_z = indices_z(s)
     idx_θ = indices_θ(s.model, nf=length(f))
     idx_opt = IndicesOptimization(s.model, s.env)
@@ -49,6 +49,7 @@ function Simulator(s::Simulation, T;
     q0 = zeros(s.model.nq)
     initialize_z!(z0, s.model, idx_z, q0)
     initialize_θ!(θ0, s.model, idx_θ, q0, q0, zeros(s.model.nu), zeros(s.model.nw), f, h)
+     
     ip = interior_point(
          z0,
          θ0,

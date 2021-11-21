@@ -105,8 +105,7 @@ end
 
 	im_traj0 = ContactImplicitMPC.ImplicitTrajectory(ref_traj, s, mode = mode)
 	core = ContactImplicitMPC.Newton(s, H, h, ref_traj, im_traj0, obj = obj)
-	ContactImplicitMPC.initialize_jacobian!(core.jac, obj, ref_traj.H)
-	ContactImplicitMPC.update_jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
+	ContactImplicitMPC.jacobian!(core.jac, im_traj0, obj, ref_traj.H, core.β)
 
 	# Test symmetry
 	@test core.jac.R - core.jac.R' == spzeros(H * (nr + nd), H * (nr + nd))
