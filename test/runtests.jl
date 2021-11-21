@@ -15,7 +15,6 @@ include("solver/lu.jl")
 include("solver/schur.jl")
 
 # Dynamics
-include("dynamics/lagrangian.jl") 
 include("dynamics/model.jl")
 include("dynamics/particle.jl")
 include("dynamics/quadruped.jl")
@@ -25,7 +24,6 @@ include("simulator/rotations.jl")
 include("simulator/environment.jl")
 include("simulator/simulator.jl")
 include("simulator/particle.jl")
-# include("simulator/hopper_2D.jl") #TODO: set tests to raibert model
 include("simulator/hopper_3D.jl")
 include("simulator/quadruped.jl")
 include("simulator/open_loop.jl")

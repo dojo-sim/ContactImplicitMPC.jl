@@ -60,7 +60,7 @@ v1_sim = (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / ref_traj.h
 sim = Simulator(s, H_sim, h=h_sim, policy=p)
 
 # ## Simulate
-simulate!(sim, Array(q1_sim), Array(v1_sim))
+@time simulate!(sim, Array(q1_sim), Array(v1_sim))
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
