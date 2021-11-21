@@ -6,7 +6,7 @@
     β_init::T = 1.0e-5           # initial dual regularization
     live_plotting::Bool = false  # visualize the trajectory during the solve
     verbose::Bool = false
-    solver::Symbol = :lu_solver
+    solver::Symbol = :lu_solver  # lu_sparse_solver
 end
 
 abstract type NewtonIndices end

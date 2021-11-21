@@ -69,6 +69,7 @@ v1_sim = (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / ref_traj.h
 # ## Simulator
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
     p = mode == :ci_mpc ? p_cimpc : p_openloop,
 	ip_opts = InteriorPointOptions(
@@ -93,6 +94,9 @@ sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
 =======
 >>>>>>> 4a2ef8d... working on newton
 sim = Simulator(s, H_sim, h=h_sim, policy=p)
+=======
+sim = ContactImplicitMPC.Simulator(s, H_sim, h=h_sim, policy=p)
+>>>>>>> 5a6f8d2... sparse lu solver
 
 # ## Simulate
 @time simulate!(sim, Array(q1_sim), Array(v1_sim))
