@@ -227,7 +227,6 @@ newton_solve!(p.newton, p.s, p.q0, q1, p.im_traj, p.traj, warm_start = warm_star
 @code_warntype newton_solve!(p.newton, p.s, p.q0, q1, p.im_traj, p.traj, warm_start = warm_start)
 @benchmark newton_solve!($p.newton, $p.s, $p.q0, $q1, $p.im_traj, $p.traj, warm_start = $warm_start)
 
-newton.solver
 linear_solve!(newton.solver, newton.Δ.r, newton.jac.R, newton.res.r)
 @code_warntype linear_solve!(newton.solver, newton.Δ.r, newton.jac.R, newton.res.r)
 @benchmark linear_solve!($newton.solver, $newton.Δ.r, $newton.jac.R, $newton.res.r)

@@ -57,7 +57,7 @@ q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (copy(ref_traj.q[2])
 v1_sim = (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / ref_traj.h
 
 # ## Simulator
-sim = Simulator(s, H_sim, h=h_sim, policy=p)
+sim = ContactImplicitMPC.Simulator(s, H_sim, h=h_sim, policy=p)
 
 # ## Simulate
 @time simulate!(sim, Array(q1_sim), Array(v1_sim))

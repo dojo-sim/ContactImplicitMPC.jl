@@ -56,7 +56,7 @@ q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (copy(ref_traj.q[2])
 v1_sim = (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / ref_traj.h
 
 # ## Simulator
-sim = Simulator(s, H_sim, h=h_sim, policy=p)
+sim = ContactImplicitMPC.Simulator(s, H_sim, h=h_sim, policy=p)
 
 # ## Simulate
 simulate!(sim, Array(q1_sim), Array(v1_sim))
@@ -71,7 +71,7 @@ vis = ContactImplicitMPC.Visualizer()
 ContactImplicitMPC.render(vis)
 
 # ## Visualize
-anim = visualize_robot!(vis, model, sim.traj, h=h_sim * 5, sample=5);
+anim = visualize_robot!(vis, model, sim.traj, h=h_sim * 5, sample=5)
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
