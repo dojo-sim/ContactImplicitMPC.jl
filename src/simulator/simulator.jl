@@ -12,11 +12,6 @@ function indices_z(s::Simulation)
     IndicesZ(q, γ, sγ, ψ, b, sψ, sb)
 end
 
-function initialize_z!(z, model, idx::IndicesZ, q)
-    z .= 1.0
-    z[idx.q] .= q
-end
-
 function simulator(s, T; 
     h=0.01,
     policy=empty_policy(s.model), 

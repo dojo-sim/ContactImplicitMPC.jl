@@ -55,21 +55,13 @@ p = ci_mpc_policy(ref_traj, s, obj,
     mpc_opts = mpc_opts);
 
 # ## Initial conditions (stairs)
-q1_sim = ContactImplicitMPC.SVector{model.nq}(copy(ref_traj.q[2]))
-q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample));
+q1_sim, v1_sim = initial_conditions(ref_traj); 
 
 # ## Simulator (stairs)
-sim_stair = ContactImplicitMPC.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
-    p = p,
-    ip_opts = ContactImplicitMPC.InteriorPointOptions(
-        γ_reg = 0.0,
-        undercut = Inf,
-        r_tol = 1.0e-8,
-        κ_tol = 1.0e-8),
-    sim_opts = ContactImplicitMPC.SimulatorOptions(warmstart = true));
+sim_stair = simulator(s, H_sim, h=h_sim, policy=p)
 
 # ## Simulate (stairs)
-@time status = simulate!(sim_stair)
+@time status = simulate!(sim_stair, q1_sim, v1_sim)
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
@@ -112,19 +104,13 @@ p = ci_mpc_policy(ref_traj, s, obj,
 # ## Set initial configurations to simulation result
 q0_sim = deepcopy(ContactImplicitMPC.SVector{model.nq}(sim_stair.traj.q[end-1]))
 q1_sim = deepcopy(ContactImplicitMPC.SVector{model.nq}(sim_stair.traj.q[end]))
+v1_sim = (q1_sim - q0_sim) ./ sim_stair.traj.h 
 
 # ## Simulator (flip)
-sim_flip = ContactImplicitMPC.simulator(s_sim, q0_sim, q1_sim, h_sim, H_sim,
-    p = p,
-    ip_opts = ContactImplicitMPC.InteriorPointOptions(
-        γ_reg = 0.0,
-        undercut = Inf,
-        r_tol = 1.0e-8,
-        κ_tol = 1.0e-8),
-    sim_opts = ContactImplicitMPC.SimulatorOptions(warmstart = true));
+sim_flip = simulator(s_sim, H_sim, h=h_sim, policy=p)
 
 # ## Simulate (flip)
-@time status = ContactImplicitMPC.simulate!(sim_flip)
+@time status = ContactImplicitMPC.simulate!(sim_flip, q1_sim, v1_sim)
 
 # ## Visualize (flip)
 anim = visualize_robot!(vis, model, sim_flip.traj, sample=10, name=:Sim, α=1.0)

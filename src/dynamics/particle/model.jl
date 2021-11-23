@@ -123,3 +123,8 @@ particle = Particle(3, 3, 3, 1, 1.0, 9.81, 1.0, 0.0,
 function friction_coefficients(model::Particle) 
     return [model.μ_world]
 end
+
+function initialize_z!(z, model::Particle, idx::RoboDojo.IndicesZ, q)
+    z .= 1.0
+    z[idx.q] .= q
+end

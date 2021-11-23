@@ -111,3 +111,8 @@ particle_2D = Particle2D(2, 2, 2, 1, 1.0, 9.81, 1.0, 0.0,
 function friction_coefficients(model::Particle2D) 
 	return [model.μ_world]
 end
+
+function initialize_z!(z, model::Particle2D, idx::RoboDojo.IndicesZ, q)
+    z .= 1.0
+    z[idx.q] .= q
+end

@@ -156,3 +156,8 @@ walledcartpole = WalledCartpole(nq,nu,nw,nc,
 function friction_coefficients(model::WalledCartpole) 
 	return [model.μ_world]
 end
+
+function initialize_z!(z, model::WalledCartpole, idx::RoboDojo.IndicesZ, q)
+    z .= 1.0
+    z[idx.q] .= q
+end

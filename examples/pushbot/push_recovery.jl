@@ -32,17 +32,15 @@ for t = 1:H
 end
 
 # ## Initial conditions
-q0 = ContactImplicitMPC.SVector{2}([0.0 * π, 0.0])
-q1 = ContactImplicitMPC.SVector{2}([0.0 * π, 0.0])
+# q0 = ContactImplicitMPC.SVector{2}([0.0 * π, 0.0])
+q1 = [0.0 * π, 0.0]
+v1 = [0.0; 0.0]
 
 # ## Simulator
-sim = simulator(s, q0, q1, h, H,
-	ip_opts = InteriorPointOptions(
-		r_tol = 1.0e-6, κ_tol = 1.0e-5),
-	sim_opts = SimulatorOptions(warmstart = false));
+sim = simulator(s, H, h=h)
 
 # ## Simulate
-status = simulate!(sim)
+status = simulate!(sim, q1, v1)
 
 # ## MPC setup 
 N_sample = 2
@@ -90,14 +88,11 @@ impulses = [[-5.5; 0.0], [+5.5; 0.0], [+5.5; 0.0], [-1.5; 0.0], [-6.5; 0.0]]
 d = impulse_disturbances(impulses, idx);
 
 # ## Initial Conditions
-q1_sim = ContactImplicitMPC.SVector{model.nq}([0.0, 0.0])
-q0_sim = ContactImplicitMPC.SVector{model.nq}([0.0, 0.0])
+q1_sim = [0.0, 0.0]
+v1_sim = [0.0; 0.0]
 
 # ## Simulator
-sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
-    p = p,
-	d = d,
-    sim_opts = SimulatorOptions(warmstart = true));
+sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d)
 
 # ## Simulate
 status = simulate!(sim, verbose = true)
@@ -115,5 +110,5 @@ visualize_disturbance!(vis, model, pθ_left,  anim=anim, sample=1, offset=0.05, 
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
-process!(sim) # Time budget
-H_sim * h_sim / sum(sim.stats.dt) # Speed ratio
+process!(sim.stats, N_sample) # Time budget
+H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio

@@ -584,3 +584,8 @@ quadruped_payload = Quadruped(nq,nu,nw,nc,
 function friction_coefficients(model::Quadruped) 
 	return [model.μ_world]
 end
+
+function initialize_z!(z, model::Quadruped, idx::RoboDojo.IndicesZ, q)
+    z .= 1.0
+    z[idx.q] .= q
+end

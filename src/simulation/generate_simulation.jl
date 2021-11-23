@@ -24,6 +24,31 @@ ContactImplicitMPC.JLD2.save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
 ################################################################################
+# Particle (flat + nonlinear cone)
+################################################################################
+dir_model = joinpath(module_dir(), "src/dynamics/particle")
+dir_sim   = joinpath(module_dir(), "src/simulation/particle")
+dir_sim_env   = joinpath(dir_sim, "flat_nc")
+!isdir(dir_sim_env) && mkdir(dir_sim_env)
+model = deepcopy(particle)
+env = deepcopy(flat_3D_nc)
+s = Simulation(model, env)
+
+path_base = joinpath(dir_model, "dynamics/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+path_res = joinpath(dir_sim, "flat_nc/residual.jld2")
+path_jac = joinpath(dir_sim, "flat_nc/jacobians.jld2")
+
+instantiate_base!(s.model, path_base)
+instantiate_dynamics!(s.model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(s.model, s.env)
+save_expressions(expr_res, path_res, overwrite=true)
+isfile(path_jac) && rm(path_jac)
+ContactImplicitMPC.JLD2.save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
+instantiate_residual!(s, path_res, path_jac)
+
+################################################################################
 # Particle (quadratic)
 ################################################################################
 dir_model = joinpath(module_dir(), "src/dynamics/particle")
@@ -63,6 +88,31 @@ path_base = joinpath(dir_model, "dynamics/base.jld2")
 path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
 path_res = joinpath(dir_sim, "flat_lc/residual.jld2")
 path_jac = joinpath(dir_sim, "flat_lc/jacobians.jld2")
+
+instantiate_base!(sim.model, path_base)
+instantiate_dynamics!(sim.model, path_dyn)
+
+expr_res, rz_sp, rθ_sp = generate_residual_expressions(sim.model, sim.env)
+save_expressions(expr_res, path_res, overwrite=true)
+isfile(path_jac) && rm(path_jac)
+ContactImplicitMPC.JLD2.save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
+instantiate_residual!(sim, path_res, path_jac)
+
+################################################################################
+# Particle 2D (flat + nonlinear cone)
+################################################################################
+dir_model = joinpath(module_dir(), "src/dynamics/particle_2D")
+dir_sim   = joinpath(module_dir(), "src/simulation/particle_2D")
+dir_sim_env   = joinpath(dir_sim, "flat_nc")
+!isdir(dir_sim_env) && mkdir(dir_sim_env)
+model = deepcopy(particle_2D)
+env = deepcopy(flat_2D_nc)
+sim = Simulation(model, env)
+
+path_base = joinpath(dir_model, "dynamics/base.jld2")
+path_dyn = joinpath(dir_model, "dynamics/dynamics.jld2")
+path_res = joinpath(dir_sim, "flat_nc/residual.jld2")
+path_jac = joinpath(dir_sim, "flat_nc/jacobians.jld2")
 
 instantiate_base!(sim.model, path_base)
 instantiate_dynamics!(sim.model, path_dyn)
