@@ -496,4 +496,9 @@ flamingo = Flamingo(nq, nu, nw, nc,
 
 function friction_coefficients(model::Flamingo) 
 	return [model.μ_world]
-end			  
+end			
+
+function initialize_z!(z, model::Flamingo, idx::RoboDojo.IndicesZ, q)
+    z .= 1.0
+    z[idx.q] .= q
+end

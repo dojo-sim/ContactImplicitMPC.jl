@@ -169,7 +169,7 @@ end
 
 	im_traj0 = ContactImplicitMPC.ImplicitTrajectory(ref_traj, s, mode = mode)
 	core = ContactImplicitMPC.Newton(s, H, h, ref_traj, im_traj0, obj = obj)
-	ContactImplicitMPC.implicit_dynamics!(im_traj0, s, ref_traj)
+	ContactImplicitMPC.implicit_dynamics!(im_traj0, ref_traj)
 
 	# Offset the trajectory and the dual variables to get a residual
 	traj1 = deepcopy(ref_traj)
@@ -341,7 +341,7 @@ end
 
 	im_traj0 = ContactImplicitMPC.ImplicitTrajectory(ref_traj, s, mode = mode)
 	core = ContactImplicitMPC.Newton(s, H, h, ref_traj, im_traj0, obj = obj)
-	ContactImplicitMPC.implicit_dynamics!(im_traj0, s, ref_traj)
+	ContactImplicitMPC.implicit_dynamics!(im_traj0, ref_traj)
 
 	# Offset the trajectory and the dual variables to get a residual
 	traj1 = deepcopy(ref_traj)

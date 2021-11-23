@@ -54,21 +54,14 @@ p = ci_mpc_policy(ref_traj, s_no_load, obj,
     );
 
 # ## Initial conditions
-q1_sim = ContactImplicitMPC.SVector{model_load.nq}(copy(ref_traj.q[2]))
-q0_sim = ContactImplicitMPC.SVector{model_load.nq}(copy(q1_sim - (copy(ref_traj.q[2]) - copy(ref_traj.q[1])) / N_sample))
+q1_sim, v1_sim = initial_conditions(ref_traj); 
 
 # ## Simulator
-sim_load = simulator(s_load, q0_sim, q1_sim, h_sim, H_sim,
-    p = p,
-    ip_opts = InteriorPointOptions(
-        undercut = Inf,
-		γ_reg = 0.0,
-        r_tol = 1.0e-8,
-        κ_tol = 1.0e-8),
-    sim_opts = SimulatorOptions(warmstart=true));
+sim = simulator(s, H_sim, h=h_sim, policy=p);
 
 # ## Simulate
-@time status = ContactImplicitMPC.simulate!(sim_load, verbose=true)
+simulate!(sim, q1_sim, v1_sim);
+@benchmark simulate!($sim, $q1_sim, $v1_sim)
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
@@ -80,5 +73,5 @@ anim = visualize_payload!(vis, s_load.model, sim_load.traj, anim=anim, sample=1,
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
-process!(sim) # Time budget
-H_sim * h_sim / sum(sim.stats.dt) # Speed ratio
+process!(sim.stats, N_sample) # Time budget
+H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio

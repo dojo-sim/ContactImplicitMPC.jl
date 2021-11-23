@@ -70,25 +70,23 @@ impulses = [[+0.2; 0; 0; 0], [+0.2; 0; 0; 0], [-0.2; 0; 0; 0], [+0.2; 0; 0; 0], 
 d = impulse_disturbances(impulses, idx);
 
 # ## Initial Conditions
-q1_sim = ContactImplicitMPC.SVector{model.nq}([0.0, 0.0, 0.0, 0.0])
-q0_sim = ContactImplicitMPC.SVector{model.nq}([0.0, 0.0, 0.0, 0.0]);
+q1_sim = zeros(4) 
+v1_sim = zeros(4) 
 
 # ## Simulator
-sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
-    p = p,
-	d = d);
+sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d)
 
 # ## Simulate
-status = simulate!(sim, verbose = true);
+status = simulate!(sim, q1_sim, v1_sim);;
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
 ContactImplicitMPC.render(vis)
 
 # ## Visualize
-anim = visualize_robot!(vis, model, sim.traj, sample = 1)
+anim = visualize_robot!(vis, model, sim.traj, h=h_sim, sample = 1)
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
-process!(sim) # Time budget
-H_sim * h_sim / sum(sim.stats.dt) # Speed ratio
+process!(sim.stats, N_sample) # Time budget
+H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio

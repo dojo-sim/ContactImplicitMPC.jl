@@ -32,7 +32,7 @@ obj = TrackingVelocityObjective(model, env, H_mpc,
     q = [Diagonal(1e-1 * [3e2, 1e-6, 3e2, 1, 1, 1, 1, 0.1, 0.1]) for t = 1:H_mpc],
     u = [Diagonal(3e-1 * [0.1; 0.1; 0.3; 0.3; ones(model.nu-6); 2; 2]) for t = 1:H_mpc],
     γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
-    b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc])
+    b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc]);
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -49,16 +49,16 @@ p = ci_mpc_policy(ref_traj, s, obj,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         max_iter = 5),
-    mpc_opts = CIMPCOptions())
+    mpc_opts = CIMPCOptions());
 
 # ## Initial conditions
-q1_sim, v1_sim = initial_conditions(ref_traj) 
+q1_sim, v1_sim = initial_conditions(ref_traj);
 
 # ## Simulator
-sim = simulator(s, H_sim, h=h_sim, policy=p)
+sim = simulator(s, H_sim, h=h_sim, policy=p);
 
 # ## Simulate
-@time simulate!(sim, q1_sim, v1_sim)
+simulate!(sim, q1_sim, v1_sim);
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()

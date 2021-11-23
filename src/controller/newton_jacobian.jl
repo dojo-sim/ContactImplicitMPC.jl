@@ -163,7 +163,7 @@ function initialize_jacobian!(jac::NewtonJacobian, obj::Objective, H::Int)
     return nothing
 end
 
-function _update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj::Objective,
+function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj::Objective,
     H::Int, β::T) where T
 
     for t = 1:H
@@ -191,7 +191,7 @@ end
 function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj::Objective,
     H::Int, β::T) where T
     initialize_jacobian!(jac, obj, H)
-    _update_jacobian!(jac, im_traj, obj, H, β)
+    update_jacobian!(jac, im_traj, obj, H, β)
 
     return nothing
 end

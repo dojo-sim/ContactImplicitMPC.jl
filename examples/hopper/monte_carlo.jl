@@ -65,16 +65,12 @@ function run_policy(s::Simulation; H_sim::Int = 4000, verbose = verbose,
 	q0_sim = ContactImplicitMPC.SVector{model.nq}(copy(q1_sim - (q1_ref - q0_ref) / N_sample))
 	@assert norm((q1_sim - q0_sim) / h_sim - (q1_ref - q0_ref) / h) < 1.0e-8
 
-	sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
-	    p = p,
-	    ip_opts = InteriorPointOptions(
-			γ_reg = 0.0,
-			undercut = Inf,
-			r_tol = 1.0e-8,
-			κ_tol = 1.0e-8,),
-	    sim_opts = SimulatorOptions(warmstart = true))
+	v1_sim = (ref_traj.q[2] - ref_traj.q[1]) ./ h
 
-	status = simulate!(sim, verbose = false)
+	sim = simulator(s, H_sim, h=h_sim, policy=p);
+
+	status = simulate!(sim, q1_sim, v1_sim);
+	
 	return deepcopy(sim.traj)
 end
 
