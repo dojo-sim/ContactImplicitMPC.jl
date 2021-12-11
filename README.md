@@ -31,4 +31,4 @@ A collection of examples are pre-generated in notebooks with the package, please
 The trajectories we track in the examples are generated using [contact-implicit trajectory optimization](https://journals.sagepub.com/doi/10.1177/0278364919849235) and can be run [here](https://github.com/thowell/motion_planning/tree/main/examples/contact_implicit).
 
 ## Simulator 
-The differentiable simulator is available as a stand-alone package:[RoboDojo.jl](https://github.com/thowell/RoboDojo.jl).
+The differentiable simulator is available as a stand-alone package: [RoboDojo.jl](https://github.com/thowell/RoboDojo.jl).
