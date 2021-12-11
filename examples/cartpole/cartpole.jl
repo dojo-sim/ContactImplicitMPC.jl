@@ -77,7 +77,7 @@ v1_sim = zeros(4)
 sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d)
 
 # ## Simulate
-status = simulate!(sim, q1_sim, v1_sim);;
+status = simulate!(sim, q1_sim, v1_sim);
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
