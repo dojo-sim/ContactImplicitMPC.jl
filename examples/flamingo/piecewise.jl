@@ -55,7 +55,7 @@ q1_sim, v1_sim = initial_conditions(ref_traj);
 sim = simulator(s, H_sim, h=h_sim, policy=p);
 
 # ## Simulate
-simulate!(sim, q1_sim, v1_sim);;
+simulate!(sim, q1_sim, v1_sim);
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
