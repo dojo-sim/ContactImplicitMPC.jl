@@ -66,7 +66,7 @@ simulate!(sim, q1_sim, v1_sim);
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-ContactImplicitMPC.render(vis);
+ContactImplicitMPC.render(vis)
 
 # ## Visualize
 anim = visualize_meshrobot!(vis, model, sim.traj, h=h_sim * 5, sample=5);
