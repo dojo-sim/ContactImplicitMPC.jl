@@ -7,8 +7,10 @@ This repository contains algorithms and examples from our paper: [Fast Contact-I
 A collection of examples are pre-generated in notebooks with the package, please try: [flamingo](examples/flamingo/flat.jl), [pushbot](examples/pushbot/push_recovery.jl), [hopper](examples/hopper/flat.jl), and [quadruped](examples/quadruped/flat.jl). Additional notebooks with examples from the paper can be [generated](examples/README.md).
 
 ## Installation
-- `ContactImplicitMPC` can be added via the Julia package manager (type `]`): `pkg> add ContactImplicitMPC#main` (this will grab the latest version of the package from this repository)
-
+`ContactImplicitMPC` can be added via the Julia package manager (type `]`): 
+```julia
+pkg> add ContactImplicitMPC
+```
 ## Flamingo
 <img src="animations/flamingo.gif" alt="drawing" width="400"/>
 
