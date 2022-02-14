@@ -34,3 +34,16 @@ The trajectories we track in the examples are generated using [contact-implicit 
 
 ## Simulator 
 The differentiable simulator is available as a stand-alone package: [RoboDojo.jl](https://github.com/thowell/RoboDojo.jl).
+
+## Citing
+If you find ContactImplicitMPC useful in your project, we kindly request that you cite the following paper:
+```
+@article{lecleach2021fast,
+	title={Fast Contact-Implicit Model-Predictive Control},
+	author={Le Cleac'h, Simon  and Howell, Taylor A. and Schwager, Mac and Manchester, Zachary},
+	journal={arXiv preprint arXiv:2107.05616},
+	year={2021}
+}
+```
+The article is available under Open Access [here](https://arxiv.org/abs/2107.05616).
+
