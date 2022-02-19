@@ -69,11 +69,6 @@ include("dynamics/quadruped/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/walledcartpole/model.jl")
-<<<<<<< HEAD
-include("dynamics/rigidbody/model.jl")
-include("dynamics/box_2D/model.jl")
-=======
->>>>>>> be9e65f... simulator from RoboDojo
 
 # Simulator
 include("simulator/policy.jl")
@@ -118,12 +113,6 @@ include("dynamics/quadruped/visuals.jl")
 include("dynamics/flamingo/visuals.jl")
 include("dynamics/pushbot/visuals.jl")
 include("dynamics/walledcartpole/visuals.jl")
-<<<<<<< HEAD
-include("dynamics/rigidbody/visuals.jl")
-include("dynamics/box_2D/visuals.jl")
-
-=======
->>>>>>> be9e65f... simulator from RoboDojo
 
 export
     initial_conditions,

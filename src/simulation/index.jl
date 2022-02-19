@@ -517,10 +517,10 @@ function IndicesOptimization(model::Model, env::Environment)
 	# Variables
 	dynz = index_q2(model, env, quat = false)
 	dynΔ = index_q2(model, env, quat = true)
-	ortz = index_ort(model, env, quat = false)
-	ortΔ = index_ort(model, env, quat = true)
-	socz = index_soc(model, env, quat = false)
-	socΔ = index_soc(model, env, quat = true)
+	ortz = index_ort(model, env, quat = true)
+	ortΔ = index_ort(model, env, quat = false)
+	socz = index_soc(model, env, quat = true)
+	socΔ = index_soc(model, env, quat = false)
 
 	# Residual
 	# dyn = [dyn]
@@ -546,20 +546,9 @@ function IndicesOptimization(model::Model, env::Environment)
 
 	rst = [imp; mdp; fri]
 	bil = [bimp; bmdp; bfri]
-<<<<<<< HEAD
-	alt = imp
-
-	s = OptimizationIndices(
-		nz, nΔ, ny, nquat,
-		dynz, dynΔ, ortz, ortΔ, socz, socΔ,
-		equr, ortr, socr, dyn, rst, bil, alt)
-	return s
-end
-=======
 	
 	IndicesOptimization(
 		nz, nΔ,
 		ortz, ortΔ, socz, socΔ,
 		equr, ortr, socr, socri, bil)
 end
->>>>>>> be9e65f... simulator from RoboDojo

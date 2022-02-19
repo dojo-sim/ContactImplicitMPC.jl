@@ -7,9 +7,6 @@
 using ContactImplicitMPC
 using LinearAlgebra
 
-# ## Policy Mode 
-mode = :ci_mpc # :open_loop
-
 # ## Simulation
 s = get_simulation("flamingo", "flat_2D_lc", "flat")
 model = s.model
@@ -27,7 +24,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = mode == :ci_mpc ? 1000 : 170
+H_sim = 1000 
 κ_mpc = 2.0e-4
 
 obj = TrackingVelocityObjective(model, env, H_mpc,
@@ -37,8 +34,7 @@ obj = TrackingVelocityObjective(model, env, H_mpc,
     γ = [Diagonal(1.0e-100 * ones(model.nc)) for t = 1:H_mpc],
     b = [Diagonal(1.0e-100 * ones(model.nc * friction_dim(env))) for t = 1:H_mpc]);
 
-# ## Contact-Implicit MPC policy
-p_cimpc = ci_mpc_policy(ref_traj, s, obj,
+p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
     N_sample = N_sample,
     κ_mpc = κ_mpc,
@@ -53,60 +49,13 @@ p_cimpc = ci_mpc_policy(ref_traj, s, obj,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         max_iter = 5),
-<<<<<<< HEAD
-    mpc_opts = CIMPCOptions())
-<<<<<<< HEAD
-
-# ## Open-Loop Policy 
-p_openloop = open_loop_policy(ref_traj.u, N_sample=5)
-=======
->>>>>>> be9e65f... simulator from RoboDojo
-=======
     mpc_opts = CIMPCOptions());
->>>>>>> e12b4fe... test fixes
 
 # ## Initial conditions
 q1_sim, v1_sim = initial_conditions(ref_traj);
 
 # ## Simulator
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
-    p = mode == :ci_mpc ? p_cimpc : p_openloop,
-	ip_opts = InteriorPointOptions(
-		undercut = Inf,
-		γ_reg = 0.0,
-        r_tol = 1.0e-8,
-        κ_tol = 1.0e-8),
-    sim_opts = SimulatorOptions(warmstart = true))
-=======
-# sim = simulator(s, q0_sim, q1_sim, h_sim, H_sim,
-#     p = p,
-# 	ip_opts = InteriorPointOptions(
-# 		undercut = Inf,
-# 		γ_reg = 0.0,
-#         r_tol = 1.0e-8,
-#         κ_tol = 1.0e-8),
-#     sim_opts = SimulatorOptions(warmstart = true))
->>>>>>> be9e65f... simulator from RoboDojo
-
-# # ## Simulate
-# @time status = simulate!(sim, verbose = true)
-=======
->>>>>>> 4a2ef8d... working on newton
-sim = Simulator(s, H_sim, h=h_sim, policy=p)
-=======
-sim = ContactImplicitMPC.Simulator(s, H_sim, h=h_sim, policy=p)
->>>>>>> 5a6f8d2... sparse lu solver
-=======
-sim = simulator(s, H_sim, h=h_sim, policy=p)
->>>>>>> 8bb3883... tests fixed
-=======
 sim = simulator(s, H_sim, h=h_sim, policy=p);
->>>>>>> e12b4fe... test fixes
 
 # ## Simulate
 simulate!(sim, q1_sim, v1_sim);
@@ -116,14 +65,7 @@ vis = ContactImplicitMPC.Visualizer()
 ContactImplicitMPC.render(vis)
 
 # ## Visualize
-<<<<<<< HEAD
-anim = visualize_meshrobot!(vis, model, 
-    sim.traj, 
-    # ref_traj,
-    sample=10);
-=======
 anim = visualize_meshrobot!(vis, model, sim.traj, h=h_sim * 10, sample=10);
->>>>>>> be9e65f... simulator from RoboDojo
 
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
