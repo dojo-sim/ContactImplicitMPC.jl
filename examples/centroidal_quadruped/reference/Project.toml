@@ -1,0 +1,4 @@
+[deps]
+DirectTrajectoryOptimization = "a9f42406-efe7-414c-8b71-df971cc98041"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+RoboDojo = "2859eb88-988f-4613-a49e-c643bedbc906"
