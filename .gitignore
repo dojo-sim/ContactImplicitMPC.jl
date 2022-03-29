@@ -36,3 +36,4 @@ Manifest.toml
 /src/simulation/flamingo/piecewise/
 /src/simulation/flamingo/slope/
 
+*.txt
