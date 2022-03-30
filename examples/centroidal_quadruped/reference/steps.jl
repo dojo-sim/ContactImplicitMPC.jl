@@ -120,8 +120,8 @@ RoboDojo.dynamics_bias(model, ones(model.nq), ones(model.nq))
 RoboDojo.contact_jacobian(model, ones(model.nq))[1:12, :]
 
 # ## model
-d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(model, RoboDojo.mass_matrix, RoboDojo.dynamics_bias, [h], y, x, u, w), nx + nθ + nx, nx, nu)
-dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(model, RoboDojo.mass_matrix, RoboDojo.dynamics_bias, [h], y, x, u, w), nx + nθ + nx, nx + nθ + nx, nu)
+d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(model, RoboDojo.mass_matrix, RoboDojo.dynamics_bias, [h], y, x, u, w), nx + nθ + nx + model.nu, nx, nu)
+dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(model, RoboDojo.mass_matrix, RoboDojo.dynamics_bias, [h], y, x, u, w), nx + nθ + nx + model.nu, nx + nθ + nx + model.nu, nu)
 
 dyn = [d1, [dt for t = 2:T-1]...]
 
@@ -149,7 +149,7 @@ for t = 1:T
             J += 0.5 * transpose(x[1:nx] - x_ref[t]) * Diagonal(100.0 * ones(nx)) * (x[1:nx] - x_ref[t]) 
             return J
         end
-        push!(obj, DTO.Cost(objT, nx + nθ + nx, 0))
+        push!(obj, DTO.Cost(objT, nx + nθ + nx + model.nu, 0))
     else 
         function objt(x, u, w)
             J = 0.0 
@@ -160,7 +160,7 @@ for t = 1:T
             J += 1000.0 * u[end] # slack
             return J
         end
-        push!(obj, DTO.Cost(objt, nx + nθ + nx, nu))
+        push!(obj, DTO.Cost(objt, nx + nθ + nx + model.nu, nu))
     end
 end
 
@@ -170,19 +170,19 @@ xl1 = x_ref[1]
 xu1 = [q_ref[1]; q_ref[1]]
 
 # stage
-xlt = [-Inf * ones(nx); -Inf * ones(nθ); -Inf * ones(nx)] 
-xut = [Inf * ones(nx); Inf * ones(nθ); Inf * ones(nx)]
+xlt = [-Inf * ones(nx); -Inf * ones(nθ); -Inf * ones(nx); -Inf * ones(model.nu)] 
+xut = [Inf * ones(nx); Inf * ones(nθ); Inf * ones(nx); Inf * ones(model.nu)]
 
 # final condition
-xlT = [q_ref[end]; q_ref[end]; -Inf * ones(nθ); -Inf * ones(nx)] 
-xuT = [q_ref[end]; q_ref[end]; Inf * ones(nθ); Inf * ones(nx)]
+xlT = [q_ref[end]; q_ref[end]; -Inf * ones(nθ); -Inf * ones(nx); -Inf * ones(model.nu)] 
+xuT = [q_ref[end]; q_ref[end]; Inf * ones(nθ); Inf * ones(nx); Inf * ones(model.nu)]
 
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
 bnd1 = DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu)
-bndt = DTO.Bound(nx + nθ + nx, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
-bndT = DTO.Bound(nx + nθ + nx, 0, xl=xlT, xu=xuT)
+bndt = DTO.Bound(nx + nθ + nx + model.nu, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
+bndT = DTO.Bound(nx + nθ + nx + model.nu, 0, xl=xlT, xu=xuT)
 bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 
 function constraints_1(x, u, w) 
@@ -211,8 +211,8 @@ function constraints_T(x, u, w)
 end
 
 con1 = DTO.Constraint(constraints_1, nx, nu, idx_ineq=collect(16 .+ (1:28))) 
-cont = DTO.Constraint(constraints_t, nx + nθ + nx, nu, idx_ineq=collect(16 .+ (1:32))) 
-conT = DTO.Constraint(constraints_T, nx + nθ + nx, nu, idx_ineq=collect(0 .+ (1:8))) 
+cont = DTO.Constraint(constraints_t, nx + nθ + nx + model.nu, nu, idx_ineq=collect(16 .+ (1:32))) 
+conT = DTO.Constraint(constraints_T, nx + nθ + nx + model.nu, nu, idx_ineq=collect(0 .+ (1:8))) 
 cons = [con1, [cont for t = 2:T-1]..., conT];
 
 # ## problem 
@@ -223,7 +223,7 @@ p = DTO.solver(dyn, obj, cons, bnds,
         ))
 
 # ## initialize
-x_interpolation = [x1, [[x1; zeros(nθ); zeros(nx)] for t = 2:T]...]
+x_interpolation = [x1, [[x1; zeros(nθ); zeros(nx); zeros(model.nu)] for t = 2:T]...]
 u_guess = [1.0e-4 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(p, x_interpolation)
 DTO.initialize_controls!(p, u_guess)

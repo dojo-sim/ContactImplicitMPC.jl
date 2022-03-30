@@ -43,6 +43,7 @@ function centroidal_quadruped_dyn1(model, mass_matrix, dynamics_bias, h, y, x, u
      centroidal_quadruped_dyn(model, mass_matrix, dynamics_bias, h, y, x, u, w);
      y[nx .+ (1:5)] - [u[model.nu .+ (1:4)]; u[end]];
      y[nx + 5 .+ (1:nx)] - x[1:nx];
+     y[nx + 5 + nx .+ (1:model.nu)] - u[1:model.nu];
     ]
 end
 
@@ -52,6 +53,7 @@ function centroidal_quadruped_dynt(model, mass_matrix, dynamics_bias, h, y, x, u
      centroidal_quadruped_dyn(model, mass_matrix, dynamics_bias, h, y, x, u, w);
      y[nx .+ (1:5)] - [u[model.nu .+ (1:4)]; u[end]];
      y[nx + 5 .+ (1:nx)] - x[nx + 5 .+ (1:nx)];
+     y[nx + 5 + nx .+ (1:model.nu)] - u[1:model.nu];
     ]
 end
 
