@@ -5,7 +5,7 @@
 		s = (px, py, pz, tx, ty, tz, r) = (3d_position, MRP(m1, m2, 0.0), leg_length)
 """
 struct Hopper3D{T} <: Model{T}
-    nq::Int 
+    nq::Int
 	nu::Int
 	nw::Int
 	nc::Int
@@ -85,7 +85,7 @@ function velocity_stack(model::Hopper3D, env::Environment{<:World, LinearizedCon
 
 	SVector{4}(friction_mapping(env)' * v1_surf[1:2])
 end
-function get_stride(model::Hopper3D, traj)
+function get_stride(model::Hopper3D, traj::ContactTraj)
     stride = zeros(model.nq)
     stride[1:2] = traj.q[end-1][1:2] - traj.q[1][1:2]
     return stride
@@ -116,7 +116,7 @@ hopper_3D = Hopper3D(nq,nu,nw,nc,
 			BaseMethods(), DynamicsMethods(),
 			SVector{7}(zeros(7)))
 
-function friction_coefficients(model::Hopper3D) 
+function friction_coefficients(model::Hopper3D)
 	return [model.μ_world]
 end
 

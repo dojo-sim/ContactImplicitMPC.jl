@@ -69,6 +69,7 @@ include("dynamics/quadruped/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/walledcartpole/model.jl")
+include("dynamics/centroidal_quadruped/model.jl")
 
 # Simulator
 include("simulator/policy.jl")
@@ -113,6 +114,7 @@ include("dynamics/quadruped/visuals.jl")
 include("dynamics/flamingo/visuals.jl")
 include("dynamics/pushbot/visuals.jl")
 include("dynamics/walledcartpole/visuals.jl")
+include("dynamics/centroidal_quadruped/visuals.jl")
 
 export
     initial_conditions,
@@ -256,6 +258,7 @@ export
     flamingo,
     pushbot,
     walledcartpole,
+    centroidal_quadruped,
     flat_3D_lc,
     flat_3D_nc,
     quadratic_bowl_3D_lc,

@@ -3,7 +3,7 @@
 # PKG_SETUP
 
 # ## Setup
- 
+
 using ContactImplicitMPC
 using LinearAlgebra
 
@@ -81,7 +81,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
     );
 
 # ## Initial conditions
-q1_sim, v1_sim = initial_conditions(ref_traj); 
+q1_sim, v1_sim = initial_conditions(ref_traj);
 
 # ## Simulator
 sim = simulator(s, H_sim, h=h_sim, policy=p);
@@ -96,8 +96,8 @@ ContactImplicitMPC.render(vis)
 
 # ## Visualize
 plot_surface!(vis, s_sim.env, n=200)
-visualize_robot!(vis, model, sim.traj)
-
+visualize_robot!(vis, model, sim.traj, h=h)
+length(sim.traj.q)
 # ## Timing result
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
 process!(sim.stats, N_sample) # Time budget

@@ -42,6 +42,7 @@ include("dynamics/quadruped/model.jl")
 include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/walledcartpole/model.jl")
+include("dynamics/centroidal_quadruped/model.jl")
 
 # Simulation
 include("simulation/environments/flat.jl")

@@ -44,7 +44,7 @@ function visualize_robot!(vis::Visualizer, model::Model, q::AbstractVector;
 end
 
 function visualize_robot!(vis::Visualizer, model::Model, traj;
-		sample=max(1, Int(floor(traj.H / 100))), h=traj.h*sample,  α=1.0,
+		sample=max(1, Int(floor((length(traj.q)-2) / 100))), h=traj.h*sample,  α=1.0,
 		anim::MeshCat.Animation=MeshCat.Animation(Int(floor(1/h))),
 		name::Symbol=model_name(model))
 
