@@ -205,6 +205,8 @@ export
     LinearSolver,
     LUSolver,
     lu_solver,
+    ldl_solver, 
+    LDLSolver,
     factorize!,
     linear_solve!,
     IndicesOptimization,

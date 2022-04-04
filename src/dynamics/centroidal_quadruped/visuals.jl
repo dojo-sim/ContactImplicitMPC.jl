@@ -53,8 +53,8 @@ end
 function visualize!(vis, model::CentroidalQuadruped, q;
 	Δt=0.1,
 	body_height=0.025,
-	body_length=0.1,
-	body_width=0.1,
+	body_length=0.17,
+	body_width=0.15,
 	foot_radius=0.025,
 	color_opacity=1.0,
 	fixed_camera=false)

@@ -3,7 +3,7 @@
 # PKG_SETUP
 
 # ## Setup
- 
+
 using ContactImplicitMPC
 using LinearAlgebra
 
@@ -24,7 +24,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 15
 h_sim = h / N_sample
-H_sim = 1000 
+H_sim = 1000
 κ_mpc = 2.0e-4
 
 obj = TrackingVelocityObjective(model, env, H_mpc,

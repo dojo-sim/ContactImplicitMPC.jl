@@ -34,7 +34,7 @@ function factorize!(s::LDLSolver{Tv,Ti}, A::SparseMatrixCSC{Tv,Ti}) where {Tv<:A
     s.F.workspace.triuA.nzval .= A.nzval
 
     #factor the matrix
-    QDLDL.factor!(s.F.workspace, s.F.logical)
+    QDLDL.factor!(s.F.workspace, s.F.logical.x)
 
     return nothing
 end
