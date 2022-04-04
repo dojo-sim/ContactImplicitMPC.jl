@@ -155,7 +155,7 @@ function velocity_stack(model::CentroidalQuadruped, env::Environment{<:World, Li
 	])
 end
 
-function get_stride(model::CentroidalQuadruped, traj)
+function get_stride(model::CentroidalQuadruped, traj::ContactTraj)
     stride = zeros(model.nq)
     stride[1:2] = traj.q[end-1][1:2] - traj.q[1][1:2]
     return stride
@@ -173,9 +173,15 @@ g = 9.81                 # gravity
 μ_joint = 1.0            # coefficient of friction
 
 # inertial properties
-mass_body = 1.0
-inertia_body = Array(Diagonal(ones(3)))
-mass_foot = 0.1
+mass_body = 13.5
+i_xx = 0.0178533
+i_xy = 0.0
+i_xz = 0.0
+i_yz = 0.0
+i_yy = 0.0377999
+i_zz = 0.0456542
+inertia_body = Array(Diagonal([i_xx, i_yy, i_zz]))
+mass_foot = 0.2
 
 centroidal_quadruped = CentroidalQuadruped(nq, nu, nw, nc,
 				μ_joint,
@@ -185,7 +191,7 @@ centroidal_quadruped = CentroidalQuadruped(nq, nu, nw, nc,
                 inertia_body,
                 mass_foot,
 				BaseMethods(), DynamicsMethods(),
-                zeros(nq),
+                [10ones(3); 30ones(3); 10ones(12)],
                 )
 
 function friction_coefficients(model::CentroidalQuadruped)
@@ -209,10 +215,10 @@ end
 #     h = θ[52 .+ (1:1)]
 
 # 	q2 = z[1:18]
-#     γ1 = z[18 .+ (1:4)] 
+#     γ1 = z[18 .+ (1:4)]
 #     b1 = z[22 .+ (1:16)]
 #     ψ1 = z[38 .+ (1:4)]
-#     s1 = z[42 .+ (1:4)] 
+#     s1 = z[42 .+ (1:4)]
 #     η1 = z[46 .+ (1:16)]
 #     s2 = z[62 .+ (1:4)]
 
@@ -224,18 +230,18 @@ end
 #             friction_mapping(env) * b1[4 .+ (1:4)]; γ1[2];
 #             friction_mapping(env) * b1[8 .+ (1:4)]; γ1[3];
 #             friction_mapping(env) * b1[12 .+ (1:4)]; γ1[4];
-#         ]    
+#         ]
 # 	Λ1 = transpose(J_func(model, env, q1)) * λ1 #@@@@ maybe need to use J_fast
-#     v = J_func(model, env, q2) * (q2 - q1) ./ h[1] 
+#     v = J_func(model, env, q2) * (q2 - q1) ./ h[1]
 
 # 	vT_stack = [
-#                 v[1:2]; -v[1:2]; 
+#                 v[1:2]; -v[1:2];
 #                 v[3:4]; -v[3:4];
 #                 v[5:6]; -v[5:6];
 #                 v[7:8]; -v[7:8];
 #             ]
 # 	ψ_stack = [
-#         ψ1[1] * ones(4) 
+#         ψ1[1] * ones(4)
 #         ψ1[2] * ones(4);
 #         ψ1[3] * ones(4);
 #         ψ1[4] * ones(4);
@@ -253,9 +259,9 @@ end
 # end
 
 # mutable struct QuadrupedSimple{T} <: Model{T}
-# 	nq 
-#     nu 
-#     nw 
+# 	nq
+#     nu
+#     nw
 #     nc
 
 # 	g::T
@@ -438,4 +444,3 @@ end
 # 				mb, mf, Ix, Iy, Iz, l_torso, w_torso,
 # 				BaseMethods(), DynamicsMethods(),
 # 				SVector{nq}([zeros(3); μ_joint * ones(nq - 3)]))
-

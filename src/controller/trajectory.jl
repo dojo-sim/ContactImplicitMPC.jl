@@ -216,9 +216,9 @@ function tracking_error(ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
     return q_error, u_error, γ_error, b_error
 end
 
-function initial_conditions(traj::ContactTraj) 
-	q1 = traj.q[2] 
+function initial_conditions(traj::ContactTraj)
+	q1 = traj.q[2]
 	v1 = (traj.q[2] - traj.q[1]) ./ traj.h
-	
-	return q1, v1 
+
+	return q1, v1
 end
