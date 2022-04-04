@@ -156,12 +156,6 @@ function velocity_stack(model::CentroidalQuadruped, env::Environment{<:World, Li
 	])
 end
 
-function get_stride(model::CentroidalQuadruped, traj::ContactTraj)
-    stride = zeros(model.nq)
-    stride[1:2] = traj.q[end-1][1:2] - traj.q[1][1:2]
-    return stride
-end
-
 # dimensions
 nq = 3 + 3 + 3 * 4       # generalized coordinates
 nu = 3 * 4               # controls

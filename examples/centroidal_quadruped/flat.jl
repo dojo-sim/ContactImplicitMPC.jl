@@ -4,34 +4,14 @@
 
 # ## Setup
 
-function simulate!(s::Simulator{T}; verbose=false) where T
-    status = false
-
-    N = length(s.traj.u)
-    p = s.policy
-    w = s.dist
-    traj = s.traj
-
-    for t = 1:N
-		println("t $t $N")
-        # policy
-        policy_time = @elapsed traj.u[t] .= policy(p, traj, t)
-        s.opts.record && (s.stats.policy_time[t] = policy_time)
-
-        # disturbances
-        traj.w[t] .= RoboDojo.disturbances(w, traj.q[t+1], t)
-
-        # step
-        status = RoboDojo.step!(s, t, verbose=verbose)
-        !status && break
-    end
-
-    return status
-end
-
-
 using ContactImplicitMPC
 using LinearAlgebra
+
+function get_stride(model::CentroidalQuadruped, traj::ContactTraj)
+    stride = zeros(model.nq)
+    stride[1:2] = traj.q[end-1][1:2] - traj.q[1][1:2]
+    return stride
+end
 
 # ## Simulation
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -89,13 +69,12 @@ sim = simulator(s, H_sim, h=h_sim, policy=p);
 # sim = simulator(s, H_sim, h=h_sim);
 # sim = simulator(s, 100, h=0.01, solver_opts=RoboDojo.InteriorPointOptions(verbose=false))
 
-using BenchmarkTools
 # ## Simulate
-RoboDojo.simulate!(sim, q1_sim, v1_sim)
+@time RoboDojo.simulate!(sim, q1_sim, v1_sim)
 
 # # ## Visualizer
-# vis = ContactImplicitMPC.Visualizer()
-# ContactImplicitMPC.render(vis)
+vis = ContactImplicitMPC.Visualizer()
+ContactImplicitMPC.render(vis)
 
 # ## Visualize
 anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)

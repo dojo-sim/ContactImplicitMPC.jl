@@ -34,7 +34,7 @@ function factorize!(s::LDLSolver{Tv,Ti}, A::SparseMatrixCSC{Tv,Ti}) where {Tv<:A
     s.F.workspace.triuA.nzval .= A.nzval
 
     #factor the matrix
-    QDLDL.factor!(s.F.workspace, s.F.logical)
+    QDLDL.factor!(s.F.workspace, s.F.logical.x)
 
     return nothing
 end
@@ -98,7 +98,9 @@ function permute_symmetricAF(A::SparseMatrixCSC{Tv, Ti}, iperm::AbstractVector{T
             end
         end
     end
-    P = SparseMatrixCSC{Tv, Ti}(n, n, Pc, Pr, Pv)
+    nz_new = Pc[end] - 1
+    P = SparseMatrixCSC{Tv, Ti}(n, n, Pc, Pr[1:nz_new], Pv[1:nz_new])
+    # P = SparseMatrixCSC{Tv, Ti}(n, n, Pc, Pr, Pv)
     # order row indices within P.rowcal[P.colptr[k]:P.colptr[k+1]-1]
     return (P')'
 end
