@@ -9,7 +9,6 @@ T = Int(floor(0.5 * 0.65 / h)) + 1
 Tm = 17 # T / 2
 
 # ## centroidal_quadruped 
-# https://github.com/ShuoYangRobotics/A1-QP-MPC-Controller/blob/main/src/a1_cpp/config/hardware_a1_mpc.yaml
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
 model = s.model
 env = s.env
@@ -26,7 +25,7 @@ dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(model, env, [h], y, 
 dyn = [d1, [dt for t = 2:T-1]...]
 
 # ## initial conditions
-mode = :left
+mode = :right
 body_height = 0.3
 foot_x = 0.17
 foot_y = 0.15
@@ -80,7 +79,7 @@ for t = 1:T
             J = 0.0 
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
             J += 0.5 * 1.0e-1 * dot(v, v)
-            J += 0.5 * transpose(x[1:nx] - x_ref[t]) * Diagonal(10000.0 * ones(nx)) * (x[1:nx] - x_ref[t]) 
+            J += 0.5 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]) 
             return J 
         end
         push!(obj, DTO.Cost(objT, nx + nθ + nx + model.nu, 0))
@@ -89,9 +88,9 @@ for t = 1:T
             J = 0.0 
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
             J += 0.5 * 1.0e-3 * dot(v, v)
-            J += 0.5 * transpose(x[1:nx] - x_ref[t]) * Diagonal(10000.0 * ones(nx)) * (x[1:nx] - x_ref[t]) 
+            J += 0.5 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]) 
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
-            J += 10000.0 * u[end] # slack
+            J += 1000.0 * u[end] # slack
             return J 
         end
         push!(obj, DTO.Cost(obj1, nx, nu))
@@ -104,9 +103,9 @@ for t = 1:T
             u_control = u[1:model.nu] 
             w = (u_control - u_previous) ./ h
             J += 0.5 * 1.0e-2 * dot(w, w)
-            J += 0.5 * transpose(x[1:nx] - x_ref[t]) * Diagonal(10000.0 * ones(nx)) * (x[1:nx] - x_ref[t]) 
+            J += 0.5 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t]) 
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
-            J += 10000.0 * u[end] # slack
+            J += 1000.0 * u[end] # slack
             return J 
         end
         push!(obj, DTO.Cost(objt, nx + nθ + nx + model.nu, nu))
@@ -358,7 +357,7 @@ if mode == :left
     @load joinpath(@__DIR__, "inplace_trot_left.jld2") ql ul γl bl ψl ηl 
 end
 
-# @load joinpath(@__DIR__, "inplace_trot_left.jld2") ql ul γl bl ψl ηl 
+@load joinpath(@__DIR__, "inplace_trot_left.jld2") ql ul γl bl ψl ηl 
 
 qm = [qr[2:end]..., ql[2:end]...] 
 um = [ur..., ul...] 
@@ -366,7 +365,8 @@ um = [ur..., ul...]
 bm = [br..., bl...] 
 ψm = [ψr..., ψl...] 
 ηm = [ηr..., ηl...] 
-
+μm = model.μ_world 
+hm = h
 timesteps = range(0.0, stop=(h * (length(qm) - 2)), length=(length(qm) - 2))
 plot(timesteps, hcat(qm[2:end-1]...)', labels="")
 plot(timesteps, hcat(um...)', labels="")
