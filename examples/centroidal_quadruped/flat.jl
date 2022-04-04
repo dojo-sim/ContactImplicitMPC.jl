@@ -67,7 +67,7 @@ simulate!(sim, q1_sim, v1_sim, verbose=false)
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-ContactImplicitMPC.render(vis)
+ContactImplicitMPC.open(vis)
 
 # ## Visualize
 anim = visualize!(vis, model, sim.traj.q; Δt=0.1)

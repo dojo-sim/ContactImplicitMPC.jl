@@ -36,6 +36,7 @@ include("utils.jl")
 
 # Solver
 include("solver/lu.jl") # sparse arrays
+include("solver/ldl.jl")
 
 include("solver/qr.jl")
 include("solver/schur.jl")
