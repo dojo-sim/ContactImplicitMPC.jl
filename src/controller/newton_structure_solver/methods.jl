@@ -568,17 +568,18 @@ function factorize!(s::NewtonStructureSolver)
 	compute_L!(s.Liis, s.Ljis, s.Yiis, s.Yijs, s.tmp_nn, s.tmp_nn2, s.H)
 end
 
-function ContactImplicitMPC.solve!(s::NewtonStructureSolver)
-	compute_β!(s.βn, s.β1, s.β2, s.rlagu, s.rlagqa, s.rlagqb,
-		s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.H)
+#TODO: fix solve! usage
+# function ContactImplicitMPC.solve!(s::NewtonStructureSolver)
+# 	compute_β!(s.βn, s.β1, s.β2, s.rlagu, s.rlagqa, s.rlagqb,
+# 		s.rdyn1, s.rdyn2, s.Aa, s.Ab, s.Ac, s.Ba, s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.H)
 
-	compute_y!(s.y, s.Liis, s.Ljis, s.βn, s.H)
+# 	compute_y!(s.y, s.Liis, s.Ljis, s.βn, s.H)
 
-	compute_Δν!(s.Δνn, s.Δν1, s.Δν2, s.Liis, s.Ljis, s.y, s.idx_nq, s.idx_nq2, s.H)
+# 	compute_Δν!(s.Δνn, s.Δν1, s.Δν2, s.Liis, s.Ljis, s.y, s.idx_nq, s.idx_nq2, s.H)
 
-	compute_Δz!(s.Δu, s.Δqa, s.Δqb, s.Δν1,  s.Δν2, s.Aa, s.Ab, s.Ac, s.Ba,
-		s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
-end
+# 	compute_Δz!(s.Δu, s.Δqa, s.Δqb, s.Δν1,  s.Δν2, s.Aa, s.Ab, s.Ac, s.Ba,
+# 		s.Q̃a, s.Q̃b, s.Q̃v, s.R̃a, s.rlagu, s.rlagqa, s.rlagqb, s.H)
+# end
 
 # objective
 mutable struct QuadraticObjective{Q,V,U} <: Objective

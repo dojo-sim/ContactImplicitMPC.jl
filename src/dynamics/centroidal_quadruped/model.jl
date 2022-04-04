@@ -97,7 +97,9 @@ end
 function B_func(model::CentroidalQuadruped, q)
     position_body = q[1:3]
     orientation_body = q[3 .+ (1:3)]
-    R = mrp_rot_mat(orientation_body)
+    # R = mrp_rot_mat(orientation_body)
+    R = euler_rotation_matrix(orientation_body)
+
 
 	# kinematics in world frame
 	r1 = q[6 .+ (1:3)] - position_body

@@ -1,5 +1,5 @@
 # ## model 
-include("ci_model.jl") 
+include("trajopt_model.jl") 
 
 # ## horizon 
 
@@ -10,25 +10,18 @@ Tm = 17 # T / 2
 
 # ## centroidal_quadruped 
 # https://github.com/ShuoYangRobotics/A1-QP-MPC-Controller/blob/main/src/a1_cpp/config/hardware_a1_mpc.yaml
-model = RoboDojo.centroidal_quadruped
-model.inertia_body = Matrix(Diagonal([0.0178533, 0.0377999, 0.0456542]))
-model.mass_body = 13.5 # mass
-model.mass_foot = 0.2
-friction_coefficients(model)
-model.friction_joint .= 0.0
+s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
+model = s.model
+env = s.env
 
 nx = 2 * model.nq
 nc = 4 #model.nc
 nu = model.nu + nc + 4 * nc + nc + 4 * nc + 1
 nθ = 5 
 
-RoboDojo.mass_matrix(model, ones(model.nq))
-RoboDojo.dynamics_bias(model, ones(model.nq), ones(model.nq))
-RoboDojo.contact_jacobian(model, ones(model.nq))[1:12, :]
-
 # ## model
-d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(model, RoboDojo.mass_matrix, RoboDojo.dynamics_bias, [h], y, x, u, w), nx + nθ + nx + model.nu, nx, nu)
-dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(model, RoboDojo.mass_matrix, RoboDojo.dynamics_bias, [h], y, x, u, w), nx + nθ + nx + model.nu, nx + nθ + nx + model.nu, nu)
+d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(model, env, [h], y, x, u, w), nx + nθ + nx + model.nu, nx, nu)
+dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(model, env, [h], y, x, u, w), nx + nθ + nx + model.nu, nx + nθ + nx + model.nu, nu)
 
 dyn = [d1, [dt for t = 2:T-1]...]
 
@@ -69,7 +62,7 @@ end
 
 qT = copy(q1)
 
-# RoboDojo.visualize!(vis, RoboDojo.centroidal_quadruped, [qM], Δt=h);
+# visualize!(vis, model, [qM], Δt=h);
 
 q_ref = [linear_interpolation(q1, qM, Tm)..., linear_interpolation(qM, qT, Tm)...]
 x_ref = [[q_ref[t]; q_ref[t+1]] for t = 1:T]
@@ -77,7 +70,7 @@ x1 = x_ref[1]
 xM = x_ref[Tm]
 xT = x_ref[T]
 
-RoboDojo.visualize!(vis, RoboDojo.centroidal_quadruped, q_ref, Δt=h);
+visualize!(vis, model, q_ref, Δt=h);
 
 # ## objective
 obj = DTO.Cost{Float64}[] 
@@ -145,9 +138,9 @@ for t = 1:T
         function constraints_1(x, u, w) 
             [
             # equality (16)
-            contact_constraints_equality(model, h, x, u, w); 
+            contact_constraints_equality(model, env, h, x, u, w); 
             # inequality (28)
-            contact_constraints_inequality_1(model, h, x, u, w);
+            contact_constraints_inequality_1(model, env, h, x, u, w);
 
             # body/feet constraints
             # x[3] - x_ref[t][3]; # body height 
@@ -159,7 +152,7 @@ for t = 1:T
         function constraints_T(x, u, w) 
             [
             # inequality (8)
-            contact_constraints_inequality_T(model, h, x, u, w);
+            contact_constraints_inequality_T(model, env, h, x, u, w);
 
             # body/feet constraints
             # x[3] - x_ref[t][3]; # body height 
@@ -171,9 +164,9 @@ for t = 1:T
         function constraints_t(x, u, w) 
             [
             # equality (16)
-            contact_constraints_equality(model, h, x, u, w); 
+            contact_constraints_equality(model, env, h, x, u, w); 
             # inequality (32)
-            contact_constraints_inequality_t(model, h, x, u, w);
+            contact_constraints_inequality_t(model, env, h, x, u, w);
 
             # body/feet constraints
             # x[3] - x_ref[t][3]; # body height 
@@ -211,7 +204,7 @@ sum([u[end] for u in u_sol[1:end-1]])
 # ## visualize 
 vis = Visualizer() 
 render(vis)
-RoboDojo.visualize!(vis, RoboDojo.centroidal_quadruped, x_sol, Δt=h);
+visualize!(vis, model, x_sol, Δt=h);
 
 q_opt = [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...]
 v_opt = [(x[model.nq .+ (1:model.nq)] - x[0 .+ (1:model.nq)]) ./ h for x in x_sol]

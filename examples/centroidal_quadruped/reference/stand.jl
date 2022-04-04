@@ -1,28 +1,36 @@
 # ## model 
-include("ci_model.jl") 
+include("trajopt_model.jl") 
 
 # ## horizon 
 T = 11 
 h = 0.1
 
 # ## centroidal_quadruped 
-model = RoboDojo.centroidal_quadruped
+s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
+model = s.model
+env = s.env
 nx = 2 * model.nq
-nc = 4 #model.nc
+nc = 4 # model.nc
 nu = model.nu + nc + 4 * nc + nc + 4 * nc + 1
 nθ = 5 
 
-RoboDojo.mass_matrix(model, ones(model.nq))
-RoboDojo.dynamics_bias(model, ones(model.nq), ones(model.nq))
-RoboDojo.contact_jacobian(model, ones(model.nq))[1:12, :]
-
 # ## model
-d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(model, RoboDojo.mass_matrix, RoboDojo.dynamics_bias, [h], y, x, u, w), nx + nθ + nx + model.nu, nx, nu)
-dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(model, RoboDojo.mass_matrix, RoboDojo.dynamics_bias, [h], y, x, u, w), nx + nθ + nx + model.nu, nx + nθ + nx + model.nu, nu)
+d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(model, env, [h], y, x, u, w), nx + nθ + nx + model.nu, nx, nu)
+dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(model, env, [h], y, x, u, w), nx + nθ + nx + model.nu, nx + nθ + nx + model.nu, nu)
 
 dyn = [d1, [dt for t = 2:T-1]...]
 
 # ## initial conditions
+function nominal_configuration(model::CentroidalQuadruped) 
+    [
+        0.0; 0.0; 0.15; 
+        0.0; 0.0; 0.0;
+        0.1; 0.1; 0.0;
+        0.1;-0.1; 0.0;
+       -0.1; 0.1; 0.0;
+       -0.1;-0.1; 0.0;
+    ]
+end
 q1 = nominal_configuration(model) 
 qM = nominal_configuration(model)
 qT = nominal_configuration(model)
@@ -86,25 +94,25 @@ bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 function constraints_1(x, u, w) 
     [
      # equality (16)
-     contact_constraints_equality(model, h, x, u, w); 
+     contact_constraints_equality(model, env, h, x, u, w); 
      # inequality (28)
-     contact_constraints_inequality_1(model, h, x, u, w);
+     contact_constraints_inequality_1(model, env, h, x, u, w);
     ]
 end
 
 function constraints_t(x, u, w) 
     [
      # equality (16)
-     contact_constraints_equality(model, h, x, u, w); 
+     contact_constraints_equality(model, env, h, x, u, w); 
      # inequality (32)
-     contact_constraints_inequality_t(model, h, x, u, w);
+     contact_constraints_inequality_t(model, env, h, x, u, w);
     ]
 end
 
 function constraints_T(x, u, w) 
     [
      # inequality (8)
-     contact_constraints_inequality_T(model, h, x, u, w);
+     contact_constraints_inequality_T(model, env, h, x, u, w);
     ]
 end
 
@@ -139,4 +147,4 @@ sum([u[nu] for u in u_sol[1:end-1]])
 vis = Visualizer() 
 render(vis)
 # q_sol = state_to_configuration([x[1:nx] for x in x_sol])
-RoboDojo.visualize!(vis, RoboDojo.centroidal_quadruped, x_sol, Δt=h);
+visualize!(vis, model, x_sol, Δt=h);
