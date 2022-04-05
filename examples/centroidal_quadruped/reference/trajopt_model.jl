@@ -1,9 +1,7 @@
-using RoboDojo 
-using LinearAlgebra 
 using DirectTrajectoryOptimization 
 const DTO = DirectTrajectoryOptimization
 
-function centroidal_quadruped_dyn(model, mass_matrix, dynamics_bias, h, y, x, u, w) 
+function centroidal_quadruped_dyn(model, env, h, y, x, u, w) 
 
     # dimensions
     nq = model.nq
@@ -23,7 +21,7 @@ function centroidal_quadruped_dyn(model, mass_matrix, dynamics_bias, h, y, x, u,
     
     E = [1.0 0.0 -1.0 0.0; 
          0.0 1.0 0.0 -1.0] # friction mapping 
-    J = RoboDojo.contact_jacobian(model, q2⁺)
+    J = J_func(model, env, q2⁺)
     λ = transpose(J[1:12, :]) * [
                         [E * β[0  .+ (1:4)]; γ[1]];
                         [E * β[4  .+ (1:4)]; γ[2]];
@@ -32,32 +30,31 @@ function centroidal_quadruped_dyn(model, mass_matrix, dynamics_bias, h, y, x, u,
                        ]
     [
      q2⁺ - q2⁻;
-     RoboDojo.dynamics(model, q -> mass_matrix(model, q), (q, q̇) -> dynamics_bias(model, q, q̇), 
-        h, q1⁻, q2⁺, u_control, zeros(model.nw), λ, q3⁺)
+     dynamics(model, h, q1⁻, q2⁺, u_control, zeros(model.nw), λ, q3⁺)
     ]
 end
 
-function centroidal_quadruped_dyn1(model, mass_matrix, dynamics_bias, h, y, x, u, w)
+function centroidal_quadruped_dyn1(model, env, h, y, x, u, w)
     nx = 2 * model.nq
     [
-     centroidal_quadruped_dyn(model, mass_matrix, dynamics_bias, h, y, x, u, w);
+     centroidal_quadruped_dyn(model, env, h, y, x, u, w);
      y[nx .+ (1:5)] - [u[model.nu .+ (1:4)]; u[end]];
      y[nx + 5 .+ (1:nx)] - x[1:nx];
      y[nx + 5 + nx .+ (1:model.nu)] - u[1:model.nu];
     ]
 end
 
-function centroidal_quadruped_dynt(model, mass_matrix, dynamics_bias, h, y, x, u, w)
+function centroidal_quadruped_dynt(model, env, h, y, x, u, w)
     nx = 2 * model.nq
     [
-     centroidal_quadruped_dyn(model, mass_matrix, dynamics_bias, h, y, x, u, w);
+     centroidal_quadruped_dyn(model, env, h, y, x, u, w);
      y[nx .+ (1:5)] - [u[model.nu .+ (1:4)]; u[end]];
      y[nx + 5 .+ (1:nx)] - x[nx + 5 .+ (1:nx)];
      y[nx + 5 + nx .+ (1:model.nu)] - u[1:model.nu];
     ]
 end
 
-function contact_constraints_inequality_1(model, h, x, u, w) 
+function contact_constraints_inequality_1(model, env, h, x, u, w) 
     nq = model.nq
     nu = model.nu 
     nx = 2nq
@@ -72,9 +69,9 @@ function contact_constraints_inequality_1(model, h, x, u, w)
     η = u[nu + 4 + 16 + 4 .+ (1:16)] 
     sα = u[nu + 4 + 16 + 4 + 16 .+ (1:1)]
 
-    ϕ = RoboDojo.signed_distance(model, q3)[1:4]
+    ϕ = ϕ_func(model, env, q3)[1:4]
   
-    μ = model.friction_foot_world
+    μ = model.μ_world
     fc = μ .* γ[1:4] - [sum(β[0 .+ (1:4)]); sum(β[4 .+ (1:4)]); sum(β[8 .+ (1:4)]); sum(β[12 .+ (1:4)]);]
 
     [
@@ -85,7 +82,7 @@ function contact_constraints_inequality_1(model, h, x, u, w)
     ]
 end
 
-function contact_constraints_inequality_t(model, h, x, u, w) 
+function contact_constraints_inequality_t(model, env, h, x, u, w) 
     nq = model.nq
     nu = model.nu 
     nx = 2nq
@@ -100,11 +97,11 @@ function contact_constraints_inequality_t(model, h, x, u, w)
     η = u[nu + 4 + 16 + 4 .+ (1:16)] 
     sα = u[nu + 4 + 16 + 4 + 16 .+ (1:1)]
 
-    ϕ = RoboDojo.signed_distance(model, q3)[1:4]
+    ϕ = ϕ_func(model, env, q3)[1:4]
     γ⁻ = x[nx .+ (1:4)] 
     sα⁻ = x[nx + 4 .+ (1:1)]
     
-    μ = model.friction_foot_world
+    μ = model.μ_world
     fc = μ .* γ[1:4] - [sum(β[0 .+ (1:4)]); sum(β[4 .+ (1:4)]); sum(β[8 .+ (1:4)]); sum(β[12 .+ (1:4)]);]
 
     [
@@ -117,14 +114,14 @@ function contact_constraints_inequality_t(model, h, x, u, w)
 end
 
 
-function contact_constraints_inequality_T(model, h, x, u, w) 
+function contact_constraints_inequality_T(model, env, h, x, u, w) 
     nq = model.nq
     nx = 2nq
 
     q2 = x[1:nq] 
     q3 = x[nq .+ (1:nq)] 
 
-    ϕ = RoboDojo.signed_distance(model, q3)[1:4]
+    ϕ = ϕ_func(model, env, q3)[1:4]
     γ⁻ = x[nx .+ (1:4)] 
     sα⁻ = x[nx + 4 .+ (1:1)]
    
@@ -134,7 +131,7 @@ function contact_constraints_inequality_T(model, h, x, u, w)
     ]
 end
 
-function contact_constraints_equality(model, h, x, u, w) 
+function contact_constraints_equality(model, env, h, x, u, w) 
     nq = model.nq
     nu = model.nu 
 
