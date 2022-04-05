@@ -110,7 +110,7 @@ function B_func(model::CentroidalQuadruped, q)
 
 	transpose([
         I(3) I(3) I(3) I(3);
-        transpose(R) * skew(r1) transpose(R) * skew(r2) transpose(R) * skew(r3) transpose(R) * skew(r4);
+		transpose(R) * skew(r1) transpose(R) * skew(r2) transpose(R) * skew(r3) transpose(R) * skew(r4);
         -I(3)    z3    z3   z3;
         z3    -I(3)    z3   z3;
         z3       z3 -I(3)   z3;
