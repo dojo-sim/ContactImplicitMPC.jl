@@ -103,20 +103,14 @@ end
 
 #TODO: add minus function
 
-function copy_traj!(traj::ContactTraj, traj_cand::ContactTraj, H::Int)
-    Ht = traj.H
-    Hs = traj_cand.H # MAYBE BREAKING TEST
-
-    @assert Hs >= H
-    @assert Ht >= H
-
+function copy_traj!(traj::ContactTraj, traj_cand::ContactTraj, window::Vector{Int})
     traj.κ .= traj_cand.κ
 
-    for t in eachindex(1:H + 2)
+    for t in window
         traj.q[t] .= traj_cand.q[t]
     end
 
-    for t in eachindex(1:H)
+    for t in window[1:end-2]
         traj.u[t] .= traj_cand.u[t]
         traj.w[t] .= traj_cand.w[t]
         traj.γ[t] .= traj_cand.γ[t]
@@ -130,6 +124,7 @@ end
 
 function reset!(core::Newton, ref_traj::ContactTraj,
     q0::Vector{T}, q1::Vector{T};
+    window=collect(1:(core.traj.H + 2)),
     warm_start::Bool = false) where T
 
     # H = ref_traj.H
@@ -146,8 +141,9 @@ function reset!(core::Newton, ref_traj::ContactTraj,
 			fill!(core.ν_cand[t], 0.0)
 		end
 
-		# Set up trajectory
-        copy_traj!(core.traj, ref_traj, core.traj.H)
+        # TODO: not sure this is correct
+        # Set up trajectory
+        copy_traj!(core.traj, ref_traj, window)
 	end
 
     core.traj.q[1] .= q0
@@ -159,8 +155,8 @@ function reset!(core::Newton, ref_traj::ContactTraj,
     # initialized residual Jacobian
     initialize_jacobian!(core.jac, core.obj, core.traj.H)
 
-	# Set up traj cand
-    copy_traj!(core.traj_cand, core.traj, core.traj.H)
+    # Set up traj cand
+    copy_traj!(core.traj_cand, core.traj, window)
 
 	return nothing
 end
@@ -170,15 +166,18 @@ function newton_solve!(
     s::Simulation{T},
     q0::Vector{T},
     q1::Vector{T},
+    window::Vector{Int},
     im_traj::ImplicitTrajectory{T},
     ref_traj::ContactTraj{T};
     warm_start::Bool=false) where T
 
     # reset solver 
-    reset!(core, ref_traj, q0, q1, warm_start=warm_start)
+    reset!(core, ref_traj, q0, q1,
+        window=window, 
+        warm_start=warm_start)
     
     # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, core.traj)
+	implicit_dynamics!(im_traj, core.traj, window=window)
     
     # Compute residual
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
@@ -206,7 +205,7 @@ function newton_solve!(
 	        update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	        # Compute implicit dynamics for candidate
-			implicit_dynamics!(im_traj, core.traj_cand)
+			implicit_dynamics!(im_traj, core.traj_cand, window=window)
 
 	        # Compute residual for candidate
 	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
@@ -223,7 +222,7 @@ function newton_solve!(
 	            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	            # Compute implicit dynamics about trial_traj
-				implicit_dynamics!(im_traj, core.traj_cand)
+				implicit_dynamics!(im_traj, core.traj_cand, window=window)
 
 	            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
 	            r_cand_norm = norm(core.res_cand.r, 1)

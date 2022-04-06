@@ -153,9 +153,10 @@ function set_altitude!(ip::InteriorPoint, alt::Vector)
 	return nothing
 end
 
-function implicit_dynamics!(im_traj::ImplicitTrajectory, traj::ContactTraj)
+function implicit_dynamics!(im_traj::ImplicitTrajectory, traj::ContactTraj; 
+	window=collect(1:traj.H + 2))
 
-	for t = 1:traj.H
+	for t in window[1:end-2]
 		# initialized solver
 		z_initialize!(im_traj.ip[t].z, im_traj.iq2, traj.q[t+2]) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[t]

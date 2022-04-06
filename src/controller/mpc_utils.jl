@@ -1,6 +1,6 @@
-function rot_n_stride!(traj::ContactTraj, cache::ContactTraj, stride::Vector{T}) where T
+function rot_n_stride!(traj::ContactTraj, cache::ContactTraj, stride::Vector{T}, window::Vector{Int}) where T
     rotate!(traj, cache)
-    mpc_stride!(traj, stride)
+    mpc_stride!(traj, stride, window)
     return nothing
 end
 
@@ -58,16 +58,25 @@ end
 """
     Update the last two cofiguaraton to be equal to the fisrt two up to an constant offset.
 """
-function mpc_stride!(traj::ContactTraj, stride::Vector{T}) where T
+function mpc_stride!(traj::ContactTraj, stride::Vector{T}, window::Vector{Int}) where T
     H = traj.H
 
     for t = H+1:H+2
 		traj.q[t] .= traj.q[t-H]
 		traj.q[t] .+= stride
 
-        update_z!(traj, t - 2)
-        update_θ!(traj, t - 2)
-        update_θ!(traj, t - 3)
+		# update_z!(traj, t - 2)
+		τ = t - 2
+		traj.z[τ][traj.iq2] = traj.q[τ+2]
+
+		# update_θ!(traj, t - 2)
+		traj.θ[τ][traj.iq0] = traj.q[τ]
+		traj.θ[τ][traj.iq1] = traj.q[τ+1]
+
+		# update_θ!(traj, t - 3)
+		τ = t - 3
+		traj.θ[τ][traj.iq0] = traj.q[τ]
+		traj.θ[τ][traj.iq1] = traj.q[τ+1]
     end
 
     return nothing
