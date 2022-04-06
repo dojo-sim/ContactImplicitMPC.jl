@@ -191,8 +191,9 @@ function newton_solve!(
 	        r_norm / length(core.res.r) < core.opts.r_tol && break
 
 	        # Compute NewtonJacobian
-	        jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
-
+			jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β, update_hessian=true)
+	        # jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β, update_hessian=false)
+			# @show diag(core.jac.R[1:6,1:6])
             # Compute Search Direction
 	        linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)
 

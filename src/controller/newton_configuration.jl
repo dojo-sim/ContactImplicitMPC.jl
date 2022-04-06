@@ -220,12 +220,12 @@ function Newton(s::Simulation, H::Int, h::T,
         Δq, Δu, ind, obj, solver, β, opts)
 end
 
-function initialize_jacobian!(jac::NewtonJacobian, obj::Objective, H::Int)
+function initialize_jacobian!(jac::NewtonJacobian, obj::Objective, H::Int; update_hessian::Bool=true)
 
     fill!(jac.R, 0.0)
 
     # Objective
-    hessian!(jac, obj)
+    update_hessian && hessian!(jac, obj)
 
     for t = 1:H
         # Implicit dynamics
