@@ -60,7 +60,7 @@ function setminus!(s::SubArray, x::SizedArray{Tuple{nx},T,1,1}) where {nx,T}
 end
 
 
-function convert_video_to_gif(video_file_path::AbstractString, output_path::AbstractString="output.gif";
+function convert_video_to_gif(video_file_path::String, output_path::String="output.gif";
     framerate::Int=30, start_time=0., duration=1e3, overwrite=false, width::Int=1080, height::Int=-2, hq_colors::Bool=false)
     output_path = abspath(output_path)
 
@@ -91,6 +91,17 @@ function convert_video_to_gif(video_file_path::AbstractString, output_path::Abst
     return output_path
 end
 
+function convert_frames_to_video_and_gif(filename, overwrite::Bool=true)
+    MeshCat.convert_frames_to_video(
+        homedir() * "/Downloads/$filename.tar",
+        homedir() * "/Documents/video/$filename.mp4", overwrite=overwrite)
+
+    convert_video_to_gif(
+        homedir() * "/Documents/video/$filename.mp4",
+        homedir() * "/Documents/video/$filename.gif", overwrite=overwrite)
+    return nothing
+end
+
 function save_markdown(path::String, content::String; overwrite::Bool=true)
 	mode = overwrite ? "w" : "a"
 	io = open(path, mode)
@@ -118,12 +129,12 @@ end
 function save_expressions(expr::Dict{Symbol,Expr},
 	path::AbstractString="expr.jld2"; overwrite::Bool=false)
 	path = abspath(path)
-    if isfile(path) 
+    if isfile(path)
         if overwrite
             rm(path)
-        end 
-        if !overwrite 
-            @warn "file exists -- not overwriting" 
+        end
+        if !overwrite
+            @warn "file exists -- not overwriting"
         end
     end
 	@save path expr

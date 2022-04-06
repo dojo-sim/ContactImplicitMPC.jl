@@ -126,7 +126,7 @@ function residual!(res::NewtonResidual, core::Newton,
         t >= 3 && mul!(res.q2[t-2], transpose(im_traj.δq0[t]), ν[t], 1.0, 1.0)
         t >= 2 && mul!(res.q2[t-1], transpose(im_traj.δq1[t]), ν[t], 1.0, 1.0)
         mul!(res.u1[t], transpose(im_traj.δu1[t]), ν[t], 1.0, 1.0)
-        
+
         # Implicit dynamics
         res.rd[t] .+= im_traj.d[t]
 
@@ -186,7 +186,7 @@ function gradient!(res::NewtonResidualConfigurationForce{T,vq2,vu1,vγ1,vb1,vd,v
         # res.q2[t] .+= obj.q[t] * core.Δq[t]
         mul!(res.q2[t], obj.q[t], core.Δq[t], 1.0, 1.0)
         # res.u1[t] .+= obj.u[t] * core.Δu[t]
-        mul!(res.u1[t], obj.u[t], core.Δu[t], 1.0, 1.0) 
+        mul!(res.u1[t], obj.u[t], core.Δu[t], 1.0, 1.0)
         # res.γ1[t] .+= obj.γ[t] * core.Δγ[t]
         mul!(res.γ1[t], obj.γ[t], core.Δγ[t], 1.0, 1.0)
         # res.b1[t] .+= obj.b[t] * core.Δb[t]
@@ -219,7 +219,7 @@ function gradient!(res::NewtonResidualConfigurationForce{T,vq2,vu1,vγ1,vb1,vd,v
         # res.q2[t] .+= obj.q[t] * core.Δq[t]
         mul!(res.q2[t], obj.q[t], core.Δq[t], 1.0, 1.0)
         # res.u1[t] .+= obj.u[t] * core.Δu[t]
-        mul!(res.u1[t], obj.u[t], core.Δu[t], 1.0, 1.0) 
+        mul!(res.u1[t], obj.u[t], core.Δu[t], 1.0, 1.0)
         # res.γ1[t] .+= obj.γ[t] * core.Δγ[t]
         mul!(res.γ1[t], obj.γ[t], core.Δγ[t], 1.0, 1.0)
         # res.b1[t] .+= obj.b[t] * core.Δb[t]
@@ -227,12 +227,12 @@ function gradient!(res::NewtonResidualConfigurationForce{T,vq2,vu1,vγ1,vb1,vd,v
 
         # velocity
         # res.q2[t] .+= obj.v[t] * (traj.q[t+2] - traj.q[t+1])
-        mul!(res.q2[t], obj.v[t], traj.q[t+2], 1.0, 1.0) 
+        mul!(res.q2[t], obj.v[t], traj.q[t+2], 1.0, 1.0)
         mul!(res.q2[t], obj.v[t], traj.q[t+1], -1.0, 1.0)
 
         t == 1 && continue
         # res.q2[t-1] .-= obj.v[t] * (traj.q[t+2] - traj.q[t+1])
-        mul!(res.q2[t-1], obj.v[t], traj.q[t+2], -1.0, 1.0) 
+        mul!(res.q2[t-1], obj.v[t], traj.q[t+2], -1.0, 1.0)
         mul!(res.q2[t-1], obj.v[t], traj.q[t+1], 1.0, 1.0)
     end
 end
@@ -247,11 +247,11 @@ function gradient!(res::NewtonResidualConfiguration{T,vq2,vu1,vd,vI,vq0,vq1}, ob
         mul!(res.u1[t], obj.u[t], core.Δu[t], 1.0, 1.0)
 
         # velocity
-        mul!(res.q2[t], obj.v[t], traj.q[t+2], 1.0, 1.0) 
+        mul!(res.q2[t], obj.v[t], traj.q[t+2], 1.0, 1.0)
         mul!(res.q2[t], obj.v[t], traj.q[t+1], -1.0, 1.0)
 
         t == 1 && continue
-        mul!(res.q2[t-1], obj.v[t], traj.q[t+2], -1.0, 1.0) 
+        mul!(res.q2[t-1], obj.v[t], traj.q[t+2], -1.0, 1.0)
         mul!(res.q2[t-1], obj.v[t], traj.q[t+1], 1.0, 1.0)
     end
 end

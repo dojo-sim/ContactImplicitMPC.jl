@@ -1,5 +1,5 @@
 # ## model
-include("ci_model.jl")
+include("trajopt_model.jl")
 
 # ## horizon
 
@@ -24,7 +24,7 @@ nθ = 5
 
 M_func(model, ones(model.nq))
 C_func(model, ones(model.nq), ones(model.nq))
-J_func(model, ones(model.nq))[1:12, :]
+J_func(model, env, ones(model.nq))[1:12, :]
 
 # ## model
 d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(model, RoboDojo.mass_matrix, RoboDojo.dynamics_bias, [h], y, x, u, w), nx + nθ + nx + model.nu, nx, nu)

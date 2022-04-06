@@ -164,7 +164,7 @@ nc = 4                   # contact points
 
 # parameters
 g = 9.81                 # gravity
-μ_world = 1.0            # coefficient of friction
+μ_world = 0.3            # coefficient of friction
 μ_joint = 1.0            # coefficient of friction
 
 # inertial properties

@@ -63,7 +63,7 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 		mode = mode)
 
 	im_traj_cache = deepcopy(im_traj)
-	 
+
 	stride = get_stride(s.model, traj)
 	altitude = zeros(s.model.nc)
 	ϕ = zeros(s.model.nc)
@@ -75,7 +75,7 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 		@error "invalid Newton solver specified"
 	end
 
-	CIMPC(zeros(s.model.nu), traj, traj_cache, ref_traj, im_traj, im_traj_cache, 
+	CIMPC(zeros(s.model.nu), traj, traj_cache, ref_traj, im_traj, im_traj_cache,
 		H_mpc, stride, altitude, ϕ, [κ_mpc], newton, newton_mode, s, copy(ref_traj.q[1]),
 		N_sample, [N_sample], mpc_opts)
 end
@@ -86,9 +86,9 @@ function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,N
 		p.cnt[1] = p.N_sample
 		p.q0 .= p.ref_traj.q[1]
 		p.altitude .= 0.0
-		set_trajectory!(p.traj, p.ref_traj) 
+		set_trajectory!(p.traj, p.ref_traj)
 		set_implicit_trajectory!(p.im_traj, p.im_traj_cache)
-		# update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H) 
+		# update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H)
 	end
 
     if p.cnt[1] == p.N_sample
@@ -97,16 +97,16 @@ function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,N
 									traj, t, NC, p.N_sample,
 									threshold = p.opts.altitude_impact_threshold,
 									verbose = p.opts.altitude_verbose))
-		set_altitude!(p.im_traj, p.altitude) 
+		set_altitude!(p.im_traj, p.altitude)
 
 		# # optimize
 		q1 = traj.q[t+1]
 		newton_solve!(p.newton, p.s, p.q0, q1,
 			p.im_traj, p.traj, warm_start = t > 1)
-		update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H) 
+		update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H)
 
 		# visualize
-		# p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, traj.q[t+1], t)
+		p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, traj.q[t+1], t)
 
 		# shift trajectory
 		rot_n_stride!(p.traj, p.traj_cache, p.stride)
@@ -120,10 +120,10 @@ function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,N
 
 	# scale control
 	if p.newton_mode == :direct
-		p.u .= p.newton.traj.u[1] 
+		p.u .= p.newton.traj.u[1]
 		p.u ./= p.N_sample
 	elseif p.newton_mode == :structure
-		p.u .= p.newton.u[1] 
+		p.u .= p.newton.u[1]
 		p.u ./= p.N_sample
 	else
 		println("newton mode specified not available")
