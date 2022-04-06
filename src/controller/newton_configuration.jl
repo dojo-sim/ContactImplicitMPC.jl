@@ -419,7 +419,6 @@ function newton_solve!(core::Newton, s::Simulation,
     warm_start::Bool = false, initial_offset::Bool = false,
     q0 = ref_traj.q[1], q1 = ref_traj.q[2])
 
-    # @show "newton_solve!" #@@@
 	reset!(core, ref_traj, warm_start = warm_start,
         initial_offset = initial_offset, q0 = q0, q1 = q1)
 

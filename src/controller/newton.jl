@@ -102,8 +102,6 @@ function delta!(Δx::Vector{T}, x, x_ref) where T
     return nothing
 end
 
-#TODO: add minus function
-
 function copy_traj!(traj::ContactTraj, traj_cand::ContactTraj, H::Int)
     Ht = traj.H
     Hs = traj_cand.H # MAYBE BREAKING TEST
@@ -243,15 +241,15 @@ function newton_solve!(
 	        # regularization update
 	        iter > 6 ? (core.β = min(core.β * 1.3, 1.0e2)) : (core.β = max(1.0e1, core.β / 1.3))
 
-            # print 
-            core.opts.verbose && print_status(core, elapsed_time, α)
+            # print
+            core.opts.verbose && print_status(core, im_traj, elapsed_time, α)
 		end
     end
 
     return nothing
 end
 
-function print_status(core::Newton, elapsed_time, α)
+function print_status(core::Newton, im_traj, elapsed_time, α)
      # print status
      println(" l: ", l ,
      "     t: ", scn(elapsed_time, digits=0),

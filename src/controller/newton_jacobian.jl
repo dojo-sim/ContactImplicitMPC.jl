@@ -1,7 +1,6 @@
 # Configurations and forces
 struct NewtonJacobianConfigurationForce{T,Vq,Vu,Vγ,Vb,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vpr,Vdu} <: NewtonJacobian
     R::SparseMatrixCSC{T,Int}                 # jacobian
-    # R::RR
     obj_q2::Vector{Vq}                          # obj views
     obj_u1::Vector{Vu}                          # obj views
     obj_γ1::Vector{Vγ}                          # obj views
@@ -73,7 +72,6 @@ end
 # Configurations
 struct NewtonJacobianConfiguration{T,Vq,Vu,VI,VIT,Vq0,Vq0T,Vq1,Vq1T,Vu1,Vu1T,Vpr,Vdu} <: NewtonJacobian
     R::SparseMatrixCSC{T,Int}                 # jacobian
-    # R::RR
     obj_q2::Vector{Vq}                          # obj views
     obj_u1::Vector{Vu}                          # obj views
 
@@ -181,8 +179,8 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj:
         jac.u1T[i] .+= transpose(im_traj.δu1[t])
 
         # Dual regularization
-        # jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ[1] 
-        jac.reg_du .-= β * im_traj.ip[t].κ[1] 
+        # jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ[1]
+        jac.reg_du .-= β * im_traj.ip[t].κ[1]
     end
 
     return nothing
@@ -226,8 +224,8 @@ function hessian!(hess::NewtonJacobianConfigurationForce, obj::TrackingVelocityO
         hess.obj_q2[t] .+= obj.v[t]
         t == 1 && continue
         hess.obj_q2[t-1] .+= obj.v[t]
-        hess.obj_q1q2[t-1] .-= obj.v[t]
-        hess.obj_q2q1[t-1] .-= obj.v[t]
+        hess.obj_q1q2[t-1] .-= 0.5*obj.v[t]
+        hess.obj_q2q1[t-1] .-= 0.5*obj.v[t]
     end
 end
 
@@ -241,7 +239,7 @@ function hessian!(hess::NewtonJacobianConfiguration, obj::TrackingVelocityObject
         hess.obj_q2[t] .+= obj.v[t]
         t == 1 && continue
         hess.obj_q2[t-1] .+= obj.v[t]
-        hess.obj_q1q2[t-1] .-= obj.v[t]
-        hess.obj_q2q1[t-1] .-= obj.v[t]
+        hess.obj_q1q2[t-1] .-= 0.5*obj.v[t]
+        hess.obj_q2q1[t-1] .-= 0.5*obj.v[t]
     end
 end

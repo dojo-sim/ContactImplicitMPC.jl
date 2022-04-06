@@ -3,7 +3,7 @@
 # PKG_SETUP
 
 # ## Setup
- 
+
 using ContactImplicitMPC
 using LinearAlgebra
 
@@ -42,7 +42,7 @@ sim = simulator(s, H, h=h)
 # ## Simulate
 status = simulate!(sim, q1, v1)
 
-# ## MPC setup 
+# ## MPC setup
 N_sample = 2
 H_mpc = 40
 h_sim = h / N_sample

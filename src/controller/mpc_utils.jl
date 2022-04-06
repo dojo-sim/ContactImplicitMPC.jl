@@ -39,9 +39,9 @@ function rotate!(traj::ContactTraj, cache::ContactTraj)
     return nothing
 end
 
-function set_trajectory!(traj::ContactTraj, ref_traj::ContactTraj) 
-	H = ref_traj.H 
-	for t = 1:H 
+function set_trajectory!(traj::ContactTraj, ref_traj::ContactTraj)
+	H = ref_traj.H
+	for t = 1:H
 		traj.q[t] .= ref_traj.q[t]
 		traj.u[t] .= ref_traj.u[t]
 		traj.w[t] .= ref_traj.w[t]
@@ -106,7 +106,7 @@ function update_altitude!(alt::Vector{T}, ϕ::Vector{T}, s::Simulation{T}, traj:
 
 		if γ_max > threshold
 			s.ϕ(ϕ, traj.q[idx_max+2])
-			alt[i] = ϕ[i] 
+			alt[i] = ϕ[i]
 			verbose && println(" ")
 			verbose && println("point $i in contact")
 			verbose && println("sim_step : $idx_max")
@@ -140,7 +140,7 @@ function live_plotting(model::Model{T}, ref_traj::ContactTraj,
 	scatter!(plt[1,1], 2*ones(nq), ref_traj.q[2], markersize=4.0, color=:red, label=nothing)
 	scatter!(plt[1,1], 3*ones(nq), ref_traj.q[3], markersize=4.0, color=:red, label=nothing)
 
-	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in newton.traj.u]...)', color=:blue, linewidth=1.0, label="u newton")
-	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in ref_traj.u[1:end]]...)', linestyle=:dot, color=:red, linewidth=3.0, label="u refer.")
+	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in newton.traj.u]...)', color=:blue, linewidth=1.0, label=nothing)#"u newton")
+	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in ref_traj.u[1:end]]...)', linestyle=:dot, color=:red, linewidth=3.0, label=nothing)#"u refer.")
 	display(plt)
 end
