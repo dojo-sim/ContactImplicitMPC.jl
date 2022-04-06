@@ -162,12 +162,16 @@ function implicit_dynamics!(im_traj::ImplicitTrajectory, traj::ContactTraj;
 		im_traj.ip[t].θ .= traj.θ[i]
 		im_traj.ip[t].θ[traj.iq0] .= traj.q[i]
 		im_traj.ip[t].θ[traj.iq1] .= traj.q[i+1]
+	end
 
+	Threads.@threads for t in window[1:end-2]
 		# solve
 		status = interior_point_solve!(im_traj.ip[t])
 
 		!status && (@warn "implicit dynamics failure (t = $t)")
+	end
 
+	for (i, t) in enumerate(window[1:end-2])
 		# compute dynamics violation
 		im_traj.dq2[t] .-= traj.q[i+2]
 		
