@@ -48,7 +48,8 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-4,
-        max_iter = 5),
+        max_iter = 5,
+        verbose=false),
     mpc_opts = CIMPCOptions());
 
 # ## Initial conditions
@@ -71,9 +72,3 @@ anim = visualize_meshrobot!(vis, model, sim.traj, h=h_sim * 10, sample=10);
 # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
 process!(sim.stats, N_sample) # Time budget
 H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio
-
-
-p.im_traj.H
-p.traj.H
-p.newton.traj.H
-p.newton.traj.q
