@@ -8,48 +8,6 @@ using ContactImplicitMPC
 using LinearAlgebra
 using Quaternions
 
-function relative_state_cost(qbody, qorientation, qfoot)
-	# cost function on state: 1/2 * qbody'*Qbody*qbody
-		# 1/2 * qbody'*Qbody*qbody
-		# 1/2 * qorientation'*Qorientation*qorientation
-		# 1/2 * (qfoot-qbody)'*Qfoot*(qfoot-qbody)
-	Q = zeros(18,18)
-	Q[1:3,1:3] = Diagonal(qbody)
-	Q[4:6,4:6] = Diagonal(qorientation)
-	for i = 1:4
-		Q[1:3,1:3] += Diagonal(qfoot)
-		Q[3+3i .+ (1:3), 3+3i .+ (1:3)] += Diagonal(qfoot)
-		Q[1:3, 3+3i .+ (1:3)] += -Diagonal(qfoot)
-		Q[3+3i .+ (1:3), 1:3] += -Diagonal(qfoot)
-	end
-	return Q
-end
-
-function simulate!(s::Simulator{T}; verbose=false) where T
-    status = false
-
-    N = length(s.traj.u)
-    p = s.policy
-    w = s.dist
-    traj = s.traj
-
-    for t = 1:N
-		println("t $t $N")
-        # policy
-        policy_time = @elapsed traj.u[t] .= policy(p, traj, t)
-        s.opts.record && (s.stats.policy_time[t] = policy_time)
-
-        # disturbances
-        traj.w[t] .= disturbances(w, traj.q[t+1], t)
-
-        # step
-        status = RoboDojo.step!(s, t, verbose=verbose)
-        !status && break
-    end
-
-    return status
-end
-
 
 # ## Simulation
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -73,10 +31,6 @@ h_sim = h / N_sample
 H_sim = 3000
 κ_mpc = 2.0e-4
 
-# obj = TrackingVelocityObjective(model, env, H_mpc,
-#     v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-# 	q = [relative_state_cost(3e-1*[0.02,0.02,3], 3e-1*[1,1,1], 3e-1*[0.5,0.5,3]) for t = 1:H_mpc],
-# 	u = [Diagonal(3e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc]);
 v0 = -0.3
 obj = TrackingVelocityObjective(model, env, H_mpc,
     v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
@@ -98,7 +52,6 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-5,
-		# solver=:lu_solver,
 		solver=:ldl_solver,
         max_iter = 5),
     mpc_opts = CIMPCOptions(
@@ -162,4 +115,4 @@ process!(sim.stats, N_sample) # Time budget
 H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio
 plot(sim.stats.policy_time)
 
-convert_frames_to_video_and_gif("centroidal_inplace_bounce_forward")
+# convert_frames_to_video_and_gif("centroidal_inplace_bounce_forward")

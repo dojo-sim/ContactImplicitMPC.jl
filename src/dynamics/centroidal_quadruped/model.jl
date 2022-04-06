@@ -197,3 +197,20 @@ function initialize_z!(z, model::CentroidalQuadruped, idx::RoboDojo.IndicesZ, q)
     z .= 1.0
     z[idx.q] .= q
 end
+
+function relative_state_cost(qbody, qorientation, qfoot)
+	# cost function on state: 1/2 * qbody'*Qbody*qbody
+		# 1/2 * qbody'*Qbody*qbody
+		# 1/2 * qorientation'*Qorientation*qorientation
+		# 1/2 * (qfoot-qbody)'*Qfoot*(qfoot-qbody)
+	Q = zeros(18,18)
+	Q[1:3,1:3] = Diagonal(qbody)
+	Q[4:6,4:6] = Diagonal(qorientation)
+	for i = 1:4
+		Q[1:3,1:3] += Diagonal(qfoot)
+		Q[3+3i .+ (1:3), 3+3i .+ (1:3)] += Diagonal(qfoot)
+		Q[1:3, 3+3i .+ (1:3)] += -Diagonal(qfoot)
+		Q[3+3i .+ (1:3), 1:3] += -Diagonal(qfoot)
+	end
+	return Q
+end

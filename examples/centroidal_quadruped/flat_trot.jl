@@ -8,23 +8,6 @@ using ContactImplicitMPC
 using LinearAlgebra
 using Quaternions
 
-function relative_state_cost(qbody, qorientation, qfoot)
-	# cost function on state: 1/2 * qbody'*Qbody*qbody
-		# 1/2 * qbody'*Qbody*qbody
-		# 1/2 * qorientation'*Qorientation*qorientation
-		# 1/2 * (qfoot-qbody)'*Qfoot*(qfoot-qbody)
-	Q = zeros(18,18)
-	Q[1:3,1:3] = Diagonal(qbody)
-	Q[4:6,4:6] = Diagonal(qorientation)
-	for i = 1:4
-		Q[1:3,1:3] += Diagonal(qfoot)
-		Q[3+3i .+ (1:3), 3+3i .+ (1:3)] += Diagonal(qfoot)
-		Q[1:3, 3+3i .+ (1:3)] += -Diagonal(qfoot)
-		Q[3+3i .+ (1:3), 1:3] += -Diagonal(qfoot)
-	end
-	return Q
-end
-
 function simulate!(s::Simulator{T}; verbose=false) where T
     status = false
 
@@ -72,10 +55,6 @@ h_sim = h / N_sample
 H_sim = 3000
 κ_mpc = 2.0e-4
 
-# obj = TrackingVelocityObjective(model, env, H_mpc,
-#     v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-# 	q = [relative_state_cost(3e-1*[0.02,0.02,3], 3e-1*[1,1,1], 3e-1*[0.5,0.5,3]) for t = 1:H_mpc],
-# 	u = [Diagonal(3e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc]);
 v0 = 0.1
 obj = TrackingVelocityObjective(model, env, H_mpc,
     v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
@@ -97,7 +76,6 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-5,
-		# solver=:lu_solver,
 		solver=:ldl_solver,
         max_iter = 5),
     mpc_opts = CIMPCOptions(
