@@ -154,21 +154,27 @@ function set_altitude!(ip::InteriorPoint, alt::Vector)
 end
 
 function implicit_dynamics!(im_traj::ImplicitTrajectory, traj::ContactTraj; 
+	threads=false,
 	window=collect(1:traj.H + 2))
 
 	for (i, t) in enumerate(window[1:end-2])
 		# initialized solver
 		z_initialize!(im_traj.ip[t].z, im_traj.iq2, traj.q[i+2]) #TODO: try alt. schemes
 		im_traj.ip[t].θ .= traj.θ[i]
-		im_traj.ip[t].θ[traj.iq0] .= traj.q[i]
-		im_traj.ip[t].θ[traj.iq1] .= traj.q[i+1]
 	end
 
-	Threads.@threads for t in window[1:end-2]
-		# solve
-		status = interior_point_solve!(im_traj.ip[t])
-
-		!status && (@warn "implicit dynamics failure (t = $t)")
+	if threads
+		Threads.@threads for t in window[1:end-2]
+			# solve
+			status = interior_point_solve!(im_traj.ip[t])
+			!status && (@warn "implicit dynamics failure (t = $t)")
+		end
+	else 
+		for t in window[1:end-2]
+			# solve
+			status = interior_point_solve!(im_traj.ip[t])
+			!status && (@warn "implicit dynamics failure (t = $t)")
+		end
 	end
 
 	for (i, t) in enumerate(window[1:end-2])

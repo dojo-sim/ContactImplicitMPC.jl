@@ -49,6 +49,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
     n_opts = NewtonOptions(
         r_tol = 3e-4,
         max_iter = 5,
+        threads=true,
         verbose=false),
     mpc_opts = CIMPCOptions());
 

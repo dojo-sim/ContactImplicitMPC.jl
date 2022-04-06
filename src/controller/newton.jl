@@ -5,6 +5,7 @@
     max_time::T = 10000.0        # maximum time spent in the Newton solver
     β_init::T = 1.0e-5           # initial dual regularization
     live_plotting::Bool = false  # visualize the trajectory during the solve
+    threads::Bool=false
     verbose::Bool = false
     solver::Symbol = :lu_solver  # lu_sparse_solver
 end
@@ -58,7 +59,7 @@ function Newton(s::Simulation{T}, H::Int, h::T,
 
     # precompute Jacobian for pre-factorization
     window = collect(1:(H + 2))
-    implicit_dynamics!(im_traj, traj, window=window) #@@@
+    implicit_dynamics!(im_traj, traj, window=window, threads=opts.threads) #@@@
     jacobian!(jac, im_traj, obj, H, opts.β_init, window)
 
     res = NewtonResidual(model, env, H, mode = mode)
@@ -183,7 +184,7 @@ function newton_solve!(
         warm_start=warm_start)
     
     # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, core.traj, window=window)
+	implicit_dynamics!(im_traj, core.traj, window=window, threads=core.opts.threads)
     
     # Compute residual
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj, window)
@@ -211,7 +212,7 @@ function newton_solve!(
 	        update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	        # Compute implicit dynamics for candidate
-			implicit_dynamics!(im_traj, core.traj_cand, window=window)
+			implicit_dynamics!(im_traj, core.traj_cand, window=window, threads=core.opts.threads)
 
 	        # Compute residual for candidate
 	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj, window)
@@ -228,7 +229,7 @@ function newton_solve!(
 	            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	            # Compute implicit dynamics about trial_traj
-				implicit_dynamics!(im_traj, core.traj_cand, window=window)
+				implicit_dynamics!(im_traj, core.traj_cand, window=window, threads=core.opts.threads)
 
 	            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj, window)
 	            r_cand_norm = norm(core.res_cand.r, 1)
