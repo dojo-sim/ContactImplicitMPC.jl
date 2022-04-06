@@ -101,8 +101,6 @@ function delta!(Δx::Vector{T}, x, x_ref) where T
     return nothing
 end
 
-#TODO: add minus function
-
 function copy_traj!(traj::ContactTraj, traj_cand::ContactTraj, H::Int)
     Ht = traj.H
     Hs = traj_cand.H # MAYBE BREAKING TEST
@@ -174,12 +172,12 @@ function newton_solve!(
     ref_traj::ContactTraj{T};
     warm_start::Bool=false) where T
 
-    # reset solver 
+    # reset solver
     reset!(core, ref_traj, q0, q1, warm_start=warm_start)
-    
+
     # Compute implicit dynamics about traj
 	implicit_dynamics!(im_traj, core.traj)
-    
+
     # Compute residual
     residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
 
@@ -194,7 +192,7 @@ function newton_solve!(
 
 	        # Compute NewtonJacobian
 	        jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β)
-            
+
             # Compute Search Direction
 	        linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)
 
@@ -237,21 +235,21 @@ function newton_solve!(
 	        # regularization update
 	        iter > 6 ? (core.β = min(core.β * 1.3, 1.0e2)) : (core.β = max(1.0e1, core.β / 1.3))
 
-            # print 
-            core.opts.verbose && print_status(core, elapsed_time, α)
+            # print
+            core.opts.verbose && print_status(core, im_traj, elapsed_time, α)
 		end
     end
 
     return nothing
 end
 
-function print_status(core::Newton, elapsed_time, α)
+function print_status(core::Newton, im_traj, elapsed_time, α)
      # print status
      println(" l: ", l ,
-     "     t: ", scn(elapsed_time, digits=0),
-     "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits=0),
-     "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits=0),
-     "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits=0),
-     "     α: ", -Int(round(log(α))),
-     "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0))
+     "  t:", scn(elapsed_time, digits=0),
+     "  r̄:", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits=0),
+     "  r:", scn(norm(core.res.r, 1) / length(core.res.r), digits=0),
+     "  Δ:", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits=0),
+     "  α:", -Int(round(log(α))),
+     "  κ:", scn(im_traj.ip[1].κ[1], digits = 0))
 end
