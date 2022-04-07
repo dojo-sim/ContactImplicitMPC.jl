@@ -80,7 +80,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
     n_opts = NewtonOptions(
         r_tol = 3e-5,
         max_time=1.0e-3,
-		solver=:ldl_solver, 
+		solver=:ldl_solver,
         threads=false,
         verbose=false,
         max_iter = 5),
@@ -152,7 +152,7 @@ setvisible!(vis[:force], true)
 for t = 1:length(sim.traj.q)
     MeshCat.atframe(anim, t) do
         t < 75 ? setvisible!(vis[:force], true) : setvisible!(vis[:force], false)
-    end 
+    end
 end
 MeshCat.setanimation!(vis, anim)
 
@@ -168,13 +168,13 @@ time_ref = range(0, stop=h * (N * H_ref - 1), length=N * H_ref)
 
 plt = plot(layout=(4, 1));
 
-plt = plot!(plt, time_ref, foot1_ref, 
+plt = plot!(plt, time_ref, foot1_ref,
     linetype=:steppost, color=:orange, width=3.0, label="", yaxis=nothing, subplot=1)
-plt = plot!(plt, time_ref, foot2_ref, 
+plt = plot!(plt, time_ref, foot2_ref,
     linetype=:steppost, color=:lightgreen, width=3.0, label="", yaxis=nothing, subplot=2)
-plt = plot!(plt, time_ref, foot3_ref, 
+plt = plot!(plt, time_ref, foot3_ref,
     linetype=:steppost, color=:cyan, width=3.0, label="", yaxis=nothing, subplot=3)
-plt = plot!(plt, time_ref, foot4_ref, 
+plt = plot!(plt, time_ref, foot4_ref,
     linetype=:steppost, color=:magenta, width=3.0, label="", yaxis=nothing, subplot=4)
 
 
@@ -184,15 +184,15 @@ foot3_sim = [q[12 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
 foot4_sim = [q[15 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
 time_sim = range(0, stop=h_sim * (H_sim - 1), length=H_sim)
 
-plt = plot!(plt, time_sim, foot1_sim[2:end-1], 
+plt = plot!(plt, time_sim, foot1_sim[2:end-1],
     linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=1)
-plt = plot!(time_sim, foot2_sim[2:end-1], 
+plt = plot!(time_sim, foot2_sim[2:end-1],
     linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=2)
-plt = plot(plt, time_sim, foot3_sim[2:end-1], 
+plt = plot(plt, time_sim, foot3_sim[2:end-1],
     linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=3)
-plt = plot!(plt, time_sim, foot4_sim[2:end-1], 
+plt = plot!(plt, time_sim, foot4_sim[2:end-1],
     linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=4, xlabel="time (s)")
-    
+
 display(plt)
 savefig(plt, "/home/taylor/Downloads/centroidal_quadruped_push_recovery.png")
 
