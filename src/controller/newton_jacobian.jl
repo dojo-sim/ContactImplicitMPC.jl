@@ -164,21 +164,21 @@ function initialize_jacobian!(jac::NewtonJacobian, obj::Objective, H::Int; updat
 end
 
 function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj::Objective,
-    H::Int, β::T) where T
+    H::Int, β::T, window::Vector{Int}) where T
 
-    for t = 1:H
-        if t >= 3
-            jac.q0[t-2]  .+= im_traj.δq0[t]
-            jac.q0T[t-2] .+= transpose(im_traj.δq0[t])
+    for (i, t) in enumerate(window[1:end-2])
+        if i >= 3
+            jac.q0[i-2]  .+= im_traj.δq0[t]
+            jac.q0T[i-2] .+= transpose(im_traj.δq0[t])
         end
 
-        if t >= 2
-            jac.q1[t-1]  .+= im_traj.δq1[t]
-            jac.q1T[t-1] .+= transpose(im_traj.δq1[t])
+        if i >= 2
+            jac.q1[i-1]  .+= im_traj.δq1[t]
+            jac.q1T[i-1] .+= transpose(im_traj.δq1[t])
         end
 
-        jac.u1[t]  .+= im_traj.δu1[t]
-        jac.u1T[t] .+= transpose(im_traj.δu1[t])
+        jac.u1[i]  .+= im_traj.δu1[t]
+        jac.u1T[i] .+= transpose(im_traj.δu1[t])
 
         # Dual regularization
         # jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ[1]
@@ -189,10 +189,10 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj:
 end
 
 function jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj::Objective,
-        H::Int, β::T; update_hessian::Bool=true) where T
+        H::Int, β::T, window::Vector{Int}; update_hessian::Bool=true) where T
 
     initialize_jacobian!(jac, obj, H; update_hessian=update_hessian)
-    update_jacobian!(jac, im_traj, obj, H, β)
+    update_jacobian!(jac, im_traj, obj, H, β, window)
 
     return nothing
 end

@@ -111,7 +111,7 @@ end
 
 
 function residual!(res::NewtonResidual, core::Newton,
-    ν::Vector{Nν}, im_traj::ImplicitTrajectory, traj::ContactTraj, ref_traj::ContactTraj) where Nν
+    ν::Vector{Nν}, im_traj::ImplicitTrajectory, traj::ContactTraj, ref_traj::ContactTraj, window::Vector{Int}) where Nν
 
     # unpack
     opts = core.opts
@@ -121,17 +121,17 @@ function residual!(res::NewtonResidual, core::Newton,
     # Objective
     gradient!(res, obj, core, traj, ref_traj)
 
-    for t in eachindex(ν)
+    for (i, t) in enumerate(window[1:end-2])
         # Lagrangian
-        t >= 3 && mul!(res.q2[t-2], transpose(im_traj.δq0[t]), ν[t], 1.0, 1.0)
-        t >= 2 && mul!(res.q2[t-1], transpose(im_traj.δq1[t]), ν[t], 1.0, 1.0)
-        mul!(res.u1[t], transpose(im_traj.δu1[t]), ν[t], 1.0, 1.0)
-
+        i >= 3 && mul!(res.q2[i-2], transpose(im_traj.δq0[t]), ν[i], 1.0, 1.0)
+        i >= 2 && mul!(res.q2[i-1], transpose(im_traj.δq1[t]), ν[i], 1.0, 1.0)
+        mul!(res.u1[i], transpose(im_traj.δu1[t]), ν[i], 1.0, 1.0)
+        
         # Implicit dynamics
-        res.rd[t] .+= im_traj.d[t]
+        res.rd[i] .+= im_traj.d[t]
 
         # Minus Identity term #∇qk1, ∇γk, ∇bk
-        res.rI[t] .-= ν[t]
+        res.rI[i] .-= ν[i]
     end
 
     return nothing

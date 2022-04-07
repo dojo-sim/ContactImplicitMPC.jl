@@ -5,6 +5,7 @@
     max_time::T = 10000.0        # maximum time spent in the Newton solver
     β_init::T = 1.0e-5           # initial dual regularization
     live_plotting::Bool = false  # visualize the trajectory during the solve
+    threads::Bool=false
     verbose::Bool = false
     solver::Symbol = :lu_solver  # lu_sparse_solver
 end
@@ -57,9 +58,9 @@ function Newton(s::Simulation{T}, H::Int, h::T,
     jac = NewtonJacobian(model, env, H, mode = mode)
 
     # precompute Jacobian for pre-factorization
-    implicit_dynamics!(im_traj, traj) #@@@
-
-    jacobian!(jac, im_traj, obj, H, opts.β_init)
+    window = collect(1:(H + 2))
+    implicit_dynamics!(im_traj, traj, window=window, threads=opts.threads) #@@@
+    jacobian!(jac, im_traj, obj, H, opts.β_init, window)
 
     res = NewtonResidual(model, env, H, mode = mode)
     res_cand = NewtonResidual(model, env, H, mode = mode)
@@ -128,6 +129,7 @@ end
 
 function reset!(core::Newton, ref_traj::ContactTraj,
     q0::Vector{T}, q1::Vector{T};
+    window=collect(1:(core.traj.H + 2)),
     warm_start::Bool = false) where T
 
     # H = ref_traj.H
@@ -144,7 +146,8 @@ function reset!(core::Newton, ref_traj::ContactTraj,
 			fill!(core.ν_cand[t], 0.0)
 		end
 
-		# Set up trajectory
+        # TODO: not sure this is correct
+        # Set up trajectory
         copy_traj!(core.traj, ref_traj, core.traj.H)
 	end
 
@@ -157,7 +160,7 @@ function reset!(core::Newton, ref_traj::ContactTraj,
     # initialized residual Jacobian
     initialize_jacobian!(core.jac, core.obj, core.traj.H)
 
-	# Set up traj cand
+    # Set up traj cand
     copy_traj!(core.traj_cand, core.traj, core.traj.H)
 
 	return nothing
@@ -168,18 +171,21 @@ function newton_solve!(
     s::Simulation{T},
     q0::Vector{T},
     q1::Vector{T},
+    window::Vector{Int},
     im_traj::ImplicitTrajectory{T},
     ref_traj::ContactTraj{T};
     warm_start::Bool=false) where T
 
     # reset solver
-    reset!(core, ref_traj, q0, q1, warm_start=warm_start)
+    reset!(core, ref_traj, q0, q1,
+        window=window,
+        warm_start=warm_start)
 
     # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, core.traj)
+	implicit_dynamics!(im_traj, core.traj, window=window, threads=core.opts.threads)
 
     # Compute residual
-    residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj)
+    residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj, window)
 
     r_norm = norm(core.res.r, 1)
 	elapsed_time = 0.0
@@ -191,7 +197,7 @@ function newton_solve!(
 	        r_norm / length(core.res.r) < core.opts.r_tol && break
 
 	        # Compute NewtonJacobian
-			jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β, update_hessian=true)
+			jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β, window, update_hessian=true)
 	        # jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β, update_hessian=false)
 			# @show diag(core.jac.R[1:6,1:6])
             # Compute Search Direction
@@ -205,10 +211,10 @@ function newton_solve!(
 	        update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	        # Compute implicit dynamics for candidate
-			implicit_dynamics!(im_traj, core.traj_cand)
+			implicit_dynamics!(im_traj, core.traj_cand, window=window, threads=core.opts.threads)
 
 	        # Compute residual for candidate
-	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
+	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj, window)
 	        r_cand_norm = norm(core.res_cand.r, 1)
 
             while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
@@ -222,9 +228,9 @@ function newton_solve!(
 	            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
 
 	            # Compute implicit dynamics about trial_traj
-				implicit_dynamics!(im_traj, core.traj_cand)
+				implicit_dynamics!(im_traj, core.traj_cand, window=window, threads=core.opts.threads)
 
-	            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj)
+	            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj, window)
 	            r_cand_norm = norm(core.res_cand.r, 1)
 	        end
 
@@ -247,10 +253,11 @@ end
 function print_status(core::Newton, im_traj, elapsed_time, α)
      # print status
      println(" l: ", l ,
-     "  t:", scn(elapsed_time, digits=0),
-     "  r̄:", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits=0),
-     "  r:", scn(norm(core.res.r, 1) / length(core.res.r), digits=0),
-     "  Δ:", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits=0),
-     "  α:", -Int(round(log(α))),
-     "  κ:", scn(im_traj.ip[1].κ[1], digits = 0))
+     "     t: ", scn(elapsed_time, digits=0),
+     "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits=0),
+     "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits=0),
+     "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits=0),
+     "     α: ", -Int(round(log(α))),
+    #  "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0)
+     )
 end
