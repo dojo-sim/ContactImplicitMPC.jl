@@ -243,21 +243,23 @@ function newton_solve!(
 	        iter > 6 ? (core.β = min(core.β * 1.3, 1.0e2)) : (core.β = max(1.0e1, core.β / 1.3))
 
             # print
-            core.opts.verbose && print_status(core, im_traj, elapsed_time, α)
+            core.opts.verbose && print_status(core, im_traj, elapsed_time, α, l)
 		end
     end
 
     return nothing
 end
 
-function print_status(core::Newton, im_traj, elapsed_time, α)
+function print_status(core::Newton, im_traj, elapsed_time, α, l)
      # print status
-     println(" l: ", l ,
+     println(
      "     t: ", scn(elapsed_time, digits=0),
      "     r̄: ", scn(norm(core.res_cand.r, 1) / length(core.res_cand.r), digits=0),
      "     r: ", scn(norm(core.res.r, 1) / length(core.res.r), digits=0),
      "     Δ: ", scn(norm(core.Δ.r, 1) / length(core.Δ.r), digits=0),
      "     α: ", -Int(round(log(α))),
-    #  "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0)
+     "     l: ", l,
+     "     κ: ", scn(im_traj.ip[1].κ[1], digits = 0)
      )
 end
+
