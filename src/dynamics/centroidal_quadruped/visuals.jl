@@ -76,5 +76,5 @@ function visualize!(vis, model::CentroidalQuadruped, q;
 
 	MeshCat.setanimation!(vis, anim)
 
-	return true
+	return anim
 end
