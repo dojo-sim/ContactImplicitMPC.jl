@@ -61,7 +61,7 @@ H_sim = 6000
 v0 = 0.0
 obj = TrackingVelocityObjective(model, env, H_mpc,
     v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-	q = [relative_state_cost(1e-0*[3e-2,3e-2,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
+	q = [relative_state_cost(1e-0*[1e-2,1e-2,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
 	u = [Diagonal(3e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
 	v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
 
@@ -119,7 +119,7 @@ using BenchmarkTools
 # ## Simulate
 q1_sim0 = deepcopy(q1_sim)
 # q1_sim0[4:6] += [0.02, 0.04, 0.02]
-Δx = [0.1, 0.2, 0.1]
+Δx = 0.0*[0.1, 0.2, 0.1]
 q1_sim0[1:3] += Δx
 q1_sim0[7:9] += Δx
 q1_sim0[10:12] += Δx
