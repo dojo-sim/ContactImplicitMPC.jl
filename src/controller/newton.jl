@@ -176,75 +176,112 @@ function newton_solve!(
     ref_traj::ContactTraj{T};
     warm_start::Bool=false) where T
 
-    # reset solver
-    reset!(core, ref_traj, q0, q1,
-        window=window,
-        warm_start=warm_start)
+    elapsed_time = 0.0
 
-    # Compute implicit dynamics about traj
-	implicit_dynamics!(im_traj, core.traj, window=window, threads=core.opts.threads)
+    elapsed_time += @elapsed begin
+        # reset solver
+        reset!(core, ref_traj, q0, q1,
+            window=window,
+            warm_start=warm_start)
+    end
+    elapsed_time >= core.opts.max_time && (return nothing)
 
-    # Compute residual
-    residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj, window)
+    elapsed_time += @elapsed begin
+        # Compute implicit dynamics about traj
+        implicit_dynamics!(im_traj, core.traj, window=window, threads=core.opts.threads)
+    end
+    elapsed_time >= core.opts.max_time && (return nothing)
 
-    r_norm = norm(core.res.r, 1)
-	elapsed_time = 0.0
+    elapsed_time += @elapsed begin
+        # Compute residual
+        residual!(core.res, core, core.ν, im_traj, core.traj, ref_traj, window)
+        r_norm = norm(core.res.r, 1)
+    end
+    elapsed_time >= core.opts.max_time && (return nothing)
 
     for l = 1:core.opts.max_iter
-		elapsed_time >= core.opts.max_time && break
-		elapsed_time += @elapsed begin
-	        # check convergence
-	        r_norm / length(core.res.r) < core.opts.r_tol && break
+		# elapsed_time >= core.opts.max_time && break
+		# elapsed_time += @elapsed begin
+        # check convergence
+        r_norm / length(core.res.r) < core.opts.r_tol && break
 
-	        # Compute NewtonJacobian
-			jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β, window, update_hessian=true)
-	        # jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β, update_hessian=false)
-			# @show diag(core.jac.R[1:6,1:6])
+        elapsed_time += @elapsed begin
+            # Compute NewtonJacobian
+            jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β, window, update_hessian=true)
+        end
+        elapsed_time >= core.opts.max_time && (return nothing)
+        # jacobian!(core.jac, im_traj, core.obj, core.traj.H, core.β, update_hessian=false)
+        # @show diag(core.jac.R[1:6,1:6])
+
+        elapsed_time += @elapsed begin
             # Compute Search Direction
-	        linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)
+            linear_solve!(core.solver, core.Δ.r, core.jac.R, core.res.r)
+        end
+        elapsed_time >= core.opts.max_time && (return nothing)
 
-            # line search the step direction
-	        α = 1.0
-	        iter = 0
+        # line search the step direction
+        α = 1.0
+        iter = 0
 
-	        # candidate step
-	        update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
+        elapsed_time += @elapsed begin
+            # candidate step
+            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
+        end
+        elapsed_time >= core.opts.max_time && (return nothing)
 
-	        # Compute implicit dynamics for candidate
-			implicit_dynamics!(im_traj, core.traj_cand, window=window, threads=core.opts.threads)
+        elapsed_time += @elapsed begin
+            # Compute implicit dynamics for candidate
+            implicit_dynamics!(im_traj, core.traj_cand, window=window, threads=core.opts.threads)
+        end
+        elapsed_time >= core.opts.max_time && (return nothing)
 
-	        # Compute residual for candidate
-	        residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj, window)
-	        r_cand_norm = norm(core.res_cand.r, 1)
+        elapsed_time += @elapsed begin
+            # Compute residual for candidate
+            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj, window)
+            r_cand_norm = norm(core.res_cand.r, 1)
+        end
+        elapsed_time >= core.opts.max_time && (return nothing)
 
-            while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
-	            α = 0.5 * α
+        while r_cand_norm^2.0 >= (1.0 - 0.001 * α) * r_norm^2.0
+            α = 0.5 * α
 
-	            iter += 1
-	            if iter > 6
-	                break
-	            end
+            iter += 1
+            if iter > 6
+                break
+            end
 
-	            update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
+            elapsed_time += @elapsed begin
+                update_traj!(core.traj_cand, core.traj, core.ν_cand, core.ν, core.Δ, α)
+            end
+            elapsed_time >= core.opts.max_time && (return nothing)
 
-	            # Compute implicit dynamics about trial_traj
-				implicit_dynamics!(im_traj, core.traj_cand, window=window, threads=core.opts.threads)
+            elapsed_time += @elapsed begin
+                # Compute implicit dynamics about trial_traj
+                implicit_dynamics!(im_traj, core.traj_cand, window=window, threads=core.opts.threads)
+            end
+            elapsed_time >= core.opts.max_time && (return nothing)
 
-	            residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj, window)
-	            r_cand_norm = norm(core.res_cand.r, 1)
-	        end
+            elapsed_time += @elapsed begin
+                residual!(core.res_cand, core, core.ν_cand, im_traj, core.traj_cand, ref_traj, window)
+                r_cand_norm = norm(core.res_cand.r, 1)
+            end
+            elapsed_time >= core.opts.max_time && (return nothing)
+        end
 
-	        # update
-	        update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
-	        core.res.r .= core.res_cand.r
-	        r_norm = r_cand_norm
+        elapsed_time += @elapsed begin
+            # update
+            update_traj!(core.traj, core.traj, core.ν, core.ν, core.Δ, α)
+            core.res.r .= core.res_cand.r
+            r_norm = r_cand_norm
+        end
+        elapsed_time >= core.opts.max_time && (return nothing)
 
-	        # regularization update
-	        iter > 6 ? (core.β = min(core.β * 1.3, 1.0e2)) : (core.β = max(1.0e1, core.β / 1.3))
+        # regularization update
+        iter > 6 ? (core.β = min(core.β * 1.3, 1.0e2)) : (core.β = max(1.0e1, core.β / 1.3))
 
-            # print
-            core.opts.verbose && print_status(core, im_traj, elapsed_time, α, l)
-		end
+        # print
+        core.opts.verbose && print_status(core, im_traj, elapsed_time, α, l)
+		# end
     end
 
     return nothing
