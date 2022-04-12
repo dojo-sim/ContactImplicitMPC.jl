@@ -13,16 +13,29 @@ using Quaternions
 function simulate!(s::Simulator{T}; verbose=false) where T
     status = false
 
-    N = length(s.traj.u)
     p = s.policy
-    w = s.dist
-    traj = s.traj
+	w = s.dist
+	traj = s.traj
+	ref_traj = p.ref_traj
+	N = length(traj.u)
+	N_sample = p.N_sample
+	H = p.ref_traj.H
 
+	time = 0.0
     for t = 1:N
-		# println("t $t $N")
+		# t = index along the fine traj
+		# t_ref = index along the ref_traj
+		t_ref = 1 + Int(floor((t-1)/N_sample)) % H
+		@show t_ref
+		u_policy = p.ref_traj[t_ref]
+
+		println("timestep $t / $N, time $time")
         # policy
-        policy_time = @elapsed traj.u[t] .= policy(p, traj, t)
+        # policy_time = @elapsed traj.u[t] .= policy(p, traj, t, time)
+		policy_time = 0.005
+		traj.u[t] .= u_policy
         s.opts.record && (s.stats.policy_time[t] = policy_time)
+		time += policy_time
 
         # disturbances
         traj.w[t] .= disturbances(w, traj.q[t+1], t)
@@ -33,6 +46,62 @@ function simulate!(s::Simulator{T}; verbose=false) where T
     end
 
     return status
+end
+
+function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int, time::T) where {T,NQ,NU,NW,NC}
+	# reset
+	if t == 1
+		p.cnt[1] = p.N_sample
+		p.q0 .= p.ref_traj.q[1]
+		p.altitude .= 0.0
+		set_trajectory!(p.traj, p.ref_traj)
+		set_implicit_trajectory!(p.im_traj, p.im_traj_cache)
+		reset_window!(p.window)
+	end
+
+    if p.cnt[1] == p.N_sample
+		# altitude_update
+		(p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.ϕ, p.s,
+									traj, t, NC, p.N_sample,
+									threshold = p.opts.altitude_impact_threshold,
+									verbose = p.opts.altitude_verbose))
+		set_altitude!(p.im_traj, p.altitude)
+
+		# # optimize
+		q1 = traj.q[t+1]
+		newton_solve!(p.newton, p.s, p.q0, q1,
+			p.window, p.im_traj, p.traj, warm_start = t > 1)
+
+		update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H)
+
+		# visualize
+		p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, traj.q[t+1], t)
+
+		# shift trajectory
+		rot_n_stride!(p.traj, p.traj_cache, p.stride, p.window)
+
+		# update
+		update_window!(p.window, p.ref_traj.H)
+		p.q0 .= q1
+
+		# reset count
+		p.cnt[1] = 0
+    end
+
+    p.cnt[1] += 1
+
+	# scale control
+	if p.newton_mode == :direct
+		p.u .= p.newton.traj.u[1]
+		p.u ./= p.N_sample
+	elseif p.newton_mode == :structure
+		p.u .= p.newton.u[1]
+		p.u ./= p.N_sample
+	else
+		println("newton mode specified not available")
+	end
+
+	return p.u
 end
 
 
@@ -115,6 +184,7 @@ q1_sim, v1_sim = initial_conditions(ref_traj);
 # sim = simulator(s, H_sim, h=h_sim, dist=d);
 sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d);
 
+
 using BenchmarkTools
 # ## Simulate
 q1_sim0 = deepcopy(q1_sim)
@@ -129,8 +199,8 @@ q1_sim0[16:18] += Δx
 RoboDojo.simulate!(sim, q1_sim0, v1_sim)
 
 # # ## Visualizer
-vis = ContactImplicitMPC.Visualizer()
-ContactImplicitMPC.open(vis)
+# vis = ContactImplicitMPC.Visualizer()
+# ContactImplicitMPC.open(vis)
 
 # ## Visualize
 set_light!(vis)
@@ -156,6 +226,8 @@ for t = 1:length(sim.traj.q)
 end
 MeshCat.setanimation!(vis, anim)
 
+
+12 / 6000 == 0.01 / 5
 
 thr = 1.0e-3
 N = 18
@@ -204,93 +276,23 @@ plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)", label="", 
 
 convert_frames_to_video_and_gif("centroidal_push_recovery")
 
-# QDLDL
-t = 10
-q1 = ref_traj.q[t+1]
-p.newton.opts.verbose = true
-newton_solve!(p.newton, p.s, p.q0, q1,
-	p.im_traj, p.traj, warm_start = t > 1)
 
-function factorize!(s::LDLSolver{Tv,Ti}, A::SparseMatrixCSC{Tv,Ti}) where {Tv<:AbstractFloat, Ti<:Integer}
-    # Reset the pre-allocated fields
-    s.Pr .= 0
-    s.Pc .= 0
-    s.Pv .= 0.0
-    s.num_entries .= 0
 
-    # Triangularize the matrix with the allocation-free method.
-    # A = permute_symmetricAF(A, s.F.iperm, s.Pr, s.Pc, s.Pv, s.num_entries)  #returns an upper triangular matrix
 
-    # # Update the workspace, triuA is the only field we need to update
-    # s.F.workspace.triuA.nzval .= A.nzval
-	#
-    # #factor the matrix
-    # QDLDL.factor!(s.F.workspace, s.F.logical.x)
 
-    return nothing
-end
 
-function linear_solve!(solver::LDLSolver{Tv,Ti}, x::Vector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv};
-    reg=0.0, fact::Bool = true) where {Tv<:AbstractFloat,Ti<:Integer}
-    fact && factorize!(solver, A) # factorize
-    # x .= b
-    # QDLDL.solve!(solver.F, x) # solve
+
+
+
+
+
+
+
+sim.policy.ref_traj
+for i = 1:100
+	@show 1 + Int(floor((i-1)/N_sample)) % 10
 end
 
 
-solver0 = p.newton.solver
-Δr0 = p.newton.Δ.r
-R0 = p.newton.jac.R
-rr0 = p.newton.res.r
-linear_solve!(solver0, Δr0, R0, rr0)
-@benchmark $linear_solve!($solver0, $Δr0, $R0, $rr0)
-
-
-
-
-
-
-# SPARSITY
-rz0 = sim.policy.im_traj.ip[1].rz
-spy(rz0.Dx, markersize=5.0)
-spy(rz0.Rx, markersize=5.0)
-
-plot(Gray.(Array(rz0.Dy1)))
-plot(Gray.(Array(-rz0.Dy1)))
-plot(Gray.(abs.(Array(rz0.Dy1))))
-
-plot(Gray.(Array(rz0.Ry1)))
-plot(Gray.(Array(-rz0.Ry1)))
-plot(Gray.(abs.(Array(rz0.Ry1))))
-
-mat0 = [rz0.Dx rz0.Dy1;
-		rz0.Rx 1 .+ rz0.Ry1]
-sparse(mat0)
-
-plot(Gray.(Array(mat0)))
-plot(Gray.(Array(-mat0)))
-plot(Gray.(abs.(100Array(mat0))))
-
-rz0.S
-
-
-n = 5
-A0 = sprand(n,n,0.4)
-A0 = A0 + A0' + I
-A1 = deepcopy(A0)
-F = qdldl(A0)
-b = ones(n)
-x = solve(F,b)
-
-
-s = LDLSolver(A0, qdldl(A0))
-s
-factorize!(s, A1)
-@benchmark $factorize!($s, $A1)
-
-@benchmark $refactor!($F)
-W = F.workspace
-factor! = QDLDL.factor!
-@benchmark $factor!($W, false)
-
-F.logical[] = false  #in case not already
+sim.traj
+sim.policy.ref_traj

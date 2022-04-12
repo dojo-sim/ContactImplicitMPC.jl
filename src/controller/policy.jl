@@ -78,7 +78,7 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 
 	window = zeros(Int, H_mpc + 2)
 
-	CIMPC(zeros(s.model.nu), traj, traj_cache, ref_traj, im_traj, im_traj_cache, 
+	CIMPC(zeros(s.model.nu), traj, traj_cache, ref_traj, im_traj, im_traj_cache,
 		H_mpc, stride, altitude, ϕ, [κ_mpc], newton, newton_mode, s, copy(ref_traj.q[1]),
 		N_sample, [N_sample], window, mpc_opts)
 end
@@ -107,7 +107,7 @@ function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,N
 		newton_solve!(p.newton, p.s, p.q0, q1,
 			p.window, p.im_traj, p.traj, warm_start = t > 1)
 
-		update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H) 
+		update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H)
 
 		# visualize
 		p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, traj.q[t+1], t)
@@ -115,7 +115,7 @@ function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,N
 		# shift trajectory
 		rot_n_stride!(p.traj, p.traj_cache, p.stride, p.window)
 
-		# update 
+		# update
 		update_window!(p.window, p.ref_traj.H)
 		p.q0 .= q1
 
@@ -139,20 +139,20 @@ function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,N
 	return p.u
 end
 
-function reset_window!(window) 
-	n = length(window) 
-	for i = 1:n 
-		window[i] = i 
+function reset_window!(window)
+	n = length(window)
+	for i = 1:n
+		window[i] = i
 	end
-	return 
-end 
+	return
+end
 
 function update_window!(window, max_window)
-	n = length(window) 
-	for i = 1:n 
+	n = length(window)
+	for i = 1:n
 		window[i] += 1
-		if window[i] > max_window 
-			window[i] = 1 
+		if window[i] > max_window
+			window[i] = 1
 		end
 	end
 	return window
