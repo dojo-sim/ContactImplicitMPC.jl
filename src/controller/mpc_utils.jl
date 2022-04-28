@@ -116,6 +116,25 @@ function update_altitude!(alt::Vector{T}, ϕ::Vector{T}, s::Simulation{T}, traj:
 	end
 end
 
+function update_altitude!(alt::Vector{T}, ϕ::Vector{T}, s::Simulation{T}, x::Vector{T}, nq::Int, nc::Int;
+	threshold = 1.0, 
+	verbose = false) where T
+
+	s.ϕ(ϕ, x[1:2nq])
+	γ = x[2nq .+ (1:nc)]
+
+	for i = 1:nc
+		if γ[i] > threshold
+			alt[i] = ϕ[i]
+			verbose && println(" ")
+			verbose && println("point $i in contact")
+			verbose && println("sim_step : $idx_max")
+			verbose && println("alt      : $(ϕ[i])")
+			verbose && println("force    : $(γ[i])")
+		end
+	end
+end
+
 function live_plotting(model::Model{T}, ref_traj::ContactTraj,
 		sim_traj::Trajectory, newton::Newton, q0::AbstractVector{T},
 		q1::AbstractVector{T}, t::Int) where T
@@ -144,3 +163,4 @@ function live_plotting(model::Model{T}, ref_traj::ContactTraj,
 	plot!(plt[2,1], hcat([Vector(x[ul:uu]) for x in ref_traj.u[1:end]]...)', linestyle=:dot, color=:red, linewidth=3.0, label=nothing)#"u refer.")
 	display(plt)
 end
+

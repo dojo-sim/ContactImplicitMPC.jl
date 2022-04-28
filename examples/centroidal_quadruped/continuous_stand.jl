@@ -15,6 +15,8 @@ ContactImplicitMPC.open(vis)
 @show Threads.nthreads()
 
 include("continuous_policy.jl")
+# include("continuous_policy_v2.jl")
+
 
 # ## Simulation
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -83,7 +85,6 @@ using BenchmarkTools
 # ## Simulate
 q1_sim0 = deepcopy(q1_sim)
 RoboDojo.simulate!(sim, q1_sim0, v1_sim)
-
 
 
 # ## Visualize

@@ -14,7 +14,8 @@ ContactImplicitMPC.open(vis)
 
 @show Threads.nthreads()
 
-include("continuous_policy.jl")
+# include("continuous_policy.jl")
+include("continuous_policy_v2.jl")
 
 # ## Simulation
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -35,7 +36,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 320
+H_sim = 1000
 κ_mpc = 2.0e-4
 
 v0 = 0.0
@@ -59,7 +60,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-5,
-        max_time=1.0e-3,
+        max_time=10.0e-3,
 		solver=:ldl_solver,
         threads=false,
         verbose=false,
@@ -84,8 +85,6 @@ using BenchmarkTools
 q1_sim0 = deepcopy(q1_sim)
 RoboDojo.simulate!(sim, q1_sim0, v1_sim)
 
-
-
 # ## Visualize
 set_light!(vis)
 set_floor!(vis, grid=true)
@@ -102,9 +101,8 @@ plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)",
 
 
 
+t = 1.115
+h = 0.01
 
-
-
-
-
-# convert_frames_to_video_and_gif("centroidal_inplace_trotting_gait")
+t % h
+t - t % h

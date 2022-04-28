@@ -10,125 +10,7 @@ using Quaternions
 
 @show Threads.nthreads()
 
-function simulate!(s::Simulator{T}; verbose=false) where T
-    status = false
-
-    N = length(s.traj.u)
-    p = s.policy
-    w = s.dist
-    traj = s.traj
-
-    for t = 1:N
-		# println("t $t $N")
-        # policy
-        policy_time = @elapsed traj.u[t] .= policy(p, traj, t)
-        s.opts.record && (s.stats.policy_time[t] = policy_time)
-
-        # disturbances
-        traj.w[t] .= disturbances(w, traj.q[t+1], t)
-
-        # step
-        status = RoboDojo.step!(s, t, verbose=verbose)
-        !status && break
-    end
-
-    return status
-end
-
-# function simulate!(s::Simulator{T}; verbose=false) where T
-#     status = false
-
-#     p = s.policy
-# 	w = s.dist
-# 	traj = s.traj
-# 	ref_traj = p.ref_traj
-# 	N = length(traj.u)
-# 	N_sample = p.N_sample
-# 	H = p.ref_traj.H
-
-# 	time = 0.0
-#     for t = 1:N
-# 		# t = index along the fine traj
-# 		# t_ref = index along the ref_traj
-# 		t_ref = 1 + Int(floor((t-1)/N_sample)) % H
-# 		@show t_ref
-# 		u_policy = p.ref_traj[t_ref]
-
-# 		println("timestep $t / $N, time $time")
-#         # policy
-#         # policy_time = @elapsed traj.u[t] .= policy(p, traj, t, time)
-# 		policy_time = 0.005
-# 		traj.u[t] .= u_policy
-#         s.opts.record && (s.stats.policy_time[t] = policy_time)
-# 		time += policy_time
-
-#         # disturbances
-#         traj.w[t] .= disturbances(w, traj.q[t+1], t)
-
-#         # step
-#         status = RoboDojo.step!(s, t, verbose=verbose)
-#         !status && break
-#     end
-
-#     return status
-# end
-
-# function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int, time::T) where {T,NQ,NU,NW,NC}
-# 	# reset
-# 	if t == 1
-# 		p.cnt[1] = p.N_sample
-# 		p.q0 .= p.ref_traj.q[1]
-# 		p.altitude .= 0.0
-# 		set_trajectory!(p.traj, p.ref_traj)
-# 		set_implicit_trajectory!(p.im_traj, p.im_traj_cache)
-# 		reset_window!(p.window)
-# 	end
-
-#     if p.cnt[1] == p.N_sample
-# 		# altitude_update
-# 		(p.opts.altitude_update && t > 1) && (update_altitude!(p.altitude, p.ϕ, p.s,
-# 									traj, t, NC, p.N_sample,
-# 									threshold = p.opts.altitude_impact_threshold,
-# 									verbose = p.opts.altitude_verbose))
-# 		set_altitude!(p.im_traj, p.altitude)
-
-# 		# # optimize
-# 		q1 = traj.q[t+1]
-# 		newton_solve!(p.newton, p.s, p.q0, q1,
-# 			p.window, p.im_traj, p.traj, warm_start = t > 1)
-
-# 		update!(p.im_traj, p.traj, p.s, p.altitude, p.κ[1], p.traj.H)
-
-# 		# visualize
-# 		p.opts.live_plotting && live_plotting(p.s.model, p.traj, traj, p.newton, p.q0, traj.q[t+1], t)
-
-# 		# shift trajectory
-# 		rot_n_stride!(p.traj, p.traj_cache, p.stride, p.window)
-
-# 		# update
-# 		update_window!(p.window, p.ref_traj.H)
-# 		p.q0 .= q1
-
-# 		# reset count
-# 		p.cnt[1] = 0
-#     end
-
-#     p.cnt[1] += 1
-
-# 	# scale control
-# 	if p.newton_mode == :direct
-# 		p.u .= p.newton.traj.u[1]
-# 		p.u ./= p.N_sample
-# 	elseif p.newton_mode == :structure
-# 		p.u .= p.newton.u[1]
-# 		p.u ./= p.N_sample
-# 	else
-# 		println("newton mode specified not available")
-# 	end
-
-# 	return p.u
-# end
-
+include("continuous_policy_v2.jl")
 
 # ## Simulation
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -149,7 +31,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 6000
+H_sim = 3000
 κ_mpc = 2.0e-4
 
 v0 = 0.0
@@ -191,7 +73,7 @@ idx_d5 = idx_d4 + 350
 idx_d6 = idx_d5 + 350
 idx = [idx_d1, idx_d2, idx_d3, idx_d4, idx_d5, idx_d6]
 # impulses = [[0,0,10.0], [0,0,-10.0], [0,5,0.0], [0,-5,0.0], [5,0,0.0], [-5,0,0.0]]
-impulses = [[15.0,25.0,30.0], [0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,0.0]]
+impulses = [0.75 * [15.0,25.0,30.0], [0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,0.0]]
 d = impulse_disturbances(impulses, idx)
 
 w = [[0.0,0.0,0.0] for i=1:H_sim/N_sample]
@@ -233,76 +115,73 @@ set_floor!(vis, grid=true)
 set_background!(vis)
 anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)
 
-u_force = impulses[1]
-u_force ./= norm(u_force)
-u_force .*= 0.35
-force_vis = ArrowVisualizer(vis[:force])
-setobject!(force_vis, MeshPhongMaterial(color=RGBA(1.0, 0.0, 0.0, 1.0)))
-settransform!(force_vis,
-            Point(sim.traj.q[1][1], sim.traj.q[1][2], sim.traj.q[1][3]),
-            Vec(u_force[1], u_force[2], u_force[3]),
-            shaft_radius=0.035,
-            max_head_radius=0.075)
-setvisible!(vis[:force], true)
-for t = 1:length(sim.traj.q)
-    MeshCat.atframe(anim, t) do
-        t < 75 ? setvisible!(vis[:force], true) : setvisible!(vis[:force], false)
-    end
-end
-MeshCat.setanimation!(vis, anim)
+# u_force = impulses[1]
+# u_force ./= norm(u_force)
+# u_force .*= 0.35
+# force_vis = ArrowVisualizer(vis[:force])
+# setobject!(force_vis, MeshPhongMaterial(color=RGBA(1.0, 0.0, 0.0, 1.0)))
+# settransform!(force_vis,
+#             Point(sim.traj.q[1][1], sim.traj.q[1][2], sim.traj.q[1][3]),
+#             Vec(u_force[1], u_force[2], u_force[3]),
+#             shaft_radius=0.035,
+#             max_head_radius=0.075)
+# setvisible!(vis[:force], true)
+# for t = 1:length(sim.traj.q)
+#     MeshCat.atframe(anim, t) do
+#         t < 75 ? setvisible!(vis[:force], true) : setvisible!(vis[:force], false)
+#     end
+# end
+# MeshCat.setanimation!(vis, anim)
 
 
-12 / 6000 == 0.01 / 5
+# 12 / 6000 == 0.01 / 5
 
-thr = 1.0e-3
-N = 18
-H_ref = length(ref_traj.q)
-foot1_ref = [([[q[6 .+ 3] > thr ? 0 : 1 for q in ref_traj.q] for t = 1:N]...)...]
-foot2_ref = [([[q[9 .+ 3] > thr ? 0 : 1 for q in ref_traj.q] for t = 1:N]...)...]
-foot3_ref = [([[q[12 .+ 3] > thr ? 0 : 1 for q in ref_traj.q] for t = 1:N]...)...]
-foot4_ref = [([[q[15 .+ 3] > thr ? 0 : 1 for q in ref_traj.q] for t = 1:N]...)...]
-time_ref = range(0, stop=h * (N * H_ref - 1), length=N * H_ref)
+# thr = 1.0e-3
+# N = 18
+# H_ref = length(ref_traj.q)
+# foot1_ref = [([[q[6 .+ 3] > thr ? 0 : 1 for q in ref_traj.q] for t = 1:N]...)...]
+# foot2_ref = [([[q[9 .+ 3] > thr ? 0 : 1 for q in ref_traj.q] for t = 1:N]...)...]
+# foot3_ref = [([[q[12 .+ 3] > thr ? 0 : 1 for q in ref_traj.q] for t = 1:N]...)...]
+# foot4_ref = [([[q[15 .+ 3] > thr ? 0 : 1 for q in ref_traj.q] for t = 1:N]...)...]
+# time_ref = range(0, stop=h * (N * H_ref - 1), length=N * H_ref)
 
-plt = plot(layout=(4, 1));
+# plt = plot(layout=(4, 1));
 
-plt = plot!(plt, time_ref, foot1_ref,
-    linetype=:steppost, color=:orange, width=3.0, label="", yaxis=nothing, subplot=1)
-plt = plot!(plt, time_ref, foot2_ref,
-    linetype=:steppost, color=:lightgreen, width=3.0, label="", yaxis=nothing, subplot=2)
-plt = plot!(plt, time_ref, foot3_ref,
-    linetype=:steppost, color=:cyan, width=3.0, label="", yaxis=nothing, subplot=3)
-plt = plot!(plt, time_ref, foot4_ref,
-    linetype=:steppost, color=:magenta, width=3.0, label="", yaxis=nothing, subplot=4)
-
-
-foot1_sim = [q[6 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
-foot2_sim = [q[9 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
-foot3_sim = [q[12 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
-foot4_sim = [q[15 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
-time_sim = range(0, stop=h_sim * (H_sim - 1), length=H_sim)
-
-plt = plot!(plt, time_sim, foot1_sim[2:end-1],
-    linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=1)
-plt = plot!(time_sim, foot2_sim[2:end-1],
-    linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=2)
-plt = plot(plt, time_sim, foot3_sim[2:end-1],
-    linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=3)
-plt = plot!(plt, time_sim, foot4_sim[2:end-1],
-    linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=4, xlabel="time (s)")
-
-display(plt)
-savefig(plt, "/home/taylor/Downloads/centroidal_quadruped_push_recovery.png")
-
-# # ## Timing result
-# # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
-process!(sim.stats, N_sample) # Time budget
-H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio
-plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)", label="", linetype=:steppost)
-
-# convert_frames_to_video_and_gif("centroidal_push_recovery")
+# plt = plot!(plt, time_ref, foot1_ref,
+#     linetype=:steppost, color=:orange, width=3.0, label="", yaxis=nothing, subplot=1)
+# plt = plot!(plt, time_ref, foot2_ref,
+#     linetype=:steppost, color=:lightgreen, width=3.0, label="", yaxis=nothing, subplot=2)
+# plt = plot!(plt, time_ref, foot3_ref,
+#     linetype=:steppost, color=:cyan, width=3.0, label="", yaxis=nothing, subplot=3)
+# plt = plot!(plt, time_ref, foot4_ref,
+#     linetype=:steppost, color=:magenta, width=3.0, label="", yaxis=nothing, subplot=4)
 
 
+# foot1_sim = [q[6 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
+# foot2_sim = [q[9 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
+# foot3_sim = [q[12 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
+# foot4_sim = [q[15 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
+# time_sim = range(0, stop=h_sim * (H_sim - 1), length=H_sim)
 
+# plt = plot!(plt, time_sim, foot1_sim[2:end-1],
+#     linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=1)
+# plt = plot!(time_sim, foot2_sim[2:end-1],
+#     linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=2)
+# plt = plot(plt, time_sim, foot3_sim[2:end-1],
+#     linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=3)
+# plt = plot!(plt, time_sim, foot4_sim[2:end-1],
+#     linetype=:steppost, color=:black, width=2.0, label="", yaxis=nothing, subplot=4, xlabel="time (s)")
+
+# display(plt)
+# savefig(plt, "/home/taylor/Downloads/centroidal_quadruped_push_recovery.png")
+
+# # # ## Timing result
+# # # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
+# process!(sim.stats, N_sample) # Time budget
+# H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio
+# plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)", label="", linetype=:steppost)
+
+# # convert_frames_to_video_and_gif("centroidal_push_recovery")
 
 
 
@@ -313,11 +192,14 @@ plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)", label="", 
 
 
 
-sim.policy.ref_traj
-for i = 1:100
-	@show 1 + Int(floor((i-1)/N_sample)) % 10
-end
 
 
-sim.traj
-sim.policy.ref_traj
+
+# sim.policy.ref_traj
+# for i = 1:100
+# 	@show 1 + Int(floor((i-1)/N_sample)) % 10
+# end
+
+
+# sim.traj
+# sim.policy.ref_traj
