@@ -55,7 +55,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-5,
-        max_time=10.0e-3,
+        max_time=1.0e-2,
 		solver=:ldl_solver,
         threads=false,
         verbose=false,
@@ -73,7 +73,7 @@ idx_d5 = idx_d4 + 350
 idx_d6 = idx_d5 + 350
 idx = [idx_d1, idx_d2, idx_d3, idx_d4, idx_d5, idx_d6]
 # impulses = [[0,0,10.0], [0,0,-10.0], [0,5,0.0], [0,-5,0.0], [5,0,0.0], [-5,0,0.0]]
-impulses = [0.75 * [15.0,25.0,30.0], [0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,0.0]]
+impulses = [1.0 * [15.0,25.0,30.0], [0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,0.0]]
 d = impulse_disturbances(impulses, idx)
 
 w = [[0.0,0.0,0.0] for i=1:H_sim/N_sample]
@@ -145,16 +145,16 @@ anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)
 # foot4_ref = [([[q[15 .+ 3] > thr ? 0 : 1 for q in ref_traj.q] for t = 1:N]...)...]
 # time_ref = range(0, stop=h * (N * H_ref - 1), length=N * H_ref)
 
-# plt = plot(layout=(4, 1));
+plt = plot(layout=(4, 1));
 
-# plt = plot!(plt, time_ref, foot1_ref,
-#     linetype=:steppost, color=:orange, width=3.0, label="", yaxis=nothing, subplot=1)
-# plt = plot!(plt, time_ref, foot2_ref,
-#     linetype=:steppost, color=:lightgreen, width=3.0, label="", yaxis=nothing, subplot=2)
-# plt = plot!(plt, time_ref, foot3_ref,
-#     linetype=:steppost, color=:cyan, width=3.0, label="", yaxis=nothing, subplot=3)
-# plt = plot!(plt, time_ref, foot4_ref,
-#     linetype=:steppost, color=:magenta, width=3.0, label="", yaxis=nothing, subplot=4)
+plt = plot!(plt, time_ref, foot1_ref,
+    linetype=:steppost, color=:orange, width=3.0, label="", yaxis=nothing, subplot=1)
+plt = plot!(plt, time_ref, foot2_ref,
+    linetype=:steppost, color=:lightgreen, width=3.0, label="", yaxis=nothing, subplot=2)
+plt = plot!(plt, time_ref, foot3_ref,
+    linetype=:steppost, color=:cyan, width=3.0, label="", yaxis=nothing, subplot=3)
+plt = plot!(plt, time_ref, foot4_ref,
+    linetype=:steppost, color=:magenta, width=3.0, label="", yaxis=nothing, subplot=4)
 
 
 # foot1_sim = [q[6 .+ 3] > thr ? 0.01 : 0.99 for q in sim.traj.q]
@@ -177,9 +177,9 @@ anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)
 
 # # # ## Timing result
 # # # Julia is [JIT-ed](https://en.wikipedia.org/wiki/Just-in-time_compilation) so re-run the MPC setup through Simulate for correct timing results.
-# process!(sim.stats, N_sample) # Time budget
-# H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio
-# plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)", label="", linetype=:steppost)
+process!(sim.stats, N_sample) # Time budget
+H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio
+plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)", label="", linetype=:steppost)
 
 # # convert_frames_to_video_and_gif("centroidal_push_recovery")
 

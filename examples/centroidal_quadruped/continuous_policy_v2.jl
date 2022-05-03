@@ -19,6 +19,7 @@ function simulate!(s::Simulator{T};
     for t = 1:N
 		# println("timestep $t / $N, time $time")
 		policy_time = @elapsed traj.u[t] = exec_policy(p, x, clock_time)
+		traj.u[t] .*= s.h # transform force from policy to impulse for RoboDojo simulator
 		s.opts.record && (s.stats.policy_time[t] = policy_time)
 
         # disturbances
@@ -147,7 +148,7 @@ function exec_policy(p::CIMPC{T,NQ,NU,NW,NC}, x::Vector{T}, t::T) where {T,NQ,NU
 
 	# scale control
 	p.u .= p.newton.traj.u[1]
-	p.u ./= p.N_sample
+	p.u ./= p.traj.h 
 
 	return p.u
 end
