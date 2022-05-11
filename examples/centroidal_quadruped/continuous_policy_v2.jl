@@ -1,5 +1,5 @@
 
-function simulate!(s::Simulator{T}; 
+function simulate!(s::Simulator{T};
 	clock_time_noise=1.0e-3,
 	verbose=false) where T
     status = false
@@ -10,7 +10,7 @@ function simulate!(s::Simulator{T};
 
 	N = length(traj.u)
 
-	# state 
+	# state
 	t = 1
 	x = [traj.q[t+1]; (traj.q[t+1] - traj.q[t]) ./ s.h; traj.γ[t]]
 
@@ -143,12 +143,13 @@ function exec_policy(p::CIMPC{T,NQ,NU,NW,NC}, x::Vector{T}, t::T) where {T,NQ,NU
 	end
 
 	# update buffer time
-	(p.buffer_time < 0.0) && (p.buffer_time = policy_time)
+	(p.buffer_time <= 0.0) && (p.buffer_time = policy_time)
 	p.buffer_time -= p.traj.h
 
 	# scale control
 	p.u .= p.newton.traj.u[1]
-	p.u ./= p.traj.h 
+	p.u ./= p.traj.h
 
 	return p.u
 end
+rot_n_stride!

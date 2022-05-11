@@ -39,7 +39,7 @@ h_sim = h / N_sample
 H_sim = 1000
 κ_mpc = 2.0e-4
 
-v0 = 0.0
+v0 = 0.2
 obj = TrackingVelocityObjective(model, env, H_mpc,
     v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
 	q = [relative_state_cost(1e-0*[1e-2,1e-2,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
@@ -60,7 +60,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-5,
-        max_time=10.0e-3,
+        max_time=1.0e-1,
 		solver=:ldl_solver,
         threads=false,
         verbose=false,
@@ -79,6 +79,8 @@ q1_sim, v1_sim = initial_conditions(ref_traj);
 # ## Simulator
 sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d);
 
+sim
+
 
 using BenchmarkTools
 # ## Simulate
@@ -96,13 +98,5 @@ anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)
 process!(sim.stats, N_sample) # Time budget
 H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio
 plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)",
-	ylims=[-0.001, 0.03],
+	ylims=[-0.001, 0.1],
 	label="", linetype=:steppost)
-
-
-
-t = 1.115
-h = 0.01
-
-t % h
-t - t % h
