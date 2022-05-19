@@ -4,11 +4,11 @@
         subject to    Ax = b
     """
 
-    ##### 
+    #####
     n = 10
     m = 3
 
-    nw = n + m 
+    nw = n + m
     nθ = 2n + m * n + m
 
     function obj(z, θ)
@@ -16,11 +16,11 @@
 
         P = Diagonal(θ[1:n])
         p = θ[n .+ (1:n)]
-        return transpose(x) * P * x + transpose(p) * x 
+        return transpose(x) * P * x + transpose(p) * x
     end
 
-    function constraints(z, θ) 
-        x = z[1:n] 
+    function constraints(z, θ)
+        x = z[1:n]
         A = reshape(θ[2n .+ (1:(m * n))], m, n)
         b = θ[2n + m * n .+ (1:m)]
 
@@ -31,7 +31,7 @@
         z = w[1:n]
         y = w[n .+ (1:m)]
 
-        L = 0.0 
+        L = 0.0
         L += obj(z, θ)
         L += dot(y, constraints(z, θ))
 
@@ -45,8 +45,8 @@
         c = constraints(w[1:n], θ)
 
         [
-            Lz; 
-            c; 
+            Lz;
+            c;
         ]
     end
 
@@ -66,42 +66,42 @@
     x0 = randn(n)
     A = rand(m, n)
     b = A * x0
-    z = [randn(n); zeros(m)] 
+    z = [randn(n); zeros(m)]
     θ = [ones(n); zeros(n); vec(A); b]
     κ = [1.0]
 
-    r = zeros(nw) 
-    rz = zeros(nw, nw) 
-    rθ = zeros(nw, nθ) 
+    r = zeros(nw)
+    rz = zeros(nw, nw)
+    rθ = zeros(nw, nθ)
 
-    opts = CALIPSO.InteriorPointOptions(diff_sol=true, 
+    opts = ContactImplicitMPC.InteriorPointOptions(diff_sol=true,
         undercut=10.0,
-        max_ls=25, 
-        max_iter=100, 
-        verbose=false, 
+        max_ls=25,
+        max_iter=100,
+        verbose=false,
         solver=:lu_solver)
 
-    idx = CALIPSO.IndicesOptimization(
-        nw, nw, 
+    idx = ContactImplicitMPC.IndicesOptimization(
+        nw, nw,
         [collect(1:0), collect(1:0)],
         [collect(1:0), collect(1:0)],
-        Vector{Vector{Int}}[], 
-        Vector{Vector{Int}}[], 
-        collect(1:(n + m)), 
-        Vector{Int}(), 
+        Vector{Vector{Int}}[],
+        Vector{Vector{Int}}[],
+        collect(1:(n + m)),
+        Vector{Int}(),
         Vector{Int}(),
         Vector{Int}[],
         Vector{Int}())
 
     # solver
-    ip = CALIPSO.interior_point(z, θ,
+    ip = ContactImplicitMPC.interior_point(z, θ,
         idx=idx,
         r! = rf!, rz! = rzf!, rθ! = rθf!,
         rz = rz,
         rθ = rθ,
         opts = opts)
 
-    status = CALIPSO.interior_point_solve!(ip)
+    status = ContactImplicitMPC.interior_point_solve!(ip)
     # @benchmark CALIPSO.interior_point_solve!($ip)
 
     # test

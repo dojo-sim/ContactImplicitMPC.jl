@@ -26,7 +26,9 @@ env = s.env
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
 	joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/inplace_trot_v4.jld2"),
-    # joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/stand_euler_v0.jld2"),
+    load_type = :split_traj_alt));
+ref_standing_traj = deepcopy(get_trajectory(s.model, s.env,
+    joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/stand_euler_v0.jld2"),
     load_type = :split_traj_alt));
 
 
@@ -37,7 +39,7 @@ h = ref_traj.h
 N_sample = 5
 H_mpc = 10
 h_sim = h / N_sample
-H_sim = 4000
+H_sim = 1000
 κ_mpc = 2.0e-4
 
 v0 = 0.2
@@ -61,7 +63,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-5,
-        max_time=2.0e-2,
+        max_time=1.0e-1,
 		solver=:ldl_solver,
         threads=false,
         verbose=false,
@@ -75,7 +77,11 @@ w = [[0.0,0.0,0.0] for i=1:H_sim/N_sample]
 d = open_loop_disturbances(w, N_sample)
 
 # ## Initial conditions
-q1_sim, v1_sim = initial_conditions(ref_traj);
+# q1_sim, v1_sim = initial_conditions(ref_traj);
+# set_robot!(vis, model, q1_sim)
+q1_sim, v1_sim = initial_conditions(ref_standing_traj);
+set_robot!(vis, model, q1_sim)
+
 
 # ## Simulator
 sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d);
@@ -96,7 +102,7 @@ anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)
 process!(sim.stats, N_sample) # Time budget
 H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio
 plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)",
-	ylims=[-0.001, 0.1],
+	ylims=[-0.001, 0.15],
 	label="", linetype=:steppost)
 
 sim
@@ -108,3 +114,4 @@ plot!(plt, hcat(Vector.([(sim.traj.q[i+1][7:7] - sim.traj.q[i][7:7]) / sim.h for
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][10:10] - sim.traj.q[i][10:10]) / sim.h for i=1:H_sim])...)')
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][13:13] - sim.traj.q[i][13:13]) / sim.h for i=1:H_sim])...)')
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][16:16] - sim.traj.q[i][16:16]) / sim.h for i=1:H_sim])...)')
+sim.stats.policy_time
