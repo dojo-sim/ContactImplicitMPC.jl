@@ -5,8 +5,9 @@ vis = Visualizer()
 open(vis)
 
 # ## horizon
-T = 11
-h = 0.1
+T = 101
+Tm = 51
+h = 0.01
 
 # ## centroidal_quadruped
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -53,7 +54,9 @@ x_ref = [q_ref; q_ref]
 function obj1(x, u, w)
 	J = 0.0
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
-	J += 0.5 * transpose(u) * Diagonal([ones(model.nu); zeros(nu - model.nu)]) * u
+	J += 0.5 * transpose(u) * Diagonal([1.0e-2 * ones(model.nu); zeros(nu - model.nu)]) * u
+    vf1 = (x[18 .+ (7:9)] - x[7:9]) ./ h 
+    J += 1.0 * dot(vf1, vf1)
     J += 1000.0 * u[end] # slack
 	return J
 end
@@ -61,7 +64,9 @@ end
 function objt(x, u, w)
 	J = 0.0
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
-	J += 0.5 * transpose(u) * Diagonal([ones(model.nu); zeros(nu - model.nu)]) * u
+	J += 0.5 * transpose(u) * Diagonal([1.0e-2 * ones(model.nu); zeros(nu - model.nu)]) * u
+    vf1 = (x[18 .+ (7:9)] - x[7:9]) ./ h 
+    J += 1.0 * dot(vf1, vf1)
     J += 1000.0 * u[end] # slack
 	return J
 end
@@ -69,6 +74,8 @@ end
 function objT(x, u, w)
 	J = 0.0
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
+    vf1 = (x[18 .+ (7:9)] - x[7:9]) ./ h 
+    J += 1.0 * dot(vf1, vf1)
     return J
 end
 
@@ -98,6 +105,7 @@ bnd1 = DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu)
 bndt = DTO.Bound(nx + nθ + nx + model.nu, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
 bndT = DTO.Bound(nx + nθ + nx + model.nu, 0, xl=xlT, xu=xuT)
 bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
+bnds = [bnd1, [bndt for t = 2:T-1]..., bndT]
 
 function constraints_1(x, u, w)
     [
@@ -105,6 +113,7 @@ function constraints_1(x, u, w)
      contact_constraints_equality(model, env, h, x, u, w);
      # inequality (28)
      contact_constraints_inequality_1(model, env, h, x, u, w);
+     (x[18 .+ (10:18)] - q1[10:18]);
     ]
 end
 
@@ -114,6 +123,18 @@ function constraints_t(x, u, w)
      contact_constraints_equality(model, env, h, x, u, w);
      # inequality (32)
      contact_constraints_inequality_t(model, env, h, x, u, w);
+     (x[18 .+ (10:18)] - q1[10:18]);
+    ]
+end
+
+function constraints_M(x, u, w)
+    [
+     # equality (16)
+     contact_constraints_equality(model, env, h, x, u, w);
+     # inequality (32)
+     contact_constraints_inequality_t(model, env, h, x, u, w);
+     x[9] - 0.1;
+     (x[18 .+ (10:18)] - q1[10:18]);
     ]
 end
 
@@ -121,13 +142,26 @@ function constraints_T(x, u, w)
     [
      # inequality (8)
      contact_constraints_inequality_T(model, env, h, x, u, w);
+     (x[18 .+ (10:18)] - q1[10:18]);
+    ]
+end
+
+function constraints_TT(x, u, w)
+    [
+     # equality (16)
+     contact_constraints_equality(model, env, h, x, u, w);
+     # inequality (32)
+     contact_constraints_inequality_t(model, env, h, x, u, w);
+     x[1:36] - xT;
     ]
 end
 
 con1 = DTO.Constraint(constraints_1, nx, nu, idx_ineq=collect(16 .+ (1:28)))
 cont = DTO.Constraint(constraints_t, nx + nθ + nx + model.nu, nu, idx_ineq=collect(16 .+ (1:32)))
+conM = DTO.Constraint(constraints_M, nx + nθ + nx + model.nu, nu, idx_ineq=collect(16 .+ (1:32)))
+conTT = DTO.Constraint(constraints_TT, nx + nθ + nx + model.nu, nu, idx_ineq=collect(16 .+ (1:32)))
 conT = DTO.Constraint(constraints_T, nx + nθ + nx + model.nu, nu, idx_ineq=collect(0 .+ (1:8)))
-cons = [con1, [cont for t = 2:T-1]..., conT];
+cons = [con1, [t == Tm ? conM : (t > T - 10 ? conTT : cont) for t = 2:T-1]..., conT];
 
 # ## problem
 p = DTO.solver(dyn, obj, cons, bnds,
@@ -189,6 +223,8 @@ plot(timesteps, hcat(bm...)', labels="")
 plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
+visualize!(vis, model, qm, Δt=h);
+
 using JLD2
-@save joinpath(@__DIR__, "stand.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "stand.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm
