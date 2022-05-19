@@ -31,9 +31,8 @@ mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,L
 	window::Vector{Int}
 	opts::CIMPCOptions{T}
 
-	buffer_time::T 
+	buffer_time::T
 	next_time_update::T
-	history::ContactTraj{T,NQ,NU,NW,NC,NB,NZ,Nθ}
 end
 
 function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
@@ -42,7 +41,6 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 	κ_mpc = traj.κ[1],
 	mode = :configurationforce,
 	newton_mode = :direct,
-	history_length=10000,
 	n_opts = NewtonOptions(
 		r_tol = 3e-4,
 		max_iter = 5,
@@ -83,12 +81,11 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 
 	window = zeros(Int, H_mpc + 2)
 
-	history = contact_trajectory(s.model, s.env, history_length, traj.h)
-	
+
 	CIMPC(zeros(s.model.nu), traj, traj_cache, ref_traj, im_traj, im_traj_cache,
 		H_mpc, stride, altitude, ϕ, [κ_mpc], newton, newton_mode, s, copy(ref_traj.q[1]),
 		N_sample, [N_sample], window, mpc_opts,
-		0.0, 0.0, history)
+		0.0, 0.0)
 end
 
 function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,NQ,NU,NW,NC}

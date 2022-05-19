@@ -27,7 +27,7 @@ ref_traj = deepcopy(get_trajectory(s.model, s.env,
 	# joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/inplace_trot_v4.jld2"),
     joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/stand_v0.jld2"),
     load_type = :split_traj_alt));
-
+(model.mass_body + 0.8)* 9.81 / 4
 
 H = ref_traj.H
 h = ref_traj.h
@@ -77,7 +77,7 @@ d = open_loop_disturbances(w, N_sample)
 q1_sim, v1_sim = initial_conditions(ref_traj);
 
 # ## Simulator
-sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d);
+sim = simulator(s, H_sim, h=h_sim, policy=p)#, dist=d);
 
 
 using BenchmarkTools
@@ -102,4 +102,13 @@ plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)",
 	ylims=[-0.001, 0.03],
 	label="", linetype=:steppost)
 
+<<<<<<< HEAD
 p.traj.u[1]
+=======
+[u for u in sim.traj.u]
+plot([q[3] for q in sim.traj.q])
+
+
+convert_frames_to_video_and_gif("centroidal_quadruped_push_recovery_force")
+convert_video_to_gif("/home/simon/Downloads/centroidal_quadruped_push_recovery_force.mp4")
+>>>>>>> 2dc83e009fde858144bd64d6d6f137c080d211ad

@@ -11,8 +11,8 @@ mutable struct ImplicitTrajectory{T,R,RZ,Rθ,NQ}
 	dγ1::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
 	db1::Vector{SubArray{T,1,Array{T,1},Tuple{UnitRange{Int}},true}}
 	δq0::Vector{SubArray{T,2,Array{T,2},Tuple{UnitRange{Int},UnitRange{Int}},false}} # q0 solution gradient length=H
-	δq1::Vector{SubArray{T,2,Array{T,2},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # q1 solution gradient length=H
-	δu1::Vector{SubArray{T,2,Array{T,2},Tuple{UnitRange{Int},UnitRange{Int}},false}}  # u1 solution gradient length=H
+	δq1::Vector{SubArray{T,2,Array{T,2},Tuple{UnitRange{Int},UnitRange{Int}},false}} # q1 solution gradient length=H
+	δu1::Vector{SubArray{T,2,Array{T,2},Tuple{UnitRange{Int},UnitRange{Int}},false}} # u1 solution gradient length=H
 	ip::Vector{InteriorPoint{T,R,RZ,Rθ}}
 	mode::Symbol
 	iq2::SVector{NQ,Int}
@@ -85,13 +85,13 @@ function ImplicitTrajectory(ref_traj::ContactTraj, s::Simulation;
 	δq1 = [view(ip[t].δz, 1:nd, off .+ (1:nq)) for t = 1:H]; off += nq
 	δu1 = [view(ip[t].δz, 1:nd, off .+ (1:nu)) for t = 1:H]; off += nu
 
-	return ImplicitTrajectory{typeof.([ip[1].z[1], ip[1].r, ip[1].rz, ip[1].rθ])...,nq2}(H, lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip, mode, 
+	return ImplicitTrajectory{typeof.([ip[1].z[1], ip[1].r, ip[1].rz, ip[1].rθ])...,nq2}(H, lin, d, dq2, dγ1, db1, δq0, δq1, δu1, ip, mode,
 		SVector{nq2,Int}(iq2))
 end
 
 function update!(im_traj::ImplicitTrajectory{T,R,RZ,Rθ,nq}, ref_traj::ContactTraj{T,nq,nu,nw,nc,nb,nz,nθ},
 	s::Simulation{T,W,FC}, alt::Vector{T}, κ::T, H::Int) where {T,R,RZ,Rθ,nq,nu,nw,nc,nb,nz,nθ,W,FC}
-	
+
 	for t = 1:H
 		# central-path parameter
 		im_traj.ip[t].κ[1] = κ
@@ -109,7 +109,7 @@ function update!(im_traj::ImplicitTrajectory{T,R,RZ,Rθ,nq}, ref_traj::ContactTr
 	end
 
 	# update!(im_traj.lin[H], s, ref_traj.z[H], ref_traj.θ[H])
-	
+
 	# z0  = im_traj.lin[H].z
 	# θ0  = im_traj.lin[H].θ
 	# r0  = im_traj.lin[H].r
@@ -126,7 +126,7 @@ function update!(im_traj::ImplicitTrajectory{T,R,RZ,Rθ,nq}, ref_traj::ContactTr
 end
 
 function set_implicit_trajectory!(im_traj::ImplicitTrajectory, im_traj_cache::ImplicitTrajectory)
-	H = im_traj.H 
+	H = im_traj.H
 
 	for t = 1:H
 		im_traj.lin[t] = im_traj_cache.lin[t]
@@ -153,7 +153,7 @@ function set_altitude!(ip::InteriorPoint, alt::Vector)
 	return nothing
 end
 
-function implicit_dynamics!(im_traj::ImplicitTrajectory, traj::ContactTraj; 
+function implicit_dynamics!(im_traj::ImplicitTrajectory, traj::ContactTraj;
 	threads=false,
 	window=collect(1:traj.H + 2))
 
@@ -169,7 +169,7 @@ function implicit_dynamics!(im_traj::ImplicitTrajectory, traj::ContactTraj;
 			status = interior_point_solve!(im_traj.ip[t])
 			!status && (@warn "implicit dynamics failure (t = $t)")
 		end
-	else 
+	else
 		for t in window[1:end-2]
 			# solve
 			status = interior_point_solve!(im_traj.ip[t])
@@ -180,7 +180,7 @@ function implicit_dynamics!(im_traj::ImplicitTrajectory, traj::ContactTraj;
 	for (i, t) in enumerate(window[1:end-2])
 		# compute dynamics violation
 		im_traj.dq2[t] .-= traj.q[i+2]
-		
+
 		if im_traj.mode == :configurationforce
 			im_traj.dγ1[t] .-= traj.γ[i]
 			im_traj.db1[t] .-= traj.b[i]
