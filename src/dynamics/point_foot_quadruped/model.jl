@@ -370,10 +370,10 @@ function C_func(model::PointFootQuadruped117, q, q̇)
 	[
 	    model.mass_body * [0,0,model.g] + spring .* (+sum(offsets) + 4 * q[1:3] - q[7:9] - q[10:12] - q[13:15] - q[16:18]);     # body position
 	    skew(q̇[4:6]) * model.inertia_body * q̇[4:6]; # body orientation
-	    model.mass_foot * [0,0,model.g];# + spring .* (-offsets[1] + q[7:9] - q[1:3]);
-	    model.mass_foot * [0,0,model.g];# + spring .* (-offsets[2] + q[10:12] - q[1:3]);
-	    model.mass_foot * [0,0,model.g];# + spring .* (-offsets[3] + q[13:15] - q[1:3]);
-	    model.mass_foot * [0,0,model.g];# + spring .* (-offsets[4] + q[16:18] - q[1:3]);
+	    model.mass_foot * [0,0,model.g] + spring .* (-offsets[1] + q[7:9] - q[1:3]);
+	    model.mass_foot * [0,0,model.g] + spring .* (-offsets[2] + q[10:12] - q[1:3]);
+	    model.mass_foot * [0,0,model.g] + spring .* (-offsets[3] + q[13:15] - q[1:3]);
+	    model.mass_foot * [0,0,model.g] + spring .* (-offsets[4] + q[16:18] - q[1:3]);
 	]
 end
 
@@ -505,15 +505,15 @@ function dynamics(model::PointFootQuadruped117, h, q0, q1, u1, w1, Λ1, q2)
 	d .+= transpose(A_fast(model, qm2)) * w1        # control inputs
 	d .+= Λ1                                        # contact impulses
 
-	d[1:3] .-= model.joint_friction .* (vm2[1:3] - vm2[7:9]) # joint friction
-	d[1:3] .-= model.joint_friction .* (vm2[1:3] - vm2[10:12]) # joint friction
-	d[1:3] .-= model.joint_friction .* (vm2[1:3] - vm2[13:15]) # joint friction
-	d[1:3] .-= model.joint_friction .* (vm2[1:3] - vm2[16:18]) # joint friction
+	d[1:3] .-= h[1] * model.joint_friction .* (vm2[1:3] - vm2[7:9]) # joint friction
+	d[1:3] .-= h[1] * model.joint_friction .* (vm2[1:3] - vm2[10:12]) # joint friction
+	d[1:3] .-= h[1] * model.joint_friction .* (vm2[1:3] - vm2[13:15]) # joint friction
+	d[1:3] .-= h[1] * model.joint_friction .* (vm2[1:3] - vm2[16:18]) # joint friction
 
-	d[7:9]   .-= model.joint_friction .* (vm2[7:9] - vm2[1:3]) # joint friction
-	d[10:12] .-= model.joint_friction .* (vm2[10:12] - vm2[1:3]) # joint friction
-	d[13:15] .-= model.joint_friction .* (vm2[13:15] - vm2[1:3]) # joint friction
-	d[16:18] .-= model.joint_friction .* (vm2[16:18] - vm2[1:3]) # joint friction
+	d[7:9]   .-= h[1] * model.joint_friction .* (vm2[7:9] - vm2[1:3]) # joint friction
+	d[10:12] .-= h[1] * model.joint_friction .* (vm2[10:12] - vm2[1:3]) # joint friction
+	d[13:15] .-= h[1] * model.joint_friction .* (vm2[13:15] - vm2[1:3]) # joint friction
+	d[16:18] .-= h[1] * model.joint_friction .* (vm2[16:18] - vm2[1:3]) # joint friction
 	return d
 end
 
@@ -531,8 +531,8 @@ foot_y = 0.15
 # parameters
 g = 9.81                 # gravity
 friction_foot_world = 0.3
-joint_friction = ones(3)
-spring_stiffness_joint = 100ones(3)
+joint_friction = 30ones(3)
+spring_stiffness_joint = 30ones(3)
 
 # inertial properties
 mass_body = 13.5
