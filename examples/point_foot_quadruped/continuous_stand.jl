@@ -23,6 +23,8 @@ s = get_simulation("point_foot_quadruped", "flat_3D_lc", "flat")
 model = s.model
 env = s.env
 
+H_sim = 5000
+h_sim = 0.002
 H_sim = 1000
 h_sim = 0.01
 p = open_loop_policy([zeros(model.nu) for i=1:H_sim], N_sample=1)
