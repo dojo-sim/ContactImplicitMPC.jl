@@ -3,7 +3,6 @@ include("trajopt_model.jl")
 
 vis = Visualizer()
 open(vis)
-
 # ## horizon
 T = 11
 h = 0.1
@@ -26,19 +25,6 @@ dt = DTO.Dynamics((y, x, u, w) -> point_foot_quadruped_dynt(
 dyn = [d1, [dt for t = 2:T-1]...]
 
 # ## initial conditions
-body_height = 0.3
-foot_x = 0.17
-foot_y = 0.15
-function nominal_configuration(model::PointFootQuadruped)
-    [
-        0.0; 0.0; body_height;
-        0.0; 0.0; 0.0;
-        foot_x; foot_y; 0.0;
-        foot_x;-foot_y; 0.0;
-       -foot_x; foot_y; 0.0;
-       -foot_x;-foot_y; 0.0;
-    ]
-end
 q1 = nominal_configuration(model)
 qM = nominal_configuration(model)
 qT = nominal_configuration(model)

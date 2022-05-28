@@ -1,3 +1,7 @@
+# ## visualize
+vis = Visualizer()
+open(vis)
+
 # ## model
 include("trajopt_model.jl")
 
@@ -25,7 +29,8 @@ dt = DTO.Dynamics((y, x, u, w) -> point_foot_quadruped_dynt(model, env, [h], y, 
 dyn = [d1, [dt for t = 2:T-1]...]
 
 # ## initial conditions
-mode = :left
+# mode = :left
+mode = :right
 body_height = 0.3
 foot_x = 0.17
 foot_y = 0.15
@@ -201,9 +206,6 @@ x_sol, u_sol = DTO.get_trajectory(p)
 @show x_sol[T]
 sum([u[end] for u in u_sol[1:end-1]])
 
-# ## visualize
-vis = Visualizer()
-render(vis)
 visualize!(vis, model, x_sol, Δt=h);
 
 q_opt = [x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]...]
@@ -331,7 +333,7 @@ b_opt = [u[model.nu + 4 .+ (1:16)] for u in u_sol]
 η_opt = [u[model.nu + 4 + 16 + 4 .+ (1:16)] for u in u_sol]
 
 if mode == :right
-    qr = q_opt
+    q_r = q_opt
     vr = v_opt
     ur = u_opt
     γr = γ_opt
@@ -340,8 +342,8 @@ if mode == :right
     ηr = η_opt
 
     using JLD2
-    @save joinpath(@__DIR__, "inplace_trot_right.jld2") qr ur γr br ψr ηr
-    @load joinpath(@__DIR__, "inplace_trot_right.jld2") qr ur γr br ψr ηr
+    @save joinpath(@__DIR__, "inplace_trot_right.jld2") q_r ur γr br ψr ηr
+    @load joinpath(@__DIR__, "inplace_trot_right.jld2") q_r ur γr br ψr ηr
 end
 
 if mode == :left
@@ -374,7 +376,7 @@ end
 
 @load joinpath(@__DIR__, "inplace_trot_left.jld2") ql ul γl bl ψl ηl
 
-qm = [qr[2:end]..., ql[2:end]...]
+qm = [q_r[2:end]..., ql[2:end]...]
 um = [ur..., ul...]
 γm = [γr..., γl...]
 bm = [br..., bl...]

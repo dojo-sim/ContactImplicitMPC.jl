@@ -1,4 +1,4 @@
-function build_robot!(vis::Visualizer, model::PointFootQuadruped117;
+function build_robot!(vis::Visualizer, model::PointFootQuadruped;
 	body_height=0.025,
 	body_length=0.1,
 	body_width=0.1,
@@ -31,7 +31,7 @@ function build_robot!(vis::Visualizer, model::PointFootQuadruped117;
 		foot_mat)
 end
 
-function set_robot!(vis::Visualizer, model::PointFootQuadruped117, q::AbstractVector;
+function set_robot!(vis::Visualizer, model::PointFootQuadruped, q::AbstractVector;
 	p_shift=[0.0; 0.0; 0.025])
 
 	R = mrp_rotation_matrix(q[4:6])
@@ -50,7 +50,7 @@ function set_robot!(vis::Visualizer, model::PointFootQuadruped117, q::AbstractVe
 
 end
 
-function visualize!(vis, model::PointFootQuadruped117, q;
+function visualize!(vis, model::PointFootQuadruped, q;
 	Δt=0.1,
 	body_height=0.025,
 	body_length=0.17,

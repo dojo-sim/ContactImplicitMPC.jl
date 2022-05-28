@@ -14,33 +14,32 @@ ContactImplicitMPC.open(vis)
 
 @show Threads.nthreads()
 
-include("discrete_policy.jl")
+# include("discrete_policy.jl")
 # include("continuous_policy.jl")
-# include("continuous_policy_v2.jl")
+include("continuous_policy_v2.jl")
 
 # ## Simulation
 s = get_simulation("point_foot_quadruped", "flat_3D_lc", "flat")
 model = s.model
 env = s.env
 
-H_sim = 5000
-h_sim = 0.002
-H_sim = 1000
-h_sim = 0.01
-p = open_loop_policy([zeros(model.nu) for i=1:H_sim], N_sample=1)
-d = open_loop_disturbances([zeros(model.nw) for i=1:H_sim], 1)
-sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d)
+# H_sim = 5000
+# h_sim = 0.002
+# H_sim = 1000
+# h_sim = 0.01
+# p = open_loop_policy([zeros(model.nu) for i=1:H_sim], N_sample=1)
+# d = open_loop_disturbances([zeros(model.nw) for i=1:H_sim], 1)
+# sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d)
 # ## Simulate
 
-q1_sim = nominal_state(model)[1:nq]
-v1_sim = nominal_state(model)[nq .+ (1:nq)]
-RoboDojo.simulate!(sim, q1_sim, v1_sim, verbose=true)
-anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)
+# q1_sim = nominal_state(model)[1:nq]
+# v1_sim = nominal_state(model)[nq .+ (1:nq)]
+# RoboDojo.simulate!(sim, q1_sim, v1_sim, verbose=true)
+# anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)
 
 
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
-	# joinpath(module_dir(), "src/dynamics/point_foot_quadruped/gaits/inplace_trot_v4.jld2"),
     joinpath(module_dir(), "src/dynamics/point_foot_quadruped/gaits/stand_v0.jld2"),
     load_type = :split_traj_alt));
 (model.mass_body + 0.8)* 9.81 / 4
@@ -93,7 +92,7 @@ d = open_loop_disturbances(w, N_sample)
 q1_sim, v1_sim = initial_conditions(ref_traj);
 
 # ## Simulator
-sim = simulator(s, H_sim, h=h_sim, policy=p)#, dist=d);
+sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d);
 
 
 using BenchmarkTools

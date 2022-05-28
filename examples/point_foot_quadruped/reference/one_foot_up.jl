@@ -227,7 +227,5 @@ plot(timesteps, hcat(ηm...)', labels="")
 visualize!(vis, model, qm, Δt=h);
 
 using JLD2
-# @save joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm
-# @load joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm
 @save joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm
 @load joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm

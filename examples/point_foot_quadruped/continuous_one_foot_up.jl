@@ -18,18 +18,14 @@ ContactImplicitMPC.open(vis)
 include("continuous_policy_v2.jl")
 
 # ## Simulation
-# s = get_simulation("point_foot_quadruped", "flat_3D_lc", "flat")
-s = get_simulation("point_foot_quadruped", "flat_3D_lc", "flat_undamped",
-    model_variable_name="point_foot_quadruped_undamped",
-    dynamics_name="dynamics_undamped");
+s = get_simulation("point_foot_quadruped", "flat_3D_lc", "flat")
 
 model = s.model
 env = s.env
 
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
-	# joinpath(@__DIR__, "reference/one_foot_up.jld2"),
-	joinpath(@__DIR__, "reference/one_foot_up_undamped.jld2"),
+	joinpath(module_dir(), "src/dynamics/point_foot_quadruped/gaits/one_foot_up_v0.jld2"),
     load_type = :split_traj_alt));
 
 
