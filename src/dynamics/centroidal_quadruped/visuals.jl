@@ -78,3 +78,4 @@ function visualize!(vis, model::CentroidalQuadruped, q;
 
 	return anim
 end
+

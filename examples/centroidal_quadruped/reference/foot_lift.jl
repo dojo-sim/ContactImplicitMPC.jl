@@ -1,8 +1,13 @@
+using DirectTrajectoryOptimization
+const DTO = DirectTrajectoryOptimization
+
 # ## model
 include("trajopt_model.jl")
 
+# ## visualize
+include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped/visuals.jl"))
 vis = Visualizer()
-open(vis)
+render(vis)
 
 # ## horizon
 T = 21
@@ -58,10 +63,8 @@ for i = 2:T-1
 	q = q_prev
 end
 push!(x_ref, xT)
-plot(hcat(x_ref...)'[:,model.nq .+ (7:7)])
+# plot(hcat(x_ref...)'[:,model.nq .+ (7:7)])
 visualize!(vis, model, x_ref, Δt=h);
-
-
 
 # ## objective
 obj = Vector{Cost{Float64}}()
@@ -73,7 +76,7 @@ for i = 1:T-1
 	    J += 1000.0 * u[end] # slack
 		return J
 	end
-	ct = DTO.Cost(objt, nx + nθ + nx + model.nu, nu)
+	ct = DTO.Cost(objt, i == 1 ? nx : nx + nθ + nx + model.nu, nu)
 	push!(obj, ct)
 end
 
@@ -103,9 +106,9 @@ xuT = [q1; q1; Inf * ones(nθ); Inf * ones(nx); Inf * ones(model.nu)]
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
-bnd1 = DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu)
-bndt = DTO.Bound(nx + nθ + nx + model.nu, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
-bndT = DTO.Bound(nx + nθ + nx + model.nu, 0, xl=xlT, xu=xuT)
+bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
+bndt = DTO.Bound(nx + nθ + nx + model.nu, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
+bndT = DTO.Bound(nx + nθ + nx + model.nu, 0, state_lower=xlT, state_upper=xuT)
 bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 
 function constraints_1(x, u, w)
@@ -133,13 +136,13 @@ function constraints_T(x, u, w)
     ]
 end
 
-con1 = DTO.Constraint(constraints_1, nx, nu, idx_ineq=collect(16 .+ (1:28)))
-cont = DTO.Constraint(constraints_t, nx + nθ + nx + model.nu, nu, idx_ineq=collect(16 .+ (1:32)))
-conT = DTO.Constraint(constraints_T, nx + nθ + nx + model.nu, nu, idx_ineq=collect(0 .+ (1:8)))
+con1 = DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28)))
+cont = DTO.Constraint(constraints_t, nx + nθ + nx + model.nu, nu, indices_inequality=collect(16 .+ (1:32)))
+conT = DTO.Constraint(constraints_T, nx + nθ + nx + model.nu, 0, indices_inequality=collect(0 .+ (1:8)))
 cons = [con1, [cont for t = 2:T-1]..., conT];
 
 # ## problem
-p = DTO.solver(dyn, obj, cons, bnds,
+solver = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         tol=1.0e-2,
         constr_viol_tol=1.0e-2,
@@ -148,14 +151,14 @@ p = DTO.solver(dyn, obj, cons, bnds,
 # ## initialize
 x_interpolation = [x1, [[x1; zeros(nθ); zeros(nx); zeros(model.nu)] for t = 2:T]...]
 u_guess = [1.0e-4 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
-DTO.initialize_states!(p, x_interpolation)
-DTO.initialize_controls!(p, u_guess)
+DTO.initialize_states!(solver, x_interpolation)
+DTO.initialize_controls!(solver, u_guess)
 
 # ## solve
-@time DTO.solve!(p)
+@time DTO.solve!(solver)
 
 # ## solution
-x_sol, u_sol = DTO.get_trajectory(p)
+x_sol, u_sol = DTO.get_trajectory(solver)
 @show x_sol[1]
 @show x_sol[T]
 sum([u[nu] for u in u_sol[1:end-1]])
