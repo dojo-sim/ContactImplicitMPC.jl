@@ -224,5 +224,5 @@ centroidal_quadruped_undamped = CentroidalQuadruped(nq, nu, nw, nc,
                 inertia_body,
                 mass_foot,
 				BaseMethods(), DynamicsMethods(),
-                0.0*[10ones(3); 30ones(3); 10ones(12)],
+                [0.0*10ones(3); 0.0*30ones(3); 0.0*10ones(12)],
                 )

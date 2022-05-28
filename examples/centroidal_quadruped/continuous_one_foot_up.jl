@@ -18,13 +18,18 @@ ContactImplicitMPC.open(vis)
 include("continuous_policy_v2.jl")
 
 # ## Simulation
-s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
+# s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
+s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat_undamped",
+    model_variable_name="centroidal_quadruped_undamped",
+    dynamics_name="dynamics_undamped");
+
 model = s.model
 env = s.env
 
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
-	joinpath(@__DIR__, "reference/one_foot_up.jld2"),
+	# joinpath(@__DIR__, "reference/one_foot_up.jld2"),
+	joinpath(@__DIR__, "reference/one_foot_up_undamped.jld2"),
     load_type = :split_traj_alt));
 
 
@@ -97,11 +102,3 @@ H_sim * h_sim / sum(sim.stats.policy_time) # Speed ratio
 plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)",
 	ylims=[-0.001, 0.03],
 	label="", linetype=:steppost)
-
-
-
-t = 1.115
-h = 0.01
-
-t % h
-t - t % h

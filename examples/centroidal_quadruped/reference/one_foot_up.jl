@@ -10,7 +10,11 @@ Tm = 51
 h = 0.01
 
 # ## centroidal_quadruped
-s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
+# s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
+s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat_undamped",
+    model_variable_name="centroidal_quadruped_undamped",
+    dynamics_name="dynamics_undamped");
+
 model = s.model
 env = s.env
 nx = 2 * model.nq
@@ -55,7 +59,7 @@ function obj1(x, u, w)
 	J = 0.0
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
 	J += 0.5 * transpose(u) * Diagonal([1.0e-2 * ones(model.nu); zeros(nu - model.nu)]) * u
-    vf1 = (x[18 .+ (7:9)] - x[7:9]) ./ h 
+    vf1 = (x[18 .+ (7:9)] - x[7:9]) ./ h
     J += 1.0 * dot(vf1, vf1)
     J += 1000.0 * u[end] # slack
 	return J
@@ -65,7 +69,7 @@ function objt(x, u, w)
 	J = 0.0
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
 	J += 0.5 * transpose(u) * Diagonal([1.0e-2 * ones(model.nu); zeros(nu - model.nu)]) * u
-    vf1 = (x[18 .+ (7:9)] - x[7:9]) ./ h 
+    vf1 = (x[18 .+ (7:9)] - x[7:9]) ./ h
     J += 1.0 * dot(vf1, vf1)
     J += 1000.0 * u[end] # slack
 	return J
@@ -74,7 +78,7 @@ end
 function objT(x, u, w)
 	J = 0.0
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
-    vf1 = (x[18 .+ (7:9)] - x[7:9]) ./ h 
+    vf1 = (x[18 .+ (7:9)] - x[7:9]) ./ h
     J += 1.0 * dot(vf1, vf1)
     return J
 end
@@ -226,5 +230,7 @@ plot(timesteps, hcat(ηm...)', labels="")
 visualize!(vis, model, qm, Δt=h);
 
 using JLD2
-@save joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm
+# @save joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm
+# @load joinpath(@__DIR__, "one_foot_up.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "one_foot_up_undamped.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "one_foot_up_undamped.jld2") qm um γm bm ψm ηm μm hm
