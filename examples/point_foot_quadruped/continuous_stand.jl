@@ -40,9 +40,13 @@ env = s.env
 
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
-    joinpath(module_dir(), "src/dynamics/point_foot_quadruped/gaits/stand_v0.jld2"),
+	joinpath(module_dir(), "src/dynamics/point_foot_quadruped/gaits/stand_v0.jld2"),
+    # joinpath(module_dir(), "src/dynamics/point_foot_quadruped/gaits/inplace_trot_v0.jld2"),
     load_type = :split_traj_alt));
-(model.mass_body + 0.8)* 9.81 / 4
+
+norm(ref_traj.q[1] - ref_traj.q[end])
+sim
+
 
 H = ref_traj.H
 h = ref_traj.h
