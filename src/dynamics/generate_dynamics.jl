@@ -175,9 +175,24 @@ instantiate_dynamics!(model, path_dyn)
 ################################################################################
 dir = joinpath(@__DIR__, "centroidal_quadruped")
 model = deepcopy(centroidal_quadruped)
-
 path_base = joinpath(dir, "dynamics/base.jld2")
 path_dyn = joinpath(dir, "dynamics/dynamics.jld2")
+
+expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=true)
+save_expressions(expr_base, path_base, overwrite=true)
+instantiate_base!(model, path_base)
+
+expr_dyn = generate_dynamics_expressions(model)
+save_expressions(expr_dyn, path_dyn, overwrite=true)
+instantiate_dynamics!(model, path_dyn)
+
+################################################################################
+# Centroidal Quadruped (3D) undamped
+################################################################################
+dir = joinpath(@__DIR__, "centroidal_quadruped")
+model = deepcopy(centroidal_quadruped_undamped)
+path_base = joinpath(dir, "dynamics_undamped/base.jld2")
+path_dyn = joinpath(dir, "dynamics_undamped/dynamics.jld2")
 
 expr_base = generate_base_expressions(model, M_analytical=true, C_analytical=true)
 save_expressions(expr_base, path_base, overwrite=true)
