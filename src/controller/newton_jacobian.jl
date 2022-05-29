@@ -108,6 +108,7 @@ function NewtonJacobianConfiguration(model::Model, env::Environment, H::Int)
     iν = SizedVector{nd}(1:nd) # index of the dynamics lagrange multiplier ν1
 
     R = spzeros(H * (nr + nd), H * (nr + nd))
+    # R = zeros(H * (nr + nd), H * (nr + nd))
 
     obj_u1  = [view(R, (t - 1) * nr .+ iu, (t - 1) * nr .+ iu) for t = 1:H]
     obj_q2  = [view(R, (t - 1) * nr .+ iq, (t - 1) * nr .+ iq) for t = 1:H]
@@ -147,6 +148,8 @@ end
 function initialize_jacobian!(jac::NewtonJacobian, obj::Objective, H::Int; update_hessian::Bool=true)
 
     fill!(jac.R, 0.0)
+    # fill!(jac.R[301:480,:], 0.0)
+    # fill!(jac.R[:,301:480], 0.0)
 
     # Objective
     update_hessian && hessian!(jac, obj)
@@ -178,6 +181,7 @@ function update_jacobian!(jac::NewtonJacobian, im_traj::ImplicitTrajectory, obj:
         jac.u1T[i] .+= transpose(im_traj.δu1[t])
 
         # Dual regularization
+        # jac.reg_pr .+= 1.0 * β * im_traj.ip[t].κ[1]
         jac.reg_du .-= β * im_traj.ip[t].κ[1]
     end
 
