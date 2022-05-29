@@ -603,7 +603,6 @@ isfile(path_jac) && rm(path_jac)
 ContactImplicitMPC.JLD2.save(path_jac, "rz_sp", rz_sp, "rθ_sp", rθ_sp)
 instantiate_residual!(sim, path_res, path_jac)
 
-
 ################################################################################
 # Centroidal Quadruped undamped
 ################################################################################

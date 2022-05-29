@@ -42,7 +42,7 @@ function set_robot!(vis::Visualizer, model::CentroidalQuadruped, q::AbstractVect
 	p_foot3 = q[12 .+ (1:3)] + p_shift
 	p_foot4 = q[15 .+ (1:3)] + p_shift
 
-	settransform!(vis["body"], compose(Translation(p_body), LinearMap(mrp_rotation_matrix(q[4:6]))))
+	settransform!(vis["body"], compose(Translation(p_body), LinearMap(euler_rotation_matrix(q[4:6]))))
 	settransform!(vis["foot1"], Translation(p_foot1))
 	settransform!(vis["foot2"], Translation(p_foot2))
 	settransform!(vis["foot3"], Translation(p_foot3))

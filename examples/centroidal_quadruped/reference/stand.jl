@@ -1,5 +1,5 @@
 # ## model
-include("trajopt_model.jl")
+include("trajopt_model_v2.jl")
 include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped/visuals.jl"))
 
 vis = Visualizer()
@@ -16,13 +16,13 @@ env = s.env
 nx = 2 * model.nq
 nc = 4 # model.nc
 nu = model.nu + nc + 4 * nc + nc + 4 * nc + 1
-nθ = 5
+nθ = 53
 
 # ## model
 d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(
-	model, env, [h], y, x, u, w), nx + nθ + nx + model.nu, nx, nu)
+	model, env, [h], y, x, u, w), nx + nθ + nx, nx, nu)
 dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(
-	model, env, [h], y, x, u, w), nx + nθ + nx + model.nu, nx + nθ + nx + model.nu, nu)
+	model, env, [h], y, x, u, w), nx + nθ + nx, nx + nθ + nx, nu)
 
 dyn = [d1, [dt for t = 2:T-1]...]
 
@@ -63,6 +63,11 @@ end
 
 function objt(x, u, w)
 	J = 0.0
+
+    u_prev = x[nx .+ (1:53)] 
+    w = (u - u_prev) ./ h 
+    J += 0.5 * 10.0 * dot(w[1:end-1], w[1:end-1])
+
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
 	J += 0.5 * transpose(u) * Diagonal([ones(model.nu); zeros(nu - model.nu)]) * u
     J += 1000.0 * u[end] # slack
@@ -76,8 +81,8 @@ function objT(x, u, w)
 end
 
 c1 = DTO.Cost(obj1, nx, nu)
-ct = DTO.Cost(objt, nx + nθ + nx + model.nu, nu)
-cT = DTO.Cost(objT, nx + nθ + nx + model.nu, 0)
+ct = DTO.Cost(objt, nx + nθ + nx, nu)
+cT = DTO.Cost(objT, nx + nθ + nx, 0)
 obj = [c1, [ct for t = 2:T-1]..., cT];
 
 # ## constraints
@@ -87,19 +92,19 @@ qu = q1
 # initial condition
 xl1 = [q1; q1]
 xu1 = [q1; q1]
-xlt = [-Inf * ones(nx); -Inf * ones(nθ); -Inf * ones(nx); -Inf * ones(model.nu)]
-xut = [Inf * ones(nx); Inf * ones(nθ); Inf * ones(nx); Inf * ones(model.nu)]
+xlt = [-Inf * ones(nx); -Inf * ones(nθ); -Inf * ones(nx)]
+xut = [Inf * ones(nx); Inf * ones(nθ); Inf * ones(nx)]
 
 # final condition
-xlT = [q1; q1; -Inf * ones(nθ); -Inf * ones(nx); -Inf * ones(model.nu)]
-xuT = [q1; q1; Inf * ones(nθ); Inf * ones(nx); Inf * ones(model.nu)]
+xlT = [q1; q1; -Inf * ones(nθ); -Inf * ones(nx)]
+xuT = [q1; q1; Inf * ones(nθ); Inf * ones(nx)]
 
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
-bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
-bndt = DTO.Bound(nx + nθ + nx + model.nu, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
-bndT = DTO.Bound(nx + nθ + nx + model.nu, 0, state_lower=xlT, state_upper=xuT)
+bnd1 = DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu)
+bndt = DTO.Bound(nx + nθ + nx, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
+bndT = DTO.Bound(nx + nθ + nx, 0, xl=xlT, xu=xuT)
 bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 
 function constraints_1(x, u, w)
@@ -108,6 +113,8 @@ function constraints_1(x, u, w)
      contact_constraints_equality(model, env, h, x, u, w);
      # inequality (28)
      contact_constraints_inequality_1(model, env, h, x, u, w);
+     x[6 .+ (1:12)] - q1[6 .+ (1:12)];
+     x[18 + 6 .+ (1:12)] - q1[6 .+ (1:12)];
     ]
 end
 
@@ -117,6 +124,8 @@ function constraints_t(x, u, w)
      contact_constraints_equality(model, env, h, x, u, w);
      # inequality (32)
      contact_constraints_inequality_t(model, env, h, x, u, w);
+     x[6 .+ (1:12)] - q1[6 .+ (1:12)];
+     x[18 + 6 .+ (1:12)] - q1[6 .+ (1:12)];
     ]
 end
 
@@ -124,23 +133,25 @@ function constraints_T(x, u, w)
     [
      # inequality (8)
      contact_constraints_inequality_T(model, env, h, x, u, w);
+     x[6 .+ (1:12)] - q1[6 .+ (1:12)];
+     x[18 + 6 .+ (1:12)] - q1[6 .+ (1:12)];
     ]
 end
 
-con1 = DTO.Constraint(constraints_1, nx, nu, indices_inequality=collect(16 .+ (1:28)))
-cont = DTO.Constraint(constraints_t, nx + nθ + nx + model.nu, nu, indices_inequality=collect(16 .+ (1:32)))
-conT = DTO.Constraint(constraints_T, nx + nθ + nx + model.nu, nu, indices_inequality=collect(0 .+ (1:8)))
+con1 = DTO.Constraint(constraints_1, nx, nu, idx_ineq=collect(16 .+ (1:28)))
+cont = DTO.Constraint(constraints_t, nx + nθ + nx, nu, idx_ineq=collect(16 .+ (1:32)))
+conT = DTO.Constraint(constraints_T, nx + nθ + nx, nu, idx_ineq=collect(0 .+ (1:8)))
 cons = [con1, [cont for t = 2:T-1]..., conT];
 
 # ## problem
-solver = DTO.Solver(dyn, obj, cons, bnds,
+solver = DTO.solver(dyn, obj, cons, bnds,
     options=DTO.Options(
-        tol=1.0e-2,
-        constr_viol_tol=1.0e-2,
+        tol=1.0e-3,
+        constr_viol_tol=1.0e-3,
         ))
 
 # ## initialize
-x_interpolation = [x1, [[x1; zeros(nθ); zeros(nx); zeros(model.nu)] for t = 2:T]...]
+x_interpolation = [x1, [[x1; zeros(nθ); zeros(nx)] for t = 2:T]...]
 u_guess = [1.0e-4 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(solver, x_interpolation)
 DTO.initialize_controls!(solver, u_guess)
