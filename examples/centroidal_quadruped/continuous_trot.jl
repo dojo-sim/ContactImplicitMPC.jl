@@ -36,7 +36,6 @@ h = ref_traj.h
 
 # ## MPC setup
 N_sample = 5
-<<<<<<< HEAD
 H_mpc = 7
 h_sim = h / N_sample
 H_sim = 300
@@ -50,39 +49,21 @@ v0 = 0.0
 function get_stride(model::CentroidalQuadruped, traj::ContactTraj; v0=0.35*v0)
 	stride = zeros(model.nq)
 	stride[[1,7,10,13,16]] .+= 1.0 * v0 * traj.h * traj.H
-	stride[1] = 1.0 * v0 * traj.h * traj.H
+	stride[1] = v0 * traj.h * traj.H
 	return stride
 end
 get_stride(model, ref_traj)
 obj = TrackingVelocityObjective(model, env, H_mpc,
-    v = [Diagonal(1e1 * [[1,1,1]; 1e+3*[1,1,1]; 1e0fill([1,1,1], 4)...]) for t = 1:H_mpc],
+    v = [Diagonal(1e-2 * [[1,1,1]; 1e+3*[1,1,1]; 1e0fill([1,1,1], 4)...]) for t = 1:H_mpc],
 	# v = [0.1 * relative_state_cost(1e+1*[1,1,1], 1e+3*[1,1,1], 1e0*[1,1,1]) for t = 1:H_mpc],
 	# q = [relative_state_cost(1e-0*[1e-2,1e-2,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
-	q = [relative_state_cost(1e-0*[1e-0,1e-0,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
+	q = [relative_state_cost(1e-0*[1e-4,1e-4,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
 	u = [Diagonal(3e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
 	# v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],
 	v_target = [ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],
 	# v_target = [[v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],
 	)
-=======
-H_mpc = 20
-h_sim = h / N_sample
-H_sim = 4000
-κ_mpc = 1.0e-3
 
-v0 = -0.05
-obj = TrackingVelocityObjective(model, env, H_mpc,
-    v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-	q = [relative_state_cost(1e-0*[0.0,1,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
-	u = [Diagonal(3e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
-	v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
-
-# obj = TrackingVelocityObjective(model, env, H_mpc,
-#     v = h / H_mpc * [Diagonal([[1,1,1]; [1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-# 	q = h / H_mpc * [relative_state_cost([1,1,1], [1,1,1], [1,1,1]) for t = 1:H_mpc],
-# 	u = h / H_mpc * [Diagonal(vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
-# 	v_target = h / H_mpc * [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
->>>>>>> a3413e2c8f13e31a89f3d4e14026e36d0a631bf0
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
