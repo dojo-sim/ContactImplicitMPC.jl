@@ -1,4 +1,4 @@
-function build_robot!(vis::Visualizer, model::PointFootQuadruped;
+function build_robot!(vis::Visualizer, model::PointFootQuadruped120;
 	body_height=0.025,
 	body_length=0.1,
 	body_width=0.1,
@@ -31,10 +31,8 @@ function build_robot!(vis::Visualizer, model::PointFootQuadruped;
 		foot_mat)
 end
 
-function set_robot!(vis::Visualizer, model::PointFootQuadruped, q::AbstractVector;
+function set_robot!(vis::Visualizer, model::PointFootQuadruped120, q::AbstractVector;
 	p_shift=[0.0; 0.0; 0.025])
-
-	R = mrp_rotation_matrix(q[4:6])
 
 	p_body  = q[0  .+ (1:3)] + p_shift
 	p_foot1 = q[6  .+ (1:3)] + p_shift
@@ -42,7 +40,7 @@ function set_robot!(vis::Visualizer, model::PointFootQuadruped, q::AbstractVecto
 	p_foot3 = q[12 .+ (1:3)] + p_shift
 	p_foot4 = q[15 .+ (1:3)] + p_shift
 
-	settransform!(vis["body"], compose(Translation(p_body), LinearMap(mrp_rotation_matrix(q[4:6]))))
+	settransform!(vis["body"], compose(Translation(p_body), LinearMap(euler_rotation_matrix(q[4:6]))))
 	settransform!(vis["foot1"], Translation(p_foot1))
 	settransform!(vis["foot2"], Translation(p_foot2))
 	settransform!(vis["foot3"], Translation(p_foot3))
@@ -50,7 +48,7 @@ function set_robot!(vis::Visualizer, model::PointFootQuadruped, q::AbstractVecto
 
 end
 
-function visualize!(vis, model::PointFootQuadruped, q;
+function visualize!(vis, model::PointFootQuadruped120, q;
 	Δt=0.1,
 	body_height=0.025,
 	body_length=0.17,

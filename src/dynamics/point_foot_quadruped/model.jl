@@ -8,7 +8,7 @@
         f3 - foot 3 position
         f4 - foot 4 position
 """
-mutable struct PointFootQuadruped{T} <: Model{T}
+mutable struct PointFootQuadruped120{T} <: Model{T}
     # dimensions
 	nq::Int # generalized coordinates
     nu::Int # controls
@@ -29,6 +29,8 @@ mutable struct PointFootQuadruped{T} <: Model{T}
 	μ_world::T
 	joint_friction::Vector{T}
 	spring_stiffness_joint::Vector{T}
+	orientation_friction::Vector{T}
+	spring_stiffness_orientation::Vector{T}
 	g::T
 
 	# fast methods
@@ -62,13 +64,13 @@ function mrp_rot_mat(x)
 end
 
 # Kinematics
-function kinematics(model::PointFootQuadruped, q)
+function kinematics(model::PointFootQuadruped120, q)
 	q[6 .+ (1:12)]
 end
 
-lagrangian(model::PointFootQuadruped, q, q̇) = 0.0
+lagrangian(model::PointFootQuadruped120, q, q̇) = 0.0
 
-function M_func(model::PointFootQuadruped, q)
+function M_func(model::PointFootQuadruped120, q)
     cat(
         model.mass_body * Diagonal(ones(3)),     # body position
         model.inertia_body,                      # body orienation
@@ -77,16 +79,7 @@ function M_func(model::PointFootQuadruped, q)
         )
 end
 
-function C_func(model::PointFootQuadruped, q, q̇)
-    # [
-    #     model.mass_body * [0,0,model.g];            # body position
-    #     skew(q̇[4:6]) * model.inertia_body * q̇[4:6]; # body orienation
-    #     model.mass_foot * [0,0,model.g];
-    #     model.mass_foot * [0,0,model.g];
-    #     model.mass_foot * [0,0,model.g];
-    #     model.mass_foot * [0,0,model.g];
-    # ]
-
+function C_func(model::PointFootQuadruped120, q, q̇)
 	offsets = [
 		[+model.foot_x, +model.foot_y, -model.body_height],
 		[+model.foot_x, -model.foot_y, -model.body_height],
@@ -94,18 +87,19 @@ function C_func(model::PointFootQuadruped, q, q̇)
 		[-model.foot_x, -model.foot_y, -model.body_height],
 		]
 
-	spring = model.spring_stiffness_joint
+	joint_spring = model.spring_stiffness_joint
+	orientation_spring = model.spring_stiffness_orientation
 	[
-	    model.mass_body * [0,0,model.g] + spring .* (+sum(offsets) + 4 * q[1:3] - q[7:9] - q[10:12] - q[13:15] - q[16:18]);     # body position
-	    skew(q̇[4:6]) * model.inertia_body * q̇[4:6]; # body orientation
-	    model.mass_foot * [0,0,model.g] + spring .* (-offsets[1] + q[7:9] - q[1:3]);
-	    model.mass_foot * [0,0,model.g] + spring .* (-offsets[2] + q[10:12] - q[1:3]);
-	    model.mass_foot * [0,0,model.g] + spring .* (-offsets[3] + q[13:15] - q[1:3]);
-	    model.mass_foot * [0,0,model.g] + spring .* (-offsets[4] + q[16:18] - q[1:3]);
+	    model.mass_body * [0,0,model.g] + joint_spring .* (+sum(offsets) + 4 * q[1:3] - q[7:9] - q[10:12] - q[13:15] - q[16:18]);     # body position
+	    skew(q̇[4:6]) * model.inertia_body * q̇[4:6] .+ orientation_spring .* q[4:6]; # body orientation
+	    model.mass_foot * [0,0,model.g] + joint_spring .* (-offsets[1] + q[7:9] - q[1:3]);
+	    model.mass_foot * [0,0,model.g] + joint_spring .* (-offsets[2] + q[10:12] - q[1:3]);
+	    model.mass_foot * [0,0,model.g] + joint_spring .* (-offsets[3] + q[13:15] - q[1:3]);
+	    model.mass_foot * [0,0,model.g] + joint_spring .* (-offsets[4] + q[16:18] - q[1:3]);
 	]
 end
 
-function ϕ_func(model::PointFootQuadruped, env::Environment, q)
+function ϕ_func(model::PointFootQuadruped120, env::Environment, q)
 
     position_foot1 = q[6 .+ (1:3)]
     position_foot2 = q[9 .+ (1:3)]
@@ -115,7 +109,7 @@ function ϕ_func(model::PointFootQuadruped, env::Environment, q)
 	return [position_foot1[3]; position_foot2[3]; position_foot3[3]; position_foot4[3]]
 end
 
-function B_func(model::PointFootQuadruped, q)
+function B_func(model::PointFootQuadruped120, q)
     position_body = q[1:3]
     orientation_body = q[3 .+ (1:3)]
 	# R = mrp_rot_mat(orientation_body)
@@ -139,13 +133,13 @@ function B_func(model::PointFootQuadruped, q)
     ])
 end
 
-function A_func(model::PointFootQuadruped, q)
+function A_func(model::PointFootQuadruped120, q)
     @SMatrix [1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
               0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::PointFootQuadruped, env::Environment, q)
+function J_func(model::PointFootQuadruped120, env::Environment, q)
     z3 = zeros(3, 3)
 
     [
@@ -156,7 +150,7 @@ function J_func(model::PointFootQuadruped, env::Environment, q)
     ]
 end
 
-function contact_forces(model::PointFootQuadruped, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
+function contact_forces(model::PointFootQuadruped120, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
 	m = friction_mapping(env)
 
 	SVector{12}([
@@ -167,7 +161,7 @@ function contact_forces(model::PointFootQuadruped, env::Environment{<:World, Lin
 		])
 end
 
-function velocity_stack(model::PointFootQuadruped, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
+function velocity_stack(model::PointFootQuadruped120, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 	SVector{16}([
 		transpose(friction_mapping(env)) * v[1:2];
@@ -177,11 +171,11 @@ function velocity_stack(model::PointFootQuadruped, env::Environment{<:World, Lin
 	])
 end
 
-function friction_coefficients(model::PointFootQuadruped)
+function friction_coefficients(model::PointFootQuadruped120)
 	return [model.μ_world]
 end
 
-function initialize_z!(z, model::PointFootQuadruped, idx::RoboDojo.IndicesZ, q)
+function initialize_z!(z, model::PointFootQuadruped120, idx::RoboDojo.IndicesZ, q)
     z .= 1.0
     z[idx.q] .= q
 end
@@ -203,7 +197,7 @@ function relative_state_cost(qbody, qorientation, qfoot)
 	return Q
 end
 
-function nominal_configuration(model::PointFootQuadruped)
+function nominal_configuration(model::PointFootQuadruped120)
     [
         0.0; 0.0; model.body_height;
         0.0; 0.0; 0.0;
@@ -214,11 +208,11 @@ function nominal_configuration(model::PointFootQuadruped)
     ]
 end
 
-function nominal_state(model::PointFootQuadruped)
+function nominal_state(model::PointFootQuadruped120)
 	[nominal_configuration(model); zeros(model.nq)]
 end
 
-function dynamics(model::PointFootQuadruped, h, q0, q1, u1, w1, Λ1, q2)
+function dynamics(model::PointFootQuadruped120, h, q0, q1, u1, w1, Λ1, q2)
 	# evalutate at midpoint
 	qm1 = 0.5 * (q0 + q1)
     vm1 = (q1 - q0) / h[1]
@@ -233,6 +227,7 @@ function dynamics(model::PointFootQuadruped, h, q0, q1, u1, w1, Λ1, q2)
 	d .+= transpose(A_fast(model, qm2)) * w1        # control inputs
 	d .+= Λ1                                        # contact impulses
 
+	d[4:6] .-= h[1] * model.orientation_friction .* vm2[4:6] # orientation friction
 	d[1:3] .-= h[1] * model.joint_friction .* (vm2[1:3] - vm2[7:9]) # joint friction
 	d[1:3] .-= h[1] * model.joint_friction .* (vm2[1:3] - vm2[10:12]) # joint friction
 	d[1:3] .-= h[1] * model.joint_friction .* (vm2[1:3] - vm2[13:15]) # joint friction
@@ -259,9 +254,17 @@ foot_y = 0.15
 # parameters
 g = 9.81                 # gravity
 μ_world = 0.3
+# V0
 joint_friction = 30 * ones(3)
 spring_stiffness_joint = 0.0 * ones(3)
+orientation_friction = 0.0 * ones(3)
+spring_stiffness_orientation = 0.0 * ones(3)
 
+# V1
+joint_friction = 00.0 * ones(3)
+spring_stiffness_joint = 00.0 * ones(3)
+orientation_friction = 5 * ones(3)
+spring_stiffness_orientation = 0.5 * ones(3)
 # inertial properties
 mass_body = 13.5
 i_xx = 0.0178533
@@ -273,7 +276,7 @@ i_zz = 0.0456542
 inertia_body = Array(Diagonal([i_xx, i_yy, i_zz]))
 mass_foot = 0.2
 
-point_foot_quadruped = PointFootQuadruped(nq, nu, nw, nc,
+point_foot_quadruped = PointFootQuadruped120(nq, nu, nw, nc,
 				body_height,
 				foot_x,
 				foot_y,
@@ -282,7 +285,9 @@ point_foot_quadruped = PointFootQuadruped(nq, nu, nw, nc,
                 mass_foot,
 				μ_world,
 				joint_friction,
-                spring_stiffness_joint,
+				spring_stiffness_joint,
+				orientation_friction,
+                spring_stiffness_orientation,
 				g,
 				BaseMethods(),
 				DynamicsMethods(),

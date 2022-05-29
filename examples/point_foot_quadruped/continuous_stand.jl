@@ -14,9 +14,9 @@ ContactImplicitMPC.open(vis)
 
 @show Threads.nthreads()
 
-# include("discrete_policy.jl")
+include("discrete_policy.jl")
 # include("continuous_policy.jl")
-include("continuous_policy_v2.jl")
+# include("continuous_policy_v2.jl")
 
 # ## Simulation
 s = get_simulation("point_foot_quadruped", "flat_3D_lc", "flat")
@@ -30,9 +30,10 @@ env = s.env
 # p = open_loop_policy([zeros(model.nu) for i=1:H_sim], N_sample=1)
 # d = open_loop_disturbances([zeros(model.nw) for i=1:H_sim], 1)
 # sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d)
+#
 # ## Simulate
-
 # q1_sim = nominal_state(model)[1:nq]
+# q1_sim[4:6] += [0., 0.0, 0.1]
 # v1_sim = nominal_state(model)[nq .+ (1:nq)]
 # RoboDojo.simulate!(sim, q1_sim, v1_sim, verbose=true)
 # anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)

@@ -7,7 +7,7 @@ include("trajopt_model.jl")
 
 # ## horizon
 
-freq = 100
+freq = 10
 h = 1.0 / freq
 T = Int(floor(0.5 * 0.65 / h)) + 1
 Tm = 17 # T / 2
@@ -29,8 +29,8 @@ dt = DTO.Dynamics((y, x, u, w) -> point_foot_quadruped_dynt(model, env, [h], y, 
 dyn = [d1, [dt for t = 2:T-1]...]
 
 # ## initial conditions
-# mode = :left
-mode = :right
+mode = :left
+# mode = :right
 body_height = 0.3
 foot_x = 0.17
 foot_y = 0.15
