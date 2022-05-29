@@ -35,23 +35,23 @@ h = ref_traj.h
 
 # ## MPC setup
 N_sample = 5
-H_mpc = 10
+H_mpc = 20
 h_sim = h / N_sample
-H_sim = 500
-κ_mpc = 1.0e-4
+H_sim = 4000
+κ_mpc = 1.0e-3
 
-v0 = 0.0
-# obj = TrackingVelocityObjective(model, env, H_mpc,
-#     v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-# 	q = [relative_state_cost(1e-0*[1e-2,1e-2,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
-# 	u = [Diagonal(3e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
-# 	v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
-
+v0 = -0.05
 obj = TrackingVelocityObjective(model, env, H_mpc,
-    v = h / H_mpc * [Diagonal([[1,1,1]; [1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-	q = h / H_mpc * [relative_state_cost([1,1,1], [1,1,1], [1,1,1]) for t = 1:H_mpc],
-	u = h / H_mpc * [Diagonal(vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
-	v_target = h / H_mpc * [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
+    v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
+	q = [relative_state_cost(1e-0*[0.0,1,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
+	u = [Diagonal(3e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
+	v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
+
+# obj = TrackingVelocityObjective(model, env, H_mpc,
+#     v = h / H_mpc * [Diagonal([[1,1,1]; [1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
+# 	q = h / H_mpc * [relative_state_cost([1,1,1], [1,1,1], [1,1,1]) for t = 1:H_mpc],
+# 	u = h / H_mpc * [Diagonal(vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
+# 	v_target = h / H_mpc * [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -104,8 +104,6 @@ plot(sim.stats.policy_time, xlabel="timestep", ylabel="mpc time (s)",
 	ylims=[-0.001, 0.1],
 	label="", linetype=:steppost)
 
-sim
-sim.traj
 
 plt = plot()
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][1:1] - sim.traj.q[i][1:1]) / sim.h for i=1:H_sim])...)')
