@@ -3,8 +3,8 @@ include("trajopt_model_v2.jl")
 
 # ## horizon
 h = 0.1
-T = 8 
-Tm = 2 # mid point for a swing / stance change 
+T = 8
+Tm = 2 # mid point for a swing / stance change
 
 # ## centroidal_quadruped
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -46,8 +46,8 @@ q1[13:15] = [-foot_x; foot_y; 0]
 # foot4
 q1[16:18] = [-foot_x; -foot_y; 0]
 
-# qM1 FL and RR swing 
-# qM2 FR and RL swing  
+# qM1 FL and RR swing
+# qM2 FR and RL swing
 qM1 = deepcopy(q1)
 qM2 = deepcopy(q1)
 qM1[6 + 3] += foot_height # front left
@@ -55,15 +55,15 @@ qM1[15 + 3] += foot_height # back right
 qM2[9 + 3] += foot_height # front right
 qM2[12 + 3] += foot_height # back left
 
-# Terminal Q 
+# Terminal Q
 qT = copy(q1)
 
 visualize!(vis, model, [qM2], Δt=h);
 
-# q_ref = [q1, qM1, qT,  
+# q_ref = [q1, qM1, qT,
 #          q1, qM2, qM2, qT]
 
-q_ref = [q1, linear_interpolation(q1, qM1, Tm)..., linear_interpolation(qM1, qT, Tm)..., 
+q_ref = [q1, linear_interpolation(q1, qM1, Tm)..., linear_interpolation(qM1, qT, Tm)...,
          linear_interpolation(q1, qM2, Tm)..., linear_interpolation(qM2, qT, Tm)...]
 x_ref = [[q_ref[t]; q_ref[t+1]] for t = 1:T]
 x1 = x_ref[1]
@@ -136,10 +136,10 @@ uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
 bnds = DTO.Bound{Float64}[]
 push!(bnds, DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu))
-for t = 2:T-1 
-    push!(bnds, DTO.Bound(nx + nθ + nx, nu, 
-        xl=[-Inf * ones(nq); -Inf * ones(nq); -Inf * ones(nθ); -Inf * ones(nx)], 
-        xu=[Inf * ones(nq); Inf * ones(nq); Inf * ones(nθ); Inf * ones(nx)], 
+for t = 2:T-1
+    push!(bnds, DTO.Bound(nx + nθ + nx, nu,
+        xl=[-Inf * ones(nq); -Inf * ones(nq); -Inf * ones(nθ); -Inf * ones(nx)],
+        xu=[Inf * ones(nq); Inf * ones(nq); Inf * ones(nθ); Inf * ones(nx)],
         ul=ul, uu=uu))
 end
 push!(bnds, DTO.Bound(nx + nθ + nx, 0, xl=xlT, xu=xuT))
