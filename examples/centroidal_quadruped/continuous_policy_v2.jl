@@ -93,4 +93,3 @@ function exec_policy(p::CIMPC{T,NQ,NU,NW,NC}, x::Vector{T}, t::T) where {T,NQ,NU
 
 	return p.u
 end
-rot_n_stride!

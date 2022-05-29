@@ -196,7 +196,7 @@ g = 9.81                 # gravity
 
 # inertial properties
 mass_body = 13.5
-inertia_scaling = 100.0
+inertia_scaling = 10.0
 i_xx = 0.0178533 * inertia_scaling
 i_xy = 0.0
 i_xz = 0.0
@@ -204,7 +204,7 @@ i_yz = 0.0
 i_yy = 0.0377999 * inertia_scaling
 i_zz = 0.0456542 * inertia_scaling
 inertia_body = Array(Diagonal([i_xx, i_yy, i_zz]))
-mass_foot = 2.5
+mass_foot = 0.2
 
 centroidal_quadruped = CentroidalQuadruped(nq, nu, nw, nc,
 				μ_joint,

@@ -26,7 +26,7 @@ env = s.env
 
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
-	joinpath(@__DIR__, "reference/inplace_trot_v6.jld2"),
+	joinpath(@__DIR__, "reference/inplace_trot_v7.jld2"),
     load_type = :split_traj_alt));
 
 
@@ -35,10 +35,10 @@ h = ref_traj.h
 
 # ## MPC setup
 N_sample = 5
-H_mpc = 7
+H_mpc = 10
 h_sim = h / N_sample
 H_sim = 500
-κ_mpc = 2.0e-4
+κ_mpc = 1.0e-4
 
 v0 = 0.0
 # obj = TrackingVelocityObjective(model, env, H_mpc,
@@ -113,3 +113,7 @@ plot!(plt, hcat(Vector.([(sim.traj.q[i+1][7:7] - sim.traj.q[i][7:7]) / sim.h for
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][10:10] - sim.traj.q[i][10:10]) / sim.h for i=1:H_sim])...)')
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][13:13] - sim.traj.q[i][13:13]) / sim.h for i=1:H_sim])...)')
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][16:16] - sim.traj.q[i][16:16]) / sim.h for i=1:H_sim])...)')
+
+
+
+
