@@ -11,7 +11,7 @@ using BenchmarkTools
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-ContactImplicitMPC.render(vis)
+ContactImplicitMPC.open(vis)
 
 @show Threads.nthreads()
 
@@ -46,12 +46,11 @@ v0 = 0.0
 # 	q = [relative_state_cost(1e-0*[1e-2,1e-2,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
 # 	u = [Diagonal(3e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
 # 	v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
-
 obj = TrackingVelocityObjective(model, env, H_mpc,
     v = h / H_mpc * [Diagonal([[1,1,1]; [1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-	q = h / H_mpc * [relative_state_cost([1,1,1], [1,1,1], [1,1,1]) for t = 1:H_mpc],
+	q = h / H_mpc * [relative_state_cost([0,0,1], [1,1,1], [0,0,1]) for t = 1:H_mpc],
 	u = h / H_mpc * [Diagonal(vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
-	v_target = h / H_mpc * [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
+	v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,

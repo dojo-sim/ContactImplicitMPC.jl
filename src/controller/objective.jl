@@ -35,7 +35,11 @@ function TrackingVelocityObjective(model, env, H::Int;
 
     v_target = [SizedVector{model.nq}(v) for v in v_target]
     if v_target != [zeros(SizedVector{model.nq}) for t = 1:H]
-        q_target = [zeros(SizedVector{model.nq}) for t = 1:H]
+        q_target = [zeros(SizedVector{model.nq})]
+        for t = 1:H-1
+            qt = q_target[end]# + 0.01^2 * v_target[t]
+            push!(q_target, qt)
+        end
     else
         q_target = [zeros(SizedVector{model.nq}) for t = 1:H]
     end

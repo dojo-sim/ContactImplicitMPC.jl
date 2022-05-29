@@ -259,11 +259,11 @@ function gradient!(res::NewtonResidualConfiguration{T,vq2,vu1,vd,vI,vq0,vq1},
         # velocity
         mul!(res.q2[t], obj.v[t], traj.q[t+2], 1.0, 1.0)
         mul!(res.q2[t], obj.v[t], traj.q[t+1], -1.0, 1.0)
-        mul!(res.q2[t], obj.v[t], obj.v_target[t], 1.0, 1.0)
+        mul!(res.q2[t], obj.v[t], obj.v_target[t], -1.0, 1.0)
 
         t == 1 && continue
         mul!(res.q2[t-1], obj.v[t], traj.q[t+2], -1.0, 1.0)
         mul!(res.q2[t-1], obj.v[t], traj.q[t+1], 1.0, 1.0)
-        mul!(res.q2[t-1], obj.v[t], obj.v_target[t], -1.0, 1.0)
+        mul!(res.q2[t-1], obj.v[t], obj.v_target[t], 1.0, 1.0)
     end
 end
