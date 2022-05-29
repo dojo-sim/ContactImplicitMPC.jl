@@ -156,42 +156,6 @@ function velocity_stack(model::CentroidalQuadruped, env::Environment{<:World, Li
 	])
 end
 
-# dimensions
-nq = 3 + 3 + 3 * 4       # generalized coordinates
-nu = 3 * 4               # controls
-nw = 3                   # parameters
-nc = 4                   # contact points
-
-# parameters
-g = 9.81                 # gravity
-μ_world = 0.3            # coefficient of friction
-μ_joint = 1.0            # coefficient of friction
-
-# inertial properties
-mass_body = 13.5
-# i_xx = 0.0178533
-i_xy = 0.0
-i_xz = 0.0
-i_yz = 0.0
-# i_yy = 0.0377999
-# i_zz = 0.0456542
-i_xx = 0.116
-i_yy = 0.349
-i_zz = 0.399
-inertia_body = Array(Diagonal([i_xx, i_yy, i_zz]))
-mass_foot = 0.2
-
-centroidal_quadruped = CentroidalQuadruped(nq, nu, nw, nc,
-				μ_joint,
-				μ_world,
-				g,
-				mass_body,
-                inertia_body,
-                mass_foot,
-				BaseMethods(), DynamicsMethods(),
-                [10ones(3); 30ones(3); 10ones(12)],
-                )
-
 function friction_coefficients(model::CentroidalQuadruped)
 	return [model.μ_world]
 end
@@ -217,3 +181,49 @@ function relative_state_cost(qbody, qorientation, qfoot)
 	end
 	return Q
 end
+
+
+# dimensions
+nq = 3 + 3 + 3 * 4       # generalized coordinates
+nu = 3 * 4               # controls
+nw = 3                   # parameters
+nc = 4                   # contact points
+
+# parameters
+g = 9.81                 # gravity
+μ_world = 0.3            # coefficient of friction
+μ_joint = 0.0            # coefficient of friction
+
+# inertial properties
+mass_body = 13.5
+inertia_scaling = 10.0
+i_xx = 0.0178533 * inertia_scaling
+i_xy = 0.0
+i_xz = 0.0
+i_yz = 0.0
+i_yy = 0.0377999 * inertia_scaling
+i_zz = 0.0456542 * inertia_scaling
+inertia_body = Array(Diagonal([i_xx, i_yy, i_zz]))
+mass_foot = 0.2
+
+centroidal_quadruped = CentroidalQuadruped(nq, nu, nw, nc,
+				μ_joint,
+				μ_world,
+				g,
+				mass_body,
+                inertia_body,
+                mass_foot,
+				BaseMethods(), DynamicsMethods(),
+                μ_joint * [10ones(3); 30ones(3); 10ones(12)],
+                )
+
+centroidal_quadruped_undamped = CentroidalQuadruped(nq, nu, nw, nc,
+				μ_joint,
+				μ_world,
+				g,
+				mass_body,
+                inertia_body,
+                mass_foot,
+				BaseMethods(), DynamicsMethods(),
+                [0.0*10ones(3); 0.0*30ones(3); 0.0*10ones(12)],
+                )
