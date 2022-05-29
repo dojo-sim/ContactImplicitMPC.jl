@@ -138,8 +138,8 @@ bnds = DTO.Bound{Float64}[]
 push!(bnds, DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu))
 for t = 2:T-1 
     push!(bnds, DTO.Bound(nx + nθ + nx, nu, 
-        xl=[-Inf * ones(nq); q_ref[t+1]; -Inf * ones(nθ); -Inf * ones(nx)], 
-        xu=[Inf * ones(nq); q_ref[t+1]; Inf * ones(nθ); Inf * ones(nx)], 
+        xl=[-Inf * ones(nq); -Inf * ones(nq); -Inf * ones(nθ); -Inf * ones(nx)], 
+        xu=[Inf * ones(nq); Inf * ones(nq); Inf * ones(nθ); Inf * ones(nx)], 
         ul=ul, uu=uu))
 end
 push!(bnds, DTO.Bound(nx + nθ + nx, 0, xl=xlT, xu=xuT))
