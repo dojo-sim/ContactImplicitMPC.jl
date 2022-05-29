@@ -223,8 +223,6 @@ function hessian!(jac::NewtonJacobianConfigurationForce, obj::TrackingVelocityOb
         jac.obj_q2[t] .+= obj.v[t]
         t == 1 && continue
         jac.obj_q2[t-1] .+= obj.v[t]
-        # jac.obj_q1q2[t-1] .-= 0.5*obj.v[t]
-        # jac.obj_q2q1[t-1] .-= 0.5*obj.v[t]
         jac.obj_q1q2[t-1] .-= 1.0*obj.v[t]
         jac.obj_q2q1[t-1] .-= 1.0*obj.v[t]
     end
@@ -240,8 +238,6 @@ function hessian!(jac::NewtonJacobianConfiguration, obj::TrackingVelocityObjecti
         jac.obj_q2[t] .+= obj.v[t]
         t == 1 && continue
         jac.obj_q2[t-1] .+= obj.v[t]
-        # jac.obj_q1q2[t-1] .-= 0.5*obj.v[t]
-        # jac.obj_q2q1[t-1] .-= 0.5*obj.v[t]
         jac.obj_q1q2[t-1] .-= 1.0*obj.v[t]
         jac.obj_q2q1[t-1] .-= 1.0*obj.v[t]
     end
