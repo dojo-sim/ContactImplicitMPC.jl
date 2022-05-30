@@ -104,6 +104,7 @@ include("controller/newton_jacobian.jl")
 include("controller/mpc_utils.jl")
 include("controller/policy.jl")
 include("controller/newton_structure_solver/methods.jl")
+include("controller/gains.jl")
 
 # Visuals
 include("dynamics/visuals.jl")
