@@ -2,9 +2,9 @@
 include("trajopt_model_v2.jl")
 
 # ## horizon
-h = 0.1
-T = 8
-Tm = 2 # mid point for a swing / stance change
+h = 0.05
+T = 16
+Tm = 4 # mid point for a swing / stance change
 
 # ## centroidal_quadruped
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -207,7 +207,7 @@ p = DTO.solver(dyn, obj, cons, bnds,
 
 # ## initialize
 x_interpolation = [x_ref[1], [[x_ref[t]; zeros(nθ); zeros(nx)] for t = 2:T]...]
-u_guess = [1.0e-1 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
+u_guess = [1.0e-3 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(p, x_interpolation)
 DTO.initialize_controls!(p, u_guess)
 
