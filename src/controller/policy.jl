@@ -81,7 +81,7 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 
 	window = zeros(Int, H_mpc + 2)
 
-	K_traj = reference_gains(s.model, traj, obj)
+	K_traj = reference_gains(s, traj, obj)
 
 	CIMPC(zeros(s.model.nu), traj, traj_cache, ref_traj, K_traj, im_traj, im_traj_cache,
 		H_mpc, stride, altitude, ϕ, [κ_mpc], newton, newton_mode, s, copy(ref_traj.q[1]),

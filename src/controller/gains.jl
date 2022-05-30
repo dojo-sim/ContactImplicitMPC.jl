@@ -14,8 +14,10 @@ function tvlqr(A, B, Q, R)
     return K, P
 end
 
-function reference_gains(model::Model, traj::ContactTraj, obj::TrackingVelocityObjective; N::Int=10, κ=2e-4,
-		U_scaling=10, V_scaling=100)
+function reference_gains(s::Simulation, traj::ContactTraj, obj::TrackingVelocityObjective;
+		N::Int=10, κ=2e-4, U_scaling=10, V_scaling=100)
+
+	model = s.model
 	H = traj.H
 	z = [[deepcopy(traj.z) for i = 1:N]...;]
 	θ = [[deepcopy(traj.θ) for i = 1:N]...;]
@@ -39,8 +41,8 @@ function reference_gains(model::Model, traj::ContactTraj, obj::TrackingVelocityO
 	A = [[∂q2∂q1[t] ∂q2∂q2[t]; ∂q3∂q1[t] ∂q3∂q2[t]] for t = 1:N*H]
 	B = [[∂q2∂u[t]; ∂q3∂u[t]] for t = 1:N*H]
 	Q = [
-		[obj.q[1]+V_scaling*obj.v[1] -V_scaling*obj.v[1];
-		 -V_scaling*obj.v[1] obj.q[1]+V_scaling*obj.v[1]
+		[obj.q[1]+V_scaling*obj.v[1]    -V_scaling*obj.v[1];
+		 -V_scaling*obj.v[1]    obj.q[1]+V_scaling*obj.v[1]
 		 ] for i = 1:N*H+1]
 	R = [U_scaling * obj.u[1] for i = 1:N*H]
 

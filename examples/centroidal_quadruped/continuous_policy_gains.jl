@@ -96,8 +96,7 @@ function exec_policy(p::CIMPC{T,NQ,NU,NW,NC}, x::Vector{T}, t::T) where {T,NQ,NU
 	q1 = x[1:NQ]
 	q0 = x[1:NQ] - x[NQ .+ (1:NQ)] .* p.traj.h
 	p.u .+= K1 * ([p.traj.q[1]; p.traj.q[2]] - [q0; q1])
-	@show norm(p.newton.traj.u[1])
-	@show norm(K1 * ([p.traj.q[1]; p.traj.q[2]] - [q0; q1]))
+	println("control_ratio ", norm(p.newton.traj.u[1]) / norm(K1 * ([p.traj.q[1]; p.traj.q[2]] - [q0; q1])))
 	p.u ./= p.traj.h
 
 	return p.u
