@@ -17,15 +17,17 @@ nu = model.nu + nc + 4 * nc + nc + 4 * nc + 1
 nθ = 53
 
 # ## model
-d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(model, env, [h], y, x, u, w), nx + nθ + nx, nx, nu)
-dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(model, env, [h], y, x, u, w), nx + nθ + nx, nx + nθ + nx, nu)
+d1 = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dyn1(
+    model, env, [h], y, x, u, w), nx + nθ + nx, nx, nu)
+dt = DTO.Dynamics((y, x, u, w) -> centroidal_quadruped_dynt(
+    model, env, [h], y, x, u, w), nx + nθ + nx, nx + nθ + nx, nu)
 
 dyn = [d1, [dt for t = 2:T-1]...]
 
 # ## initial conditions
 body_height = 0.3
 foot_x = 0.17
-foot_y = 0.15
+foot_y = 0.17
 foot_height = 0.08
 
 q1 = zeros(model.nq)
@@ -256,5 +258,5 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "inplace_trot_v6.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "inplace_trot_v6.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "inplace_trot_v8.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "inplace_trot_v8.jld2") qm um γm bm ψm ηm μm hm

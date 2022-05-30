@@ -36,12 +36,12 @@ h = ref_traj.h
 
 # ## MPC setup
 N_sample = 5
-H_mpc = 20
+H_mpc = 7
 h_sim = h / N_sample
 H_sim = 1000
 κ_mpc = 1.0e-3
 
-v0 = 0.0
+v0 = 0.00
 function get_stride(model::CentroidalQuadruped, traj::ContactTraj; v0=0.2*v0)
 	stride = zeros(model.nq)
 	stride[[1,7,10,13,16]] .+= 1.0 * v0 * traj.h * traj.H
@@ -80,7 +80,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
 		));
 
 # ## Disturbances
-w = [ref_traj.h * [30; 30; -100.0] for i=1:H_sim/N_sample]
+w = [ref_traj.h * [00; 00; -00.0] for i=1:H_sim/N_sample]
 d = open_loop_disturbances(w, N_sample)
 
 # ## Initial conditions

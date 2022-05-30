@@ -92,6 +92,9 @@ function exec_policy(p::CIMPC{T,NQ,NU,NW,NC}, x::Vector{T}, t::T) where {T,NQ,NU
 	# scale control
 	p.u .= p.newton.traj.u[1]
 
+	# Compute gains
+
+
 	# add gains
 	q1 = x[1:NQ]
 	q0 = x[1:NQ] - x[NQ .+ (1:NQ)] .* p.traj.h
@@ -101,3 +104,6 @@ function exec_policy(p::CIMPC{T,NQ,NU,NW,NC}, x::Vector{T}, t::T) where {T,NQ,NU
 
 	return p.u
 end
+
+
+p
