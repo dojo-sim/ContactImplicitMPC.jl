@@ -25,7 +25,7 @@ dyn = [d1, [dt for t = 2:T-1]...]
 # ## initial conditions
 body_height = 0.3
 foot_x = 0.17
-foot_y = 0.15
+foot_y = 0.17
 foot_height = 0.08
 
 q1 = zeros(model.nq)
@@ -93,6 +93,8 @@ for t = 1:T
             J += 0.5 * 1.0e-3 * dot(v, v)
             J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
+            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
+
             J += 1000.0 * u[end] # slack
             return J
         end
@@ -101,13 +103,14 @@ for t = 1:T
         function objt(x, u, w)
             J = 0.0
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
-            J += 0.5 * 1.0e-3 * dot(v, v)
+            J += 0.5 * 1.0e-1 * dot(v, v)
             u_previous = x[nx .+ (1:53)]
             u_control = u
             w = (u_control - u_previous) ./ h
             J += 0.5 * 1.0e-3 * dot(w, w)
             J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
+            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
             J += 1000.0 * u[end] # slack
             return J
         end
@@ -204,7 +207,7 @@ p = DTO.solver(dyn, obj, cons, bnds,
 
 # ## initialize
 x_interpolation = [x_ref[1], [[x_ref[t]; zeros(nθ); zeros(nx)] for t = 2:T]...]
-u_guess = [1.0e-4 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
+u_guess = [1.0e-1 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
 DTO.initialize_states!(p, x_interpolation)
 DTO.initialize_controls!(p, u_guess)
 
@@ -256,5 +259,5 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "inplace_trot_v6.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "inplace_trot_v6.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "inplace_trot_v9.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "inplace_trot_v9.jld2") qm um γm bm ψm ηm μm hm
