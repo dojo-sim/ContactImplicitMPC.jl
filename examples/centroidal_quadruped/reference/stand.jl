@@ -3,11 +3,11 @@ include("trajopt_model_v2.jl")
 include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped/visuals.jl"))
 
 vis = Visualizer()
-render(vis)
+open(vis)
 
 # ## horizon
-T = 11
-h = 0.01
+T = 30
+h = 0.025
 
 # ## centroidal_quadruped
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -29,7 +29,7 @@ dyn = [d1, [dt for t = 2:T-1]...]
 # ## initial conditions
 body_height = 0.3
 foot_x = 0.17
-foot_y = 0.15
+foot_y = 0.17
 
 function nominal_configuration(model::CentroidalQuadruped)
     [
@@ -66,8 +66,8 @@ end
 function objt(x, u, w)
 	J = 0.0
 
-    u_prev = x[nx .+ (1:53)] 
-    w = (u - u_prev) ./ h 
+    u_prev = x[nx .+ (1:53)]
+    w = (u - u_prev) ./ h
     J += 0.5 * 10.0 * dot(w[1:end-1], w[1:end-1])
 
 	J += 0.5 * transpose(x[1:nx] - x_ref) * Diagonal(ones(nx)) * (x[1:nx] - x_ref)
@@ -148,7 +148,7 @@ conT = DTO.Constraint(constraints_T, nx + nθ + nx, nu, idx_ineq=collect(0 .+ (1
 cons = [con1, [cont for t = 2:T-1]..., conT];
 
 # ## problem
-solver = DTO.solver(dyn, obj, cons, bnds,
+direct_solver = DTO.solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         tol=1.0e-3,
         constr_viol_tol=1.0e-3,
@@ -157,14 +157,14 @@ solver = DTO.solver(dyn, obj, cons, bnds,
 # ## initialize
 x_interpolation = [x1, [[x1; zeros(nθ); zeros(nx)] for t = 2:T]...]
 u_guess = [1.0e-4 * rand(nu) for t = 1:T-1] # may need to run more than once to get good trajectory
-DTO.initialize_states!(solver, x_interpolation)
-DTO.initialize_controls!(solver, u_guess)
+DTO.initialize_states!(direct_solver, x_interpolation)
+DTO.initialize_controls!(direct_solver, u_guess)
 
 # ## solve
-@time DTO.solve!(solver)
+@time DTO.solve!(direct_solver)
 
 # ## solution
-x_sol, u_sol = DTO.get_trajectory(solver)
+x_sol, u_sol = DTO.get_trajectory(direct_solver)
 @show x_sol[1]
 @show x_sol[T]
 maximum([u[nu] for u in u_sol[1:end-1]])
