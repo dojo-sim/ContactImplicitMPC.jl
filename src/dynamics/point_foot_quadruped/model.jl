@@ -38,30 +38,30 @@ mutable struct PointFootQuadruped120{T} <: Model{T}
 	dyn
 end
 
-function L_mult(x)
-    [x[1] -transpose(x[2:4]);
-     x[2:4] x[1] * I(3) + skew(x[2:4])]
-end
-
-# right quaternion multiply as matrix
-function R_mult(x)
-    [x[1] -transpose(x[2:4]); x[2:4] x[1] * I(3) - skew(x[2:4])]
-end
-
-# rotation matrix
-function quat_rot_mat(q)
-    H = [zeros(1, 3); I(3)]
-    transpose(H) * L_mult(q) * transpose(R_mult(q)) * H
-end
-
-function quat_from_mrp(p)
-    """Quaternion (scalar first) from MRP"""
-    return (1.0 / (1.0 + dot(p, p))) * [(1 - dot(p, p)); 2.0 * p]
-end
-
-function mrp_rot_mat(x)
-    quat_rot_mat(quat_from_mrp(x))
-end
+# function L_mult(x)
+#     [x[1] -transpose(x[2:4]);
+#      x[2:4] x[1] * I(3) + skew(x[2:4])]
+# end
+#
+# # right quaternion multiply as matrix
+# function R_mult(x)
+#     [x[1] -transpose(x[2:4]); x[2:4] x[1] * I(3) - skew(x[2:4])]
+# end
+#
+# # rotation matrix
+# function quat_rot_mat(q)
+#     H = [zeros(1, 3); I(3)]
+#     transpose(H) * L_mult(q) * transpose(R_mult(q)) * H
+# end
+#
+# function quat_from_mrp(p)
+#     """Quaternion (scalar first) from MRP"""
+#     return (1.0 / (1.0 + dot(p, p))) * [(1 - dot(p, p)); 2.0 * p]
+# end
+#
+# function mrp_rot_mat(x)
+#     quat_rot_mat(quat_from_mrp(x))
+# end
 
 # Kinematics
 function kinematics(model::PointFootQuadruped120, q)
@@ -180,22 +180,22 @@ function initialize_z!(z, model::PointFootQuadruped120, idx::RoboDojo.IndicesZ, 
     z[idx.q] .= q
 end
 
-function relative_state_cost(qbody, qorientation, qfoot)
-	# cost function on state: 1/2 * qbody'*Qbody*qbody
-		# 1/2 * qbody'*Qbody*qbody
-		# 1/2 * qorientation'*Qorientation*qorientation
-		# 1/2 * (qfoot-qbody)'*Qfoot*(qfoot-qbody)
-	Q = zeros(18,18)
-	Q[1:3,1:3] = Diagonal(qbody)
-	Q[4:6,4:6] = Diagonal(qorientation)
-	for i = 1:4
-		Q[1:3,1:3] += Diagonal(qfoot)
-		Q[3+3i .+ (1:3), 3+3i .+ (1:3)] += Diagonal(qfoot)
-		Q[1:3, 3+3i .+ (1:3)] += -Diagonal(qfoot)
-		Q[3+3i .+ (1:3), 1:3] += -Diagonal(qfoot)
-	end
-	return Q
-end
+# function relative_state_cost(qbody, qorientation, qfoot)
+# 	# cost function on state: 1/2 * qbody'*Qbody*qbody
+# 		# 1/2 * qbody'*Qbody*qbody
+# 		# 1/2 * qorientation'*Qorientation*qorientation
+# 		# 1/2 * (qfoot-qbody)'*Qfoot*(qfoot-qbody)
+# 	Q = zeros(18,18)
+# 	Q[1:3,1:3] = Diagonal(qbody)
+# 	Q[4:6,4:6] = Diagonal(qorientation)
+# 	for i = 1:4
+# 		Q[1:3,1:3] += Diagonal(qfoot)
+# 		Q[3+3i .+ (1:3), 3+3i .+ (1:3)] += Diagonal(qfoot)
+# 		Q[1:3, 3+3i .+ (1:3)] += -Diagonal(qfoot)
+# 		Q[3+3i .+ (1:3), 1:3] += -Diagonal(qfoot)
+# 	end
+# 	return Q
+# end
 
 function nominal_configuration(model::PointFootQuadruped120)
     [
