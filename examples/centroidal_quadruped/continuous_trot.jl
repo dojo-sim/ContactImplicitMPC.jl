@@ -11,7 +11,7 @@ using BenchmarkTools
 
 # ## Visualizer
 vis = ContactImplicitMPC.Visualizer()
-ContactImplicitMPC.open(vis)
+ContactImplicitMPC.render(vis)
 
 @show Threads.nthreads()
 
@@ -23,11 +23,10 @@ s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
 model = s.model
 env = s.env
 
+
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
-	joinpath(module_dir(), "examples/centroidal_quadruped/reference/inplace_trot_v6.jld2"),
-	# joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/inplace_trot_v4.jld2"),
-    # joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/stand_euler_v0.jld2"),
+	joinpath(@__DIR__, "reference/inplace_trot_v7.jld2"),
     load_type = :split_traj_alt));
 
 
@@ -36,34 +35,23 @@ h = ref_traj.h
 
 # ## MPC setup
 N_sample = 5
-H_mpc = 7
+H_mpc = 20
 h_sim = h / N_sample
-H_sim = 300
-κ_mpc = 2.0e-4
+H_sim = 4000
+κ_mpc = 1.0e-3
 
-# q10 = deepcopy(ref_traj.q[1])
-# q10[1] += 0.5
-# set_robot!(vis, model, q10)
-
-v0 = 0.0
-function get_stride(model::CentroidalQuadruped, traj::ContactTraj; v0=0.35*v0)
-	stride = zeros(model.nq)
-	stride[[1,7,10,13,16]] .+= 1.0 * v0 * traj.h * traj.H
-	stride[1] = v0 * traj.h * traj.H
-	return stride
-end
-get_stride(model, ref_traj)
+v0 = -0.05
 obj = TrackingVelocityObjective(model, env, H_mpc,
-    v = [Diagonal(1e-2 * [[1,1,1]; 1e+3*[1,1,1]; 1e0fill([1,1,1], 4)...]) for t = 1:H_mpc],
-	# v = [0.1 * relative_state_cost(1e+1*[1,1,1], 1e+3*[1,1,1], 1e0*[1,1,1]) for t = 1:H_mpc],
-	# q = [relative_state_cost(1e-0*[1e-2,1e-2,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
-	q = [relative_state_cost(1e-0*[1e-4,1e-4,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
+    v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
+	q = [relative_state_cost(1e-0*[0.0,1,1], 3e-1*[1,1,1], 1e-0*[0.2,0.2,1]) for t = 1:H_mpc],
 	u = [Diagonal(3e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
-	# v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],
-	v_target = [ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],
-	# v_target = [[v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],
-	)
+	v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
 
+# obj = TrackingVelocityObjective(model, env, H_mpc,
+#     v = h / H_mpc * [Diagonal([[1,1,1]; [1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
+# 	q = h / H_mpc * [relative_state_cost([1,1,1], [1,1,1], [1,1,1]) for t = 1:H_mpc],
+# 	u = h / H_mpc * [Diagonal(vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
+# 	v_target = h / H_mpc * [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -79,7 +67,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-5,
-        max_time=10.0e-1,
+        max_time=1.0,
 		solver=:ldl_solver,
         threads=false,
         verbose=false,
@@ -97,7 +85,6 @@ q1_sim, v1_sim = initial_conditions(ref_traj);
 
 # ## Simulator
 sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d);
-
 
 # ## Simulate
 q1_sim0 = deepcopy(q1_sim)
@@ -124,3 +111,7 @@ plot!(plt, hcat(Vector.([(sim.traj.q[i+1][7:7] - sim.traj.q[i][7:7]) / sim.h for
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][10:10] - sim.traj.q[i][10:10]) / sim.h for i=1:H_sim])...)')
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][13:13] - sim.traj.q[i][13:13]) / sim.h for i=1:H_sim])...)')
 plot!(plt, hcat(Vector.([(sim.traj.q[i+1][16:16] - sim.traj.q[i][16:16]) / sim.h for i=1:H_sim])...)')
+
+
+
+
