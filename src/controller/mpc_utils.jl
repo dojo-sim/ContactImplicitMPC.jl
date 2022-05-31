@@ -39,6 +39,24 @@ function rotate!(traj::ContactTraj, cache::ContactTraj)
     return nothing
 end
 
+function set_window!(traj::ContactTraj, ref::ContactTraj, window)
+    
+	for (i, t) in enumerate(window)
+		traj.q[i] .= ref.q[t]
+	end
+
+	for (i, t) in enumerate(window[1:end-2])
+		traj.u[i] .= ref.u[t]
+		traj.w[i] .= ref.w[t]
+		traj.γ[i] .= ref.γ[t]
+		traj.b[i] .= ref.b[t]
+		traj.z[i] .= ref.z[t]
+		traj.θ[i] .= ref.θ[t]
+	end
+
+    return nothing
+end
+
 function set_trajectory!(traj::ContactTraj, ref_traj::ContactTraj)
 	H = ref_traj.H
 	for t = 1:H

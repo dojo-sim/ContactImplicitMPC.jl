@@ -33,6 +33,8 @@ mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,L
 	opts::CIMPCOptions{T}
 	buffer_time::T
 	next_time_update::T
+	times_reference::Vector{T}
+	total_time_reference::T 
 end
 
 function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
@@ -83,10 +85,14 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 
 	K_traj = reference_gains(s, traj, obj)
 
+	total_time_reference = traj.h * (traj.H - 1)
+	times_reference = Array(range(0, stop=total_time_reference, length=traj.H))
+
 	CIMPC(zeros(s.model.nu), traj, traj_cache, ref_traj, K_traj, im_traj, im_traj_cache,
 		H_mpc, stride, altitude, ϕ, [κ_mpc], newton, newton_mode, s, copy(ref_traj.q[1]),
 		N_sample, [N_sample], window, mpc_opts,
-		0.0, 0.0)
+		0.0, 0.0,
+		times_reference, total_time_reference)
 end
 
 function policy(p::CIMPC{T,NQ,NU,NW,NC}, traj::Trajectory{T}, t::Int) where {T,NQ,NU,NW,NC}
