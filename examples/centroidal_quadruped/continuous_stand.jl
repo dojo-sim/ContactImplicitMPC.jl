@@ -59,13 +59,14 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-5,
-        max_time=1.0,
+        max_time=1.0e-1,
 		solver=:ldl_solver,
         threads=false,
         verbose=false,
         max_iter = 5),
     mpc_opts = CIMPCOptions(
 		# live_plotting=true
+		gains=true,
 		));
 
 # ## Disturbances
@@ -78,7 +79,6 @@ q1_sim, v1_sim = initial_conditions(ref_traj);
 # ## Simulator
 sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d);
 
-using BenchmarkTools
 # ## Simulate
 q1_sim0 = deepcopy(q1_sim)
 RoboDojo.simulate!(sim, q1_sim0, v1_sim)
