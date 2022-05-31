@@ -67,8 +67,6 @@ visualize!(vis, model, [qM2], Δt=h);
 visualize!(vis, model, [qM3], Δt=h);
 visualize!(vis, model, [qM4], Δt=h);
 
-# q_ref = [q1, qM1, qT,
-#          q1, qM2, qM2, qT]
 
 q_ref = [q1,
         linear_interpolation(q1, q1, 2)...,
@@ -106,7 +104,7 @@ for t = 1:T
             J += 0.5 * 1.0e-3 * dot(v, v)
             J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
-            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
+            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0e2 * ones(20)) * u[model.nu + 4 .+ (1:20)]
 
             J += 1000.0 * u[end] # slack
             return J
@@ -120,10 +118,10 @@ for t = 1:T
             u_previous = x[nx .+ (1:53)]
             u_control = u
             w = (u_control - u_previous) ./ h
-            J += 0.5 * 1.0e-3 * dot(w, w)
+            J += 0.5 * 1.0e-0 * dot(w, w)
             J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
-            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
+            J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0e2 * ones(20)) * u[model.nu + 4 .+ (1:20)] # B ψ
             J += 1000.0 * u[end] # slack
             return J
         end
@@ -213,8 +211,9 @@ end
 tolerance = 1.0e-3
 p = DTO.solver(dyn, obj, cons, bnds,
     options=DTO.Options(
-        max_iter=2000,
+        max_iter=4000,
         tol=tolerance,
+        max_cpu_time=1.0e4,
         constr_viol_tol=tolerance,
         ))
 
@@ -272,5 +271,14 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "inplace_crawl_v0.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "inplace_crawl_v0.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "inplace_crawl_v1.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "inplace_crawl_v1.jld2") qm um γm bm ψm ηm μm hm
+
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["qm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["um"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["γm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["bm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["ψm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["ηm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["μm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["hm"]
