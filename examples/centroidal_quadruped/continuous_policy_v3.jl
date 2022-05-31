@@ -45,7 +45,7 @@ function exec_policy(p::CIMPC{T,NQ,NU,NW,NC}, x::Vector{T}, t::T) where {T,NQ,NU
 		p.buffer_time = 0.0
 		# set_trajectory!(p.traj, p.ref_traj)
 		set_implicit_trajectory!(p.im_traj, p.im_traj_cache)
-		# reset_window!(p.window)
+		reset_window!(p.window)
 	end
 
 	policy_time = @elapsed begin
@@ -70,8 +70,18 @@ function exec_policy(p::CIMPC{T,NQ,NU,NW,NC}, x::Vector{T}, t::T) where {T,NQ,NU
 	(p.buffer_time <= 0.0) && (p.buffer_time = policy_time)
 	p.buffer_time -= p.traj.h
 
-	# scale control
+	# control
 	p.u .= p.newton.traj.u[1]
+
+	# add gains
+	if p.opts.gains
+		K1 = p.K_traj[p.window[1]]
+
+		q1 = x[1:NQ]
+		q0 = x[1:NQ] - x[NQ .+ (1:NQ)] .* p.traj.h
+		p.u .+= K1 * ([p.traj.q[p.window[1]]; p.traj.q[p.window[2]]] - [q0; q1])
+	end
+	
 	p.u ./= p.traj.h
 
 	return p.u

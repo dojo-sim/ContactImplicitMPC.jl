@@ -8,6 +8,7 @@
 	altitude_verbose::Bool = false
     ip_max_time::T = 1e5     # maximum time allowed for an InteriorPoint solve
     live_plotting::Bool=false # Use the live plotting tool to debug
+	gains::Bool=false
 end
 
 mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,LS,NV} <: Policy{T}

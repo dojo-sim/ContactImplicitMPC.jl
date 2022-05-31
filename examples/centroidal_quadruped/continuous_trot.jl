@@ -74,6 +74,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
         max_iter = 5),
     mpc_opts = CIMPCOptions(
 		# live_plotting=true
+		gains=true,
 		));
 
 # ## Disturbances
