@@ -29,16 +29,15 @@ ref_traj = deepcopy(get_trajectory(s.model, s.env,
 	joinpath(@__DIR__, "reference/inplace_trot_v7.jld2"),
     load_type = :split_traj_alt));
 
-
 H = ref_traj.H
 h = ref_traj.h
 
 # ## MPC setup
 N_sample = 5
-H_mpc = 20
+H_mpc = 50
 h_sim = h / N_sample
-H_sim = 3000
-κ_mpc = 1.0e-4
+H_sim = 2000
+κ_mpc = 1.0e-3
 
 v0 = -0.0
 obj = TrackingVelocityObjective(model, env, H_mpc,
@@ -74,7 +73,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
         max_iter = 5),
     mpc_opts = CIMPCOptions(
 		# live_plotting=true
-		gains=true,
+		# gains=true,
 		));
 
 # ## Disturbances
@@ -92,8 +91,8 @@ q1_sim0 = deepcopy(q1_sim)
 RoboDojo.simulate!(sim, q1_sim0, v1_sim)
 
 # ## Visualize
-set_light!(vis)
-set_floor!(vis, grid=true)
+#set_light!(vis)
+set_floor!(vis, grid=false)
 set_background!(vis)
 anim = visualize!(vis, model, sim.traj.q; Δt=h_sim)
 

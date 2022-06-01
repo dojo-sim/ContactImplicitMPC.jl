@@ -15,7 +15,7 @@ function tvlqr(A, B, Q, R)
 end
 
 function reference_gains(s::Simulation, traj::ContactTraj, obj::TrackingVelocityObjective;
-		N::Int=10, κ=2e-4, U_scaling=10, V_scaling=100)
+		N::Int=10, κ=2e-4, U_scaling=100, V_scaling=100)
 
 	model = s.model
 	H = traj.H
