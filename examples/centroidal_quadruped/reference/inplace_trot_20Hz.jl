@@ -2,9 +2,9 @@
 include("trajopt_model_v2.jl")
 
 # ## horizon
-h = 0.1
-T = 8
-Tm = 2 # mid point for a swing / stance change
+h = 0.05
+T = 16
+Tm = 4 # mid point for a swing / stance change
 
 # ## centroidal_quadruped
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -65,6 +65,50 @@ visualize!(vis, model, [qM2], Δt=h);
 
 q_ref = [q1, linear_interpolation(q1, qM1, Tm)..., linear_interpolation(qM1, qT, Tm)...,
          linear_interpolation(q1, qM2, Tm)..., linear_interpolation(qM2, qT, Tm)...]
+
+A = [
+    1.0 2 2^2 2^3;
+    0.0 1.0 (2.0 * 2) (3.0 * 2^2);
+    1.0 (5) (5)^2 (5)^3
+    0.0 1.0 (2.0 * (5)) (3.0 * (5)^2);
+]
+b = [
+    0.0;
+    0.0;
+    foot_height; 
+    0.0;
+]
+
+@assert rank(A) == 4
+θ = A \ b
+
+for τ = 2:2 * (Tm + 1) - 1
+    if τ <= Tm + 1
+        t = τ 
+        @show t
+        @show q_ref[τ][9] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3 
+        @show q_ref[τ][18] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3
+
+        @show q_ref[τ + 2 * Tm][12] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3 
+        @show q_ref[τ + 2 * Tm][15] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3
+        # @show q_ref[τ + 2 * (Tm + 1) - 1][12] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3 
+        # @show q_ref[τ + 2 * (Tm + 1) - 1][15] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3
+    elseif τ >= Tm + 2
+        t = 2 * (Tm + 1) - τ + 1
+        @show t
+        @show q_ref[τ][9] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3 
+        @show q_ref[τ][18] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3
+
+        @show q_ref[τ + 2 * Tm][12] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3 
+        @show q_ref[τ + 2 * Tm][15] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3
+    #     @show q_ref[τ + 2 * (Tm + 1) - 2][12] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3 
+    #     @show q_ref[τ + 2 * (Tm + 1) - 2][15] = θ[1] + θ[2] * t + θ[3] * t^2 + θ[4] * t^3
+    end
+    
+end
+
+
+
 x_ref = [[q_ref[t]; q_ref[t+1]] for t = 1:T]
 x1 = x_ref[1]
 xM = x_ref[Tm]
@@ -83,7 +127,7 @@ for t = 1:T
             v = (x[model.nq .+ (1:model.nq)] - x[1:model.nq]) ./ h
             J += 0.5 * 1.0e-3 * dot(v, v)
             J += 100 * transpose(x[1:nx] - x_ref[t]) * Diagonal(1000.0 * ones(nx)) * (x[1:nx] - x_ref[t])
-            return J
+            return J / T
         end
         push!(obj, DTO.Cost(objT, nx + nθ + nx, 0))
     elseif t == 1
@@ -96,7 +140,7 @@ for t = 1:T
             J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
 
             J += 1000.0 * u[end] # slack
-            return J
+            return J / T
         end
         push!(obj, DTO.Cost(obj1, nx, nu))
     else
@@ -112,7 +156,7 @@ for t = 1:T
             J += 0.5 * transpose(u[1:model.nu]) * Diagonal(1.0e-3 * ones(model.nu)) * u[1:model.nu]
             J += 0.5 * transpose(u[model.nu + 4 .+ (1:20)]) * Diagonal(1.0 * ones(20)) * u[model.nu + 4 .+ (1:20)]
             J += 1000.0 * u[end] # slack
-            return J
+            return J / T
         end
         push!(obj, DTO.Cost(objt, nx + nθ + nx, nu))
     end
@@ -259,5 +303,5 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "inplace_trot_v9.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "inplace_trot_v9.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "inplace_trot_20Hz.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "inplace_trot_20Hz.jld2") qm um γm bm ψm ηm μm hm

@@ -6,8 +6,8 @@ vis = Visualizer()
 open(vis)
 
 # ## horizon
-T = 30
-h = 0.025
+T = 11
+h = 0.1
 
 # ## centroidal_quadruped
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
