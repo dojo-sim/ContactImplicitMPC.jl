@@ -151,10 +151,10 @@ function contact_forces(model::CentroidalQuadrupedWall, env::Environment{<:World
 		m * b1[5:8]; γ1[2];
 		m * b1[9:12]; γ1[3];
 		m * b1[13:16]; γ1[4];
-        -γ1[5]; m * b1[17:20]; 
+        -γ1[5]; m * b1[17:20];
 		- γ1[6]; m * b1[21:24];
         -γ1[7]; m * b1[25:28];
-		-γ1[8]; m * b1[29:32]; 
+		-γ1[8]; m * b1[29:32];
 		])
 end
 
