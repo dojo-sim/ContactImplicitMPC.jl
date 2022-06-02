@@ -9,6 +9,8 @@
     ip_max_time::T = 1e5     # maximum time allowed for an InteriorPoint solve
     live_plotting::Bool=false # Use the live plotting tool to debug
 	gains::Bool=false
+	control_gain_scaling::T=100.0 # control gain scaling (larger -> less agressive behavior)
+	velocity_gain_scaling::T=100.0 # velocity gains scaling (larger -> less agressive behavior)
 end
 
 mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,LS,NV} <: Policy{T}
@@ -35,7 +37,7 @@ mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,L
 	buffer_time::T
 	next_time_update::T
 	times_reference::Vector{T}
-	total_time_reference::T 
+	total_time_reference::T
 end
 
 function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
@@ -84,7 +86,9 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 
 	window = zeros(Int, H_mpc + 2)
 
-	K_traj = reference_gains(s, traj, obj)
+	K_traj = reference_gains(s, traj, obj,
+		U_scaling=mpc_opts.control_gain_scaling,
+		V_scaling=mpc_opts.velocity_gain_scaling)
 
 	total_time_reference = traj.h * (traj.H - 1)
 	times_reference = Array(range(0, stop=total_time_reference, length=traj.H))
