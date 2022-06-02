@@ -3,7 +3,7 @@ include("trajopt_model_v2.jl")
 
 # ## horizon
 h = 0.05
-T = 26
+T = 54
 Tm = 6 # mid point for a swing / stance change
 
 # ## centroidal_quadruped
@@ -77,15 +77,15 @@ end
 plot(Λ)
 
 q_ref = [q1,
-        # sinusoidal_interpolation(q1, q1, 1)...,
+        sinusoidal_interpolation(q1, q1, 2)...,
         sinusoidal_interpolation(q1, qM1, Tm)..., sinusoidal_interpolation(qM1, qT, Tm)[2:end]...,
-        # sinusoidal_interpolation(q1, q1, 1)...,
+        sinusoidal_interpolation(q1, q1, 2)...,
         sinusoidal_interpolation(q1, qM2, Tm)..., sinusoidal_interpolation(qM2, qT, Tm)[2:end]...,
-        # sinusoidal_interpolation(q1, q1, 1)...,
+        sinusoidal_interpolation(q1, q1, 2)...,
         sinusoidal_interpolation(q1, qM3, Tm)..., sinusoidal_interpolation(qM3, qT, Tm)[2:end]...,
-        # sinusoidal_interpolation(q1, q1, 1)...,
+        sinusoidal_interpolation(q1, q1, 2)...,
         sinusoidal_interpolation(q1, qM4, Tm)..., sinusoidal_interpolation(qM4, qT, Tm)[2:end]...,
-        # sinusoidal_interpolation(q1, q1, 1)...,
+        sinusoidal_interpolation(q1, q1, 2)...,
         ]
 x_ref = [[q_ref[t]; q_ref[t+1]] for t = 1:T]
 
@@ -279,14 +279,14 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "inplace_crawl_v1.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "inplace_crawl_v1.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "inplace_crawl_20Hz.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "inplace_crawl_20Hz.jld2") qm um γm bm ψm ηm μm hm
 
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["qm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["um"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["γm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["bm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["ψm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["ηm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["μm"]
-JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_v1.jld2"))["hm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["qm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["um"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["γm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["bm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["ψm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["ηm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["μm"]
+JLD2.jldopen(joinpath(@__DIR__, "inplace_crawl_20Hz.jld2"))["hm"]
