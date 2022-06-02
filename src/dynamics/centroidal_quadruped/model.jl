@@ -204,7 +204,7 @@ i_yz = 0.0
 i_yy = 0.0377999 * inertia_scaling
 i_zz = 0.0456542 * inertia_scaling
 inertia_body = Array(Diagonal([i_xx, i_yy, i_zz]))
-mass_foot = 0.2
+mass_foot = 0.5
 
 centroidal_quadruped = CentroidalQuadruped(nq, nu, nw, nc,
 				μ_joint,
