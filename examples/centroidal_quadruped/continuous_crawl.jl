@@ -51,8 +51,8 @@ function get_stride(model::CentroidalQuadruped, traj::ContactTraj; v0=0.2*v0)
 end
 obj = TrackingVelocityObjective(model, env, H_mpc,
     # v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-	v = [Diagonal([2e+1*[1,1,1]; 1e+3*[1,1,1]; fill(1e0*[1,1,1], 4)...]) for t = 1:H_mpc],
-	q = [Diagonal([1e-0*[1e-1,1e-1,1]; 3e-0*[1,1,1]; fill(1e+0*[0.2,0.2,30], 4)...]) for t = 1:H_mpc],
+	v = [Diagonal([2e+1*[1,1,1]; 1e+3*[1,1,1]; fill(1e0*[1,1,0.3], 4)...]) for t = 1:H_mpc],
+	q = [Diagonal([1e-0*[1e-1,1e-1,1]; 3e-0*[1,1,1]; fill(1e+0*[0.2,0.2,20], 4)...]) for t = 1:H_mpc],
 	u = [Diagonal(1e-4 * vcat(fill([1,1,0.1], 4)...)) for t = 1:H_mpc],
 	v_target = [ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],
 	)
@@ -71,13 +71,16 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					max_time = 1e5),
     n_opts = NewtonOptions(
         r_tol = 3e-6,
-        max_time=1e-1,
+        max_time=5e-2,
 		solver=:ldl_solver,
         threads=false,
         verbose=false,
         max_iter = 5),
     mpc_opts = CIMPCOptions(
 		# live_plotting=true
+		gains=true,
+		control_gain_scaling=100.0,
+		velocity_gain_scaling=100.0,
 		));
 
 # ## Disturbances
