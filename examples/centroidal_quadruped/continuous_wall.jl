@@ -27,9 +27,12 @@ ref_traj = deepcopy(get_trajectory(s.model, s.env,
 	joinpath(@__DIR__, "reference/wall_stand_FL.jld2"),
     load_type = :split_traj_alt))
 
+H = ref_traj.H
+h = ref_traj.h
+
 # ## MPC setup
 N_sample = 5
-H_mpc = 2
+H_mpc = 5
 h_sim = h / N_sample
 H_sim = 250
 κ_mpc = 2.0e-4
