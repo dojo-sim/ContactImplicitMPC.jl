@@ -169,8 +169,6 @@ x_sol, u_sol = DTO.get_trajectory(direct_solver)
 @show x_sol[T]
 maximum([u[nu] for u in u_sol[1:end-1]])
 
-centroidal_quadruped.mass_foot
-
 # ## visualize
 # q_sol = state_to_configuration([x[1:nx] for x in x_sol])
 visualize!(vis, model, x_sol, Δt=h)
@@ -209,5 +207,5 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "stand_10Hz_500f.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "stand_10Hz_500f.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "stand_10Hz.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "stand_10Hz.jld2") qm um γm bm ψm ηm μm hm

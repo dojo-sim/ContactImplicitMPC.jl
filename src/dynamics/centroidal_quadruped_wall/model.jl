@@ -91,10 +91,12 @@ function ϕ_func(model::CentroidalQuadrupedWall, env::Environment, q)
     position_foot3 = q[12 .+ (1:3)]
 	position_foot4 = q[15 .+ (1:3)]
 
-    x_wall = 1.0
+    x_wall = 0.25
+    
 	return [
         position_foot1[3]; position_foot2[3]; position_foot3[3]; position_foot4[3];
-        x_wall - position_foot1[1]; x_wall - position_foot2[1]; x_wall - position_foot3[1]; x_wall - position_foot4[1];
+        x_wall - position_foot1[1]; 
+        # x_wall - position_foot2[1]; x_wall - position_foot3[1]; x_wall - position_foot4[1];
     ]
 end
 
@@ -137,39 +139,39 @@ function J_func(model::CentroidalQuadrupedWall, env::Environment, q)
         z3   z3   z3   z3 I(3)   z3;
         z3   z3   z3   z3   z3 I(3);
         z3   z3 I(3)   z3   z3   z3;
-        z3   z3   z3 I(3)   z3   z3;
-        z3   z3   z3   z3 I(3)   z3;
-        z3   z3   z3   z3   z3 I(3);
+        # z3   z3   z3 I(3)   z3   z3;
+        # z3   z3   z3   z3 I(3)   z3;
+        # z3   z3   z3   z3   z3 I(3);
     ]
 end
 
 function contact_forces(model::CentroidalQuadrupedWall, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
 	m = friction_mapping(env)
 
-	SVector{24}([
+	[
 		m * b1[1:4]; γ1[1];
 		m * b1[5:8]; γ1[2];
 		m * b1[9:12]; γ1[3];
 		m * b1[13:16]; γ1[4];
-        -γ1[5]; m * b1[17:20];
-		- γ1[6]; m * b1[21:24];
-        -γ1[7]; m * b1[25:28];
-		-γ1[8]; m * b1[29:32];
-		])
+        -γ1[5]; m * b1[17:20]; 
+		# -γ1[6]; m * b1[21:24];
+        # -γ1[7]; m * b1[25:28];
+		# -γ1[8]; m * b1[29:32]; 
+    ]
 end
 
 function velocity_stack(model::CentroidalQuadrupedWall, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	v = J_func(model, env, q2) * (q2 - q1) / h[1]
-	SVector{32}([
+	[
 		transpose(friction_mapping(env)) * v[1:2];
 		transpose(friction_mapping(env)) * v[4:5];
 		transpose(friction_mapping(env)) * v[7:8];
 		transpose(friction_mapping(env)) * v[10:11];
         transpose(friction_mapping(env)) * v[2:3];
-		transpose(friction_mapping(env)) * v[5:6];
-		transpose(friction_mapping(env)) * v[8:9];
-		transpose(friction_mapping(env)) * v[11:12];
-	])
+		# transpose(friction_mapping(env)) * v[5:6];
+		# transpose(friction_mapping(env)) * v[8:9];
+		# transpose(friction_mapping(env)) * v[11:12];
+	]
 end
 
 function friction_coefficients(model::CentroidalQuadrupedWall)
@@ -203,7 +205,7 @@ end
 nq = 3 + 3 + 3 * 4       # generalized coordinates
 nu = 3 * 4               # controls
 nw = 3                   # parameters
-nc = 2 * 4                   # contact points
+nc = 5               # contact points
 
 # parameters
 g = 9.81                 # gravity
@@ -232,14 +234,3 @@ centroidal_quadruped_wall = CentroidalQuadrupedWall(nq, nu, nw, nc,
 				BaseMethods(), DynamicsMethods(),
                 μ_joint * [10ones(3); 30ones(3); 10ones(12)],
                 )
-
-# centroidal_quadruped_undamped = CentroidalQuadrupedWall(nq, nu, nw, nc,
-# 				μ_joint,
-# 				μ_world,
-# 				g,
-# 				mass_body,
-#                 inertia_body,
-#                 mass_foot,
-# 				BaseMethods(), DynamicsMethods(),
-#                 [0.0*10ones(3); 0.0*30ones(3); 0.0*10ones(12)],
-#                 )

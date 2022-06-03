@@ -45,7 +45,7 @@ function get_simulation(model::String, env::String, sim_name::String;
 	# signed-distance function 
 	@variables q[1:sim.model.nq] 
 	ϕ = ϕ_func(sim.model, sim.env, q) 
-	sim.ϕ = eval(Symbolics.build_function(ϕ, q)[2])
+	sim.ϕ = eval(Symbolics.build_function(ϕ, q, checkbounds=true)[2])
 
 	return sim
 end
