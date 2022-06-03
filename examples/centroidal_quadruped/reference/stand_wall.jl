@@ -64,6 +64,7 @@ qT = final_configuration(model)
 q_ref = nominal_configuration(model)
 
 visualize!(vis, model, [qT], Δt=h)
+visualize!(vis, model, qref, Δt=h)
 
 x1 = [q1; q1]
 xM = [qM; qM]
@@ -74,18 +75,18 @@ q1[7]
 rad = qT[7] - q1[7]
 θ_rad = range(1.0 * π, stop = 0.5 * π, length=T)
 foot_arc_x = rad * cos.(θ_rad) .+ q1[7] .+ rad
-foot_arc_z = rad * sin.(θ_rad) .* body_height ./ rad# .+ q1[9] 
+foot_arc_z = rad * sin.(θ_rad) .* body_height ./ rad# .+ q1[9]
 
 plot(foot_arc_x, foot_arc_z, aspect_ratio=:equal)
 
 # ## objective
-obj = DTO.Cost{Float64}[] 
-for t = 1:T 
-    if t == 1 
-        push!(obj, DTO.Cost((x, u, w) -> begin 
+obj = DTO.Cost{Float64}[]
+for t = 1:T
+    if t == 1
+        push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
             J += 0.5 * transpose(x[1:6] - x_ref[1:6]) * Diagonal(1000.0 * ones(6)) * (x[1:6] - x_ref[1:6])
-            
+
             J += 0.5 * 10000.0 * (x[7] - foot_arc_x[t])^2
             J += 0.5 * 10000.0 * (x[8] - foot_y)^2
             J += 0.5 * 10000.0 * (x[9] - foot_arc_z[t])^2
@@ -93,15 +94,15 @@ for t = 1:T
             J += 0.5 * transpose(u) * Diagonal([1.0 * ones(model.nu); zeros(nu - model.nu)]) * u
             J += 10000.0 * u[end] # slack
             J += 0.5 * transpose(u[model.nu + 5 .+ (1:25)]) * Diagonal(1.0e-3 * ones(25)) * u[model.nu + 5 .+ (1:25)]
-        
+
             return J
-        end, 
+        end,
         nx, nu))
     elseif t == T
-        push!(obj, DTO.Cost((x, u, w) -> begin 
+        push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
             J += 0.5 * transpose(x[1:6] - xT[1:6]) * Diagonal(1000.0 * ones(6)) * (x[1:6] - xT[1:6])
-            
+
             J += 0.5 * 10000.0 * (x[7] - foot_arc_x[t])^2
             J += 0.5 * 10000.0 * (x[8] - foot_y)^2
             J += 0.5 * 10000.0 * (x[9] - foot_arc_z[t])^2
@@ -110,15 +111,15 @@ for t = 1:T
             return J
         end, nx + nθ, 0))
     else
-        push!(obj, DTO.Cost((x, u, w) -> begin 
+        push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
 
             u_prev = x[nx .+ (1:63)]
             w = (u - u_prev) ./ h
             J += 0.5 * 1.0 * dot(w[1:end-1], w[1:end-1])
-        
+
             J += 0.5 * transpose(x[1:6] - x_ref[1:6]) * Diagonal(1000.0 * ones(6)) * (x[1:6] - x_ref[1:6])
-            
+
             J += 0.5 * 10000.0 * (x[7] - foot_arc_x[t])^2
             J += 0.5 * 10000.0 * (x[8] - foot_y)^2
 
@@ -127,7 +128,7 @@ for t = 1:T
             J += 0.5 * transpose(u) * Diagonal([1.0 * ones(model.nu); zeros(nu - model.nu)]) * u
             J += 10000.0 * u[end] # slack
             J += 0.5 * transpose(u[model.nu + 5 .+ (1:25)]) * Diagonal(1.0e-3 * ones(25)) * u[model.nu + 5 .+ (1:25)]
-        
+
             return J
         end, nx + nθ, nu))
     end
