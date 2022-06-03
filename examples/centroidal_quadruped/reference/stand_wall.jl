@@ -272,8 +272,8 @@ x_sol[end][36 + model.nu .+ (1:4)]
 # q_sol = state_to_configuration([x[1:nx] for x in x_sol])
 visualize!(vis, model, [x_sol[1][1:18], [x[18 .+ (1:18)] for x in x_sol]...], Δt=h)
 
-N_first = 20
-N_last = 100
+N_first = 10
+N_last = 20
 q_opt = [[x_sol[1][model.nq .+ (1:model.nq)] for t = 1:N_first]..., x_sol[1][1:model.nq], [x[model.nq .+ (1:model.nq)] for x in x_sol]..., [x_sol[end][model.nq .+ (1:model.nq)] for t = 1:N_last]...]
 v_opt = [[(x_sol[1][model.nq .+ (1:model.nq)] - x_sol[1][0 .+ (1:model.nq)]) ./ h for t = 1:N_first]..., [(x[model.nq .+ (1:model.nq)] - x[0 .+ (1:model.nq)]) ./ h for x in x_sol]..., [(x_sol[end][model.nq .+ (1:model.nq)] - x_sol[end][0 .+ (1:model.nq)]) ./ h for t = 1:N_last]...]
 u_opt = [[u_sol[1][1:model.nu] for t = 1:N_first]..., [u[1:model.nu] for u in u_sol]..., [u_sol[end][1:model.nu] for t = 1:N_last]...]
@@ -301,8 +301,8 @@ plot(timesteps, hcat(ψm...)', labels="")
 plot(timesteps, hcat(ηm...)', labels="")
 
 using JLD2
-@save joinpath(@__DIR__, "wall_stand_FL.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "wall_stand_FL.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "wall_stand_FL_short.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "wall_stand_FL_short.jld2") qm um γm bm ψm ηm μm hm
 
 
 
