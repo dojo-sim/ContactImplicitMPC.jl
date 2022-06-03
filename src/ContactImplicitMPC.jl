@@ -72,6 +72,7 @@ include("dynamics/flamingo/model.jl")
 include("dynamics/pushbot/model.jl")
 include("dynamics/walledcartpole/model.jl")
 include("dynamics/centroidal_quadruped/model.jl")
+include("dynamics/centroidal_quadruped_box/model.jl")
 include("dynamics/point_foot_quadruped/model.jl")
 
 # Simulator
@@ -120,6 +121,7 @@ include("dynamics/flamingo/visuals.jl")
 include("dynamics/pushbot/visuals.jl")
 include("dynamics/walledcartpole/visuals.jl")
 include("dynamics/centroidal_quadruped/visuals.jl")
+include("dynamics/centroidal_quadruped_box/visuals.jl")
 include("dynamics/point_foot_quadruped/visuals.jl")
 
 export
@@ -267,6 +269,7 @@ export
     pushbot,
     walledcartpole,
     centroidal_quadruped,
+    centroidal_quadruped_box,
     flat_3D_lc,
     flat_3D_nc,
     quadratic_bowl_3D_lc,
