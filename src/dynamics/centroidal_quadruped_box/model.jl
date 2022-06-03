@@ -8,7 +8,7 @@
         f3 - foot 3 position
         f4 - foot 4 position
 """
-mutable struct CentroidalQuadruped{T} <: Model{T}
+mutable struct CentroidalQuadrupedBox{T} <: Model{T}
     # dimensions
 	nq::Int # generalized coordinates
     nu::Int # controls
@@ -58,13 +58,13 @@ function mrp_rot_mat(x)
 end
 
 # Kinematics
-function kinematics(model::CentroidalQuadruped, q)
+function kinematics(model::CentroidalQuadrupedBox, q)
 	q[6 .+ (1:12)]
 end
 
-lagrangian(model::CentroidalQuadruped, q, q̇) = 0.0
+lagrangian(model::CentroidalQuadrupedBox, q, q̇) = 0.0
 
-function M_func(model::CentroidalQuadruped, q)
+function M_func(model::CentroidalQuadrupedBox, q)
     cat(
         model.mass_body * Diagonal(ones(3)),     # body position
         model.inertia_body,                      # body orienation
@@ -73,7 +73,7 @@ function M_func(model::CentroidalQuadruped, q)
         )
 end
 
-function C_func(model::CentroidalQuadruped, q, q̇)
+function C_func(model::CentroidalQuadrupedBox, q, q̇)
     [
         model.mass_body * [0,0,model.g];            # body position
         skew(q̇[4:6]) * model.inertia_body * q̇[4:6]; # body orienation
@@ -84,7 +84,7 @@ function C_func(model::CentroidalQuadruped, q, q̇)
     ]
 end
 
-function ϕ_func(model::CentroidalQuadruped, env::Environment, q)
+function ϕ_func(model::CentroidalQuadrupedBox, env::Environment, q)
 
     position_foot1 = q[6 .+ (1:3)]
     position_foot2 = q[9 .+ (1:3)]
@@ -106,7 +106,7 @@ function elevation(x)
 	return e
 end
 
-function B_func(model::CentroidalQuadruped, q)
+function B_func(model::CentroidalQuadrupedBox, q)
     position_body = q[1:3]
     orientation_body = q[3 .+ (1:3)]
 	# R = mrp_rot_mat(orientation_body)
@@ -130,13 +130,13 @@ function B_func(model::CentroidalQuadruped, q)
     ])
 end
 
-function A_func(model::CentroidalQuadruped, q)
+function A_func(model::CentroidalQuadrupedBox, q)
     @SMatrix [1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
               0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 end
 
-function J_func(model::CentroidalQuadruped, env::Environment, q)
+function J_func(model::CentroidalQuadrupedBox, env::Environment, q)
     z3 = zeros(3, 3)
 
     [
@@ -147,7 +147,7 @@ function J_func(model::CentroidalQuadruped, env::Environment, q)
     ]
 end
 
-function contact_forces(model::CentroidalQuadruped, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
+function contact_forces(model::CentroidalQuadrupedBox, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
 	m = friction_mapping(env)
 
 	SVector{12}([
@@ -158,7 +158,7 @@ function contact_forces(model::CentroidalQuadruped, env::Environment{<:World, Li
 		])
 end
 
-function velocity_stack(model::CentroidalQuadruped, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
+function velocity_stack(model::CentroidalQuadrupedBox, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
 	v = J_func(model, env, q2) * (q2 - q1) / h[1]
 	SVector{16}([
 		transpose(friction_mapping(env)) * v[1:2];
@@ -168,11 +168,11 @@ function velocity_stack(model::CentroidalQuadruped, env::Environment{<:World, Li
 	])
 end
 
-function friction_coefficients(model::CentroidalQuadruped)
+function friction_coefficients(model::CentroidalQuadrupedBox)
 	return [model.μ_world]
 end
 
-function initialize_z!(z, model::CentroidalQuadruped, idx::RoboDojo.IndicesZ, q)
+function initialize_z!(z, model::CentroidalQuadrupedBox, idx::RoboDojo.IndicesZ, q)
     z .= 1.0
     z[idx.q] .= q
 end
@@ -218,7 +218,7 @@ i_zz = 0.0456542 * inertia_scaling
 inertia_body = Array(Diagonal([i_xx, i_yy, i_zz]))
 mass_foot = 0.5
 
-centroidal_quadruped_box = CentroidalQuadruped(nq, nu, nw, nc,
+centroidal_quadruped_box = CentroidalQuadrupedBox(nq, nu, nw, nc,
 				μ_joint,
 				μ_world,
 				g,
