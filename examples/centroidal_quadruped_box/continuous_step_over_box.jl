@@ -28,7 +28,7 @@ env = s.env
 
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
-	joinpath(@__DIR__, "reference/step_over_box.jld2"),
+	joinpath(@__DIR__, "reference/step_over_box_v2.jld2"),
     load_type = :split_traj_alt));
 
 
@@ -50,12 +50,18 @@ function get_stride(model::CentroidalQuadruped, traj::ContactTraj; v0=0.2*v0)
 	return stride
 end
 obj = TrackingVelocityObjective(model, env, H_mpc,
-    # v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
-	v = [Diagonal([2e+0*[1,1,1]; 1e+3*[1,1,1]; fill(1e0*[1,1,0.3], 4)...]) for t = 1:H_mpc],
-	q = [Diagonal([1e-0*[1e-1,1e-1,1]; 3e-0*[1,1,1]; fill(1e+0*[10,10,20], 4)...]) for t = 1:H_mpc],
-	u = [Diagonal(1e-4 * vcat(fill([1,1,0.1], 4)...)) for t = 1:H_mpc],
-	v_target = [ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],
-	)
+    v = h/H_mpc * [Diagonal([[1,1,15]; [6000,6000,800]; 2e-3 * fill([0.7,0.7,1], 4)...]) for t = 1:H_mpc],
+    q = h/H_mpc * [relative_state_cost([5,5,50], [600,600,5], [15,15,30]) for t = 1:H_mpc],
+    # q = h/H_mpc * [Diagonal([[100,100,1000]; [1200,1200,600]; fill([5,5,15], 4)...]) for t = 1:H_mpc],
+    u = h/H_mpc * [Diagonal(9e-3 * vcat(fill([1,1,1], 4)...)) for t = 1:H_mpc],
+    v_target = [1/ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],)
+# obj = TrackingVelocityObjective(model, env, H_mpc,
+#     # v = [Diagonal(1e-3 * [[1,1,1]; 1e+3*[1,1,1]; fill([1,1,1], 4)...]) for t = 1:H_mpc],
+# 	v = [Diagonal([2e+0*[1,1,1]; 1e+3*[1,1,1]; fill(1e0*[1,1,0.3], 4)...]) for t = 1:H_mpc],
+# 	q = [Diagonal([1e-0*[1e-1,1e-1,1]; 3e-0*[1,1,1]; fill(1e+0*[10,10,20], 4)...]) for t = 1:H_mpc],
+# 	u = [Diagonal(2e-4 * vcat(fill([1,1,0.1], 4)...)) for t = 1:H_mpc],
+# 	v_target = [ref_traj.h * [v0;0;0; 0;0;0; v0;0;0; v0;0;0; v0;0;0; v0;0;0] for t = 1:H_mpc],
+# 	)
 
 p = ci_mpc_policy(ref_traj, s, obj,
     H_mpc = H_mpc,
@@ -70,7 +76,7 @@ p = ci_mpc_policy(ref_traj, s, obj,
 					solver = :empty_solver,
 					max_time = 1e5),
     n_opts = NewtonOptions(
-        r_tol = 3e-6,
+        r_tol = 3e-5,
         max_time=5e-2,
 		solver=:ldl_solver,
         threads=false,
@@ -86,16 +92,16 @@ p = ci_mpc_policy(ref_traj, s, obj,
 # ## Disturbances
 w = [ref_traj.h * [00; 00; -00.0] for i=1:H_sim/N_sample]
 d = open_loop_disturbances(w, N_sample)
-model
+
 # ## Initial conditions
-q1_sim, v1_sim = initial_conditions(ref_traj);
+q1_sim, v1_sim = initial_conditions(ref_traj)
 
 # ## Simulator
-sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d);
+sim = simulator(s, H_sim, h=h_sim, policy=p, dist=d)
 
 # ## Simulate
 q1_sim0 = deepcopy(q1_sim)
-RoboDojo.simulate!(sim, q1_sim0, v1_sim)
+RoboDojo.simulate!(sim, q1_sim0, v1_sim, verbose=true)
 
 # ## Visualize
 set_light!(vis)
