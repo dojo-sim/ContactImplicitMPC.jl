@@ -22,6 +22,8 @@ env = s.env
 q1_sim = zeros(model.nq)
 v1_sim = zeros(model.nq) 
 
+v1_sim[1] = 10.0
+v1_sim[1] = 10.0
 v1_sim[7] = 10.0
 v1_sim[10] = 10.0
 v1_sim[13] = 10.0
@@ -32,6 +34,7 @@ q1_sim[9] = 1.0
 q1_sim[12] = 1.0
 q1_sim[15] = 1.0
 q1_sim[18] = 1.0
+
 # ## Simulator
 sim = simulator(s, 100, h=0.1)
 
@@ -45,5 +48,10 @@ set_floor!(vis, grid=true)
 set_background!(vis)
 anim = visualize!(vis, model, sim.traj.q; Δt=0.1)
 
-plot(hcat(sim.traj.q...)')
+sim.ip.z
+sim.ip.θ
 
+
+
+sim.traj.q[1][16]
+ϕ_func(model, env, sim.traj.q[end])

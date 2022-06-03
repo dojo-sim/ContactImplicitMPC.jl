@@ -60,11 +60,11 @@ function generate_contact_expressions(model::Model, env::Environment;
 	d = Symbolics.simplify.(d)
 
 	# Functions
-	expr[:J]    = build_function(J, q2)[1]
-	expr[:ϕ]    = build_function(ϕ, q2)[1]
-	expr[:cf]   = build_function(cf, γ1, b1, q2, k)[1]
-	expr[:vs]   = build_function(vs, q1, q2, k, h)[1]
-	expr[:d]    = build_function(d, h, q0, q1, u1, w1, λ1, q2)[1]
+	expr[:J]    = build_function(J, q2, checkbounds=true)[1]
+	expr[:ϕ]    = build_function(ϕ, q2, checkbounds=true)[1]
+	expr[:cf]   = build_function(cf, γ1, b1, q2, k, checkbounds=true)[1]
+	expr[:vs]   = build_function(vs, q1, q2, k, h, checkbounds=true)[1]
+	expr[:d]    = build_function(d, h, q0, q1, u1, w1, λ1, q2, checkbounds=true)[1]
 
 	if jacobians
 		dJ = Symbolics.jacobian(J'*λ1, q2, simplify = true) # dq2 = ∂q2  + dJ(λ1, q2)
@@ -89,20 +89,20 @@ function generate_contact_expressions(model::Model, env::Environment;
 		rcθ = Symbolics.jacobian(rc, θ, simplify = true)
 
 		# Functions
-		expr[:dJ]   = build_function(dJ, λ1, q2)[1]
-		expr[:dλ1]  = build_function(dλ1, q2)[1]
+		expr[:dJ]   = build_function(dJ, λ1, q2, checkbounds=true)[1]
+		expr[:dλ1]  = build_function(dλ1, q2, checkbounds=true)[1]
 
-		expr[:dcf]  = build_function(dcf, γ1, b1, q2, k)[1]
+		expr[:dcf]  = build_function(dcf, γ1, b1, q2, k, checkbounds=true)[1]
 
-		expr[:vsq2]  = build_function(vsq2, q1, q2, k, h)[1]
-		expr[:vsq1h] = build_function(vsq1h, q1, q2, k, h)[1]
+		expr[:vsq2]  = build_function(vsq2, q1, q2, k, h, checkbounds=true)[1]
+		expr[:vsq1h] = build_function(vsq1h, q1, q2, k, h, checkbounds=true)[1]
 
-		expr[:mdvs] = build_function(mdvs, vt, ψ1, η1)[1]
-		expr[:mdψη] = build_function(mdψη, vt, ψ1, η1)[1]
+		expr[:mdvs] = build_function(mdvs, vt, ψ1, η1, checkbounds=true)[1]
+		expr[:mdψη] = build_function(mdψη, vt, ψ1, η1, checkbounds=true)[1]
 
-		expr[:rc]  = build_function(rc, z, θ, κ)[2]
-		expr[:rcz] = build_function(rcz, z, θ)[2]
-		expr[:rcθ] = build_function(rcθ, z, θ)[2]
+		expr[:rc]  = build_function(rc, z, θ, κ, checkbounds=true)[2]
+		expr[:rcz] = build_function(rcz, z, θ, checkbounds=true)[2]
+		expr[:rcθ] = build_function(rcθ, z, θ, checkbounds=true)[2]
 	end
 	return expr
 end
@@ -133,7 +133,7 @@ function generate_residual_expressions(model::Model, env::Environment;
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
-	expr[:r]  = build_function(r, z, θ, κ)[2]
+	expr[:r]  = build_function(r, z, θ, κ, checkbounds=true)[2]
 
 	if jacobians == :full
 		# contact expressions
@@ -152,8 +152,8 @@ function generate_residual_expressions(model::Model, env::Environment;
 		rz_sp = similar(rz, T)
 		rθ_sp = similar(rθ, T)
 
-		expr[:rz] = build_function(rz, z, θ)[2]
-		expr[:rθ] = build_function(rθ, z, θ)[2]
+		expr[:rz] = build_function(rz, z, θ, checkbounds=true)[2]
+		expr[:rθ] = build_function(rθ, z, θ, checkbounds=true)[2]
 	else
 		expr_contact = generate_contact_expressions(model, env,
 			T = T, jacobians = true, nv = nv)

@@ -73,6 +73,8 @@ include("dynamics/pushbot/model.jl")
 include("dynamics/walledcartpole/model.jl")
 include("dynamics/centroidal_quadruped/model.jl")
 include("dynamics/point_foot_quadruped/model.jl")
+include("dynamics/centroidal_quadruped_wall/model.jl")
+
 
 # Simulator
 include("simulator/policy.jl")
@@ -121,6 +123,7 @@ include("dynamics/pushbot/visuals.jl")
 include("dynamics/walledcartpole/visuals.jl")
 include("dynamics/centroidal_quadruped/visuals.jl")
 include("dynamics/point_foot_quadruped/visuals.jl")
+include("dynamics/centroidal_quadruped_wall/visuals.jl")
 
 export
     initial_conditions,
@@ -267,6 +270,7 @@ export
     pushbot,
     walledcartpole,
     centroidal_quadruped,
+    centroidal_quadruped_wall,
     flat_3D_lc,
     flat_3D_nc,
     quadratic_bowl_3D_lc,

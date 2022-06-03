@@ -66,12 +66,12 @@ function generate_base_expressions(model::Model;
 
 	# Build function
 	expr = Dict{Symbol, Expr}()
-	expr[:L]    = build_function([L], q, q̇)[1] # need to transpose to get a line vector
-	expr[:M]    = build_function(M, q)[1]
-	expr[:B]    = build_function(B, q)[1]
-	expr[:A]    = build_function(A, q)[1]
-	expr[:C]    = build_function(C, q, q̇)[1]
-	expr[:k]    = build_function(k, q)[1]
+	expr[:L]    = build_function([L], q, q̇, checkbounds=true)[1] # need to transpose to get a line vector
+	expr[:M]    = build_function(M, q, checkbounds=true)[1]
+	expr[:B]    = build_function(B, q, checkbounds=true)[1]
+	expr[:A]    = build_function(A, q, checkbounds=true)[1]
+	expr[:C]    = build_function(C, q, q̇, checkbounds=true)[1]
+	expr[:k]    = build_function(k, q, checkbounds=true)[1]
 
 	return expr
 end
@@ -131,16 +131,16 @@ function generate_dynamics_expressions(model::Model; derivs = false, nv = model.
 	d = Symbolics.simplify.(d)
 
 	# Functions
-	expr[:d] = build_function(d, h, q0, q1, u1, w1, Λ1, q2)[1]
+	expr[:d] = build_function(d, h, q0, q1, u1, w1, Λ1, q2, checkbounds=true)[1]
 
 	if derivs
 		∂q2 = Symbolics.jacobian(d, q2, simplify = true)
 		dΛ1 = Symbolics.jacobian(d, Λ1, simplify = true)
 		dθ =  Symbolics.jacobian(d, [q0; q1; u1; w1; h])#, simplify = true)
 
-		expr[:∂q2] = build_function(∂q2, h, q0, q1, u1, w1, Λ1, q2)[1]
-		expr[:dΛ1] = build_function(dΛ1, h, q0, q1, u1, w1, Λ1, q2)[1]
-		expr[:dθ]  = build_function(dθ,  h, q0, q1, u1, w1, Λ1, q2)[1]
+		expr[:∂q2] = build_function(∂q2, h, q0, q1, u1, w1, Λ1, q2, checkbounds=true)[1]
+		expr[:dΛ1] = build_function(dΛ1, h, q0, q1, u1, w1, Λ1, q2, checkbounds=true)[1]
+		expr[:dθ]  = build_function(dθ,  h, q0, q1, u1, w1, Λ1, q2, checkbounds=true)[1]
 	end
 
 	return expr

@@ -30,8 +30,8 @@ function environment_2D(surf; cone = LinearizedCone)
 	ds = Symbolics.jacobian([s], q, simplify = true)
 	ds = reshape(ds, 1)
 
-	surf_fast = eval(Symbolics.build_function(s, q))
-	surf_grad_fast = eval(Symbolics.build_function(ds, q)[1])
+	surf_fast = eval(Symbolics.build_function(s, q, checkbounds=true))
+	surf_grad_fast = eval(Symbolics.build_function(ds, q, checkbounds=true)[1])
 
 	Environment{R2,cone}(surf_fast, surf_grad_fast)
 end
@@ -44,8 +44,8 @@ function environment_3D(surf; cone = LinearizedCone)
 	ds = Symbolics.jacobian([s], q, simplify = true)
 	ds = reshape(ds, 2)
 
-	surf_fast = eval(Symbolics.build_function(s, q))
-	surf_grad_fast = eval(Symbolics.build_function(ds, q)[1])
+	surf_fast = eval(Symbolics.build_function(s, q, checkbounds=true))
+	surf_grad_fast = eval(Symbolics.build_function(ds, q, checkbounds=true)[1])
 
 	Environment{R3,cone}(surf_fast, surf_grad_fast)
 end
