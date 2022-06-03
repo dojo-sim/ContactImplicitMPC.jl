@@ -7,8 +7,8 @@ include("trajopt_model_v2.jl")
 
 # ## horizon
 h = 0.05
-T = 90
-Tm = 10 # mid point for a swing / stance change
+T = 135
+Tm = 15 # mid point for a swing / stance change
 
 # ## centroidal_quadruped
 s = get_simulation("centroidal_quadruped", "flat_3D_lc", "flat")
@@ -57,7 +57,7 @@ qT = copy(q1)
 
 visualize!(vis, model, [qM2], Δt=h);
 
-h_step = 0.10
+h_step = 0.20
 qM0 = deepcopy(q1)
 qM0[0 .+ (1:3)] += [-0.02, 0.0, 0.0] # body
 
@@ -245,7 +245,7 @@ end
 tolerance = 1.0e-3
 p = DTO.solver(dyn, obj, cons, bnds,
     options=DTO.Options(
-        max_iter=1000,
+        max_iter=500,
         max_cpu_time=30000.0,
         tol=tolerance,
         constr_viol_tol=tolerance,
@@ -305,13 +305,6 @@ plot(timesteps, hcat(ηm_...)', labels="")
 ################################################################################
 # Trajectory Extension
 ################################################################################
-qm = [[qm_[1] for i=1:25]; qm_; [qm_[end] for i=1:50]]
-um = [[um_[1] for i=1:25]; um_; [um_[end] for i=1:50]]
-γm = [[γm_[1] for i=1:25]; γm_; [γm_[end] for i=1:50]]
-bm = [[bm_[1] for i=1:25]; bm_; [bm_[end] for i=1:50]]
-ψm = [[ψm_[1] for i=1:25]; ψm_; [ψm_[end] for i=1:50]]
-ηm = [[ηm_[1] for i=1:25]; ηm_; [ηm_[end] for i=1:50]]
-
 qm = [qm_; [qm_[end] for i=1:50]]
 um = [um_; [um_[end] for i=1:50]]
 γm = [γm_; [γm_[end] for i=1:50]]
@@ -321,5 +314,5 @@ bm = [bm_; [bm_[end] for i=1:50]]
 
 
 using JLD2
-@save joinpath(@__DIR__, "step_over_box_v2.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "step_over_box_v2.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "step_over_box_v3.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "step_over_box_v3.jld2") qm um γm bm ψm ηm μm hm

@@ -100,7 +100,7 @@ function ϕ_func(model::CentroidalQuadruped, env::Environment, q)
 end
 
 function elevation(x)
-	h_step = 0.10
+	h_step = 0.20
 	x_step = 0.25
 	e = h_step * (1 + tanh((x - x_step) * 200)) / 2
 	return e
