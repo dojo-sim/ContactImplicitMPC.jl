@@ -24,7 +24,7 @@ env = s.env
 # ## Reference Trajectory
 ref_traj = deepcopy(get_trajectory(s.model, s.env,
 	# joinpath(module_dir(), "src/dynamics/centroidal_quadruped/gaits/inplace_trot_v4.jld2"),
-	joinpath(@__DIR__, "reference/wall_stand_FL.jld2"),
+	joinpath(@__DIR__, "reference/wall_stand_FL_4.jld2"),
     load_type = :split_traj_alt))
 
 H = ref_traj.H
