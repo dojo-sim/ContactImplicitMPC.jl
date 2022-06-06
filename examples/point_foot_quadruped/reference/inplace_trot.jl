@@ -132,9 +132,9 @@ xuT = [qT; qT; Inf * ones(nθ); Inf * ones(nx); Inf * ones(model.nu)]
 ul = [-Inf * ones(model.nu); zeros(nu - model.nu)]
 uu = [Inf * ones(model.nu); Inf * ones(nu - model.nu)]
 
-bnd1 = DTO.Bound(nx, nu, xl=xl1, xu=xu1, ul=ul, uu=uu)
-bndt = DTO.Bound(nx + nθ + nx + model.nu, nu, xl=xlt, xu=xut, ul=ul, uu=uu)
-bndT = DTO.Bound(nx + nθ + nx + model.nu, 0, xl=xlT, xu=xuT)
+bnd1 = DTO.Bound(nx, nu, state_lower=xl1, state_upper=xu1, action_lower=ul, action_upper=uu)
+bndt = DTO.Bound(nx + nθ + nx + model.nu, nu, state_lower=xlt, state_upper=xut, action_lower=ul, action_upper=uu)
+bndT = DTO.Bound(nx + nθ + nx + model.nu, 0, state_lower=xlT, state_upper=xuT)
 bnds = [bnd1, [bndt for t = 2:T-1]..., bndT];
 
 cons = DTO.Constraint{Float64}[]

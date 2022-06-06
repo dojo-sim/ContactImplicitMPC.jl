@@ -1,6 +1,7 @@
 # ## model
 include("trajopt_model_wall_4feet.jl")
 include(joinpath(@__DIR__, "..", "..", "..", "src/dynamics/centroidal_quadruped_wall/visuals.jl"))
+@load joinpath(@__DIR__, "wall_stand_FL_4.jld2") qm um γm bm ψm ηm μm hm
 
 vis = Visualizer()
 render(vis)
@@ -33,25 +34,14 @@ foot_x = 0.17
 foot_y = 0.17
 
 function nominal_configuration(model::CentroidalQuadrupedWall)
-    x_shift = 0.0
-    [
-        0.0 + x_shift; 0.0; body_height;
-        0.0; 0.0; 0.0;
-        foot_x + x_shift; foot_y; 0.0;
-        foot_x + x_shift;-foot_y; 0.0;
-       -foot_x + x_shift; foot_y; 0.0;
-       -foot_x + x_shift;-foot_y; 0.0;
-    ]
+    qm[end]
 end
 
 function final_configuration(model::CentroidalQuadrupedWall)
     x_shift = 0.0
-    pitch_shift = -0.1 * π
     [
-        0.0 + x_shift + 0.05; 0.0; body_height;
-        0.0; pitch_shift; 0.0;
-        0.25; foot_y; body_height;
-        foot_x + x_shift;-foot_y; 0.0;
+        qm[end][1:9];
+        0.25;-foot_y; body_height;
        -foot_x + x_shift; foot_y; 0.0;
        -foot_x + x_shift;-foot_y; 0.0;
     ]
@@ -70,12 +60,13 @@ xM = [qM; qM]
 xT = [qT; qT]
 x_ref = [q_ref; q_ref]
 
-q1[7]
-rad = qT[7] - q1[7]
+q1[10]
+rad = qT[10] - q1[10]
 θ_rad = range(1.0 * π, stop = 0.5 * π, length=T)
-foot_arc_x = rad * cos.(θ_rad) .+ q1[7] .+ rad
+foot_arc_x = rad * cos.(θ_rad) .+ q1[10] .+ rad
 foot_arc_z = rad * sin.(θ_rad) .* body_height ./ rad# .+ q1[9]
 
+qT[10]
 plot(foot_arc_x, foot_arc_z, aspect_ratio=:equal)
 
 # ## objective
@@ -84,11 +75,11 @@ for t = 1:T
     if t == 1
         push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
-            J += 0.5 * transpose(x[1:6] - x_ref[1:6]) * Diagonal(1000.0 * ones(6)) * (x[1:6] - x_ref[1:6])
+            J += 0.5 * transpose(x[1:6] - x_ref[1:6]) * Diagonal(10000.0 * ones(6)) * (x[1:6] - x_ref[1:6])
 
-            J += 0.5 * 10000.0 * (x[7] - foot_arc_x[t])^2
-            J += 0.5 * 10000.0 * (x[8] - foot_y)^2
-            J += 0.5 * 10000.0 * (x[9] - foot_arc_z[t])^2
+            J += 0.5 * 10000.0 * (x[10] - foot_arc_x[t])^2
+            J += 0.5 * 10000.0 * (x[11] + foot_y)^2
+            J += 0.5 * 10000.0 * (x[12] - foot_arc_z[t])^2
 
             J += 0.5 * transpose(u) * Diagonal([1.0 * ones(model.nu); zeros(nu - model.nu)]) * u
             J += 10000.0 * u[end] # slack
@@ -100,13 +91,14 @@ for t = 1:T
     elseif t == T
         push!(obj, DTO.Cost((x, u, w) -> begin
             J = 0.0
-            J += 0.5 * transpose(x[1:6] - xT[1:6]) * Diagonal(1000.0 * ones(6)) * (x[1:6] - xT[1:6])
+            J += 0.5 * transpose(x[1:6] - xT[1:6]) * Diagonal(10000.0 * ones(6)) * (x[1:6] - xT[1:6])
 
-            J += 0.5 * 10000.0 * (x[7] - foot_arc_x[t])^2
-            J += 0.5 * 10000.0 * (x[8] - foot_y)^2
-            J += 0.5 * 10000.0 * (x[9] - foot_arc_z[t])^2
+            J += 0.5 * 10000.0 * (x[10] - foot_arc_x[t])^2
+            J += 0.5 * 10000.0 * (x[11] + foot_y)^2
+            J += 0.5 * 10000.0 * (x[12] - foot_arc_z[t])^2
 
             J -= 100.0 * x[36 + model.nu + 5]
+            J -= 100.0 * x[36 + model.nu + 6]
             return J
         end, nx + nθ, 0))
     else
@@ -117,12 +109,11 @@ for t = 1:T
             w = (u - u_prev) ./ h
             J += 0.5 * 1.0 * dot(w[1:end-1], w[1:end-1])
 
-            J += 0.5 * transpose(x[1:6] - x_ref[1:6]) * Diagonal(1000.0 * ones(6)) * (x[1:6] - x_ref[1:6])
+            J += 0.5 * transpose(x[1:6] - x_ref[1:6]) * Diagonal(10000.0 * ones(6)) * (x[1:6] - x_ref[1:6])
 
-            J += 0.5 * 10000.0 * (x[7] - foot_arc_x[t])^2
-            J += 0.5 * 10000.0 * (x[8] - foot_y)^2
-
-            J += 0.5 * 10000.0 * (x[9] - foot_arc_z[t])^2
+            J += 0.5 * 10000.0 * (x[10] - foot_arc_x[t])^2
+            J += 0.5 * 10000.0 * (x[11] + foot_y)^2
+            J += 0.5 * 10000.0 * (x[12] - foot_arc_z[t])^2
 
             J += 0.5 * transpose(u) * Diagonal([1.0 * ones(model.nu); zeros(nu - model.nu)]) * u
             J += 10000.0 * u[end] # slack
@@ -204,7 +195,6 @@ function constraints_1(x, u, w)
      contact_constraints_inequality_1(model, env, h, x, u, w);
      x[6 .+ (1:12)] - q1[6 .+ (1:12)];
      x[18 + 6 .+ (1:12)] - q1[6 .+ (1:12)];
-    #  x[18 + 3] - q1[3];
     ]
 end
 
@@ -214,8 +204,11 @@ function constraints_t(x, u, w)
      contact_constraints_equality(model, env, h, x, u, w);
      # inequality (64)
      contact_constraints_inequality_t(model, env, h, x, u, w);
-     x[6 .+ (4:12)] - q1[6 .+ (4:12)];
-     x[18 + 6 .+ (4:12)] - q1[6 .+ (4:12)];
+     x[6 .+ (1:3)] - q1[6 .+ (1:3)];
+     x[6 .+ (7:12)] - q1[6 .+ (7:12)];
+     x[18 + 6 .+ (1:3)] - q1[6 .+ (1:3)];
+     x[18 + 6 .+ (7:12)] - q1[6 .+ (7:12)];
+    #  x[18 + 6 .+ (4:12)] - q1[6 .+ (4:12)];
     #  x[18 + 3] - q1[3];
     ]
 end
@@ -224,13 +217,17 @@ function constraints_T(x, u, w)
     [
      # inequality (16)
      contact_constraints_inequality_T(model, env, h, x, u, w);
-     x[6 .+ (4:12)] - qT[6 .+ (4:12)];
-     x[18 + 6 .+ (4:12)] - qT[6 .+ (4:12)];
-     x[18 + 6 .+ 1] - qT[6 + 1];
-     x[18 + 6 .+ 3] - qT[6 + 3];
-    #  x[18 + 2] - qT[2];
-    #  x[18 + 3] - qT[3];
-    x[18 .+ (1:3)] - qT[1:3];
+     x[6 .+ (1:3)] - qT[6 .+ (1:3)];
+     x[6 .+ (7:12)] - qT[6 .+ (7:12)];
+
+     x[18 .+ (1:3)] - qT[1:3];
+     x[18 + 6 .+ (1:3)] - qT[6 .+ (1:3)];
+     x[18 + 6 .+ (7:12)] - qT[6 .+ (7:12)];
+     x[18 + 9 .+ 1] - qT[9 + 1];
+     x[18 + 9 .+ 2] - qT[9 + 2];
+     x[18 + 9 .+ 3] - qT[9 + 3];
+     x[0 .+ (3:6)] - qT[3:6];
+     x[18 .+ (3:6)] - qT[3:6];
     ]
 end
 
@@ -244,7 +241,7 @@ direct_solver = DTO.Solver(dyn, obj, cons, bnds,
     options=DTO.Options(
         tol=1.0e-3,
         constr_viol_tol=1.0e-3,
-        max_iter=1000,
+        max_iter=3000,
         ))
 
 # ## initialize
@@ -263,12 +260,16 @@ x_sol, u_sol = DTO.get_trajectory(direct_solver)
 maximum([u[nu] for u in u_sol[1:end-1]])
 
 plot([x_sol[t][36 + model.nu + 5] for t = 2:T])
+plot([x_sol[t][36 + model.nu + 6] for t = 2:T])
 
 # plot([x[18 + 7] for x in x_sol], [x[18 + 8] for x in x_sol])
 x_sol[end][36 + model.nu + 5]
+x_sol[end][36 + model.nu + 6]
 x_sol[end][36 + model.nu .+ (1:4)]
 
 # ## visualize
+vis = Visualizer()
+render(vis)
 # q_sol = state_to_configuration([x[1:nx] for x in x_sol])
 visualize!(vis, model, [x_sol[1][1:18], [x[18 .+ (1:18)] for x in x_sol]...], Δt=h)
 
