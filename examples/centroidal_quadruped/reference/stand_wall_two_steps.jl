@@ -63,7 +63,7 @@ function middle2_configuration(model::CentroidalQuadrupedWall)
     x_shift = 0.0
     pitch_shift = -0.05 * π
     [
-        -0.05; 0.02; body_height;
+        0.03; 0.02; body_height;
         0.0; pitch_shift; 0.0;
         0.25; foot_y; body_height;
         foot_x + x_shift;-foot_y; 0.0;
@@ -76,7 +76,7 @@ function middle3_configuration(model::CentroidalQuadrupedWall)
 	x_shift = 0.0
     pitch_shift = -0.1 * π
     [
-       -0.05; 0.03; body_height;
+        0.03; 0.03; body_height;
         0.0; pitch_shift; 0.0;
         0.25; foot_y; body_height;
         0.25;-foot_y; body_height;
@@ -86,7 +86,7 @@ function middle3_configuration(model::CentroidalQuadrupedWall)
 end
 
 function final_configuration(model::CentroidalQuadrupedWall)
-    x_shift = 0.0
+    x_shift = 0.02
     pitch_shift = -0.1 * π
     [
         0.0 + x_shift + 0.00; 0.0; body_height;
@@ -183,7 +183,7 @@ for t = 1:T
 
             J += 0.5 * transpose(u) * Diagonal([1.0 * ones(model.nu); zeros(nu - model.nu)]) * u
             J += 10000.0 * u[end] # slack
-            J += 0.5 * transpose(u[model.nu + 5 .+ (1:25)]) * Diagonal(1.0e-3 * ones(25)) * u[model.nu + 5 .+ (1:25)]
+            J += 0.005 * transpose(u[model.nu + 5 .+ (1:25)]) * Diagonal(1.0e-3 * ones(25)) * u[model.nu + 5 .+ (1:25)]
 
             return J
         end, nx + nθ, nu))
@@ -381,8 +381,8 @@ visualize!(vis, model, qm, Δt=h)
 
 
 using JLD2
-@save joinpath(@__DIR__, "stand_wall_two_steps_v0.jld2") qm um γm bm ψm ηm μm hm
-@load joinpath(@__DIR__, "stand_wall_two_steps_v0.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "stand_wall_two_steps_v1.jld2") qm um γm bm ψm ηm μm hm
+@load joinpath(@__DIR__, "stand_wall_two_steps_v1.jld2") qm um γm bm ψm ηm μm hm
 
 
 
@@ -422,3 +422,5 @@ using JLD2
 # using JLD2
 # @save joinpath(@__DIR__, "wall_stand_FL.jld2") qm um γm bm ψm ηm μm hm
 # @load joinpath(@__DIR__, "wall_stand_FL.jld2") qm um γm bm ψm ηm μm hm
+
+convert_frames_to_video_and_gif("centroidal_wall_2_steps")
