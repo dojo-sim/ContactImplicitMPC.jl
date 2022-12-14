@@ -18,7 +18,6 @@ mutable struct CIMPC{T,NQ,NU,NW,NC,NB,NZ,Nθ,R,RZ,Rθ,Nν,W,FC,NQQ,NJ,NR,NI,OB,L
 	traj::ContactTraj{T,NQ,NU,NW,NC,NB,NZ,Nθ}
 	traj_cache::ContactTraj{T,NQ,NU,NW,NC,NB,NZ,Nθ}
 	ref_traj::ContactTraj{T,NQ,NU,NW,NC,NB,NZ,Nθ}
-	K_traj::Vector{Matrix{T}}
 	im_traj::ImplicitTrajectory{T,R,RZ,Rθ,NQQ}
 	im_traj_cache::ImplicitTrajectory{T,R,RZ,Rθ,NQQ}
 	H::Int
@@ -86,14 +85,10 @@ function ci_mpc_policy(traj::ContactTraj, s::Simulation{T}, obj::Objective;
 
 	window = zeros(Int, H_mpc + 2)
 
-	K_traj = reference_gains(s, traj, obj,
-		U_scaling=mpc_opts.control_gain_scaling,
-		V_scaling=mpc_opts.velocity_gain_scaling)
-
 	total_time_reference = traj.h * (traj.H - 1)
 	times_reference = Array(range(0, stop=total_time_reference, length=traj.H))
 
-	CIMPC(zeros(s.model.nu), traj, traj_cache, ref_traj, K_traj, im_traj, im_traj_cache,
+	CIMPC(zeros(s.model.nu), traj, traj_cache, ref_traj, im_traj, im_traj_cache,
 		H_mpc, stride, altitude, ϕ, [κ_mpc], newton, newton_mode, s, copy(ref_traj.q[1]),
 		N_sample, [N_sample], window, mpc_opts,
 		0.0, 0.0,
